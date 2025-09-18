@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Play, Zap, Globe, Shield } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
 import heroImage from "@/assets/hero-image.jpg";
 
 const HeroSection = () => {
+  const { t } = useTranslation();
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
@@ -26,16 +28,15 @@ const HeroSection = () => {
 
           {/* Main Heading */}
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-            Empower Your
+            {t('hero.title')}
             <span className="block bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent">
-              Creative Journey
+              {t('hero.subtitle')}
             </span>
           </h1>
 
           {/* Subtitle */}
           <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed">
-            The ultimate platform for content creators and subscribers. 
-            Build your community, monetize your passion, and connect with fans worldwide.
+            {t('hero.description')}
           </p>
 
           {/* Feature Pills */}
@@ -57,11 +58,11 @@ const HeroSection = () => {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button variant="hero" size="xl" className="shadow-[var(--shadow-premium)]">
-              Start Creating Today
+              {t('hero.joinAsCreator')}
             </Button>
             <Button variant="creator" size="xl" className="bg-card/50 backdrop-blur-sm">
               <Play className="h-5 w-5 mr-2" />
-              Watch Demo
+              {t('hero.exploreContent')}
             </Button>
           </div>
 
@@ -69,19 +70,19 @@ const HeroSection = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 pt-8 border-t border-border">
             <div className="text-center">
               <div className="text-2xl md:text-3xl font-bold text-primary mb-2">1M+</div>
-              <div className="text-muted-foreground">Active Creators</div>
+              <div className="text-muted-foreground">{t('hero.creators')}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl md:text-3xl font-bold text-primary mb-2">50M+</div>
-              <div className="text-muted-foreground">Subscribers</div>
+              <div className="text-muted-foreground">{t('hero.subscribers')}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl md:text-3xl font-bold text-primary mb-2">$2B+</div>
-              <div className="text-muted-foreground">Creator Earnings</div>
+              <div className="text-muted-foreground">{t('hero.earnings')}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl md:text-3xl font-bold text-primary mb-2">190+</div>
-              <div className="text-muted-foreground">Countries</div>
+              <div className="text-muted-foreground">Pays</div>
             </div>
           </div>
         </div>

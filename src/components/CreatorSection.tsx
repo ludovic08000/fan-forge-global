@@ -10,19 +10,22 @@ import {
   Zap,
   TrendingUp
 } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
 import dashboardImage from "@/assets/dashboard-preview.jpg";
 
 const CreatorSection = () => {
+  const { t } = useTranslation();
+  
   const features = [
     {
       icon: DollarSign,
-      title: "Multiple Revenue Streams",
-      description: "Subscriptions, tips, pay-per-view, and custom pricing models"
+      title: t('creator.monetization.title'),
+      description: t('creator.monetization.description')
     },
     {
       icon: BarChart3,
-      title: "Advanced Analytics",
-      description: "Track earnings, engagement, and audience demographics in real-time"
+      title: t('creator.analytics.title'),
+      description: t('creator.analytics.description')
     },
     {
       icon: Users,
@@ -31,8 +34,8 @@ const CreatorSection = () => {
     },
     {
       icon: Camera,
-      title: "Content Studio",
-      description: "Professional tools for photos, videos, stories, and live streaming"
+      title: t('creator.upload.title'),
+      description: t('creator.upload.description')
     },
     {
       icon: Shield,
@@ -57,9 +60,9 @@ const CreatorSection = () => {
           </div>
           
           <h2 className="text-3xl md:text-5xl font-bold mb-6">
-            Build Your Empire.
+            {t('creator.title')}
             <span className="block bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent">
-              Monetize Your Passion.
+              {t('creator.subtitle')}
             </span>
           </h2>
           

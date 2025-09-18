@@ -1,9 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Menu, X, User, Crown } from "lucide-react";
+import { Menu, X, User, Crown, Globe } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
+import type { Language } from "@/hooks/useLanguageDetection";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const { language, changeLanguage, t } = useTranslation();
+
+  const languages: { code: Language; name: string; flag: string }[] = [
+    { code: 'fr', name: 'Français', flag: '🇫🇷' },
+    { code: 'en', name: 'English', flag: '🇺🇸' },
+    { code: 'es', name: 'Español', flag: '🇪🇸' },
+    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+    { code: 'it', name: 'Italiano', flag: '🇮🇹' }
+  ];
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
@@ -22,27 +34,56 @@ const Header = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <a href="#creators" className="text-foreground hover:text-primary transition-colors">
-              For Creators
+              {t('header.forCreators')}
             </a>
             <a href="#features" className="text-foreground hover:text-primary transition-colors">
-              Features
+              {t('header.features')}
             </a>
             <a href="#pricing" className="text-foreground hover:text-primary transition-colors">
-              Pricing
+              {t('header.pricing')}
             </a>
             <a href="#support" className="text-foreground hover:text-primary transition-colors">
-              Support
+              {t('header.support')}
             </a>
           </nav>
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
+            {/* Language Selector */}
+            <div className="relative">
+              <button
+                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+                className="flex items-center space-x-1 text-foreground hover:text-primary transition-colors p-2"
+              >
+                <Globe className="h-4 w-4" />
+                <span className="text-sm">{languages.find(l => l.code === language)?.flag}</span>
+              </button>
+              {isLangMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 bg-background border border-border rounded-lg shadow-lg min-w-[150px] z-50">
+                  {languages.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => {
+                        changeLanguage(lang.code);
+                        setIsLangMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center space-x-2 px-3 py-2 text-sm hover:bg-muted transition-colors ${
+                        language === lang.code ? 'bg-muted' : ''
+                      }`}
+                    >
+                      <span>{lang.flag}</span>
+                      <span>{lang.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <Button variant="ghost" size="sm">
               <User className="h-4 w-4 mr-2" />
-              Sign In
+              {t('header.signIn')}
             </Button>
             <Button variant="premium" size="sm">
-              Get Started
+              {t('header.getStarted')}
             </Button>
           </div>
 
@@ -60,24 +101,45 @@ const Header = () => {
           <div className="md:hidden py-4 border-t border-border">
             <nav className="flex flex-col space-y-4">
               <a href="#creators" className="text-foreground hover:text-primary transition-colors">
-                For Creators
+                {t('header.forCreators')}
               </a>
               <a href="#features" className="text-foreground hover:text-primary transition-colors">
-                Features
+                {t('header.features')}
               </a>
               <a href="#pricing" className="text-foreground hover:text-primary transition-colors">
-                Pricing
+                {t('header.pricing')}
               </a>
               <a href="#support" className="text-foreground hover:text-primary transition-colors">
-                Support
+                {t('header.support')}
               </a>
-              <div className="flex flex-col space-y-2 pt-4">
+              {/* Mobile Language Selector */}
+              <div className="border-t border-border pt-4">
+                <div className="flex items-center space-x-2 mb-2 text-sm text-muted-foreground">
+                  <Globe className="h-4 w-4" />
+                  <span>Langue / Language</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {languages.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => changeLanguage(lang.code)}
+                      className={`flex items-center space-x-2 px-2 py-1 text-sm rounded transition-colors ${
+                        language === lang.code ? 'bg-muted' : 'hover:bg-muted'
+                      }`}
+                    >
+                      <span>{lang.flag}</span>
+                      <span>{lang.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-col space-y-2 pt-4 border-t border-border">
                 <Button variant="ghost" size="sm">
                   <User className="h-4 w-4 mr-2" />
-                  Sign In
+                  {t('header.signIn')}
                 </Button>
                 <Button variant="premium" size="sm">
-                  Get Started
+                  {t('header.getStarted')}
                 </Button>
               </div>
             </nav>

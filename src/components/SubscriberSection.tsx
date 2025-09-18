@@ -10,13 +10,16 @@ import {
   Shield,
   Globe
 } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 const SubscriberSection = () => {
+  const { t } = useTranslation();
+  
   const benefits = [
     {
       icon: Search,
-      title: "Discover Amazing Content",
-      description: "AI-powered recommendations to find creators you'll love"
+      title: t('subscriber.discovery.title'),
+      description: t('subscriber.discovery.description')
     },
     {
       icon: Bell,
@@ -40,8 +43,8 @@ const SubscriberSection = () => {
     },
     {
       icon: Shield,
-      title: "Privacy Protected",
-      description: "Your data and viewing habits are completely private and secure"
+      title: t('subscriber.privacy.title'),
+      description: t('subscriber.privacy.description')
     }
   ];
 
@@ -65,9 +68,9 @@ const SubscriberSection = () => {
           </div>
           
           <h2 className="text-3xl md:text-5xl font-bold mb-6">
-            Discover Content.
+            {t('subscriber.title')}
             <span className="block bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent">
-              Support Creators.
+              {t('subscriber.subtitle')}
             </span>
           </h2>
           

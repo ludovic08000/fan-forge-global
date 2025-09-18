@@ -1,6 +1,8 @@
 import { Crown, Twitter, Instagram, Youtube, Linkedin } from "lucide-react";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 const Footer = () => {
+  const { t } = useTranslation();
   return (
     <footer className="bg-card/50 backdrop-blur-sm border-t border-border">
       <div className="container mx-auto px-4 lg:px-8 py-16">
