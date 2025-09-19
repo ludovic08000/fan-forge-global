@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import CreatorSection from "@/components/CreatorSection";
 import SubscriberSection from "@/components/SubscriberSection";
+import PopularProfiles from "@/components/PopularProfiles";
 import Footer from "@/components/Footer";
 
 const Index = () => {
@@ -12,6 +13,7 @@ const Index = () => {
         <HeroSection />
         <CreatorSection />
         <SubscriberSection />
+        <PopularProfiles />
       </main>
       <Footer />
     </div>

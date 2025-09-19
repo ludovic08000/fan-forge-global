@@ -1,13 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Menu, X, User, Crown, Globe } from "lucide-react";
+import { Menu, X, User, Crown, Globe, LogOut } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { Link, useNavigate } from "react-router-dom";
 import type { Language } from "@/hooks/useLanguageDetection";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const { language, changeLanguage, t } = useTranslation();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const languages: { code: Language; name: string; flag: string }[] = [
     { code: 'fr', name: 'Français', flag: '🇫🇷' },
@@ -78,13 +82,39 @@ const Header = () => {
                 </div>
               )}
             </div>
-            <Button variant="ghost" size="sm">
-              <User className="h-4 w-4 mr-2" />
-              {t('header.signIn')}
-            </Button>
-            <Button variant="premium" size="sm">
-              {t('header.getStarted')}
-            </Button>
+            
+            {user ? (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/dashboard">
+                    <User className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </Link>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={signOut}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Déconnexion
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/auth">
+                    <User className="h-4 w-4 mr-2" />
+                    {t('header.signIn')}
+                  </Link>
+                </Button>
+                <Button variant="premium" size="sm" asChild>
+                  <Link to="/auth">
+                    {t('header.getStarted')}
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -134,13 +164,38 @@ const Header = () => {
                 </div>
               </div>
               <div className="flex flex-col space-y-2 pt-4 border-t border-border">
-                <Button variant="ghost" size="sm">
-                  <User className="h-4 w-4 mr-2" />
-                  {t('header.signIn')}
-                </Button>
-                <Button variant="premium" size="sm">
-                  {t('header.getStarted')}
-                </Button>
+                {user ? (
+                  <>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to="/dashboard">
+                        <User className="h-4 w-4 mr-2" />
+                        Dashboard
+                      </Link>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={signOut}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Déconnexion
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to="/auth">
+                        <User className="h-4 w-4 mr-2" />
+                        {t('header.signIn')}
+                      </Link>
+                    </Button>
+                    <Button variant="premium" size="sm" asChild>
+                      <Link to="/auth">
+                        {t('header.getStarted')}
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </nav>
           </div>
