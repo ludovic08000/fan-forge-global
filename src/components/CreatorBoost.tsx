@@ -25,8 +25,7 @@ const BOOST_OPTIONS = [
     duration: '24h',
     icon: Clock,
     description: 'Visibilité maximale pendant une journée complète',
-    color: 'text-blue-500',
-    popular: true
+    color: 'text-blue-500'
   },
   {
     id: '1week',
@@ -122,16 +121,8 @@ const CreatorBoost: React.FC<CreatorBoostProps> = ({ currentBoostUntil, onBoostU
               return (
                 <div
                   key={option.id}
-                  className={`relative p-4 border rounded-lg transition-all hover:shadow-md ${
-                    option.popular ? 'border-primary bg-primary/5' : 'border-border'
-                  }`}
+                  className="relative p-4 border rounded-lg transition-all hover:shadow-md border-border"
                 >
-                  {option.popular && (
-                    <Badge className="absolute -top-2 left-4 bg-primary text-primary-foreground">
-                      Populaire
-                    </Badge>
-                  )}
-                  
                   <div className="space-y-3">
                     <div className="flex items-center space-x-2">
                       <Icon className={`h-5 w-5 ${option.color}`} />
@@ -150,7 +141,6 @@ const CreatorBoost: React.FC<CreatorBoostProps> = ({ currentBoostUntil, onBoostU
                       onClick={() => handleBoostPurchase(option.id)}
                       disabled={loading === option.id || isCurrentlyBoosted}
                       className="w-full"
-                      variant={option.popular ? "default" : "outline"}
                     >
                       {loading === option.id ? (
                         "Redirection..."
