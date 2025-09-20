@@ -28,6 +28,7 @@ export type Database = {
           like_count: number | null
           price: number | null
           status: Database["public"]["Enums"]["content_status"] | null
+          tags: string[] | null
           thumbnail_url: string | null
           title: string
           updated_at: string | null
@@ -46,6 +47,7 @@ export type Database = {
           like_count?: number | null
           price?: number | null
           status?: Database["public"]["Enums"]["content_status"] | null
+          tags?: string[] | null
           thumbnail_url?: string | null
           title: string
           updated_at?: string | null
@@ -64,6 +66,7 @@ export type Database = {
           like_count?: number | null
           price?: number | null
           status?: Database["public"]["Enums"]["content_status"] | null
+          tags?: string[] | null
           thumbnail_url?: string | null
           title?: string
           updated_at?: string | null
@@ -580,6 +583,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
@@ -590,6 +613,46 @@ export type Database = {
       is_subscribed_to_creator: {
         Args: { _creator_id: string; _subscriber_id: string }
         Returns: boolean
+      }
+      search_creators: {
+        Args: {
+          category_filter?: string
+          featured_only?: boolean
+          limit_count?: number
+          offset_count?: number
+          price_filter?: string
+          search_term?: string
+        }
+        Returns: {
+          avatar_url: string
+          bio: string
+          category: string
+          created_at: string
+          currency: string
+          display_name: string
+          id: string
+          is_featured: boolean
+          is_verified: boolean
+          similarity_score: number
+          stage_name: string
+          subscription_price: number
+          total_content: number
+          total_subscribers: number
+          user_id: string
+          username: string
+        }[]
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
       }
     }
     Enums: {

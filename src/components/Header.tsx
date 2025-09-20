@@ -1,206 +1,140 @@
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { Menu, X, User, Crown, Globe, LogOut } from "lucide-react";
-import { useTranslation } from "@/contexts/TranslationContext";
-import { useAuth } from "@/contexts/AuthContext";
-import { Link, useNavigate } from "react-router-dom";
-import type { Language } from "@/hooks/useLanguageDetection";
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { Menu, X, User, LogOut, Settings, Crown } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import SearchBar from '@/components/SearchBar';
 
-const Header = () => {
+const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
-  const { language, changeLanguage, t } = useTranslation();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
-  const languages: { code: Language; name: string; flag: string }[] = [
-    { code: 'fr', name: 'Français', flag: '🇫🇷' },
-    { code: 'en', name: 'English', flag: '🇺🇸' },
-    { code: 'es', name: 'Español', flag: '🇪🇸' },
-    { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-    { code: 'it', name: 'Italiano', flag: '🇮🇹' }
-  ];
-
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
-      <div className="container mx-auto px-4 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="bg-gradient-to-r from-primary via-primary-glow to-primary p-2 rounded-lg">
-              <Crown className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent">
-              CreatorHub
-            </span>
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Link to="/" className="font-bold text-xl">
+            ContentHub
+          </Link>
+          
+          {/* Search Bar - Hidden on mobile */}
+          <div className="hidden md:block flex-1 max-w-lg">
+            <SearchBar />
           </div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <a href="#creators" className="text-foreground hover:text-primary transition-colors">
-              {t('header.forCreators')}
-            </a>
-            <a href="#features" className="text-foreground hover:text-primary transition-colors">
-              {t('header.features')}
-            </a>
-            <a href="#pricing" className="text-foreground hover:text-primary transition-colors">
-              {t('header.pricing')}
-            </a>
-            <a href="#support" className="text-foreground hover:text-primary transition-colors">
-              {t('header.support')}
-            </a>
-          </nav>
-
-          {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
-            {/* Language Selector */}
-            <div className="relative">
-              <button
-                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
-                className="flex items-center space-x-1 text-foreground hover:text-primary transition-colors p-2"
-              >
-                <Globe className="h-4 w-4" />
-                <span className="text-sm">{languages.find(l => l.code === language)?.flag}</span>
-              </button>
-              {isLangMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 bg-background border border-border rounded-lg shadow-lg min-w-[150px] z-50">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => {
-                        changeLanguage(lang.code);
-                        setIsLangMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center space-x-2 px-3 py-2 text-sm hover:bg-muted transition-colors ${
-                        language === lang.code ? 'bg-muted' : ''
-                      }`}
-                    >
-                      <span>{lang.flag}</span>
-                      <span>{lang.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            {user ? (
-              <>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/dashboard">
-                    <User className="h-4 w-4 mr-2" />
-                    Dashboard
-                  </Link>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={signOut}
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Déconnexion
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/auth">
-                    <User className="h-4 w-4 mr-2" />
-                    {t('header.signIn')}
-                  </Link>
-                </Button>
-                <Button variant="premium" size="sm" asChild>
-                  <Link to="/auth">
-                    {t('header.getStarted')}
-                  </Link>
-                </Button>
-              </>
-            )}
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 text-foreground hover:text-primary transition-colors"
-          >
-            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
         </div>
 
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-border">
-            <nav className="flex flex-col space-y-4">
-              <a href="#creators" className="text-foreground hover:text-primary transition-colors">
-                {t('header.forCreators')}
-              </a>
-              <a href="#features" className="text-foreground hover:text-primary transition-colors">
-                {t('header.features')}
-              </a>
-              <a href="#pricing" className="text-foreground hover:text-primary transition-colors">
-                {t('header.pricing')}
-              </a>
-              <a href="#support" className="text-foreground hover:text-primary transition-colors">
-                {t('header.support')}
-              </a>
-              {/* Mobile Language Selector */}
-              <div className="border-t border-border pt-4">
-                <div className="flex items-center space-x-2 mb-2 text-sm text-muted-foreground">
-                  <Globe className="h-4 w-4" />
-                  <span>Langue / Language</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => changeLanguage(lang.code)}
-                      className={`flex items-center space-x-2 px-2 py-1 text-sm rounded transition-colors ${
-                        language === lang.code ? 'bg-muted' : 'hover:bg-muted'
-                      }`}
-                    >
-                      <span>{lang.flag}</span>
-                      <span>{lang.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex flex-col space-y-2 pt-4 border-t border-border">
-                {user ? (
-                  <>
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to="/dashboard">
-                        <User className="h-4 w-4 mr-2" />
-                        Dashboard
-                      </Link>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={signOut}
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Déconnexion
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link to="/auth">
-                        <User className="h-4 w-4 mr-2" />
-                        {t('header.signIn')}
-                      </Link>
-                    </Button>
-                    <Button variant="premium" size="sm" asChild>
-                      <Link to="/auth">
-                        {t('header.getStarted')}
-                      </Link>
-                    </Button>
-                  </>
-                )}
-              </div>
-            </nav>
-          </div>
-        )}
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center space-x-6">
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.user_metadata?.avatar_url} alt={user.email} />
+                    <AvatarFallback>
+                      {user.email?.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard" className="flex items-center">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Tableau de bord</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Se déconnecter</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <Button variant="ghost" asChild>
+                <Link to="/auth">Connexion</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/auth">Inscription</Link>
+              </Button>
+            </div>
+          )}
+        </nav>
+
+        {/* Mobile menu button */}
+        <Button
+          variant="ghost"
+          className="md:hidden h-9 w-9 p-0"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+        >
+          {isMenuOpen ? (
+            <X className="h-4 w-4" />
+          ) : (
+            <Menu className="h-4 w-4" />
+          )}
+        </Button>
       </div>
+
+      {/* Mobile Menu */}
+      {isMenuOpen && (
+        <div className="md:hidden border-t bg-background">
+          <div className="container mx-auto px-4 py-4">
+            {/* Mobile Search Bar */}
+            <div className="mb-4">
+              <SearchBar />
+            </div>
+            
+            <div className="space-y-2">
+              <Link 
+                to="/" 
+                className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Accueil
+              </Link>
+              {!user ? (
+                <>
+                  <Link 
+                    to="/auth" 
+                    className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Connexion
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link 
+                    to="/dashboard" 
+                    className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Tableau de bord
+                  </Link>
+                  <button
+                    onClick={() => {
+                      signOut();
+                      setIsMenuOpen(false);
+                    }}
+                    className="block w-full text-left px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Déconnexion
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
