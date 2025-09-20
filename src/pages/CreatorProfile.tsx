@@ -169,30 +169,51 @@ const CreatorProfile: React.FC = () => {
 
     if (!creator) return;
 
-    try {
-      // Créer l'abonnement dans la base de données
-      const { error } = await supabase
-        .from('subscriptions')
-        .insert({
-          subscriber_id: user.id,
-          creator_id: creator.id,
-          price: creator.subscription_price,
-          currency: creator.currency
+    if (creator.subscription_price <= 0) {
+      // Abonnement gratuit
+      try {
+        const { error } = await supabase
+          .from('subscriptions')
+          .insert({
+            subscriber_id: user.id,
+            creator_id: creator.id,
+            price: 0,
+            currency: creator.currency
+          });
+
+        if (error) {
+          if (error.code === '23505') {
+            toast.error('Vous êtes déjà abonné à ce créateur');
+          } else {
+            throw error;
+          }
+          return;
+        }
+
+        setIsSubscribed(true);
+        toast.success('Abonnement gratuit créé avec succès !');
+      } catch (error: any) {
+        toast.error('Erreur lors de l\'abonnement : ' + error.message);
+      }
+    } else {
+      // Abonnement payant - rediriger vers Stripe
+      try {
+        const { data, error } = await supabase.functions.invoke('create-creator-checkout', {
+          body: { creatorId: creator.id },
+          headers: {
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
         });
 
-      if (error) {
-        if (error.code === '23505') { // Unique violation
-          toast.error('Vous êtes déjà abonné à ce créateur');
-        } else {
-          throw error;
-        }
-        return;
-      }
+        if (error) throw error;
 
-      setIsSubscribed(true);
-      toast.success('Abonnement créé avec succès !');
-    } catch (error: any) {
-      toast.error('Erreur lors de l\'abonnement : ' + error.message);
+        if (data.url) {
+          window.open(data.url, '_blank');
+        }
+      } catch (error: any) {
+        console.error('Checkout error:', error);
+        toast.error('Erreur lors de la création du checkout : ' + error.message);
+      }
     }
   };
 
@@ -333,36 +354,47 @@ const CreatorProfile: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="space-y-3">
-                    <Button
-                      variant={isSubscribed ? "outline" : "premium"}
-                      className="w-full"
-                      onClick={handleSubscribe}
-                      disabled={isSubscribed}
-                    >
-                      {isSubscribed ? (
-                        <>
-                          <Crown className="h-4 w-4 mr-2" />
-                          Abonné
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="h-4 w-4 mr-2" />
-                          S'abonner • {formatPrice(creator.subscription_price)}
-                        </>
-                      )}
-                    </Button>
+                   {/* Action Buttons */}
+                   <div className="space-y-3">
+                     {creator.subscription_price > 0 ? (
+                       <Button
+                         variant={isSubscribed ? "outline" : "premium"}
+                         className="w-full"
+                         onClick={handleSubscribe}
+                         disabled={isSubscribed}
+                       >
+                         {isSubscribed ? (
+                           <>
+                             <Crown className="h-4 w-4 mr-2" />
+                             Abonné
+                           </>
+                         ) : (
+                           <>
+                             <Lock className="h-4 w-4 mr-2" />
+                             S'abonner • {formatPrice(creator.subscription_price)}/mois
+                           </>
+                         )}
+                       </Button>
+                     ) : (
+                       <Button
+                         variant="outline"
+                         className="w-full"
+                         disabled
+                       >
+                         <Crown className="h-4 w-4 mr-2" />
+                         Abonnement gratuit
+                       </Button>
+                     )}
 
-                    <Button
-                      variant={isFollowing ? "secondary" : "outline"}
-                      className="w-full"
-                      onClick={handleFollow}
-                    >
-                      <Heart className={`h-4 w-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
-                      {isFollowing ? 'Suivi' : 'Suivre'}
-                    </Button>
-                  </div>
+                     <Button
+                       variant={isFollowing ? "secondary" : "outline"}
+                       className="w-full"
+                       onClick={handleFollow}
+                     >
+                       <Heart className={`h-4 w-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
+                       {isFollowing ? 'Suivi' : 'Suivre'}
+                     </Button>
+                   </div>
                 </CardContent>
               </Card>
 

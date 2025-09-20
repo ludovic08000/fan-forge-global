@@ -11,6 +11,7 @@ import ContentUpload from '@/components/ContentUpload';
 import ContentGallery from '@/components/ContentGallery';
 import SubscriptionPlans from '@/components/SubscriptionPlans';
 import SubscriptionStatus from '@/components/SubscriptionStatus';
+import CreatorSettings from '@/components/CreatorSettings';
 import { useContent } from '@/hooks/useContent';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
@@ -200,10 +201,11 @@ const Dashboard = () => {
 
         {/* Main Content */}
         <Tabs defaultValue={isCreator ? "my-content" : "explore"} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
             {isCreator && <TabsTrigger value="my-content">Mon contenu</TabsTrigger>}
             <TabsTrigger value="explore">Explorer</TabsTrigger>
             <TabsTrigger value="subscriptions">Abonnements</TabsTrigger>
+            {isCreator && <TabsTrigger value="settings">Paramètres</TabsTrigger>}
             {isCreator && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
           </TabsList>
 
@@ -295,6 +297,13 @@ const Dashboard = () => {
               </div>
             </div>
           </TabsContent>
+
+          {/* Settings */}
+          {isCreator && (
+            <TabsContent value="settings" className="space-y-6">
+              <CreatorSettings />
+            </TabsContent>
+          )}
 
           {/* Analytics */}
           {isCreator && (
