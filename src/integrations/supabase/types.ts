@@ -146,12 +146,15 @@ export type Database = {
       creators: {
         Row: {
           category: string | null
+          content_type: string[] | null
           created_at: string | null
           currency: string | null
           featured_until: string | null
+          gender: string | null
           id: string
           is_accepting_tips: boolean | null
           is_featured: boolean | null
+          orientation: string | null
           plan_type: string | null
           stage_name: string | null
           stripe_customer_id: string | null
@@ -166,12 +169,15 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          content_type?: string[] | null
           created_at?: string | null
           currency?: string | null
           featured_until?: string | null
+          gender?: string | null
           id?: string
           is_accepting_tips?: boolean | null
           is_featured?: boolean | null
+          orientation?: string | null
           plan_type?: string | null
           stage_name?: string | null
           stripe_customer_id?: string | null
@@ -186,12 +192,15 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          content_type?: string[] | null
           created_at?: string | null
           currency?: string | null
           featured_until?: string | null
+          gender?: string | null
           id?: string
           is_accepting_tips?: boolean | null
           is_featured?: boolean | null
+          orientation?: string | null
           plan_type?: string | null
           stage_name?: string | null
           stripe_customer_id?: string | null
