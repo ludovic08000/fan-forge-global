@@ -142,14 +142,14 @@ const SearchPage: React.FC = () => {
                 <div>
                   <Label className="text-sm font-medium mb-2 block">Catégorie</Label>
                   <Select
-                    value={filters.category || ''}
-                    onValueChange={(value) => handleFilterChange('category', value || undefined)}
+                    value={filters.category || 'all'}
+                    onValueChange={(value) => handleFilterChange('category', value === 'all' ? undefined : value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Toutes les catégories" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Toutes les catégories</SelectItem>
+                      <SelectItem value="all">Toutes les catégories</SelectItem>
                       {categories.map(({ category }) => (
                         <SelectItem key={category} value={category}>
                           {category}
