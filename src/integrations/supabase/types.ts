@@ -14,16 +14,499 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      content: {
+        Row: {
+          content_type: Database["public"]["Enums"]["content_type"]
+          created_at: string | null
+          creator_id: string
+          description: string | null
+          duration: number | null
+          file_size: number | null
+          file_url: string
+          id: string
+          is_premium: boolean | null
+          like_count: number | null
+          price: number | null
+          status: Database["public"]["Enums"]["content_status"] | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string | null
+          view_count: number | null
+        }
+        Insert: {
+          content_type: Database["public"]["Enums"]["content_type"]
+          created_at?: string | null
+          creator_id: string
+          description?: string | null
+          duration?: number | null
+          file_size?: number | null
+          file_url: string
+          id?: string
+          is_premium?: boolean | null
+          like_count?: number | null
+          price?: number | null
+          status?: Database["public"]["Enums"]["content_status"] | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          content_type?: Database["public"]["Enums"]["content_type"]
+          created_at?: string | null
+          creator_id?: string
+          description?: string | null
+          duration?: number | null
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          is_premium?: boolean | null
+          like_count?: number | null
+          price?: number | null
+          status?: Database["public"]["Enums"]["content_status"] | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_likes: {
+        Row: {
+          content_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          content_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          content_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_likes_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_views: {
+        Row: {
+          content_id: string
+          created_at: string | null
+          id: string
+          view_duration: number | null
+          viewer_id: string | null
+        }
+        Insert: {
+          content_id: string
+          created_at?: string | null
+          id?: string
+          view_duration?: number | null
+          viewer_id?: string | null
+        }
+        Update: {
+          content_id?: string
+          created_at?: string | null
+          id?: string
+          view_duration?: number | null
+          viewer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_views_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creators: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          currency: string | null
+          featured_until: string | null
+          id: string
+          is_accepting_tips: boolean | null
+          is_featured: boolean | null
+          stage_name: string | null
+          subscription_price: number | null
+          total_content: number | null
+          total_earnings: number | null
+          total_subscribers: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          currency?: string | null
+          featured_until?: string | null
+          id?: string
+          is_accepting_tips?: boolean | null
+          is_featured?: boolean | null
+          stage_name?: string | null
+          subscription_price?: number | null
+          total_content?: number | null
+          total_earnings?: number | null
+          total_subscribers?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          currency?: string | null
+          featured_until?: string | null
+          id?: string
+          is_accepting_tips?: boolean | null
+          is_featured?: boolean | null
+          stage_name?: string | null
+          subscription_price?: number | null
+          total_content?: number | null
+          total_earnings?: number | null
+          total_subscribers?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      follows: {
+        Row: {
+          created_at: string | null
+          creator_id: string
+          follower_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          creator_id: string
+          follower_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          creator_id?: string
+          follower_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follows_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          birthdate: string | null
+          cover_url: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string
+          is_verified: boolean | null
+          location: string | null
+          phone: string | null
+          updated_at: string | null
+          user_id: string
+          username: string | null
+          website: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          birthdate?: string | null
+          cover_url?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          is_verified?: boolean | null
+          location?: string | null
+          phone?: string | null
+          updated_at?: string | null
+          user_id: string
+          username?: string | null
+          website?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          birthdate?: string | null
+          cover_url?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          is_verified?: boolean | null
+          location?: string | null
+          phone?: string | null
+          updated_at?: string | null
+          user_id?: string
+          username?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          creator_id: string
+          current_uses: number | null
+          discount_amount: number | null
+          discount_percentage: number | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          creator_id: string
+          current_uses?: number | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          creator_id?: string
+          current_uses?: number | null
+          discount_amount?: number | null
+          discount_percentage?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_codes_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_uses: {
+        Row: {
+          discount_applied: number | null
+          id: string
+          referral_code_id: string
+          subscriber_id: string
+          subscription_id: string | null
+          used_at: string | null
+        }
+        Insert: {
+          discount_applied?: number | null
+          id?: string
+          referral_code_id: string
+          subscriber_id: string
+          subscription_id?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          discount_applied?: number | null
+          id?: string
+          referral_code_id?: string
+          subscriber_id?: string
+          subscription_id?: string | null
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_uses_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_uses_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          auto_renew: boolean | null
+          created_at: string | null
+          creator_id: string
+          currency: string | null
+          end_date: string | null
+          id: string
+          price: number
+          start_date: string | null
+          status: Database["public"]["Enums"]["subscription_status"] | null
+          stripe_subscription_id: string | null
+          subscriber_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          auto_renew?: boolean | null
+          created_at?: string | null
+          creator_id: string
+          currency?: string | null
+          end_date?: string | null
+          id?: string
+          price: number
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
+          stripe_subscription_id?: string | null
+          subscriber_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          auto_renew?: boolean | null
+          created_at?: string | null
+          creator_id?: string
+          currency?: string | null
+          end_date?: string | null
+          id?: string
+          price?: number
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
+          stripe_subscription_id?: string | null
+          subscriber_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tips: {
+        Row: {
+          amount: number
+          content_id: string | null
+          created_at: string | null
+          creator_id: string
+          currency: string | null
+          id: string
+          message: string | null
+          sender_id: string
+          stripe_payment_intent_id: string | null
+        }
+        Insert: {
+          amount: number
+          content_id?: string | null
+          created_at?: string | null
+          creator_id: string
+          currency?: string | null
+          id?: string
+          message?: string | null
+          sender_id: string
+          stripe_payment_intent_id?: string | null
+        }
+        Update: {
+          amount?: number
+          content_id?: string | null
+          created_at?: string | null
+          creator_id?: string
+          currency?: string | null
+          id?: string
+          message?: string | null
+          sender_id?: string
+          stripe_payment_intent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tips_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tips_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          assigned_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["user_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_subscribed_to_creator: {
+        Args: { _creator_id: string; _subscriber_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      content_status: "draft" | "published" | "archived"
+      content_type: "image" | "video"
+      subscription_status: "active" | "expired" | "canceled"
+      user_role: "admin" | "creator" | "subscriber"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +633,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      content_status: ["draft", "published", "archived"],
+      content_type: ["image", "video"],
+      subscription_status: ["active", "expired", "canceled"],
+      user_role: ["admin", "creator", "subscriber"],
+    },
   },
 } as const
