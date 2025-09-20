@@ -324,15 +324,10 @@ const SearchPage: React.FC = () => {
                   {featuredCreators.slice(0, 6).map((creator) => (
                     <CreatorSearchCard
                       key={creator.id}
-                      creator={{
-                        ...creator,
-                        display_name: creator.profiles?.display_name || null,
-                        username: creator.profiles?.username || null,
-                        avatar_url: creator.profiles?.avatar_url || null,
-                        bio: null,
-                        is_verified: creator.profiles?.is_verified || false,
-                        similarity_score: 1,
-                      }}
+                       creator={{
+                         ...creator,
+                         similarity_score: 1,
+                       }}
                     />
                   ))}
                 </div>

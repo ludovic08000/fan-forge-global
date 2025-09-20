@@ -225,7 +225,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Créateurs en vedette</h4>
                 <div className="space-y-2">
                   {featuredCreators.slice(0, 3).map((creator) => {
-                    const creatorName = creator.stage_name || creator.profiles?.display_name || creator.profiles?.username || 'Créateur';
+                    const creatorName = creator.stage_name || creator.display_name || creator.username || 'Créateur';
                     return (
                       <div
                         key={creator.id}
@@ -233,7 +233,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                         className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors"
                       >
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={creator.profiles?.avatar_url || ''} />
+                          <AvatarImage src={creator.avatar_url || ''} />
                           <AvatarFallback className="text-xs">
                             {creatorName.charAt(0).toUpperCase()}
                           </AvatarFallback>

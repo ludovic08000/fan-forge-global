@@ -107,18 +107,39 @@ export const useSearch = () => {
   const { data: featuredCreators } = useQuery({
     queryKey: ['featured-creators'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Get featured creators
+      const { data: creators, error: creatorsError } = await supabase
         .from('creators')
-        .select(`
-          *,
-          profiles!inner(display_name, username, avatar_url, is_verified)
-        `)
+        .select('*')
         .eq('is_featured', true)
         .order('total_subscribers', { ascending: false })
         .limit(10);
 
-      if (error) throw error;
-      return data;
+      if (creatorsError) throw creatorsError;
+      if (!creators || creators.length === 0) return [];
+
+      // Get profiles for these creators
+      const userIds = creators.map(c => c.user_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, username, avatar_url, is_verified')
+        .in('user_id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Manually join the data
+      return creators.map(creator => {
+        const profile = profiles?.find(p => p.user_id === creator.user_id);
+        return {
+          ...creator,
+          display_name: profile?.display_name || null,
+          username: profile?.username || null,
+          avatar_url: profile?.avatar_url || null,
+          is_verified: profile?.is_verified || false,
+          bio: null,
+          similarity_score: 1,
+        } as SearchCreator;
+      });
     },
   });
 
