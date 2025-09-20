@@ -149,7 +149,11 @@ export type Database = {
           id: string
           is_accepting_tips: boolean | null
           is_featured: boolean | null
+          plan_type: string | null
           stage_name: string | null
+          stripe_customer_id: string | null
+          subscription_active: boolean | null
+          subscription_end: string | null
           subscription_price: number | null
           total_content: number | null
           total_earnings: number | null
@@ -165,7 +169,11 @@ export type Database = {
           id?: string
           is_accepting_tips?: boolean | null
           is_featured?: boolean | null
+          plan_type?: string | null
           stage_name?: string | null
+          stripe_customer_id?: string | null
+          subscription_active?: boolean | null
+          subscription_end?: string | null
           subscription_price?: number | null
           total_content?: number | null
           total_earnings?: number | null
@@ -181,7 +189,11 @@ export type Database = {
           id?: string
           is_accepting_tips?: boolean | null
           is_featured?: boolean | null
+          plan_type?: string | null
           stage_name?: string | null
+          stripe_customer_id?: string | null
+          subscription_active?: boolean | null
+          subscription_end?: string | null
           subscription_price?: number | null
           total_content?: number | null
           total_earnings?: number | null

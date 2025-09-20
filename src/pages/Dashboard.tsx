@@ -9,12 +9,16 @@ import { Badge } from '@/components/ui/badge';
 import { User, Crown, Settings, Upload, BarChart3, Heart, Eye, Euro, Plus } from 'lucide-react';
 import ContentUpload from '@/components/ContentUpload';
 import ContentGallery from '@/components/ContentGallery';
+import SubscriptionPlans from '@/components/SubscriptionPlans';
+import SubscriptionStatus from '@/components/SubscriptionStatus';
 import { useContent } from '@/hooks/useContent';
+import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const { user, userRole, loading } = useAuth();
   const { useMyContent } = useContent();
+  const { refreshSubscription } = useSubscription();
   const { data: myContent, isLoading: contentLoading, refetch } = useMyContent();
   const [showUpload, setShowUpload] = useState(false);
   const [creatorStats, setCreatorStats] = useState({
@@ -24,7 +28,6 @@ const Dashboard = () => {
     totalLikes: 0
   });
 
-  // Charger les statistiques du créateur
   useEffect(() => {
     const loadCreatorStats = async () => {
       if (!user || userRole !== 'creator') return;
@@ -56,6 +59,16 @@ const Dashboard = () => {
 
     loadCreatorStats();
   }, [user, userRole, myContent]);
+
+  // Rafraîchir le statut d'abonnement après un paiement réussi
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'true') {
+      refreshSubscription();
+      // Nettoyer l'URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [refreshSubscription]);
 
   if (loading) {
     return (
@@ -266,12 +279,21 @@ const Dashboard = () => {
 
           {/* Subscriptions */}
           <TabsContent value="subscriptions" className="space-y-6">
-            <h2 className="text-2xl font-semibold">Mes abonnements</h2>
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-muted-foreground">Fonctionnalité en cours de développement...</p>
-              </CardContent>
-            </Card>
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-semibold">Abonnements</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Colonne gauche - Statut */}
+              <div className="lg:col-span-1">
+                <SubscriptionStatus />
+              </div>
+              
+              {/* Colonne droite - Plans */}
+              <div className="lg:col-span-2">
+                <SubscriptionPlans />
+              </div>
+            </div>
           </TabsContent>
 
           {/* Analytics */}
