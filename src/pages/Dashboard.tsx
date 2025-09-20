@@ -12,9 +12,11 @@ import ContentGallery from '@/components/ContentGallery';
 import SubscriptionPlans from '@/components/SubscriptionPlans';
 import SubscriptionStatus from '@/components/SubscriptionStatus';
 import CreatorSettings from '@/components/CreatorSettings';
+import CreatorBoost from '@/components/CreatorBoost';
 import { useContent } from '@/hooks/useContent';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Dashboard = () => {
   const { user, userRole, loading } = useAuth();
@@ -28,6 +30,7 @@ const Dashboard = () => {
     totalViews: 0,
     totalLikes: 0
   });
+  const [creatorProfile, setCreatorProfile] = useState<any>(null);
 
   useEffect(() => {
     const loadCreatorStats = async () => {
@@ -37,11 +40,12 @@ const Dashboard = () => {
         // Récupérer les stats du créateur
         const { data: creatorData } = await supabase
           .from('creators')
-          .select('total_earnings, total_subscribers, total_content')
+          .select('total_earnings, total_subscribers, total_content, featured_until')
           .eq('user_id', user.id)
           .single();
 
         if (creatorData) {
+          setCreatorProfile(creatorData);
           // Calculer les vues et likes totaux
           const totalViews = myContent?.reduce((sum, content) => sum + content.view_count, 0) || 0;
           const totalLikes = myContent?.reduce((sum, content) => sum + content.like_count, 0) || 0;
@@ -66,6 +70,23 @@ const Dashboard = () => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('success') === 'true') {
       refreshSubscription();
+      // Nettoyer l'URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    // Gérer le succès du boost
+    if (urlParams.get('boost_success') === 'true') {
+      toast.success('Boost activé avec succès! Votre profil est maintenant en vedette.');
+      // Recharger les données du créateur
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+      // Nettoyer l'URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
+    if (urlParams.get('boost_canceled') === 'true') {
+      toast.error('Achat de boost annulé.');
       // Nettoyer l'URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
@@ -301,7 +322,24 @@ const Dashboard = () => {
           {/* Settings */}
           {isCreator && (
             <TabsContent value="settings" className="space-y-6">
-              <CreatorSettings />
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Colonne gauche - Boost */}
+                <div className="lg:col-span-1">
+                  <CreatorBoost 
+                    currentBoostUntil={creatorProfile?.featured_until}
+                    onBoostUpdate={() => {
+                      // Recharger les données du créateur
+                      setCreatorProfile(null);
+                      window.location.reload();
+                    }}
+                  />
+                </div>
+                
+                {/* Colonne droite - Paramètres */}
+                <div className="lg:col-span-2">
+                  <CreatorSettings />
+                </div>
+              </div>
             </TabsContent>
           )}
 

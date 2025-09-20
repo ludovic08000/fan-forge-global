@@ -27,3 +27,12 @@ verify_jwt = true
 
 [functions.pay-private-content]
 verify_jwt = true
+
+[functions.create-creator-boost]
+verify_jwt = true
+
+[functions.activate-creator-boost]
+verify_jwt = false
+
+[functions.cleanup-expired-boosts]
+verify_jwt = false
