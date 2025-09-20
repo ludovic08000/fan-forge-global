@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Crown, Users, Image, TrendingUp, Lock } from 'lucide-react';
+import { Crown, Users, Image, TrendingUp, Lock, Heart, User, Camera } from 'lucide-react';
 import { SearchCreator } from '@/hooks/useSearch';
 
 interface CreatorSearchCardProps {
@@ -52,8 +52,20 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
               </Badge>
             )}
           </div>
-          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             {creator.category && <span>{creator.category}</span>}
+            {creator.gender && (
+              <>
+                <span>•</span>
+                <span>{creator.gender}</span>
+              </>
+            )}
+            {creator.orientation && (
+              <>
+                <span>•</span>
+                <span>{creator.orientation}</span>
+              </>
+            )}
             <div className="flex items-center space-x-1">
               <Users className="h-3 w-3" />
               <span>{creator.total_subscribers}</span>
@@ -106,12 +118,33 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
               </p>
             )}
             
-            <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-4">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-4">
               {creator.category && (
                 <Badge variant="outline" className="text-xs">
                   {creator.category}
                 </Badge>
               )}
+              {creator.gender && (
+                <Badge variant="secondary" className="text-xs">
+                  <User className="h-3 w-3 mr-1" />
+                  {creator.gender}
+                </Badge>
+              )}
+              {creator.orientation && (
+                <Badge variant="secondary" className="text-xs">
+                  <Heart className="h-3 w-3 mr-1" />
+                  {creator.orientation}
+                </Badge>
+              )}
+              {creator.content_type && creator.content_type.length > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  <Camera className="h-3 w-3 mr-1" />
+                  {creator.content_type.join(', ')}
+                </Badge>
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-4">
               <div className="flex items-center space-x-1">
                 <Users className="h-4 w-4" />
                 <span>{creator.total_subscribers} abonnés</span>

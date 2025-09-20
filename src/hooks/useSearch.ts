@@ -20,6 +20,9 @@ export interface SearchCreator {
   bio: string | null;
   is_verified: boolean;
   similarity_score: number;
+  gender: string | null;
+  orientation: string | null;
+  content_type: string[] | null;
 }
 
 export interface SearchFilters {
@@ -27,6 +30,9 @@ export interface SearchFilters {
   priceFilter: 'all' | 'free' | 'paid';
   featuredOnly: boolean;
   sortBy: 'relevance' | 'popularity' | 'newest';
+  gender?: string;
+  orientation?: string;
+  contentTypes: string[];
 }
 
 export const useSearch = () => {
@@ -36,6 +42,7 @@ export const useSearch = () => {
     priceFilter: 'all',
     featuredOnly: false,
     sortBy: 'relevance',
+    contentTypes: [],
   });
 
   // Debounce search term
@@ -58,6 +65,9 @@ export const useSearch = () => {
         category_filter: filters.category || null,
         price_filter: filters.priceFilter,
         featured_only: filters.featuredOnly,
+        gender_filter: filters.gender || null,
+        orientation_filter: filters.orientation || null,
+        content_type_filter: filters.contentTypes.length > 0 ? filters.contentTypes : null,
         limit_count: 50,
         offset_count: 0,
       });
@@ -65,7 +75,10 @@ export const useSearch = () => {
       if (error) throw error;
       return data as SearchCreator[];
     },
-    enabled: debouncedSearchTerm.length >= 2 || Object.values(filters).some(v => v !== false && v !== 'all' && v !== undefined),
+    enabled: debouncedSearchTerm.length >= 2 || Object.values(filters).some(v => {
+      if (Array.isArray(v)) return v.length > 0;
+      return v !== false && v !== 'all' && v !== 'relevance' && v !== undefined;
+    }),
   });
 
   // Suggestions for autocomplete (first 5 results)
@@ -138,6 +151,9 @@ export const useSearch = () => {
           is_verified: profile?.is_verified || false,
           bio: null,
           similarity_score: 1,
+          gender: creator.gender || null,
+          orientation: creator.orientation || null,
+          content_type: creator.content_type || null,
         } as SearchCreator;
       });
     },
@@ -154,6 +170,7 @@ export const useSearch = () => {
       priceFilter: 'all',
       featuredOnly: false,
       sortBy: 'relevance',
+      contentTypes: [],
     });
   };
 

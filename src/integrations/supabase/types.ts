@@ -624,14 +624,26 @@ export type Database = {
         Returns: boolean
       }
       search_creators: {
-        Args: {
-          category_filter?: string
-          featured_only?: boolean
-          limit_count?: number
-          offset_count?: number
-          price_filter?: string
-          search_term?: string
-        }
+        Args:
+          | {
+              category_filter?: string
+              content_type_filter?: string[]
+              featured_only?: boolean
+              gender_filter?: string
+              limit_count?: number
+              offset_count?: number
+              orientation_filter?: string
+              price_filter?: string
+              search_term?: string
+            }
+          | {
+              category_filter?: string
+              featured_only?: boolean
+              limit_count?: number
+              offset_count?: number
+              price_filter?: string
+              search_term?: string
+            }
         Returns: {
           avatar_url: string
           bio: string

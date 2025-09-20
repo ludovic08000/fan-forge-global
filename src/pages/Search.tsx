@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -16,7 +17,14 @@ import {
   Gift,
   Lock,
   Grid,
-  List
+  List,
+  Heart,
+  User,
+  Camera,
+  Video,
+  Radio,
+  Image,
+  DollarSign
 } from 'lucide-react';
 import { useSearch, SearchFilters } from '@/hooks/useSearch';
 import CreatorSearchCard from '@/components/CreatorSearchCard';
@@ -71,8 +79,34 @@ const SearchPage: React.FC = () => {
     setSearchParams({}, { replace: true });
   };
 
-  const hasActiveFilters = searchTerm || filters.category || filters.priceFilter !== 'all' || filters.featuredOnly;
+  const hasActiveFilters = searchTerm || filters.category || filters.priceFilter !== 'all' || 
+    filters.featuredOnly || filters.gender || filters.orientation || filters.contentTypes.length > 0;
   const hasResults = results.length > 0;
+
+  // Options des filtres
+  const genderOptions = [
+    { value: 'femme', label: 'Femme', icon: User },
+    { value: 'homme', label: 'Homme', icon: User },
+    { value: 'non-binaire', label: 'Non-binaire', icon: User },
+    { value: 'trans', label: 'Trans', icon: User }
+  ];
+
+  const orientationOptions = [
+    { value: 'lesbienne', label: 'Femme lesbienne', icon: Heart },
+    { value: 'bi', label: 'Bisexuel(le)', icon: Heart },
+    { value: 'gay', label: 'Homme gay', icon: Heart },
+    { value: 'hétéro', label: 'Hétéro', icon: Heart },
+    { value: 'couple', label: 'Couple', icon: Users },
+    { value: 'trans', label: 'Trans', icon: Heart }
+  ];
+
+  const contentTypeOptions = [
+    { value: 'photo', label: 'Photo', icon: Image },
+    { value: 'vidéo', label: 'Vidéo', icon: Video },
+    { value: 'live', label: 'Live', icon: Radio },
+    { value: 'story', label: 'Story', icon: Camera },
+    { value: 'tips', label: 'Tips', icon: DollarSign }
+  ];
 
   return (
     <div className="min-h-screen bg-background pt-16">
@@ -120,6 +154,21 @@ const SearchPage: React.FC = () => {
                   En vedette
                 </Badge>
               )}
+              {filters.gender && (
+                <Badge variant="secondary">
+                  Genre: {genderOptions.find(g => g.value === filters.gender)?.label}
+                </Badge>
+              )}
+              {filters.orientation && (
+                <Badge variant="secondary">
+                  Orientation: {orientationOptions.find(o => o.value === filters.orientation)?.label}
+                </Badge>
+              )}
+              {filters.contentTypes.length > 0 && (
+                <Badge variant="secondary">
+                  Contenu: {filters.contentTypes.join(', ')}
+                </Badge>
+              )}
               <Button variant="ghost" size="sm" onClick={clearAllFilters}>
                 Effacer tout
               </Button>
@@ -157,6 +206,79 @@ const SearchPage: React.FC = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                {/* Gender Filter */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Genre du créateur</Label>
+                  <Select
+                    value={filters.gender || 'all'}
+                    onValueChange={(value) => handleFilterChange('gender', value === 'all' ? undefined : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Tous les genres" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les genres</SelectItem>
+                      {genderOptions.map(({ value, label, icon: Icon }) => (
+                        <SelectItem key={value} value={value}>
+                          <div className="flex items-center space-x-2">
+                            <Icon className="h-4 w-4" />
+                            <span>{label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Orientation Filter */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Orientation/Type de contenu</Label>
+                  <Select
+                    value={filters.orientation || 'all'}
+                    onValueChange={(value) => handleFilterChange('orientation', value === 'all' ? undefined : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Toutes orientations" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Toutes orientations</SelectItem>
+                      {orientationOptions.map(({ value, label, icon: Icon }) => (
+                        <SelectItem key={value} value={value}>
+                          <div className="flex items-center space-x-2">
+                            <Icon className="h-4 w-4" />
+                            <span>{label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Content Type Filter */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Type de contenu</Label>
+                  <div className="space-y-2">
+                    {contentTypeOptions.map(({ value, label, icon: Icon }) => (
+                      <div key={value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`content-${value}`}
+                          checked={filters.contentTypes.includes(value)}
+                          onCheckedChange={(checked) => {
+                            const newTypes = checked
+                              ? [...filters.contentTypes, value]
+                              : filters.contentTypes.filter(t => t !== value);
+                            handleFilterChange('contentTypes', newTypes);
+                          }}
+                        />
+                        <Label htmlFor={`content-${value}`} className="flex items-center space-x-2 cursor-pointer">
+                          <Icon className="h-4 w-4" />
+                          <span>{label}</span>
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Price Filter */}
