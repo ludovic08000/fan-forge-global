@@ -23,6 +23,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ContentCard from '@/components/ContentCard';
+import PrivateChat from '@/components/PrivateChat';
 
 interface Creator {
   id: string;
@@ -60,6 +61,7 @@ const CreatorProfile: React.FC = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showChat, setShowChat] = useState(false);
 
   // Charger le profil du créateur
   useEffect(() => {
@@ -354,7 +356,18 @@ const CreatorProfile: React.FC = () => {
                     </div>
                   </div>
 
-                   {/* Action Buttons */}
+                     {user && isSubscribed && (
+                       <div className="space-y-2">
+                         <p className="text-green-600 font-medium">✓ Vous êtes abonné(e)</p>
+                         <Button
+                           onClick={() => setShowChat(!showChat)}
+                           variant="outline"
+                           size="sm"
+                         >
+                           {showChat ? 'Masquer le chat' : 'Chat privé'}
+                         </Button>
+                       </div>
+                     )}
                    <div className="space-y-3">
                      {creator.subscription_price > 0 ? (
                        <Button
@@ -416,8 +429,19 @@ const CreatorProfile: React.FC = () => {
                   </CardContent>
                 </Card>
               )}
-            </div>
-          </div>
+                     </div>
+
+                     {/* Chat Button for subscribers */}
+                     {user && isSubscribed && (
+                       <Button
+                         onClick={() => setShowChat(!showChat)}
+                         variant="outline"
+                         className="w-full"
+                       >
+                         {showChat ? 'Masquer le chat' : 'Chat privé'}
+                       </Button>
+                     )}
+                   </div>
 
           {/* Main Content */}
           <div className="lg:col-span-2">
@@ -484,6 +508,17 @@ const CreatorProfile: React.FC = () => {
             </Tabs>
           </div>
         </div>
+
+        {/* Chat privé pour les abonnés */}
+        {user && isSubscribed && showChat && creator && (
+          <div className="mt-8">
+            <PrivateChat
+              creatorId={creator.id}
+              creatorName={creator.stage_name || 'Créateur'}
+              creatorAvatar="/placeholder.svg"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -232,6 +232,84 @@ export type Database = {
           },
         ]
       }
+      private_content_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string | null
+          id: string
+          message_id: string
+          status: string | null
+          stripe_payment_intent_id: string | null
+          subscriber_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string | null
+          id?: string
+          message_id: string
+          status?: string | null
+          stripe_payment_intent_id?: string | null
+          subscriber_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string | null
+          id?: string
+          message_id?: string
+          status?: string | null
+          stripe_payment_intent_id?: string | null
+          subscriber_id?: string
+        }
+        Relationships: []
+      }
+      private_messages: {
+        Row: {
+          content: string | null
+          created_at: string
+          creator_id: string
+          id: string
+          is_paid: boolean | null
+          media_thumbnail: string | null
+          media_url: string | null
+          message_type: string
+          price: number | null
+          stripe_payment_intent_id: string | null
+          subscriber_id: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          creator_id: string
+          id?: string
+          is_paid?: boolean | null
+          media_thumbnail?: string | null
+          media_url?: string | null
+          message_type?: string
+          price?: number | null
+          stripe_payment_intent_id?: string | null
+          subscriber_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          creator_id?: string
+          id?: string
+          is_paid?: boolean | null
+          media_thumbnail?: string | null
+          media_url?: string | null
+          message_type?: string
+          price?: number | null
+          stripe_payment_intent_id?: string | null
+          subscriber_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

@@ -24,3 +24,6 @@ verify_jwt = true
 
 [functions.create-creator-checkout]
 verify_jwt = true
+
+[functions.pay-private-content]
+verify_jwt = true
