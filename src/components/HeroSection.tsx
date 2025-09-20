@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Play, Zap, Globe, Shield } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-image.jpg";
 
 const HeroSection = () => {
@@ -57,13 +58,17 @@ const HeroSection = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="hero" size="xl" className="shadow-[var(--shadow-premium)]">
-              {t('hero.joinAsCreator')}
-            </Button>
-            <Button variant="creator" size="xl" className="bg-card/50 backdrop-blur-sm">
-              <Play className="h-5 w-5 mr-2" />
-              {t('hero.exploreContent')}
-            </Button>
+            <Link to="/auth">
+              <Button variant="hero" size="xl" className="shadow-[var(--shadow-premium)]">
+                {t('hero.joinAsCreator')}
+              </Button>
+            </Link>
+            <Link to="/search">
+              <Button variant="creator" size="xl" className="bg-card/50 backdrop-blur-sm">
+                <Play className="h-5 w-5 mr-2" />
+                {t('hero.exploreContent')}
+              </Button>
+            </Link>
           </div>
 
           {/* Stats */}
