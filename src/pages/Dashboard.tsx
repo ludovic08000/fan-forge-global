@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { User, Crown, Settings, Upload, BarChart3, Heart, Eye, Euro, Plus } from 'lucide-react';
+import { User, Crown, Settings, Upload, BarChart3, Heart, Eye, Euro, Plus, Video } from 'lucide-react';
 import ContentUpload from '@/components/ContentUpload';
 import ContentGallery from '@/components/ContentGallery';
 import SubscriptionPlans from '@/components/SubscriptionPlans';
@@ -19,6 +19,7 @@ import SubscriptionStatus from '@/components/SubscriptionStatus';
 import CreatorSettings from '@/components/CreatorSettings';
 import CreatorBoost from '@/components/CreatorBoost';
 import CreatorAnalyticsDashboard from '@/components/analytics/CreatorAnalyticsDashboard';
+import { LiveStreamStudio } from '@/components/LiveStreamStudio';
 import { useContent } from '@/hooks/useContent';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
@@ -238,8 +239,14 @@ const Dashboard = () => {
 
         {/* Main Content */}
         <Tabs defaultValue={isCreator ? "my-content" : "explore"} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6">
             {isCreator && <TabsTrigger value="my-content">Mon contenu</TabsTrigger>}
+            {isCreator && (
+              <TabsTrigger value="live" className="gap-1">
+                <Video className="h-4 w-4" />
+                Live
+              </TabsTrigger>
+            )}
             <TabsTrigger value="explore">Explorer</TabsTrigger>
             <TabsTrigger value="subscriptions">Abonnements</TabsTrigger>
             {isCreator && <TabsTrigger value="settings">Paramètres</TabsTrigger>}
@@ -305,6 +312,13 @@ const Dashboard = () => {
                   </Button>
                 </div>
               )}
+            </TabsContent>
+          )}
+
+          {/* Live Studio */}
+          {isCreator && (
+            <TabsContent value="live">
+              <LiveStreamStudio />
             </TabsContent>
           )}
 

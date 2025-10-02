@@ -8,7 +8,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Menu, X, User, LogOut, Settings, Crown } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, Crown, Circle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import SearchBar from '@/components/SearchBar';
 
@@ -33,6 +33,10 @@ const Header: React.FC = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
+          <Link to="/lives" className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1">
+            <Circle className="h-3 w-3 fill-destructive text-destructive animate-pulse" />
+            Lives
+          </Link>
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -106,6 +110,14 @@ const Header: React.FC = () => {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Accueil
+              </Link>
+              <Link 
+                to="/lives" 
+                className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <Circle className="h-3 w-3 fill-destructive text-destructive animate-pulse" />
+                Lives
               </Link>
               {!user ? (
                 <>

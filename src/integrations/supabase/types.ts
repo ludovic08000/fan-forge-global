@@ -291,6 +291,141 @@ export type Database = {
           },
         ]
       }
+      live_stream_messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          live_stream_id: string
+          message: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          live_stream_id: string
+          message: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          live_stream_id?: string
+          message?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stream_messages_live_stream_id_fkey"
+            columns: ["live_stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_stream_viewers: {
+        Row: {
+          id: string
+          joined_at: string | null
+          left_at: string | null
+          live_stream_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          live_stream_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          live_stream_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stream_viewers_live_stream_id_fkey"
+            columns: ["live_stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_streams: {
+        Row: {
+          created_at: string | null
+          creator_id: string
+          description: string | null
+          ended_at: string | null
+          id: string
+          is_premium: boolean | null
+          peak_viewer_count: number | null
+          price: number | null
+          recording_url: string | null
+          scheduled_at: string | null
+          started_at: string | null
+          status: string | null
+          stream_key: string | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string | null
+          viewer_count: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          creator_id: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          is_premium?: boolean | null
+          peak_viewer_count?: number | null
+          price?: number | null
+          recording_url?: string | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string | null
+          stream_key?: string | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string | null
+          viewer_count?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          creator_id?: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          is_premium?: boolean | null
+          peak_viewer_count?: number | null
+          price?: number | null
+          recording_url?: string | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          status?: string | null
+          stream_key?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string | null
+          viewer_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_streams_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       private_content_payments: {
         Row: {
           amount: number
@@ -675,6 +810,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_stream_key: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       gtrgm_compress: {
         Args: { "": unknown }
         Returns: unknown

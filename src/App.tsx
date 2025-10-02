@@ -23,6 +23,8 @@ const CreatorProfile = lazy(() => import("./pages/CreatorProfile"));
 const Search = lazy(() => import("./pages/Search"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const LiveStreams = lazy(() => import("./pages/LiveStreams"));
+const WatchLive = lazy(() => import("./pages/WatchLive"));
 
 // Composant de chargement pour le Suspense
 const PageLoader = () => (
@@ -69,6 +71,8 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/search" element={<Search />} />
+                <Route path="/lives" element={<LiveStreams />} />
+                <Route path="/live/:streamId" element={<WatchLive />} />
                 <Route path="/creator/:userId" element={<CreatorProfile />} />
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
