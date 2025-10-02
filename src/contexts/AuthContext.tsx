@@ -37,6 +37,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
 
+  /**
+   * Enregistrer une connexion dans les logs
+   * @param userId - ID de l'utilisateur
+   * @param email - Email de l'utilisateur
+   * @param method - Méthode de connexion
+   */
+  const logUserLogin = async (userId: string, email: string, method: string) => {
+    try {
+      // Obtenir le profil pour le username
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      // Créer un ID de session unique
+      const sessionId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Insérer le log de connexion
+      await supabase.from('user_login_logs').insert({
+        user_id: userId,
+        username: profile?.username || null,
+        email: email,
+        ip_address: null, // L'IP sera capturée côté serveur si nécessaire
+        user_agent: navigator.userAgent,
+        login_method: method,
+        session_id: sessionId,
+      });
+    } catch (error) {
+      console.error('Erreur lors de l\'enregistrement du log de connexion:', error);
+    }
+  };
+
   // Effet pour gérer l'authentification et charger le rôle utilisateur
   useEffect(() => {
     // Configuration de l'écouteur d'état d'authentification EN PREMIER
@@ -56,9 +89,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUserRole(null);
         }
         
-        // Notifications utilisateur
+        // Notifications utilisateur et logging
         if (event === 'SIGNED_IN') {
           toast.success('Connexion réussie!');
+          // Logger la connexion
+          if (session?.user) {
+            logUserLogin(session.user.id, session.user.email || '', 'session_restored');
+          }
         } else if (event === 'SIGNED_OUT') {
           toast.success('Déconnexion réussie!');
           setUserRole(null);
@@ -171,7 +208,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signIn = async (email: string, password: string) => {
     try {
       // Appel à l'API Supabase pour se connecter
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -183,6 +220,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else {
           toast.error(error.message);
         }
+      } else if (data.user) {
+        // Logger la connexion réussie
+        await logUserLogin(data.user.id, data.user.email || '', 'email_password');
       }
 
       return { error };

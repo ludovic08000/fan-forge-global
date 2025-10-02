@@ -8,6 +8,7 @@ import { Content } from '@/hooks/useContent';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { ReportContentDialog } from '@/components/ReportContentDialog';
 
 interface ContentCardProps {
   content: Content;
@@ -184,14 +185,21 @@ const ContentCard: React.FC<ContentCardProps> = ({
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLike}
-            className={isLiked ? 'text-red-500 hover:text-red-600' : ''}
-          >
-            <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLike}
+              className={isLiked ? 'text-red-500 hover:text-red-600' : ''}
+            >
+              <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+            </Button>
+            
+            <ReportContentDialog 
+              contentId={content.id} 
+              contentTitle={content.title}
+            />
+          </div>
         </div>
       </CardFooter>
     </Card>
