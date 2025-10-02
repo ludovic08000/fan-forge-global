@@ -1,0 +1,185 @@
+/**
+ * Schémas de validation Zod pour tous les formulaires de l'application
+ * Ces validations garantissent la sécurité et l'intégrité des données
+ */
+
+import { z } from 'zod';
+
+/**
+ * Schéma de validation pour l'authentification (connexion et inscription)
+ */
+export const authSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email({ message: "Adresse email invalide" })
+    .max(255, { message: "L'email doit contenir moins de 255 caractères" })
+    .toLowerCase(),
+  password: z
+    .string()
+    .min(8, { message: "Le mot de passe doit contenir au moins 8 caractères" })
+    .max(100, { message: "Le mot de passe doit contenir moins de 100 caractères" })
+    .regex(/[A-Z]/, { message: "Le mot de passe doit contenir au moins une majuscule" })
+    .regex(/[a-z]/, { message: "Le mot de passe doit contenir au moins une minuscule" })
+    .regex(/[0-9]/, { message: "Le mot de passe doit contenir au moins un chiffre" }),
+  firstName: z
+    .string()
+    .trim()
+    .min(2, { message: "Le prénom doit contenir au moins 2 caractères" })
+    .max(50, { message: "Le prénom doit contenir moins de 50 caractères" })
+    .regex(/^[a-zA-ZÀ-ÿ\s-]+$/, { message: "Le prénom ne peut contenir que des lettres" })
+    .optional(),
+  lastName: z
+    .string()
+    .trim()
+    .min(2, { message: "Le nom doit contenir au moins 2 caractères" })
+    .max(50, { message: "Le nom doit contenir moins de 50 caractères" })
+    .regex(/^[a-zA-ZÀ-ÿ\s-]+$/, { message: "Le nom ne peut contenir que des lettres" })
+    .optional(),
+});
+
+/**
+ * Schéma de validation pour la confirmation du mot de passe
+ */
+export const signUpSchema = authSchema.extend({
+  confirmPassword: z.string(),
+  firstName: z
+    .string()
+    .trim()
+    .min(2, { message: "Le prénom doit contenir au moins 2 caractères" })
+    .max(50, { message: "Le prénom doit contenir moins de 50 caractères" })
+    .regex(/^[a-zA-ZÀ-ÿ\s-]+$/, { message: "Le prénom ne peut contenir que des lettres" }),
+  lastName: z
+    .string()
+    .trim()
+    .min(2, { message: "Le nom doit contenir au moins 2 caractères" })
+    .max(50, { message: "Le nom doit contenir moins de 50 caractères" })
+    .regex(/^[a-zA-ZÀ-ÿ\s-]+$/, { message: "Le nom ne peut contenir que des lettres" }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirmPassword"],
+});
+
+/**
+ * Schéma de validation pour le profil créateur
+ */
+export const creatorProfileSchema = z.object({
+  stageName: z
+    .string()
+    .trim()
+    .min(3, { message: "Le nom de scène doit contenir au moins 3 caractères" })
+    .max(50, { message: "Le nom de scène doit contenir moins de 50 caractères" })
+    .regex(/^[a-zA-Z0-9À-ÿ\s-_]+$/, { message: "Le nom de scène contient des caractères invalides" }),
+  category: z
+    .string()
+    .trim()
+    .min(2, { message: "La catégorie doit contenir au moins 2 caractères" })
+    .max(50, { message: "La catégorie doit contenir moins de 50 caractères" }),
+  subscriptionPrice: z
+    .number()
+    .min(0, { message: "Le prix ne peut pas être négatif" })
+    .max(999.99, { message: "Le prix maximum est de 999.99€" }),
+  bio: z
+    .string()
+    .trim()
+    .max(500, { message: "La biographie doit contenir moins de 500 caractères" })
+    .optional(),
+  gender: z
+    .enum(['male', 'female', 'other', 'prefer_not_to_say'], {
+      errorMap: () => ({ message: "Genre invalide" })
+    })
+    .optional(),
+  orientation: z
+    .enum(['straight', 'gay', 'lesbian', 'bisexual', 'other', 'prefer_not_to_say'], {
+      errorMap: () => ({ message: "Orientation invalide" })
+    })
+    .optional(),
+});
+
+/**
+ * Schéma de validation pour l'upload de contenu
+ */
+export const contentUploadSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(3, { message: "Le titre doit contenir au moins 3 caractères" })
+    .max(100, { message: "Le titre doit contenir moins de 100 caractères" }),
+  description: z
+    .string()
+    .trim()
+    .max(1000, { message: "La description doit contenir moins de 1000 caractères" })
+    .optional(),
+  tags: z
+    .array(z.string().trim().max(30, { message: "Un tag ne peut pas dépasser 30 caractères" }))
+    .max(10, { message: "Maximum 10 tags autorisés" })
+    .optional(),
+  isPremium: z.boolean(),
+  price: z
+    .number()
+    .min(0, { message: "Le prix ne peut pas être négatif" })
+    .max(999.99, { message: "Le prix maximum est de 999.99€" })
+    .optional(),
+});
+
+/**
+ * Schéma de validation pour les messages privés
+ */
+export const privateMessageSchema = z.object({
+  content: z
+    .string()
+    .trim()
+    .min(1, { message: "Le message ne peut pas être vide" })
+    .max(1000, { message: "Le message doit contenir moins de 1000 caractères" }),
+  price: z
+    .number()
+    .min(0, { message: "Le prix ne peut pas être négatif" })
+    .max(999.99, { message: "Le prix maximum est de 999.99€" })
+    .optional(),
+});
+
+/**
+ * Schéma de validation pour la recherche
+ */
+export const searchSchema = z.object({
+  searchTerm: z
+    .string()
+    .trim()
+    .max(100, { message: "La recherche doit contenir moins de 100 caractères" })
+    .regex(/^[a-zA-Z0-9À-ÿ\s-_]+$/, { message: "La recherche contient des caractères invalides" })
+    .optional(),
+});
+
+/**
+ * Types TypeScript dérivés des schémas Zod
+ */
+export type AuthInput = z.infer<typeof authSchema>;
+export type SignUpInput = z.infer<typeof signUpSchema>;
+export type CreatorProfileInput = z.infer<typeof creatorProfileSchema>;
+export type ContentUploadInput = z.infer<typeof contentUploadSchema>;
+export type PrivateMessageInput = z.infer<typeof privateMessageSchema>;
+export type SearchInput = z.infer<typeof searchSchema>;
+
+/**
+ * Fonction utilitaire pour sanitiser les entrées HTML
+ * @param input - La chaîne à sanitiser
+ * @returns La chaîne nettoyée sans HTML dangereux
+ */
+export const sanitizeHtml = (input: string): string => {
+  // Supprimer tous les tags HTML
+  return input.replace(/<[^>]*>/g, '');
+};
+
+/**
+ * Fonction utilitaire pour encoder les URL de manière sécurisée
+ * @param input - La chaîne à encoder
+ * @returns La chaîne encodée pour utilisation dans une URL
+ */
+export const safeEncodeURIComponent = (input: string): string => {
+  try {
+    return encodeURIComponent(input);
+  } catch (error) {
+    console.error('Erreur lors de l\'encodage URL:', error);
+    return '';
+  }
+};

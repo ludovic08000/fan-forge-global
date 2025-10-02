@@ -1,4 +1,9 @@
-import React from "react";
+/**
+ * Composant principal de l'application
+ * Configure tous les providers et le routing
+ */
+
+import React, { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,15 +14,45 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import CreatorProfile from "./pages/CreatorProfile";
-import Search from "./pages/Search";
-import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Lazy loading des pages pour améliorer les performances
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const CreatorProfile = lazy(() => import("./pages/CreatorProfile"));
+const Search = lazy(() => import("./pages/Search"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
+// Composant de chargement pour le Suspense
+const PageLoader = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="flex flex-col items-center space-y-4">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <p className="text-muted-foreground">Chargement...</p>
+    </div>
+  </div>
+);
+
+// Configuration du client React Query avec mise en cache optimisée
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Garder les données en cache pendant 5 minutes
+      staleTime: 5 * 60 * 1000,
+      // Garder les données inactives pendant 10 minutes
+      gcTime: 10 * 60 * 1000,
+      // Réessayer 3 fois en cas d'échec
+      retry: 3,
+      // Ne pas réessayer sur les erreurs 404
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    },
+  },
+});
+
+/**
+ * Composant racine de l'application
+ * Gère tous les providers et le routing avec lazy loading
+ */
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -27,19 +62,22 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Header />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/search" element={<Search />} />
-              <Route path="/creator/:userId" element={<CreatorProfile />} />
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            {/* Suspense pour le lazy loading des pages */}
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/search" element={<Search />} />
+                <Route path="/creator/:userId" element={<CreatorProfile />} />
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
+                {/* Ajouter toutes les routes personnalisées au-dessus de la route catch-all "*" */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
             <Footer />
           </BrowserRouter>
         </TooltipProvider>

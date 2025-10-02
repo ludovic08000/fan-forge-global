@@ -1,3 +1,8 @@
+/**
+ * Page Dashboard - Interface principale pour créateurs et abonnés
+ * Affiche les statistiques, le contenu et les paramètres selon le rôle
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -13,15 +18,21 @@ import SubscriptionPlans from '@/components/SubscriptionPlans';
 import SubscriptionStatus from '@/components/SubscriptionStatus';
 import CreatorSettings from '@/components/CreatorSettings';
 import CreatorBoost from '@/components/CreatorBoost';
+import CreatorAnalyticsDashboard from '@/components/analytics/CreatorAnalyticsDashboard';
 import { useContent } from '@/hooks/useContent';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAnalytics } from '@/lib/analytics';
 
+/**
+ * Composant principal du Dashboard
+ */
 const Dashboard = () => {
   const { user, userRole, loading } = useAuth();
   const { useMyContent } = useContent();
   const { refreshSubscription } = useSubscription();
+  const { trackPageView } = useAnalytics();
   const { data: myContent, isLoading: contentLoading, refetch } = useMyContent();
   const [showUpload, setShowUpload] = useState(false);
   const [creatorStats, setCreatorStats] = useState({
@@ -31,6 +42,11 @@ const Dashboard = () => {
     totalLikes: 0
   });
   const [creatorProfile, setCreatorProfile] = useState<any>(null);
+
+  // Tracker la vue de page
+  useEffect(() => {
+    trackPageView('dashboard');
+  }, [trackPageView]);
 
   useEffect(() => {
     const loadCreatorStats = async () => {
@@ -346,12 +362,7 @@ const Dashboard = () => {
           {/* Analytics */}
           {isCreator && (
             <TabsContent value="analytics" className="space-y-6">
-              <h2 className="text-2xl font-semibold">Analytics</h2>
-              <Card>
-                <CardContent className="p-6">
-                  <p className="text-muted-foreground">Statistiques détaillées en cours de développement...</p>
-                </CardContent>
-              </Card>
+              <CreatorAnalyticsDashboard />
             </TabsContent>
           )}
         </Tabs>
