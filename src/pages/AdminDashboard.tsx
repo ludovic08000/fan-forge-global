@@ -75,10 +75,11 @@ const AdminDashboard = () => {
   const [adminNotes, setAdminNotes] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Vérification du rôle admin
-  if (userRole !== 'admin') {
-    return <Navigate to="/" replace />;
-  }
+  // ⚠️ ATTENTION: Vérification du rôle admin DÉSACTIVÉE pour les tests
+  // À RÉACTIVER EN PRODUCTION!
+  // if (userRole !== 'admin') {
+  //   return <Navigate to="/" replace />;
+  // }
 
   /**
    * Charger les signalements
@@ -193,6 +194,16 @@ const AdminDashboard = () => {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      {/* ⚠️ Bannière d'avertissement pour les tests */}
+      <div className="mb-6 p-4 bg-orange-100 dark:bg-orange-900/20 border-2 border-orange-500 rounded-lg">
+        <div className="flex items-center gap-2 text-orange-800 dark:text-orange-200">
+          <AlertTriangle className="h-5 w-5" />
+          <p className="font-bold">
+            MODE TEST - Sécurité désactivée! Réactiver la vérification du rôle admin en production.
+          </p>
+        </div>
+      </div>
+
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Dashboard Administrateur</h1>
         <p className="text-muted-foreground">
