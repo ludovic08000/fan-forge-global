@@ -18,7 +18,7 @@ const Footer = () => {
               </span>
             </div>
             <p className="text-muted-foreground text-lg mb-6 max-w-md">
-              The next-generation platform empowering content creators and connecting them with their audience worldwide.
+              La plateforme nouvelle génération qui permet aux créateurs de contenu de se connecter avec leur audience dans le monde entier.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="bg-card hover:bg-accent p-3 rounded-lg border border-border hover:border-primary/50 transition-colors">
@@ -38,25 +38,25 @@ const Footer = () => {
 
           {/* Creators */}
           <div>
-            <h3 className="text-lg font-semibold mb-6">For Creators</h3>
+            <h3 className="text-lg font-semibold mb-6">Pour les Créateurs</h3>
             <ul className="space-y-3 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">Getting Started</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Creator Tools</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Monetization</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Analytics</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Best Practices</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Commencer</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Outils Créateurs</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Monétisation</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Statistiques</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Bonnes Pratiques</a></li>
             </ul>
           </div>
 
           {/* Subscribers */}
           <div>
-            <h3 className="text-lg font-semibold mb-6">For Subscribers</h3>
+            <h3 className="text-lg font-semibold mb-6">Pour les Abonnés</h3>
             <ul className="space-y-3 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">Browse Content</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Subscription Plans</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Mobile App</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Help Center</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Account Settings</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Explorer le Contenu</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Plans d&apos;Abonnement</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Application Mobile</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Centre d&apos;Aide</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Paramètres du Compte</a></li>
             </ul>
           </div>
         </div>
@@ -64,11 +64,11 @@ const Footer = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           {/* Company */}
           <div>
-            <h3 className="text-lg font-semibold mb-6">Company</h3>
+            <h3 className="text-lg font-semibold mb-6">Entreprise</h3>
             <ul className="space-y-3 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Press Kit</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">À Propos</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Carrières</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Kit Presse</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">Blog</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">Contact</a></li>
             </ul>
@@ -78,35 +78,35 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-6">Support</h3>
             <ul className="space-y-3 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">Help Center</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Community</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Safety</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Report Content</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Status</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Centre d&apos;Aide</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Communauté</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Sécurité</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Signaler du Contenu</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Statut</a></li>
             </ul>
           </div>
 
           {/* Legal */}
           <div>
-            <h3 className="text-lg font-semibold mb-6">Legal</h3>
+            <h3 className="text-lg font-semibold mb-6">Légal</h3>
             <ul className="space-y-3 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Cookie Policy</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Conditions d&apos;Utilisation</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Politique de Confidentialité</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Politique des Cookies</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">DMCA</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Age Verification</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">Vérification d&apos;Âge</a></li>
             </ul>
           </div>
 
           {/* Global */}
           <div>
-            <h3 className="text-lg font-semibold mb-6">Global</h3>
+            <h3 className="text-lg font-semibold mb-6">International</h3>
             <ul className="space-y-3 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">🇺🇸 United States</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">🇬🇧 United Kingdom</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">🇺🇸 États-Unis</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">🇬🇧 Royaume-Uni</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">🇫🇷 France</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">🇩🇪 Germany</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">🌍 View All Countries</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">🇩🇪 Allemagne</a></li>
+              <li><a href="#" className="hover:text-primary transition-colors">🌍 Voir Tous les Pays</a></li>
             </ul>
           </div>
         </div>
@@ -115,14 +115,14 @@ const Footer = () => {
         <div className="pt-8 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="text-muted-foreground text-sm mb-4 md:mb-0">
-              © 2024 CreatorHub. All rights reserved. Built with ❤️ for creators worldwide.
+              © 2024 CreatorHub. Tous droits réservés. Créé avec ❤️ pour les créateurs du monde entier.
             </div>
             <div className="flex items-center space-x-6 text-sm text-muted-foreground">
-              <span>GDPR Compliant</span>
+              <span>Conforme RGPD</span>
               <span>•</span>
-              <span>SOC 2 Certified</span>
+              <span>Certifié SOC 2</span>
               <span>•</span>
-              <span>18+ Platform</span>
+              <span>Plateforme 18+</span>
             </div>
           </div>
         </div>

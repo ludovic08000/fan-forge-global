@@ -32,7 +32,7 @@ const HeroSection = () => {
           <div className="inline-flex items-center px-6 py-3 mb-8 bg-gradient-to-r from-card/80 to-card/60 backdrop-blur-md border border-primary/20 rounded-full shadow-lg hover:shadow-[var(--shadow-glow)] transition-all duration-300 animate-fade-in group">
             <Zap className="h-4 w-4 text-primary mr-2 group-hover:animate-pulse" />
             <span className="text-sm font-semibold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-              Next-Generation Creator Platform
+              Plateforme Créateurs Nouvelle Génération
             </span>
           </div>
 
@@ -53,15 +53,15 @@ const HeroSection = () => {
           <div className="flex flex-wrap justify-center gap-4 mb-12 animate-scale-in" style={{ animationDelay: '0.3s' }}>
             <div className="group flex items-center px-6 py-3 bg-card/40 backdrop-blur-xl border border-primary/20 rounded-full hover:bg-card/60 hover:border-primary/40 transition-all duration-300 hover:scale-105 shadow-lg">
               <Globe className="h-5 w-5 text-primary mr-2 group-hover:rotate-12 transition-transform" />
-              <span className="text-sm font-medium">Global Reach</span>
+              <span className="text-sm font-medium">Portée Mondiale</span>
             </div>
             <div className="group flex items-center px-6 py-3 bg-card/40 backdrop-blur-xl border border-primary/20 rounded-full hover:bg-card/60 hover:border-primary/40 transition-all duration-300 hover:scale-105 shadow-lg">
               <Shield className="h-5 w-5 text-primary mr-2 group-hover:scale-110 transition-transform" />
-              <span className="text-sm font-medium">Premium Security</span>
+              <span className="text-sm font-medium">Sécurité Premium</span>
             </div>
             <div className="group flex items-center px-6 py-3 bg-card/40 backdrop-blur-xl border border-primary/20 rounded-full hover:bg-card/60 hover:border-primary/40 transition-all duration-300 hover:scale-105 shadow-lg">
               <Zap className="h-5 w-5 text-primary mr-2 group-hover:animate-pulse" />
-              <span className="text-sm font-medium">Instant Payouts</span>
+              <span className="text-sm font-medium">Paiements Instantanés</span>
             </div>
           </div>
 
