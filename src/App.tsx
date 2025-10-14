@@ -9,6 +9,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -61,12 +62,13 @@ const queryClient = new QueryClient({
  */
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TranslationProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <AuthProvider>
+        <TranslationProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
             <Header />
             <PWAInstallPrompt />
             {/* Suspense pour le lazy loading des pages */}
@@ -103,6 +105,7 @@ const App = () => (
         </TooltipProvider>
       </TranslationProvider>
     </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
