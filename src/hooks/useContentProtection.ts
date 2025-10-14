@@ -65,7 +65,7 @@ export const useContentProtection = (enabled: boolean = true) => {
       }
     };
 
-    // Détection basique de l'ouverture des DevTools
+    // Détection basique de l'ouverture des DevTools (silencieuse)
     const detectDevTools = () => {
       const threshold = 160;
       const widthThreshold = window.outerWidth - window.innerWidth > threshold;
@@ -73,9 +73,7 @@ export const useContentProtection = (enabled: boolean = true) => {
       
       if (widthThreshold || heightThreshold) {
         console.clear();
-        toast.warning('⚠️ Protection du contenu active', {
-          description: 'Le contenu est protégé contre le piratage'
-        });
+        // Protection silencieuse - pas de notification
       }
     };
 
