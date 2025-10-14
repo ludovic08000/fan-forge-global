@@ -157,4 +157,32 @@
     text-rendering: optimizeLegibility;
     letter-spacing: -0.02em;
   }
+
+  /* Protection anti-capture du contenu */
+  .protected-content {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .protected-content img,
+  .protected-content video {
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+
+  /* Empêcher la sélection de texte sur les contenus protégés */
+  .protected-content::selection {
+    background: transparent;
+  }
+
+  .protected-content::-moz-selection {
+    background: transparent;
+  }
 }

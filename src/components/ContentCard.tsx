@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ReportContentDialog } from '@/components/ReportContentDialog';
+import { ProtectedMedia } from '@/components/ProtectedMedia';
 
 interface ContentCardProps {
   content: Content;
@@ -79,10 +80,11 @@ const ContentCard: React.FC<ContentCardProps> = ({
   return (
     <Card className="group cursor-pointer hover:shadow-lg transition-all duration-300 overflow-hidden">
       {/* Media Container */}
-      <div 
-        className="relative aspect-square bg-muted overflow-hidden"
-        onClick={handleContentClick}
+      <ProtectedMedia 
+        className="relative aspect-square bg-muted overflow-hidden cursor-pointer"
+        watermarkText={content.is_premium ? creatorName : undefined}
       >
+      <div onClick={handleContentClick}>
         {/* Premium Overlay */}
         {content.is_premium && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -133,6 +135,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
           </Badge>
         )}
       </div>
+      </ProtectedMedia>
 
       <CardContent className="p-4">
         {/* Creator Info */}

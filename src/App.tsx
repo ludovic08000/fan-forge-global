@@ -16,6 +16,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { useContentProtection } from "@/hooks/useContentProtection";
 
 // Lazy loading des pages pour améliorer les performances
 const Index = lazy(() => import("./pages/Index"));
@@ -57,6 +58,51 @@ const queryClient = new QueryClient({
 });
 
 /**
+ * Composant interne qui utilise le hook de protection
+ */
+const AppRoutes = () => {
+  // Activer la protection anti-capture globalement
+  useContentProtection(true);
+  
+  return (
+    <>
+      <Header />
+      <PWAInstallPrompt />
+      {/* Suspense pour le lazy loading des pages */}
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/lives" element={<LiveStreams />} />
+          <Route path="/live/:streamId" element={<WatchLive />} />
+          <Route path="/creator/:userId" element={<CreatorProfile />} />
+          <Route path="/install" element={<Install />} />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/live-analytics/:liveStreamId" element={
+            <ProtectedRoute>
+              <LiveAnalytics />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          {/* Ajouter toutes les routes personnalisées au-dessus de la route catch-all "*" */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+      <Footer />
+    </>
+  );
+};
+
+/**
  * Composant racine de l'application
  * Gère tous les providers et le routing avec lazy loading
  */
@@ -69,40 +115,9 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-            <Header />
-            <PWAInstallPrompt />
-            {/* Suspense pour le lazy loading des pages */}
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/search" element={<Search />} />
-                <Route path="/lives" element={<LiveStreams />} />
-                <Route path="/live/:streamId" element={<WatchLive />} />
-                <Route path="/creator/:userId" element={<CreatorProfile />} />
-                <Route path="/install" element={<Install />} />
-                <Route path="/dashboard" element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/live-analytics/:liveStreamId" element={
-                  <ProtectedRoute>
-                    <LiveAnalytics />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin" element={
-                  <ProtectedRoute>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                } />
-                {/* Ajouter toutes les routes personnalisées au-dessus de la route catch-all "*" */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-            <Footer />
-          </BrowserRouter>
-        </TooltipProvider>
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
       </TranslationProvider>
     </AuthProvider>
     </ThemeProvider>
