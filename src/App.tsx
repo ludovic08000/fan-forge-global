@@ -25,6 +25,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const LiveStreams = lazy(() => import("./pages/LiveStreams"));
 const WatchLive = lazy(() => import("./pages/WatchLive"));
+const LiveAnalytics = lazy(() => import("./pages/LiveAnalytics"));
 
 // Composant de chargement pour le Suspense
 const PageLoader = () => (
@@ -77,6 +78,11 @@ const App = () => (
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/live-analytics/:liveStreamId" element={
+                  <ProtectedRoute>
+                    <LiveAnalytics />
                   </ProtectedRoute>
                 } />
                 <Route path="/admin" element={

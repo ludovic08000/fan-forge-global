@@ -13,7 +13,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { User, Crown, Settings, Upload, BarChart3, Heart, Eye, Euro, Plus, Video } from 'lucide-react';
 import ContentUpload from '@/components/ContentUpload';
-import ContentGallery from '@/components/ContentGallery';
+import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
 import SubscriptionPlans from '@/components/SubscriptionPlans';
 import SubscriptionStatus from '@/components/SubscriptionStatus';
 import CreatorSettings from '@/components/CreatorSettings';
@@ -327,7 +327,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-semibold">Explorer le contenu</h2>
             </div>
-            <ContentGallery />
+            <OptimizedContentGallery />
           </TabsContent>
 
           {/* Subscriptions */}

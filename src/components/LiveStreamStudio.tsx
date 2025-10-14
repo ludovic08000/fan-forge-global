@@ -11,17 +11,19 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Video, VideoOff, Mic, MicOff, Users, Circle } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3 } from 'lucide-react';
 import { useLiveStream } from '@/hooks/useLiveStream';
 import { useLiveChat } from '@/hooks/useLiveChat';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * Studio de diffusion pour créateurs
  */
 export const LiveStreamStudio = () => {
   const { createLiveStream, startLiveStream, endLiveStream } = useLiveStream();
+  const navigate = useNavigate();
   const [currentStream, setCurrentStream] = useState<any>(null);
   const [isLive, setIsLive] = useState(false);
   const [title, setTitle] = useState('');
@@ -321,6 +323,18 @@ export const LiveStreamStudio = () => {
                 size="lg"
               >
                 Arrêter le live
+              </Button>
+            )}
+            
+            {currentStream && (
+              <Button
+                onClick={() => navigate(`/live-analytics/${currentStream.id}`)}
+                variant="outline"
+                className="w-full mt-2"
+                size="lg"
+              >
+                <BarChart3 className="h-5 w-5 mr-2" />
+                Voir les analytics
               </Button>
             )}
           </CardContent>

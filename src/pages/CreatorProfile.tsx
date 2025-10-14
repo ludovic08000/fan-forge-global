@@ -24,6 +24,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ContentCard from '@/components/ContentCard';
 import PrivateChat from '@/components/PrivateChat';
+import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
 
 interface Creator {
   id: string;
@@ -453,25 +454,7 @@ const CreatorProfile: React.FC = () => {
               </TabsList>
 
               <TabsContent value="posts" className="space-y-6">
-                {contentLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  </div>
-                ) : creatorContent && creatorContent.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    {creatorContent.map((content: any) => (
-                      <ContentCard
-                        key={content.id}
-                        content={content}
-                        showCreatorInfo={false}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground">Aucun contenu publié pour le moment</p>
-                  </div>
-                )}
+                <OptimizedContentGallery creatorId={creator.id} />
               </TabsContent>
 
               <TabsContent value="about" className="space-y-6">
