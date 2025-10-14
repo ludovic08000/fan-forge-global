@@ -29,8 +29,8 @@ const CreatorSection = () => {
     },
     {
       icon: Users,
-      title: "Fan Management", 
-      description: "Built-in messaging, notifications, and subscriber relationship tools"
+      title: "Gestion des Fans", 
+      description: "Messagerie intégrée, notifications et outils de gestion des abonnés"
     },
     {
       icon: Camera,
@@ -39,13 +39,13 @@ const CreatorSection = () => {
     },
     {
       icon: Shield,
-      title: "Content Protection",
-      description: "Advanced DRM, watermarking, and anti-piracy measures"
+      title: "Protection du Contenu",
+      description: "DRM avancé, filigrane et mesures anti-piratage"
     },
     {
       icon: Zap,
-      title: "Instant Payouts",
-      description: "Get paid faster with daily payouts and lower fees"
+      title: "Paiements Instantanés",
+      description: "Soyez payé plus rapidement avec des paiements quotidiens et des frais réduits"
     }
   ];
 
@@ -56,7 +56,7 @@ const CreatorSection = () => {
         <div className="text-center mb-16">
           <div className="inline-flex items-center px-4 py-2 mb-6 bg-card/50 backdrop-blur-sm border border-border rounded-full">
             <TrendingUp className="h-4 w-4 text-primary mr-2" />
-            <span className="text-sm font-medium">For Content Creators</span>
+            <span className="text-sm font-medium">Pour les Créateurs de Contenu</span>
           </div>
           
           <h2 className="text-3xl md:text-5xl font-bold mb-6">
@@ -67,8 +67,8 @@ const CreatorSection = () => {
           </h2>
           
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Everything you need to grow your audience, create amazing content, 
-            and build a sustainable income doing what you love.
+            Tout ce dont vous avez besoin pour développer votre audience, créer du contenu incroyable 
+            et générer des revenus durables en faisant ce que vous aimez.
           </p>
         </div>
 
@@ -88,7 +88,7 @@ const CreatorSection = () => {
 
           {/* Features */}
           <div className="space-y-6">
-            <h3 className="text-2xl font-bold mb-8">Why Creators Choose Us</h3>
+            <h3 className="text-2xl font-bold mb-8">Pourquoi les Créateurs Nous Choisissent</h3>
             
             {features.map((feature, index) => (
               <div key={index} className="flex items-start space-x-4">
@@ -110,13 +110,13 @@ const CreatorSection = () => {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <DollarSign className="h-5 w-5 text-primary mr-2" />
-                Higher Earnings
+                Revenus Supérieurs
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-primary mb-2">85%</div>
               <CardDescription>
-                Keep more of what you earn with our industry-leading revenue share
+                Gardez plus de ce que vous gagnez avec notre partage de revenus leader du marché
               </CardDescription>
             </CardContent>
           </Card>
@@ -125,13 +125,13 @@ const CreatorSection = () => {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Users className="h-5 w-5 text-primary mr-2" />
-                Fan Growth
+                Croissance des Fans
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-primary mb-2">3x</div>
               <CardDescription>
-                Faster audience growth with our discovery algorithm
+                Croissance d&apos;audience plus rapide grâce à notre algorithme de découverte
               </CardDescription>
             </CardContent>
           </Card>
@@ -146,7 +146,7 @@ const CreatorSection = () => {
             <CardContent>
               <div className="text-3xl font-bold text-primary mb-2">5x</div>
               <CardDescription>
-                Better fan interaction with advanced messaging tools
+                Meilleure interaction avec les fans grâce à des outils de messagerie avancés
               </CardDescription>
             </CardContent>
           </Card>
@@ -155,10 +155,10 @@ const CreatorSection = () => {
         {/* CTA */}
         <div className="text-center">
           <Button variant="premium" size="xl" className="shadow-[var(--shadow-premium)]">
-            Start Your Creator Journey
+            Commencez Votre Parcours de Créateur
           </Button>
           <p className="text-sm text-muted-foreground mt-4">
-            Join thousands of successful creators. Free to start, no monthly fees.
+            Rejoignez des milliers de créateurs à succès. Gratuit pour commencer, sans frais mensuels.
           </p>
         </div>
       </div>

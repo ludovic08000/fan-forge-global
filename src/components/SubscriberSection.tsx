@@ -23,23 +23,23 @@ const SubscriberSection = () => {
     },
     {
       icon: Bell,
-      title: "Never Miss Updates",
-      description: "Smart notifications for new content from your favorite creators"
+      title: "Ne Manquez Aucune Mise à Jour",
+      description: "Notifications intelligentes pour le nouveau contenu de vos créateurs préférés"
     },
     {
       icon: Lock,
-      title: "Exclusive Access",
-      description: "Premium content, behind-the-scenes, and creator interactions"
+      title: "Accès Exclusif",
+      description: "Contenu premium, coulisses et interactions avec les créateurs"
     },
     {
       icon: Heart,
-      title: "Support Creators",
-      description: "Directly support the creators you love with tips and subscriptions"
+      title: "Soutenez les Créateurs",
+      description: "Soutenez directement les créateurs que vous aimez avec des pourboires et des abonnements"
     },
     {
       icon: Smartphone,
       title: "Mobile First",
-      description: "Seamless experience across all devices with offline downloads"
+      description: "Expérience fluide sur tous les appareils"
     },
     {
       icon: Shield,
@@ -49,12 +49,12 @@ const SubscriberSection = () => {
   ];
 
   const features = [
-    "HD/4K streaming quality",
-    "Unlimited downloads for offline viewing",
-    "Multi-device synchronization",
-    "Creator messaging & live chats",
-    "Custom playlists & favorites",
-    "Advanced search & filters"
+    "Qualité streaming HD/4K",
+    "Téléchargements illimités pour visionnage hors ligne",
+    "Synchronisation multi-appareils",
+    "Messagerie créateurs & chats en direct",
+    "Listes de lecture & favoris personnalisés",
+    "Recherche & filtres avancés"
   ];
 
   return (
@@ -64,7 +64,7 @@ const SubscriberSection = () => {
         <div className="text-center mb-16">
           <div className="inline-flex items-center px-4 py-2 mb-6 bg-card/50 backdrop-blur-sm border border-border rounded-full">
             <Star className="h-4 w-4 text-primary mr-2" />
-            <span className="text-sm font-medium">For Subscribers</span>
+            <span className="text-sm font-medium">Pour les Abonnés</span>
           </div>
           
           <h2 className="text-3xl md:text-5xl font-bold mb-6">
@@ -75,8 +75,8 @@ const SubscriberSection = () => {
           </h2>
           
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Access premium content from your favorite creators, discover new talent, 
-            and be part of exclusive communities around the world.
+            Accédez au contenu premium de vos créateurs préférés, découvrez de nouveaux talents 
+            et rejoignez des communautés exclusives du monde entier.
           </p>
         </div>
 
@@ -101,9 +101,9 @@ const SubscriberSection = () => {
         <div className="max-w-4xl mx-auto">
           <div className="bg-card/30 backdrop-blur-sm border border-border rounded-2xl p-8 shadow-[var(--shadow-card)]">
             <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold mb-4">Premium Subscriber Experience</h3>
+              <h3 className="text-2xl font-bold mb-4">Expérience Abonné Premium</h3>
               <p className="text-muted-foreground">
-                Get access to exclusive features that enhance your content consumption
+                Accédez à des fonctionnalités exclusives qui améliorent votre consommation de contenu
               </p>
             </div>
 
@@ -111,7 +111,7 @@ const SubscriberSection = () => {
               <div>
                 <h4 className="text-xl font-semibold mb-6 flex items-center">
                   <Globe className="h-5 w-5 text-primary mr-2" />
-                  Global Access
+                  Accès Mondial
                 </h4>
                 <div className="space-y-3">
                   {features.map((feature, index) => (
@@ -126,23 +126,23 @@ const SubscriberSection = () => {
               </div>
 
               <div className="bg-gradient-to-br from-primary/5 to-primary-glow/5 rounded-xl p-6 border border-primary/20">
-                <h4 className="text-xl font-semibold mb-4">Subscription Plans</h4>
+                <h4 className="text-xl font-semibold mb-4">Plans d&apos;Abonnement</h4>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span>Basic Access</span>
-                    <span className="text-primary font-semibold">$9.99/mo</span>
+                    <span>Accès Basic</span>
+                    <span className="text-primary font-semibold">9,99€/mois</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span>Premium Plus</span>
-                    <span className="text-primary font-semibold">$19.99/mo</span>
+                    <span className="text-primary font-semibold">19,99€/mois</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span>VIP Experience</span>
-                    <span className="text-primary font-semibold">$39.99/mo</span>
+                    <span>Expérience VIP</span>
+                    <span className="text-primary font-semibold">39,99€/mois</span>
                   </div>
                   <div className="pt-4 border-t border-border">
                     <Button variant="premium" className="w-full">
-                      Start Free Trial
+                      Commencer l&apos;Essai Gratuit
                     </Button>
                   </div>
                 </div>
@@ -154,10 +154,10 @@ const SubscriberSection = () => {
         {/* CTA */}
         <div className="text-center mt-12">
           <Button variant="hero" size="xl" className="shadow-[var(--shadow-premium)]">
-            Explore Content Now
+            Explorer le Contenu Maintenant
           </Button>
           <p className="text-sm text-muted-foreground mt-4">
-            7-day free trial • Cancel anytime • No hidden fees
+            Essai gratuit de 7 jours • Annulez à tout moment • Sans frais cachés
           </p>
         </div>
       </div>
