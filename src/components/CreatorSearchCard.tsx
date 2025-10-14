@@ -90,54 +90,55 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
   }
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="group hover:shadow-[var(--shadow-card)] hover:border-primary/30 transition-all duration-300 overflow-hidden bg-card/50 backdrop-blur-sm">
       <CardContent className="p-6">
         <div className="flex items-start space-x-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src={creator.avatar_url || ''} />
-            <AvatarFallback className="text-xl">{creatorInitials}</AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-16 w-16 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all">
+              <AvatarImage src={creator.avatar_url || ''} />
+              <AvatarFallback className="text-xl bg-gradient-to-br from-primary/20 to-primary-glow/20">{creatorInitials}</AvatarFallback>
+            </Avatar>
+            {creator.is_featured && (
+              <div className="absolute -top-1 -right-1 bg-gradient-to-r from-primary to-primary-glow rounded-full p-1">
+                <TrendingUp className="h-3 w-3 text-primary-foreground" />
+              </div>
+            )}
+          </div>
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 mb-2">
-              <h3 className="text-lg font-semibold truncate">{creatorName}</h3>
+              <h3 className="text-lg font-bold truncate group-hover:text-primary transition-colors">{creatorName}</h3>
               {creator.is_verified && (
-                <Crown className="h-4 w-4 text-primary" />
-              )}
-              {creator.is_featured && (
-                <Badge variant="secondary">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  En vedette
-                </Badge>
+                <Crown className="h-4 w-4 text-primary animate-pulse" />
               )}
             </div>
             
             {creator.bio && (
-              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+              <p className="text-sm text-muted-foreground mb-3 line-clamp-2 leading-relaxed">
                 {creator.bio}
               </p>
             )}
             
             <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-4">
               {creator.category && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs border-primary/30 hover:bg-primary/10">
                   {creator.category}
                 </Badge>
               )}
               {creator.gender && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-xs bg-card hover:bg-muted">
                   <User className="h-3 w-3 mr-1" />
                   {creator.gender}
                 </Badge>
               )}
               {creator.orientation && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-xs bg-card hover:bg-muted">
                   <Heart className="h-3 w-3 mr-1" />
                   {creator.orientation}
                 </Badge>
               )}
               {creator.content_type && creator.content_type.length > 0 && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs border-primary/30 hover:bg-primary/10">
                   <Camera className="h-3 w-3 mr-1" />
                   {creator.content_type.join(', ')}
                 </Badge>
@@ -145,33 +146,40 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
             </div>
             
             <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-4">
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-1 group/stat hover:text-primary transition-colors">
                 <Users className="h-4 w-4" />
-                <span>{creator.total_subscribers} abonnés</span>
+                <span className="font-medium">{creator.total_subscribers}</span>
+                <span className="text-xs">abonnés</span>
               </div>
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-1 group/stat hover:text-primary transition-colors">
                 <Image className="h-4 w-4" />
-                <span>{creator.total_content} contenus</span>
+                <span className="font-medium">{creator.total_content}</span>
+                <span className="text-xs">contenus</span>
               </div>
             </div>
             
             <div className="flex items-center justify-between">
               <div>
                 {creator.subscription_price > 0 ? (
-                  <div className="flex items-center space-x-2">
-                    <Lock className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">
-                      {formatPrice(creator.subscription_price)}/mois
+                  <div className="flex items-center space-x-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-lg">
+                    <Lock className="h-4 w-4 text-primary" />
+                    <span className="font-bold text-primary">
+                      {formatPrice(creator.subscription_price)}
                     </span>
+                    <span className="text-xs text-muted-foreground">/mois</span>
                   </div>
                 ) : (
-                  <Badge variant="outline" className="text-green-600 border-green-200">
+                  <Badge variant="outline" className="text-green-500 border-green-500/30 bg-green-500/10 font-semibold">
                     Gratuit
                   </Badge>
                 )}
               </div>
               
-              <Button onClick={handleViewProfile} variant="outline">
+              <Button 
+                onClick={handleViewProfile} 
+                variant="outline"
+                className="hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all"
+              >
                 Voir le profil
               </Button>
             </div>

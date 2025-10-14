@@ -46,10 +46,10 @@
     
     /* Premium shadows */
     --shadow-premium: 0 25px 50px -12px hsl(280 100% 70% / 0.4);
-    --shadow-card: 0 10px 30px -10px hsl(0 0% 0% / 0.1);
+    --shadow-card: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.06);
     --shadow-glow: 0 0 40px hsl(280 100% 70% / 0.3);
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -94,9 +94,9 @@
     --ring: 280 100% 70%;
 
     /* Premium shadows for dark mode */
-    --shadow-premium: 0 25px 50px -12px hsl(280 100% 70% / 0.4);
-    --shadow-card: 0 10px 30px -10px hsl(0 0% 0% / 0.3);
-    --shadow-glow: 0 0 40px hsl(280 100% 70% / 0.3);
+    --shadow-premium: 0 25px 50px -12px hsl(280 100% 70% / 0.5);
+    --shadow-card: 0 10px 30px -10px hsl(0 0% 0% / 0.4);
+    --shadow-glow: 0 0 60px hsl(280 100% 70% / 0.4);
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -115,8 +115,9 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    letter-spacing: -0.011em;
   }
 
   /* Smooth scrolling for anchor links */
@@ -124,21 +125,36 @@
     scroll-behavior: smooth;
   }
 
-  /* Custom scrollbar */
+  /* Premium Scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
+    width: 12px;
   }
 
   ::-webkit-scrollbar-track {
     background: hsl(var(--muted));
+    border-radius: 6px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
-    border-radius: 4px;
+    background: linear-gradient(180deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    border-radius: 6px;
+    border: 2px solid hsl(var(--muted));
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.6);
+    background: hsl(var(--primary));
+    box-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+  }
+
+  /* Selection styles */
+  ::selection {
+    background: hsl(var(--primary) / 0.3);
+    color: hsl(var(--foreground));
+  }
+
+  /* Improve text rendering */
+  h1, h2, h3, h4, h5, h6 {
+    text-rendering: optimizeLegibility;
+    letter-spacing: -0.02em;
   }
 }

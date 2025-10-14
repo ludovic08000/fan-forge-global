@@ -20,10 +20,10 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link to="/" className="font-bold text-xl">
+          <Link to="/" className="font-bold text-xl bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent hover:scale-105 transition-transform">
             ContentHub
           </Link>
           
@@ -35,9 +35,9 @@ const Header: React.FC = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
-          <Link to="/lives" className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1">
-            <Circle className="h-3 w-3 fill-destructive text-destructive animate-pulse" />
-            Lives
+          <Link to="/lives" className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1 group">
+            <Circle className="h-3 w-3 fill-destructive text-destructive animate-pulse group-hover:scale-110 transition-transform" />
+            <span className="group-hover:text-primary transition-colors">Lives</span>
           </Link>
           <ThemeToggle />
           {user && <NotificationBell />}
@@ -74,10 +74,10 @@ const Header: React.FC = () => {
             </DropdownMenu>
           ) : (
             <div className="flex items-center space-x-2">
-              <Button variant="ghost" asChild>
+              <Button variant="ghost" asChild className="hover:text-primary">
                 <Link to="/auth">Connexion</Link>
               </Button>
-              <Button asChild>
+              <Button asChild className="bg-gradient-to-r from-primary to-primary-glow hover:scale-105 transition-transform shadow-lg shadow-primary/30">
                 <Link to="/auth">Inscription</Link>
               </Button>
             </div>
