@@ -17,6 +17,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/lib/analytics';
+import { LiveModerationPanel, MessageModeration } from '@/components/LiveModerationPanel';
+import { useLiveModeration } from '@/hooks/useLiveModeration';
 
 interface LiveStreamViewerProps {
   streamId: string;
@@ -30,12 +32,15 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   const { joinLiveStream, leaveLiveStream } = useLiveStream();
   const { messages, sendMessage, hasMore, loadMore, loading: chatLoading } = useLiveChat(streamId);
   const { trackError } = useAnalytics();
+  const { isUserBanned, settings } = useLiveModeration(streamId);
   const [newMessage, setNewMessage] = useState('');
   const [viewerCount, setViewerCount] = useState(0);
   const [likes, setLikes] = useState(0);
   const [hasAccess, setHasAccess] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [liveStream, setLiveStream] = useState<any>(null);
+  const [isCreator, setIsCreator] = useState(false);
+  const [lastMessageTime, setLastMessageTime] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -55,6 +60,14 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
 
         if (streamError) throw streamError;
         setLiveStream(streamData);
+
+        // Vérifier si l'utilisateur est le créateur
+        if (user && streamData.creator?.user_id === user.id) {
+          setIsCreator(true);
+          setHasAccess(true);
+          setCheckingAccess(false);
+          return;
+        }
 
         // Si le stream n'est pas premium, accès direct
         if (!streamData.is_premium) {
@@ -118,6 +131,30 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
     if (!user) {
       toast.error('Connectez-vous pour participer au chat');
       return;
+    }
+
+    // Vérifier si l'utilisateur est banni
+    if (isUserBanned(user.id)) {
+      toast.error('Vous êtes banni de ce chat');
+      return;
+    }
+
+    // Vérifier le mode abonnés uniquement
+    if (settings.subscribers_only && !isCreator) {
+      toast.error('Seuls les abonnés peuvent chatter');
+      return;
+    }
+
+    // Vérifier le slow mode
+    if (settings.slow_mode_enabled && !isCreator) {
+      const now = Date.now();
+      const timeSinceLastMessage = (now - lastMessageTime) / 1000;
+      if (timeSinceLastMessage < settings.slow_mode_interval) {
+        const remaining = Math.ceil(settings.slow_mode_interval - timeSinceLastMessage);
+        toast.error(`Attendez ${remaining}s avant d'envoyer un message`);
+        return;
+      }
+      setLastMessageTime(now);
     }
 
     sendMessage(newMessage);
@@ -294,6 +331,13 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col p-0">
+            {/* Panel de modération (créateurs uniquement) */}
+            {isCreator && (
+              <div className="px-4 pt-4">
+                <LiveModerationPanel liveStreamId={streamId} isCreator={isCreator} />
+              </div>
+            )}
+
             {/* Messages avec pagination */}
             <ScrollArea className="flex-1 px-4" ref={chatScrollRef}>
               <div className="space-y-3 py-4">
@@ -332,6 +376,14 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                         </div>
                         <p className="text-sm break-words">{msg.message}</p>
                       </div>
+                      {/* Boutons de modération (créateurs uniquement) */}
+                      <MessageModeration
+                        messageId={msg.id}
+                        userId={msg.user_id}
+                        username={msg.username}
+                        liveStreamId={streamId}
+                        isCreator={isCreator}
+                      />
                     </div>
                   </div>
                 ))}

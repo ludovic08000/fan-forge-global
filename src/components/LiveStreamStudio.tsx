@@ -171,6 +171,20 @@ export const LiveStreamStudio = () => {
       // Stocker l'interval pour le cleanup
       (window as any).liveRevenueInterval = revenueInterval;
       
+      // Notifier les abonnés
+      try {
+        await supabase.functions.invoke('notify-live-start', {
+          body: {
+            live_stream_id: stream.id,
+            creator_id: stream.creator_id,
+          },
+        });
+        console.log('Notifications envoyées aux abonnés');
+      } catch (notifError) {
+        console.error('Erreur envoi notifications:', notifError);
+        // Ne pas bloquer le démarrage si les notifications échouent
+      }
+      
       toast.success('Vous êtes en direct!');
     } catch (error) {
       console.error('Erreur démarrage live:', error);

@@ -291,6 +291,44 @@ export type Database = {
           },
         ]
       }
+      live_stream_bans: {
+        Row: {
+          banned_by: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          live_stream_id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          banned_by: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          live_stream_id: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          banned_by?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          live_stream_id?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stream_bans_live_stream_id_fkey"
+            columns: ["live_stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_stream_messages: {
         Row: {
           created_at: string | null
@@ -415,6 +453,44 @@ export type Database = {
           },
         ]
       }
+      live_stream_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          live_stream_id: string
+          slow_mode_enabled: boolean | null
+          slow_mode_interval: number | null
+          subscribers_only: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          live_stream_id: string
+          slow_mode_enabled?: boolean | null
+          slow_mode_interval?: number | null
+          subscribers_only?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          live_stream_id?: string
+          slow_mode_enabled?: boolean | null
+          slow_mode_interval?: number | null
+          subscribers_only?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stream_settings_live_stream_id_fkey"
+            columns: ["live_stream_id"]
+            isOneToOne: true
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_stream_viewers: {
         Row: {
           id: string
@@ -514,6 +590,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          data: Json | null
+          id: string
+          message: string
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          message: string
+          read?: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       private_content_payments: {
         Row: {

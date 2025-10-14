@@ -11,6 +11,7 @@ import {
 import { Menu, X, User, LogOut, Settings, Crown, Circle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import SearchBar from '@/components/SearchBar';
+import { NotificationBell } from '@/components/NotificationBell';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -37,6 +38,7 @@ const Header: React.FC = () => {
             <Circle className="h-3 w-3 fill-destructive text-destructive animate-pulse" />
             Lives
           </Link>
+          {user && <NotificationBell />}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
