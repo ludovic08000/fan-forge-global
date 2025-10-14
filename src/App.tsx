@@ -14,6 +14,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 
 // Lazy loading des pages pour améliorer les performances
 const Index = lazy(() => import("./pages/Index"));
@@ -26,6 +27,7 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const LiveStreams = lazy(() => import("./pages/LiveStreams"));
 const WatchLive = lazy(() => import("./pages/WatchLive"));
 const LiveAnalytics = lazy(() => import("./pages/LiveAnalytics"));
+const Install = lazy(() => import("./pages/Install"));
 
 // Composant de chargement pour le Suspense
 const PageLoader = () => (
@@ -66,6 +68,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Header />
+            <PWAInstallPrompt />
             {/* Suspense pour le lazy loading des pages */}
             <Suspense fallback={<PageLoader />}>
               <Routes>
@@ -75,6 +78,7 @@ const App = () => (
                 <Route path="/lives" element={<LiveStreams />} />
                 <Route path="/live/:streamId" element={<WatchLive />} />
                 <Route path="/creator/:userId" element={<CreatorProfile />} />
+                <Route path="/install" element={<Install />} />
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <Dashboard />
