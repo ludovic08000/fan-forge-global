@@ -36,3 +36,12 @@ verify_jwt = false
 
 [functions.cleanup-expired-boosts]
 verify_jwt = false
+
+[functions.create-live-checkout]
+verify_jwt = true
+
+[functions.verify-live-access]
+verify_jwt = true
+
+[functions.rate-limit-check]
+verify_jwt = false

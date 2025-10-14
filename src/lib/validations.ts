@@ -79,6 +79,11 @@ export const creatorProfileSchema = z.object({
     .number()
     .min(0, { message: "Le prix ne peut pas être négatif" })
     .max(999.99, { message: "Le prix maximum est de 999.99€" }),
+  currency: z
+    .enum(['EUR', 'USD', 'GBP'], {
+      errorMap: () => ({ message: "Devise invalide" })
+    })
+    .default('EUR'),
   bio: z
     .string()
     .trim()

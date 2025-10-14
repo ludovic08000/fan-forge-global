@@ -326,6 +326,47 @@ export type Database = {
           },
         ]
       }
+      live_stream_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          live_stream_id: string
+          status: string
+          stripe_payment_intent_id: string | null
+          subscriber_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          live_stream_id: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          subscriber_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          live_stream_id?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          subscriber_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stream_payments_live_stream_id_fkey"
+            columns: ["live_stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_stream_viewers: {
         Row: {
           id: string
@@ -552,6 +593,30 @@ export type Database = {
           user_id?: string
           username?: string | null
           website?: string | null
+        }
+        Relationships: []
+      }
+      rate_limit_logs: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: string
+          ip_address: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -810,6 +875,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_rate_limits: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       generate_stream_key: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -833,6 +902,10 @@ export type Database = {
       gtrgm_out: {
         Args: { "": unknown }
         Returns: unknown
+      }
+      has_live_access: {
+        Args: { _live_stream_id: string; _subscriber_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
@@ -870,12 +943,15 @@ export type Database = {
           avatar_url: string
           bio: string
           category: string
+          content_type: string[]
           created_at: string
           currency: string
           display_name: string
+          gender: string
           id: string
           is_featured: boolean
           is_verified: boolean
+          orientation: string
           similarity_score: number
           stage_name: string
           subscription_price: number

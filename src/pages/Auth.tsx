@@ -7,12 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, ArrowLeft, Mail } from 'lucide-react';
+import { authSchema, signUpSchema } from '@/lib/validations';
+import { useRateLimitServer } from '@/hooks/useRateLimitServer';
+import { toast } from 'sonner';
+import { z } from 'zod';
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signIn, signUp, signInWithGoogle, signInWithFacebook, user } = useAuth();
+  const { checkRateLimit } = useRateLimitServer();
   const navigate = useNavigate();
 
   // Form states
@@ -38,45 +43,71 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Vérifier le rate limit
+    const isAllowed = await checkRateLimit('auth');
+    if (!isAllowed) return;
+
     setIsLoading(true);
 
-    const { error } = await signIn(signInForm.email, signInForm.password);
-    
-    if (!error) {
-      navigate('/');
+    try {
+      // Valider avec Zod
+      const validatedData = authSchema.parse(signInForm);
+      
+      const { error } = await signIn(validatedData.email, validatedData.password);
+      
+      if (!error) {
+        navigate('/');
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        error.errors.forEach(err => {
+          toast.error(err.message);
+        });
+      }
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (signUpForm.password !== signUpForm.confirmPassword) {
-      return;
-    }
+    // Vérifier le rate limit
+    const isAllowed = await checkRateLimit('auth');
+    if (!isAllowed) return;
 
     setIsLoading(true);
 
-    const { error } = await signUp(
-      signUpForm.email,
-      signUpForm.password,
-      signUpForm.firstName,
-      signUpForm.lastName
-    );
-    
-    if (!error) {
-      // Don't navigate immediately, let user confirm email
-      setSignUpForm({
-        email: '',
-        password: '',
-        confirmPassword: '',
-        firstName: '',
-        lastName: ''
-      });
+    try {
+      // Valider avec Zod
+      const validatedData = signUpSchema.parse(signUpForm);
+
+      const { error } = await signUp(
+        validatedData.email,
+        validatedData.password,
+        validatedData.firstName,
+        validatedData.lastName
+      );
+      
+      if (!error) {
+        setSignUpForm({
+          email: '',
+          password: '',
+          confirmPassword: '',
+          firstName: '',
+          lastName: ''
+        });
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        error.errors.forEach(err => {
+          toast.error(err.message);
+        });
+      }
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   const handleGoogleSignIn = async () => {

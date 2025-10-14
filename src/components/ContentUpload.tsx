@@ -9,8 +9,11 @@ import { Progress } from '@/components/ui/progress';
 import { Upload, Image, Video, X, Euro } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useContentUpload } from '@/hooks/useContentUpload';
+import { useRateLimitServer } from '@/hooks/useRateLimitServer';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { contentUploadSchema } from '@/lib/validations';
+import { z } from 'zod';
 
 interface ContentUploadProps {
   onUploadComplete?: () => void;
@@ -19,6 +22,7 @@ interface ContentUploadProps {
 const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const { user } = useAuth();
   const { uploadContent, uploading, progress } = useContentUpload();
+  const { checkRateLimit } = useRateLimitServer();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
@@ -63,17 +67,28 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
       return;
     }
 
-    if (!formData.title.trim()) {
-      toast.error('Veuillez entrer un titre');
-      return;
-    }
-
     if (!user) {
       toast.error('Vous devez être connecté');
       return;
     }
 
+    // Vérifier le rate limit
+    const isAllowed = await checkRateLimit('upload');
+    if (!isAllowed) return;
+
     try {
+      // Valider avec Zod
+      const validatedData = contentUploadSchema.parse({
+        title: formData.title,
+        description: formData.description,
+        isPremium: formData.isPremium,
+        price: formData.isPremium ? formData.price : undefined,
+      });
+      
+      if (!validatedData.title.trim()) {
+        toast.error('Veuillez entrer un titre');
+        return;
+      }
       // Récupérer l'ID du créateur
       const { data: creatorData, error: creatorError } = await supabase
         .from('creators')
@@ -87,10 +102,10 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
       }
 
       await uploadContent({
-        title: formData.title,
-        description: formData.description || undefined,
-        isPremium: formData.isPremium,
-        price: formData.isPremium ? formData.price : undefined,
+        title: validatedData.title,
+        description: validatedData.description || undefined,
+        isPremium: validatedData.isPremium,
+        price: validatedData.isPremium ? validatedData.price : undefined,
         file: selectedFile
       }, creatorData.id, user.id);
 
@@ -110,7 +125,13 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
       onUploadComplete?.();
 
     } catch (error) {
-      console.error('Upload error:', error);
+      if (error instanceof z.ZodError) {
+        error.errors.forEach(err => {
+          toast.error(err.message);
+        });
+      } else {
+        console.error('Upload error:', error);
+      }
     }
   };
 

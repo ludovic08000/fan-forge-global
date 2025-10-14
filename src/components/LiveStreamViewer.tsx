@@ -10,10 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Users, Send, Circle, Heart } from 'lucide-react';
+import { Users, Send, Circle, Heart, Lock } from 'lucide-react';
 import { useLiveStream } from '@/hooks/useLiveStream';
 import { useLiveChat } from '@/hooks/useLiveChat';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface LiveStreamViewerProps {
@@ -30,23 +31,71 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   const [newMessage, setNewMessage] = useState('');
   const [viewerCount, setViewerCount] = useState(0);
   const [likes, setLikes] = useState(0);
+  const [hasAccess, setHasAccess] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [liveStream, setLiveStream] = useState<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   /**
-   * Rejoindre le live au montage du composant
+   * Charger les infos du stream et vérifier l'accès
    */
   useEffect(() => {
-    if (user) {
+    const checkAccess = async () => {
+      try {
+        // Charger les infos du stream
+        const { data: streamData, error: streamError } = await supabase
+          .from('live_streams')
+          .select('*, creator:creator_id(*)')
+          .eq('id', streamId)
+          .single();
+
+        if (streamError) throw streamError;
+        setLiveStream(streamData);
+
+        // Si le stream n'est pas premium, accès direct
+        if (!streamData.is_premium) {
+          setHasAccess(true);
+          setCheckingAccess(false);
+          return;
+        }
+
+        // Vérifier l'accès via l'edge function
+        if (user) {
+          const { data, error } = await supabase.functions.invoke('verify-live-access', {
+            body: { liveStreamId: streamId },
+          });
+
+          if (error) throw error;
+          setHasAccess(data.hasAccess);
+        } else {
+          setHasAccess(false);
+        }
+      } catch (error) {
+        console.error('Error checking access:', error);
+        setHasAccess(false);
+      } finally {
+        setCheckingAccess(false);
+      }
+    };
+
+    checkAccess();
+  }, [streamId, user]);
+
+  /**
+   * Rejoindre le live si accès autorisé
+   */
+  useEffect(() => {
+    if (user && hasAccess) {
       joinLiveStream(streamId);
     }
 
     return () => {
-      if (user) {
+      if (user && hasAccess) {
         leaveLiveStream(streamId);
       }
     };
-  }, [streamId, user]);
+  }, [streamId, user, hasAccess]);
 
   /**
    * Auto-scroll vers le dernier message
@@ -81,6 +130,91 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
     setLikes(likes + 1);
     toast.success('❤️');
   };
+
+  /**
+   * Gérer le paiement pour accéder au live
+   */
+  const handlePayForAccess = async () => {
+    if (!user) {
+      toast.error('Connectez-vous pour accéder à ce live');
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('create-live-checkout', {
+        body: { liveStreamId: streamId },
+      });
+
+      if (error) throw error;
+
+      if (data.hasAccess) {
+        toast.success('Vous avez déjà accès à ce live!');
+        setHasAccess(true);
+        return;
+      }
+
+      if (data.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      toast.error('Erreur lors du paiement');
+    }
+  };
+
+  if (checkingAccess) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Vérification de l'accès...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasAccess && liveStream?.is_premium) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="p-8 text-center space-y-4">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Lock className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold mb-2">{liveStream.title}</h2>
+              <p className="text-muted-foreground mb-4">
+                Ce live est réservé aux abonnés ou nécessite un paiement unique
+              </p>
+              <div className="p-4 bg-muted rounded-lg mb-4">
+                <p className="text-2xl font-bold">
+                  {new Intl.NumberFormat('fr-FR', {
+                    style: 'currency',
+                    currency: 'EUR'
+                  }).format(liveStream.price)}
+                </p>
+                <p className="text-sm text-muted-foreground">Accès unique</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Button onClick={handlePayForAccess} className="w-full" variant="premium">
+                Acheter l'accès
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => window.history.back()}
+              >
+                Retour
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 px-4">

@@ -11,6 +11,8 @@ import { Euro, Save, Settings, Crown, Gift } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { creatorProfileSchema } from '@/lib/validations';
+import { z } from 'zod';
 
 interface CreatorProfile {
   id: string;
@@ -93,11 +95,19 @@ const CreatorSettings: React.FC = () => {
 
     setSaving(true);
     try {
-      const updateData = {
-        stage_name: formData.stageName || null,
-        category: formData.category || null,
-        subscription_price: formData.subscriptionPrice,
+      // Valider avec Zod
+      const validatedData = creatorProfileSchema.parse({
+        stageName: formData.stageName,
+        category: formData.category,
+        subscriptionPrice: formData.subscriptionPrice,
         currency: formData.currency,
+      });
+
+      const updateData = {
+        stage_name: validatedData.stageName || null,
+        category: validatedData.category || null,
+        subscription_price: validatedData.subscriptionPrice,
+        currency: validatedData.currency,
         is_accepting_tips: formData.isAcceptingTips
       };
 
@@ -132,8 +142,14 @@ const CreatorSettings: React.FC = () => {
         if (data) setProfile(data);
       }
     } catch (error: any) {
-      console.error('Error saving profile:', error);
-      toast.error('Erreur lors de la sauvegarde');
+      if (error instanceof z.ZodError) {
+        error.errors.forEach(err => {
+          toast.error(err.message);
+        });
+      } else {
+        console.error('Error saving profile:', error);
+        toast.error('Erreur lors de la sauvegarde');
+      }
     } finally {
       setSaving(false);
     }
