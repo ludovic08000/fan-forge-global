@@ -1,6 +1,6 @@
 /**
  * Composant studio de live streaming pour les créateurs
- * Permet de créer, configurer et diffuser un live
+ * Permet de créer, configurer et diffuser un live avec tracking des revenus
  */
 
 import { useState, useRef, useEffect } from 'react';
@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Video, VideoOff, Mic, MicOff, Users, Circle } from 'lucide-react';
 import { useLiveStream } from '@/hooks/useLiveStream';
 import { useLiveChat } from '@/hooks/useLiveChat';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
@@ -36,27 +37,95 @@ export const LiveStreamStudio = () => {
   const { messages, sendMessage } = useLiveChat(currentStream?.id || '');
 
   /**
-   * Initialiser la caméra et le micro
+   * Initialiser les dispositifs média avec fallbacks mobile
    */
-  const initializeMedia = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
+  useEffect(() => {
+    const initializeMedia = async () => {
+      try {
+        // Détecter si mobile
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
+        const constraints: MediaStreamConstraints = {
+          video: isMobile ? {
+            facingMode: 'user',
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          } : {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        };
 
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (error) {
+        console.error('Erreur accès média:', error);
+        
+        // Fallback: essayer avec des contraintes basiques
+        try {
+          const basicStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+          });
+          
+          streamRef.current = basicStream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = basicStream;
+          }
+          
+          toast.warning('Qualité vidéo réduite pour compatibilité');
+        } catch (fallbackError) {
+          console.error('Erreur accès média (fallback):', fallbackError);
+          toast.error('Impossible d\'accéder à la caméra ou au microphone');
+        }
       }
-    } catch (error) {
-      console.error('Erreur accès média:', error);
-      toast.error('Impossible d\'accéder à la caméra/micro');
-    }
-  };
+    };
+
+    initializeMedia();
+
+    // Gérer le changement d'orientation sur mobile
+    const handleOrientationChange = () => {
+      if (streamRef.current && videoRef.current) {
+        const tracks = streamRef.current.getVideoTracks();
+        tracks.forEach(track => {
+          const settings = track.getSettings();
+          console.log('Video settings after orientation change:', settings);
+        });
+      }
+    };
+
+    window.addEventListener('orientationchange', handleOrientationChange);
+
+    return () => {
+      // Cleanup proper des streams
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => {
+          track.stop();
+          console.log('Track stopped:', track.kind);
+        });
+        streamRef.current = null;
+      }
+      
+      // Cleanup video element
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      
+      window.removeEventListener('orientationchange', handleOrientationChange);
+    };
+  }, []);
 
   /**
-   * Créer et démarrer le live
+   * Créer et démarrer le live avec tracking des revenus
    */
   const handleStartLive = async () => {
     if (!title.trim()) {
@@ -81,14 +150,36 @@ export const LiveStreamStudio = () => {
       await startLiveStream(stream.id);
       setIsLive(true);
       
+      // Démarrer le tracking des revenus par minute
+      const revenueInterval = setInterval(async () => {
+        const liveStartTime = new Date(stream.started_at || Date.now());
+        const currentTime = Date.now();
+        const minuteNumber = Math.floor((currentTime - liveStartTime.getTime()) / 60000);
+        
+        try {
+          await supabase.functions.invoke('track-live-revenue', {
+            body: {
+              liveStreamId: stream.id,
+              minuteNumber,
+            },
+          });
+        } catch (error) {
+          console.error('Erreur tracking revenus:', error);
+        }
+      }, 60000); // Toutes les minutes
+      
+      // Stocker l'interval pour le cleanup
+      (window as any).liveRevenueInterval = revenueInterval;
+      
       toast.success('Vous êtes en direct!');
     } catch (error) {
       console.error('Erreur démarrage live:', error);
+      toast.error('Impossible de démarrer le live');
     }
   };
 
   /**
-   * Arrêter le live
+   * Arrêter le live avec cleanup complet
    */
   const handleStopLive = async () => {
     if (!currentStream) return;
@@ -97,9 +188,18 @@ export const LiveStreamStudio = () => {
       await endLiveStream(currentStream.id);
       setIsLive(false);
       
-      // Arrêter les flux média
+      // Arrêter le tracking des revenus
+      if ((window as any).liveRevenueInterval) {
+        clearInterval((window as any).liveRevenueInterval);
+        (window as any).liveRevenueInterval = null;
+      }
+      
+      // Arrêter tous les tracks
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach((track) => {
+          track.stop();
+          console.log('Track stopped on end:', track.kind);
+        });
       }
 
       toast.success('Live terminé');
@@ -110,6 +210,7 @@ export const LiveStreamStudio = () => {
       setDescription('');
     } catch (error) {
       console.error('Erreur arrêt live:', error);
+      toast.error('Erreur lors de l\'arrêt du live');
     }
   };
 
@@ -138,16 +239,6 @@ export const LiveStreamStudio = () => {
       }
     }
   };
-
-  useEffect(() => {
-    initializeMedia();
-
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, []);
 
   return (
     <div className="container mx-auto py-8 px-4">

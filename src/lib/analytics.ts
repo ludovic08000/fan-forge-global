@@ -36,6 +36,16 @@ export enum AnalyticsEvent {
   // Événements d'engagement
   MESSAGE_SENT = 'message_sent',
   PROFILE_UPDATED = 'profile_updated',
+  
+  // Événements d'erreur
+  ERROR_OCCURRED = 'error_occurred',
+  API_ERROR = 'api_error',
+  NETWORK_ERROR = 'network_error',
+  
+  // Événements live
+  LIVE_STARTED = 'live_started',
+  LIVE_JOINED = 'live_joined',
+  LIVE_ERROR = 'live_error',
 }
 
 /**
@@ -293,6 +303,56 @@ class Analytics {
   getSessionDuration(): number {
     return Date.now() - this.startTime;
   }
+
+  /**
+   * Tracker une erreur avec contexte complet
+   * @param error - L'erreur à tracker
+   * @param context - Contexte additionnel
+   */
+  async trackError(error: Error | unknown, context?: EventProperties) {
+    const errorData = {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : 'UnknownError',
+    };
+
+    await this.track(AnalyticsEvent.ERROR_OCCURRED, {
+      ...errorData,
+      ...context,
+    });
+
+    // Logger dans la console en développement
+    if (process.env.NODE_ENV === 'development') {
+      console.error('🚨 Error tracked:', errorData, context);
+    }
+  }
+
+  /**
+   * Tracker une erreur API
+   * @param endpoint - L'endpoint de l'API
+   * @param status - Le code de statut HTTP
+   * @param error - L'erreur
+   */
+  async trackApiError(endpoint: string, status: number, error: Error | unknown) {
+    await this.track(AnalyticsEvent.API_ERROR, {
+      endpoint,
+      status,
+      error_message: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  /**
+   * Tracker une erreur réseau
+   * @param url - L'URL de la requête
+   * @param error - L'erreur
+   */
+  async trackNetworkError(url: string, error: Error | unknown) {
+    await this.track(AnalyticsEvent.NETWORK_ERROR, {
+      url,
+      error_message: error instanceof Error ? error.message : String(error),
+      is_offline: !navigator.onLine,
+    });
+  }
 }
 
 // Instance singleton du système d'analytics
@@ -306,5 +366,8 @@ export const useAnalytics = () => {
     trackClick: analytics.trackClick.bind(analytics),
     setUser: analytics.setUser.bind(analytics),
     getCreatorAnalytics: analytics.getCreatorAnalytics.bind(analytics),
+    trackError: analytics.trackError.bind(analytics),
+    trackApiError: analytics.trackApiError.bind(analytics),
+    trackNetworkError: analytics.trackNetworkError.bind(analytics),
   };
 };

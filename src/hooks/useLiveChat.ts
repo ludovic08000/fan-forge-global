@@ -1,9 +1,9 @@
 /**
- * Hook pour gérer le chat en direct des live streams
+ * Hook pour gérer le chat en direct des live streams avec pagination
  * Permet d'envoyer et recevoir des messages en temps réel
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -16,34 +16,67 @@ export interface ChatMessage {
   created_at: string;
 }
 
+const MESSAGES_PER_PAGE = 50;
+const MAX_MESSAGES_IN_MEMORY = 200;
+
 /**
- * Hook personnalisé pour gérer le chat en direct
+ * Hook personnalisé pour gérer le chat en direct avec pagination
  */
 export const useLiveChat = (streamId: string) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [oldestMessageDate, setOldestMessageDate] = useState<string | null>(null);
 
   /**
-   * Charger les messages existants
+   * Charger les messages avec pagination
    */
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async (loadMore = false) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('live_stream_messages')
         .select('*')
         .eq('live_stream_id', streamId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(MESSAGES_PER_PAGE);
+
+      // Si on charge plus de messages, partir du plus ancien message actuel
+      if (loadMore && oldestMessageDate) {
+        query = query.lt('created_at', oldestMessageDate);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
-      setMessages(data || []);
+
+      if (data && data.length > 0) {
+        // Inverser l'ordre pour afficher du plus ancien au plus récent
+        const newMessages = data.reverse();
+        
+        if (loadMore) {
+          // Ajouter les nouveaux messages au début
+          setMessages((prev) => {
+            const combined = [...newMessages, ...prev];
+            // Limiter le nombre de messages en mémoire
+            return combined.slice(-MAX_MESSAGES_IN_MEMORY);
+          });
+        } else {
+          setMessages(newMessages);
+        }
+
+        setOldestMessageDate(newMessages[0].created_at);
+        setHasMore(data.length === MESSAGES_PER_PAGE);
+      } else {
+        setHasMore(false);
+      }
     } catch (error) {
       console.error('Erreur chargement messages:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [streamId, oldestMessageDate]);
 
   /**
    * Envoyer un message
@@ -93,8 +126,11 @@ export const useLiveChat = (streamId: string) => {
           filter: `live_stream_id=eq.${streamId}`,
         },
         (payload) => {
-          console.log('Nouveau message:', payload);
-          setMessages((current) => [...current, payload.new as ChatMessage]);
+          setMessages((prev) => {
+            const updated = [...prev, payload.new as ChatMessage];
+            // Garder seulement les derniers messages pour éviter surcharge mémoire
+            return updated.slice(-MAX_MESSAGES_IN_MEMORY);
+          });
         }
       )
       .subscribe();
@@ -102,11 +138,13 @@ export const useLiveChat = (streamId: string) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [streamId]);
+  }, [streamId, loadMessages]);
 
   return {
     messages,
     loading,
+    hasMore,
     sendMessage,
+    loadMore: () => loadMessages(true),
   };
 };

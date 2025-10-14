@@ -10,12 +10,13 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Users, Send, Circle, Heart, Lock } from 'lucide-react';
+import { Users, Send, Circle, Heart, Lock, ChevronUp } from 'lucide-react';
 import { useLiveStream } from '@/hooks/useLiveStream';
 import { useLiveChat } from '@/hooks/useLiveChat';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAnalytics } from '@/lib/analytics';
 
 interface LiveStreamViewerProps {
   streamId: string;
@@ -27,7 +28,8 @@ interface LiveStreamViewerProps {
 export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   const { user } = useAuth();
   const { joinLiveStream, leaveLiveStream } = useLiveStream();
-  const { messages, sendMessage } = useLiveChat(streamId);
+  const { messages, sendMessage, hasMore, loadMore, loading: chatLoading } = useLiveChat(streamId);
+  const { trackError } = useAnalytics();
   const [newMessage, setNewMessage] = useState('');
   const [viewerCount, setViewerCount] = useState(0);
   const [likes, setLikes] = useState(0);
@@ -36,9 +38,10 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   const [liveStream, setLiveStream] = useState<any>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   /**
-   * Charger les infos du stream et vérifier l'accès
+   * Charger les infos du stream et vérifier l'accès avec gestion d'erreurs
    */
   useEffect(() => {
     const checkAccess = async () => {
@@ -73,14 +76,16 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
         }
       } catch (error) {
         console.error('Error checking access:', error);
+        trackError(error as Error, { context: 'verify_live_access', streamId });
         setHasAccess(false);
+        toast.error('Erreur lors de la vérification de l\'accès au live');
       } finally {
         setCheckingAccess(false);
       }
     };
 
     checkAccess();
-  }, [streamId, user]);
+  }, [streamId, user, trackError]);
 
   /**
    * Rejoindre le live si accès autorisé
@@ -289,9 +294,22 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col p-0">
-            {/* Messages */}
-            <ScrollArea className="flex-1 px-4">
+            {/* Messages avec pagination */}
+            <ScrollArea className="flex-1 px-4" ref={chatScrollRef}>
               <div className="space-y-3 py-4">
+                {hasMore && (
+                  <div className="flex justify-center pb-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={loadMore}
+                      disabled={chatLoading}
+                    >
+                      <ChevronUp className="h-4 w-4 mr-2" />
+                      {chatLoading ? 'Chargement...' : 'Charger plus'}
+                    </Button>
+                  </div>
+                )}
                 {messages.map((msg) => (
                   <div key={msg.id} className="space-y-1">
                     <div className="flex items-start gap-2">

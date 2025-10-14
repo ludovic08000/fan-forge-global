@@ -367,6 +367,54 @@ export type Database = {
           },
         ]
       }
+      live_stream_revenue: {
+        Row: {
+          created_at: string
+          creator_id: string
+          currency: string
+          id: string
+          live_stream_id: string
+          minute_number: number
+          revenue_amount: number
+          viewer_count: number
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          currency?: string
+          id?: string
+          live_stream_id: string
+          minute_number: number
+          revenue_amount?: number
+          viewer_count?: number
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          currency?: string
+          id?: string
+          live_stream_id?: string
+          minute_number?: number
+          revenue_amount?: number
+          viewer_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_stream_revenue_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_stream_revenue_live_stream_id_fkey"
+            columns: ["live_stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_stream_viewers: {
         Row: {
           id: string
@@ -875,6 +923,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_live_revenue: {
+        Args: { _live_stream_id: string; _minute_number: number }
+        Returns: undefined
+      }
       cleanup_old_rate_limits: {
         Args: Record<PropertyKey, never>
         Returns: undefined

@@ -45,3 +45,6 @@ verify_jwt = true
 
 [functions.rate-limit-check]
 verify_jwt = false
+
+[functions.track-live-revenue]
+verify_jwt = false
