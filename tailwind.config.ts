@@ -113,7 +113,7 @@ export default {
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "shimmer-gradient": "linear-gradient(90deg, transparent, rgba(155, 135, 245, 0.2), transparent)",
+        "shimmer-gradient": "linear-gradient(90deg, transparent, hsl(265 85% 65% / 0.2), transparent)",
       },
     },
   },
