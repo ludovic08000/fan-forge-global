@@ -10,7 +10,7 @@ interface AuthContextType {
   session: Session | null;
   userRole: UserRole | null;
   loading: boolean;
-  signUp: (email: string, password: string, firstName?: string, lastName?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, firstName?: string, lastName?: string, role?: 'subscriber' | 'creator', birthdate?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signInWithFacebook: () => Promise<{ error: any }>;
@@ -146,10 +146,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (roleData) {
         setUserRole(roleData.role as UserRole);
       } else {
-        // Si pas de rôle trouvé, rediriger vers la page de choix
-        if (window.location.pathname !== '/choose-role' && window.location.pathname !== '/auth') {
-          window.location.href = '/choose-role';
-        }
         setUserRole(null);
       }
     } catch (error) {
@@ -164,15 +160,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * @param password - Mot de passe de l'utilisateur
    * @param firstName - Prénom de l'utilisateur (optionnel)
    * @param lastName - Nom de famille de l'utilisateur (optionnel)
+   * @param role - Rôle de l'utilisateur (subscriber ou creator)
+   * @param birthdate - Date de naissance (requis pour les créateurs)
    * @returns Objet contenant l'erreur éventuelle
    */
-  const signUp = async (email: string, password: string, firstName?: string, lastName?: string) => {
+  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, role?: 'subscriber' | 'creator', birthdate?: string) => {
     try {
       // URL de redirection après inscription
       const redirectUrl = `${window.location.origin}/`;
       
       // Appel à l'API Supabase pour créer le compte
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -191,11 +189,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else {
           toast.error(error.message);
         }
-      } else {
-        toast.success('Compte créé avec succès! Vérifiez votre email pour confirmer votre compte.');
+        return { error };
       }
 
-      return { error };
+      // Si l'inscription réussit, créer le rôle et le profil créateur si nécessaire
+      if (data.user && role) {
+        // Créer le rôle dans user_roles
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: data.user.id,
+            role: role
+          });
+
+        if (roleError) {
+          console.error('Erreur lors de la création du rôle:', roleError);
+        }
+
+        // Si créateur, créer l'entrée dans la table creators
+        if (role === 'creator') {
+          const { error: creatorError } = await supabase
+            .from('creators')
+            .insert({
+              user_id: data.user.id,
+              subscription_price: 9.99
+            });
+
+          if (creatorError) {
+            console.error('Erreur lors de la création du profil créateur:', creatorError);
+          }
+        }
+
+        // Mettre à jour la date de naissance dans le profil si fournie
+        if (birthdate) {
+          const { error: birthdateError } = await supabase
+            .from('profiles')
+            .update({ birthdate })
+            .eq('user_id', data.user.id);
+
+          if (birthdateError) {
+            console.error('Erreur lors de la mise à jour de la date de naissance:', birthdateError);
+          }
+        }
+      }
+
+      toast.success('Compte créé avec succès! Vérifiez votre email pour confirmer votre compte.');
+      return { error: null };
     } catch (error: any) {
       toast.error('Une erreur est survenue lors de la création du compte');
       return { error };

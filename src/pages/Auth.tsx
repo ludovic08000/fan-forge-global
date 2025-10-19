@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, ArrowLeft, Mail } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Mail, UserCircle, Video } from 'lucide-react';
 import { authSchema, signUpSchema } from '@/lib/validations';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
 import { toast } from 'sonner';
@@ -31,7 +31,9 @@ const Auth = () => {
     password: '',
     confirmPassword: '',
     firstName: '',
-    lastName: ''
+    lastName: '',
+    role: 'subscriber' as 'subscriber' | 'creator',
+    birthdate: ''
   });
 
   // Redirect if already authenticated
@@ -44,14 +46,12 @@ const Auth = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Vérifier le rate limit
     const isAllowed = await checkRateLimit('auth');
     if (!isAllowed) return;
 
     setIsLoading(true);
 
     try {
-      // Valider avec Zod
       const validatedData = authSchema.parse(signInForm);
       
       const { error } = await signIn(validatedData.email, validatedData.password);
@@ -73,21 +73,21 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Vérifier le rate limit
     const isAllowed = await checkRateLimit('auth');
     if (!isAllowed) return;
 
     setIsLoading(true);
 
     try {
-      // Valider avec Zod
       const validatedData = signUpSchema.parse(signUpForm);
 
       const { error } = await signUp(
         validatedData.email,
         validatedData.password,
         validatedData.firstName,
-        validatedData.lastName
+        validatedData.lastName,
+        validatedData.role,
+        validatedData.birthdate
       );
       
       if (!error) {
@@ -96,7 +96,9 @@ const Auth = () => {
           password: '',
           confirmPassword: '',
           firstName: '',
-          lastName: ''
+          lastName: '',
+          role: 'subscriber',
+          birthdate: ''
         });
       }
     } catch (error) {
@@ -134,7 +136,7 @@ const Auth = () => {
             Bienvenue
           </h1>
           <p className="text-muted-foreground mt-2">
-            Connectez-vous ou créez votre compte de créateur
+            Connectez-vous ou créez votre compte
           </p>
         </div>
 
@@ -146,7 +148,6 @@ const Auth = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Boutons de connexion sociale */}
             <div className="space-y-4 mb-6">
               <Button 
                 type="button"
@@ -250,6 +251,39 @@ const Auth = () => {
               
               <TabsContent value="signup" className="space-y-4">
                 <form onSubmit={handleSignUp} className="space-y-4">
+                  {/* Sélection du rôle */}
+                  <div className="space-y-3">
+                    <Label>Type de compte</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setSignUpForm({ ...signUpForm, role: 'subscriber' })}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          signUpForm.role === 'subscriber'
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <UserCircle className="w-8 h-8 mx-auto mb-2 text-primary" />
+                        <div className="text-sm font-medium">Utilisateur</div>
+                        <div className="text-xs text-muted-foreground mt-1">Accéder au contenu</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSignUpForm({ ...signUpForm, role: 'creator' })}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          signUpForm.role === 'creator'
+                            ? 'border-accent bg-accent/5'
+                            : 'border-border hover:border-accent/50'
+                        }`}
+                      >
+                        <Video className="w-8 h-8 mx-auto mb-2 text-accent" />
+                        <div className="text-sm font-medium">Créateur</div>
+                        <div className="text-xs text-muted-foreground mt-1">Publier du contenu</div>
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">Prénom</Label>
@@ -272,6 +306,25 @@ const Auth = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Date de naissance pour les créateurs */}
+                  {signUpForm.role === 'creator' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="birthdate">Date de naissance *</Label>
+                      <Input
+                        id="birthdate"
+                        type="date"
+                        required={signUpForm.role === 'creator'}
+                        value={signUpForm.birthdate}
+                        onChange={(e) => setSignUpForm({ ...signUpForm, birthdate: e.target.value })}
+                        max={new Date().toISOString().split('T')[0]}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Vous devez avoir au moins 18 ans pour devenir créateur
+                      </p>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <div className="relative">

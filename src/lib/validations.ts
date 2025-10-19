@@ -55,9 +55,30 @@ export const signUpSchema = authSchema.extend({
     .min(2, { message: "Le nom doit contenir au moins 2 caractères" })
     .max(50, { message: "Le nom doit contenir moins de 50 caractères" })
     .regex(/^[a-zA-ZÀ-ÿ\s-]+$/, { message: "Le nom ne peut contenir que des lettres" }),
+  role: z.enum(['subscriber', 'creator'], {
+    errorMap: () => ({ message: "Rôle invalide" })
+  }),
+  birthdate: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Les mots de passe ne correspondent pas",
   path: ["confirmPassword"],
+}).refine((data) => {
+  if (data.role === 'creator') {
+    if (!data.birthdate) {
+      return false;
+    }
+    const birthDate = new Date(data.birthdate);
+    const today = new Date();
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const dayDiff = today.getDate() - birthDate.getDate();
+    const actualAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+    return actualAge >= 18;
+  }
+  return true;
+}, {
+  message: "Vous devez avoir au moins 18 ans pour devenir créateur",
+  path: ["birthdate"],
 });
 
 /**
