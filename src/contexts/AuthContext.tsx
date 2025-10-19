@@ -129,7 +129,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .from('creators')
         .select('id')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (creatorData) {
         setUserRole('creator');
@@ -141,13 +141,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (roleData) {
         setUserRole(roleData.role as UserRole);
       } else {
-        // Par défaut, l'utilisateur est un abonné
-        setUserRole('subscriber');
+        // Si pas de rôle trouvé, rediriger vers la page de choix
+        if (window.location.pathname !== '/choose-role' && window.location.pathname !== '/auth') {
+          window.location.href = '/choose-role';
+        }
+        setUserRole(null);
       }
     } catch (error) {
       console.error('Erreur lors du chargement du rôle utilisateur:', error);

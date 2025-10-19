@@ -21,6 +21,7 @@ import { useContentProtection } from "@/hooks/useContentProtection";
 // Lazy loading des pages pour améliorer les performances
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
+const ChooseRole = lazy(() => import("./pages/ChooseRole"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const CreatorProfile = lazy(() => import("./pages/CreatorProfile"));
 const Search = lazy(() => import("./pages/Search"));
@@ -73,6 +74,11 @@ const AppRoutes = () => {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/choose-role" element={
+            <ProtectedRoute>
+              <ChooseRole />
+            </ProtectedRoute>
+          } />
           <Route path="/search" element={<Search />} />
           <Route path="/lives" element={<LiveStreams />} />
           <Route path="/live/:streamId" element={<WatchLive />} />
