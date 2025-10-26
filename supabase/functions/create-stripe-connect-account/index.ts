@@ -97,7 +97,7 @@ serve(async (req) => {
       business_profile: {
         name: creator.stage_name || profile?.display_name || "Créateur",
         mcc: "7999", // Amusement and recreation services
-        url: `${req.headers.get("origin")}/${profile?.display_name || creator.stage_name}`,
+        url: req.headers.get("origin") || "https://example.com",
       },
       metadata: {
         creator_id: creator.id,
