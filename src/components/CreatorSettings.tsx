@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Euro, Save, Settings, Crown, Gift, Building2 } from 'lucide-react';
+import { Euro, Save, Settings, Crown, Gift } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -21,11 +21,6 @@ interface CreatorProfile {
   subscription_price: number;
   currency: string;
   is_accepting_tips: boolean;
-  bank_account_holder: string | null;
-  bank_iban: string | null;
-  bank_bic: string | null;
-  bank_country: string | null;
-  tax_id: string | null;
 }
 
 const CreatorSettings: React.FC = () => {
@@ -39,13 +34,7 @@ const CreatorSettings: React.FC = () => {
     category: '',
     subscriptionPrice: 0,
     currency: 'EUR',
-    isAcceptingTips: true,
-    bankAccountHolder: '',
-    bankIban: '',
-    bankBic: '',
-    bankCountry: 'FR',
-    taxId: '',
-    paymentFrequency: 'monthly'
+    isAcceptingTips: true
   });
 
   const categories = [
@@ -86,13 +75,7 @@ const CreatorSettings: React.FC = () => {
             category: data.category || '',
             subscriptionPrice: data.subscription_price || 0,
             currency: data.currency || 'EUR',
-            isAcceptingTips: data.is_accepting_tips,
-            bankAccountHolder: data.bank_account_holder || '',
-            bankIban: data.bank_iban || '',
-            bankBic: data.bank_bic || '',
-            bankCountry: data.bank_country || 'FR',
-            taxId: data.tax_id || '',
-            paymentFrequency: (data as any).payment_frequency || 'monthly'
+            isAcceptingTips: data.is_accepting_tips
           });
         }
       } catch (error: any) {
@@ -125,18 +108,8 @@ const CreatorSettings: React.FC = () => {
         category: validatedData.category || null,
         subscription_price: validatedData.subscriptionPrice,
         currency: validatedData.currency,
-        is_accepting_tips: formData.isAcceptingTips,
-        bank_account_holder: formData.bankAccountHolder || null,
-        bank_iban: formData.bankIban || null,
-        bank_bic: formData.bankBic || null,
-        bank_country: formData.bankCountry || null,
-        tax_id: formData.taxId || null,
-        payment_frequency: formData.paymentFrequency
+        is_accepting_tips: formData.isAcceptingTips
       };
-
-      // Détecter les changements d'IBAN/BIC
-      const ibanChanged = profile && profile.bank_iban !== formData.bankIban;
-      const bicChanged = profile && profile.bank_bic !== formData.bankBic;
 
       if (profile) {
         // Mise à jour
@@ -146,24 +119,7 @@ const CreatorSettings: React.FC = () => {
           .eq('user_id', user.id);
 
         if (error) throw error;
-
-        // Envoyer notification si IBAN/BIC modifié
-        if (ibanChanged || bicChanged) {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            await supabase.functions.invoke('notify-iban-change', {
-              body: {
-                oldIban: profile.bank_iban,
-                newIban: formData.bankIban,
-                oldBic: profile.bank_bic,
-                newBic: formData.bankBic,
-              }
-            });
-            toast.success('Paramètres mis à jour - Notification de sécurité envoyée');
-          }
-        } else {
-          toast.success('Paramètres mis à jour avec succès');
-        }
+        toast.success('Paramètres mis à jour avec succès');
       } else {
         // Création
         const { error } = await supabase
@@ -338,109 +294,6 @@ const CreatorSettings: React.FC = () => {
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isAcceptingTips: checked }))}
                 />
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Informations bancaires */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              <span>Informations bancaires</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 bg-muted/50 rounded-lg mb-4">
-              <p className="text-sm text-muted-foreground">
-                Ces informations sont nécessaires pour recevoir vos paiements. 
-                Elles sont sécurisées et ne seront jamais partagées publiquement.
-              </p>
-            </div>
-
-            <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg mb-4">
-              <p className="text-sm font-medium text-primary">
-                🔒 Sécurité : Toute modification d'IBAN ou de BIC générera une notification pour protéger votre compte.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="bankAccountHolder">Titulaire du compte</Label>
-              <Input
-                id="bankAccountHolder"
-                placeholder="Nom complet du titulaire"
-                value={formData.bankAccountHolder}
-                onChange={(e) => setFormData(prev => ({ ...prev, bankAccountHolder: e.target.value }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="bankIban">IBAN</Label>
-              <Input
-                id="bankIban"
-                placeholder="FR76 1234 5678 9012 3456 7890 123"
-                value={formData.bankIban}
-                onChange={(e) => setFormData(prev => ({ ...prev, bankIban: e.target.value.toUpperCase() }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="bankBic">BIC/SWIFT</Label>
-              <Input
-                id="bankBic"
-                placeholder="BNPAFRPPXXX"
-                value={formData.bankBic}
-                onChange={(e) => setFormData(prev => ({ ...prev, bankBic: e.target.value.toUpperCase() }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="bankCountry">Pays</Label>
-              <Select
-                value={formData.bankCountry}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, bankCountry: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="FR">France</SelectItem>
-                  <SelectItem value="BE">Belgique</SelectItem>
-                  <SelectItem value="CH">Suisse</SelectItem>
-                  <SelectItem value="CA">Canada</SelectItem>
-                  <SelectItem value="LU">Luxembourg</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="taxId">Numéro SIRET / TVA (optionnel)</Label>
-              <Input
-                id="taxId"
-                placeholder="12345678901234"
-                value={formData.taxId}
-                onChange={(e) => setFormData(prev => ({ ...prev, taxId: e.target.value }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="paymentFrequency">Fréquence de paiement préférée</Label>
-              <Select
-                value={formData.paymentFrequency}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, paymentFrequency: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="weekly">Hebdomadaire</SelectItem>
-                  <SelectItem value="monthly">Mensuel</SelectItem>
-                  <SelectItem value="quarterly">Trimestriel</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">
-                À quelle fréquence souhaitez-vous recevoir vos paiements ?
-              </p>
             </div>
           </CardContent>
         </Card>
