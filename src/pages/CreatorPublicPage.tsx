@@ -304,6 +304,7 @@ const CreatorPublicPage = () => {
                   className="overflow-hidden group cursor-pointer rounded-lg border bg-card"
                   onClick={(e) => {
                     e.stopPropagation();
+                    console.log('Image clicked (free)', item.id);
                     setSelectedImage(item);
                   }}
                 >
@@ -348,6 +349,7 @@ const CreatorPublicPage = () => {
                   onClick={(e) => {
                     if (isSubscribed) {
                       e.stopPropagation();
+                      console.log('Image clicked (premium)', item.id);
                       setSelectedImage(item);
                     }
                   }}
@@ -422,8 +424,8 @@ const CreatorPublicPage = () => {
       </Dialog>
 
       {/* Image Lightbox */}
-      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-7xl max-h-[95vh] p-0 overflow-hidden bg-black/95" aria-describedby="image-description">
+      <Dialog open={!!selectedImage} onOpenChange={(open) => { if (!open) setSelectedImage(null); }}>
+        <DialogContent className="z-[1000] max-w-7xl max-h-[95vh] p-0 overflow-hidden bg-black/95" aria-describedby="image-description">
           <DialogHeader className="sr-only">
             <DialogTitle>{selectedImage?.title || 'Image'}</DialogTitle>
           </DialogHeader>
