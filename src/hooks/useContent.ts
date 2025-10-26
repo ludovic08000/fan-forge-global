@@ -37,25 +37,51 @@ export const useContent = () => {
   const { data: contents, isLoading, error } = useQuery({
     queryKey: ['contents'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Récupérer les contenus avec les infos des créateurs
+      const { data: contentData, error: contentError } = await supabase
         .from('content')
         .select(`
           *,
           creators (
             user_id,
-            stage_name,
-            profiles (
-              username,
-              display_name,
-              avatar_url
-            )
+            stage_name
           )
         `)
         .eq('status', 'published')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (contentError) throw contentError;
+      if (!contentData || contentData.length === 0) return [];
+
+      // Récupérer les user_ids uniques des créateurs
+      const userIds = [...new Set(contentData.map(c => c.creators?.user_id).filter(Boolean))];
+      
+      if (userIds.length === 0) return contentData;
+
+      // Récupérer les profils correspondants
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, username, display_name, avatar_url')
+        .in('user_id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Joindre manuellement les données
+      const enrichedContent = contentData.map(content => {
+        if (content.creators) {
+          const profile = profiles?.find(p => p.user_id === content.creators?.user_id);
+          return {
+            ...content,
+            creators: {
+              ...content.creators,
+              profiles: profile || null
+            }
+          };
+        }
+        return content;
+      });
+
+      return enrichedContent;
     }
   });
 
