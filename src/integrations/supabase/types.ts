@@ -192,6 +192,10 @@ export type Database = {
       }
       creators: {
         Row: {
+          bank_account_holder: string | null
+          bank_bic: string | null
+          bank_country: string | null
+          bank_iban: string | null
           category: string | null
           content_type: string[] | null
           created_at: string | null
@@ -205,6 +209,7 @@ export type Database = {
           platform_commission_rate: number | null
           stage_name: string | null
           subscription_price: number | null
+          tax_id: string | null
           total_content: number | null
           total_earnings: number | null
           total_subscribers: number | null
@@ -212,6 +217,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          bank_account_holder?: string | null
+          bank_bic?: string | null
+          bank_country?: string | null
+          bank_iban?: string | null
           category?: string | null
           content_type?: string[] | null
           created_at?: string | null
@@ -225,6 +234,7 @@ export type Database = {
           platform_commission_rate?: number | null
           stage_name?: string | null
           subscription_price?: number | null
+          tax_id?: string | null
           total_content?: number | null
           total_earnings?: number | null
           total_subscribers?: number | null
@@ -232,6 +242,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          bank_account_holder?: string | null
+          bank_bic?: string | null
+          bank_country?: string | null
+          bank_iban?: string | null
           category?: string | null
           content_type?: string[] | null
           created_at?: string | null
@@ -245,6 +259,7 @@ export type Database = {
           platform_commission_rate?: number | null
           stage_name?: string | null
           subscription_price?: number | null
+          tax_id?: string | null
           total_content?: number | null
           total_earnings?: number | null
           total_subscribers?: number | null

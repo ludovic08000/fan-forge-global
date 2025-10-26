@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Euro, Save, Settings, Crown, Gift } from 'lucide-react';
+import { Euro, Save, Settings, Crown, Gift, Building2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -21,6 +21,11 @@ interface CreatorProfile {
   subscription_price: number;
   currency: string;
   is_accepting_tips: boolean;
+  bank_account_holder: string | null;
+  bank_iban: string | null;
+  bank_bic: string | null;
+  bank_country: string | null;
+  tax_id: string | null;
 }
 
 const CreatorSettings: React.FC = () => {
@@ -34,7 +39,12 @@ const CreatorSettings: React.FC = () => {
     category: '',
     subscriptionPrice: 0,
     currency: 'EUR',
-    isAcceptingTips: true
+    isAcceptingTips: true,
+    bankAccountHolder: '',
+    bankIban: '',
+    bankBic: '',
+    bankCountry: 'FR',
+    taxId: ''
   });
 
   const categories = [
@@ -75,7 +85,12 @@ const CreatorSettings: React.FC = () => {
             category: data.category || '',
             subscriptionPrice: data.subscription_price || 0,
             currency: data.currency || 'EUR',
-            isAcceptingTips: data.is_accepting_tips
+            isAcceptingTips: data.is_accepting_tips,
+            bankAccountHolder: data.bank_account_holder || '',
+            bankIban: data.bank_iban || '',
+            bankBic: data.bank_bic || '',
+            bankCountry: data.bank_country || 'FR',
+            taxId: data.tax_id || ''
           });
         }
       } catch (error: any) {
@@ -108,7 +123,12 @@ const CreatorSettings: React.FC = () => {
         category: validatedData.category || null,
         subscription_price: validatedData.subscriptionPrice,
         currency: validatedData.currency,
-        is_accepting_tips: formData.isAcceptingTips
+        is_accepting_tips: formData.isAcceptingTips,
+        bank_account_holder: formData.bankAccountHolder || null,
+        bank_iban: formData.bankIban || null,
+        bank_bic: formData.bankBic || null,
+        bank_country: formData.bankCountry || null,
+        tax_id: formData.taxId || null
       };
 
       if (profile) {
@@ -294,6 +314,83 @@ const CreatorSettings: React.FC = () => {
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isAcceptingTips: checked }))}
                 />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Informations bancaires */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Building2 className="h-5 w-5 text-primary" />
+              <span>Informations bancaires</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 bg-muted/50 rounded-lg mb-4">
+              <p className="text-sm text-muted-foreground">
+                Ces informations sont nécessaires pour recevoir vos paiements. 
+                Elles sont sécurisées et ne seront jamais partagées publiquement.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bankAccountHolder">Titulaire du compte</Label>
+              <Input
+                id="bankAccountHolder"
+                placeholder="Nom complet du titulaire"
+                value={formData.bankAccountHolder}
+                onChange={(e) => setFormData(prev => ({ ...prev, bankAccountHolder: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bankIban">IBAN</Label>
+              <Input
+                id="bankIban"
+                placeholder="FR76 1234 5678 9012 3456 7890 123"
+                value={formData.bankIban}
+                onChange={(e) => setFormData(prev => ({ ...prev, bankIban: e.target.value.toUpperCase() }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bankBic">BIC/SWIFT</Label>
+              <Input
+                id="bankBic"
+                placeholder="BNPAFRPPXXX"
+                value={formData.bankBic}
+                onChange={(e) => setFormData(prev => ({ ...prev, bankBic: e.target.value.toUpperCase() }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bankCountry">Pays</Label>
+              <Select
+                value={formData.bankCountry}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, bankCountry: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="FR">France</SelectItem>
+                  <SelectItem value="BE">Belgique</SelectItem>
+                  <SelectItem value="CH">Suisse</SelectItem>
+                  <SelectItem value="CA">Canada</SelectItem>
+                  <SelectItem value="LU">Luxembourg</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="taxId">Numéro SIRET / TVA (optionnel)</Label>
+              <Input
+                id="taxId"
+                placeholder="12345678901234"
+                value={formData.taxId}
+                onChange={(e) => setFormData(prev => ({ ...prev, taxId: e.target.value }))}
+              />
             </div>
           </CardContent>
         </Card>
