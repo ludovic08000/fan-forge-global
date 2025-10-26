@@ -131,7 +131,7 @@ const ContentGallery: React.FC = () => {
 
       {/* Lightbox pour contenu gratuit (images) */}
       <Dialog open={!!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}>
-        <DialogContent className="z-[1000] max-w-7xl max-h-[95vh] p-0 overflow-hidden bg-black/95" aria-describedby="gallery-image-description">
+        <DialogContent className="z-[1000] w-[95vw] max-w-none h-[90vh] p-0 overflow-hidden bg-black/95" aria-describedby="gallery-image-description">
           <DialogHeader className="sr-only">
             <DialogTitle>{selected?.title || 'Image'}</DialogTitle>
           </DialogHeader>
@@ -140,7 +140,7 @@ const ContentGallery: React.FC = () => {
               <img
                 src={selected.file_url || selected.thumbnail_url}
                 alt={selected.title}
-                className="max-w-full max-h-[90vh] object-contain"
+                className="max-w-full max-h-full object-contain"
               />
               <div id="gallery-image-description" className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">
                 <h3 className="text-white text-xl font-bold mb-2">{selected.title}</h3>

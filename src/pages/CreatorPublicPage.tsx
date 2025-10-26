@@ -425,7 +425,7 @@ const CreatorPublicPage = () => {
 
       {/* Image Lightbox */}
       <Dialog open={!!selectedImage} onOpenChange={(open) => { if (!open) setSelectedImage(null); }}>
-        <DialogContent className="z-[1000] max-w-7xl max-h-[95vh] p-0 overflow-hidden bg-black/95" aria-describedby="image-description">
+        <DialogContent className="z-[1000] w-[95vw] max-w-none h-[90vh] p-0 overflow-hidden bg-black/95" aria-describedby="image-description">
           <DialogHeader className="sr-only">
             <DialogTitle>{selectedImage?.title || 'Image'}</DialogTitle>
           </DialogHeader>
