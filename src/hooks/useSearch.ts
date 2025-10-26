@@ -45,9 +45,9 @@ export const useSearch = () => {
     contentTypes: [],
   });
 
-  // Debounce search term
+  // Debounce search term avec délai plus court
   const debouncedSearch = useMemo(
-    () => debounce((term: string) => setDebouncedSearchTerm(term), 300),
+    () => debounce((term: string) => setDebouncedSearchTerm(term), 150),
     []
   );
 
@@ -56,7 +56,7 @@ export const useSearch = () => {
     return () => debouncedSearch.cancel();
   }, [searchTerm, debouncedSearch]);
 
-  // Main search query
+  // Main search query avec optimisations
   const { data: results, isLoading, error } = useQuery({
     queryKey: ['search-creators', debouncedSearchTerm, filters],
     queryFn: async () => {
@@ -79,6 +79,10 @@ export const useSearch = () => {
       if (Array.isArray(v)) return v.length > 0;
       return v !== false && v !== 'all' && v !== 'relevance' && v !== undefined;
     }),
+    staleTime: 30000, // Cache 30 secondes
+    gcTime: 5 * 60 * 1000, // Garde en cache 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Suggestions for autocomplete (first 5 results)
@@ -87,7 +91,7 @@ export const useSearch = () => {
     return results.slice(0, 5);
   }, [results]);
 
-  // Get popular categories
+  // Get popular categories avec cache long
   const { data: categories } = useQuery({
     queryKey: ['popular-categories'],
     queryFn: async () => {
@@ -114,9 +118,11 @@ export const useSearch = () => {
         .slice(0, 10)
         .map(([category, count]) => ({ category, count }));
     },
+    staleTime: 5 * 60 * 1000, // Cache 5 minutes
+    gcTime: 10 * 60 * 1000, // Garde 10 minutes
   });
 
-  // Get featured creators
+  // Get featured creators avec cache long
   const { data: featuredCreators } = useQuery({
     queryKey: ['featured-creators'],
     queryFn: async () => {
@@ -157,6 +163,8 @@ export const useSearch = () => {
         } as SearchCreator;
       });
     },
+    staleTime: 5 * 60 * 1000, // Cache 5 minutes
+    gcTime: 10 * 60 * 1000, // Garde 10 minutes
   });
 
   const updateFilters = (newFilters: Partial<SearchFilters>) => {

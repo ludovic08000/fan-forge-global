@@ -53,7 +53,7 @@ const SearchPage: React.FC = () => {
     clearSearch,
   } = useSearch();
 
-  // Initialize search from URL params
+  // Initialize search from URL params (optimisé)
   useEffect(() => {
     const query = searchParams.get('q');
     const category = searchParams.get('category');
@@ -65,16 +65,20 @@ const SearchPage: React.FC = () => {
     if (category && category !== filters.category) {
       updateFilters({ category });
     }
-  }, [searchParams, searchTerm, setSearchTerm, filters.category, updateFilters]);
+  }, [searchParams]);
 
-  // Update URL when search changes
+  // Update URL when search changes (optimisé avec délai)
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (searchTerm) params.set('q', searchTerm);
-    if (filters.category) params.set('category', filters.category);
-    
-    setSearchParams(params, { replace: true });
-  }, [searchTerm, filters.category, setSearchParams]);
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (searchTerm) params.set('q', searchTerm);
+      if (filters.category) params.set('category', filters.category);
+      
+      setSearchParams(params, { replace: true });
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, filters.category]);
 
   const handleFilterChange = (key: keyof SearchFilters, value: any) => {
     updateFilters({ [key]: value });
