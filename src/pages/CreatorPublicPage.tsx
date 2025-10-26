@@ -299,18 +299,21 @@ const CreatorPublicPage = () => {
             <h2 className="text-2xl font-bold mb-4">Contenu gratuit</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {freeContent.map((item) => (
-                <Card 
+                <div 
                   key={item.id} 
-                  className="overflow-hidden group cursor-pointer"
-                  onClick={() => setSelectedImage(item)}
+                  className="overflow-hidden group cursor-pointer rounded-lg border bg-card"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedImage(item);
+                  }}
                 >
                   <div className="aspect-square bg-muted relative overflow-hidden">
                     <OptimizedImage
                       src={item.thumbnail_url || item.file_url}
                       alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform pointer-events-none"
                     />
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 pointer-events-none">
                       <h3 className="text-white font-medium text-sm line-clamp-1">{item.title}</h3>
                       <div className="flex items-center gap-3 text-white/80 text-xs mt-1">
                         <span className="flex items-center gap-1">
@@ -324,7 +327,7 @@ const CreatorPublicPage = () => {
                       </div>
                     </div>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
           </div>
@@ -339,26 +342,31 @@ const CreatorPublicPage = () => {
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {premiumContent.map((item) => (
-                <Card 
+                <div
                   key={item.id} 
-                  className="overflow-hidden relative"
-                  onClick={() => isSubscribed && setSelectedImage(item)}
+                  className={`overflow-hidden relative rounded-lg border bg-card ${isSubscribed ? 'cursor-pointer group' : ''}`}
+                  onClick={(e) => {
+                    if (isSubscribed) {
+                      e.stopPropagation();
+                      setSelectedImage(item);
+                    }
+                  }}
                 >
                   <div className="aspect-square bg-muted relative overflow-hidden">
                     <OptimizedImage
                       src={item.thumbnail_url || item.file_url}
                       alt={item.title}
-                      className={`w-full h-full object-cover ${!isSubscribed ? 'blur-lg' : 'cursor-pointer group-hover:scale-105 transition-transform'}`}
+                      className={`w-full h-full object-cover pointer-events-none ${!isSubscribed ? 'blur-lg' : 'group-hover:scale-105 transition-transform'}`}
                     />
                     {!isSubscribed && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/60 pointer-events-none">
                         <div className="text-center text-white">
                           <Lock className="h-8 w-8 mx-auto mb-2" />
                           <p className="text-sm font-medium">Contenu Premium</p>
                         </div>
                       </div>
                     )}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 pointer-events-none">
                       <h3 className="text-white font-medium text-sm line-clamp-1">{item.title}</h3>
                       {isSubscribed && (
                         <div className="flex items-center gap-3 text-white/80 text-xs mt-1">
@@ -374,7 +382,7 @@ const CreatorPublicPage = () => {
                       )}
                     </div>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
             
@@ -415,15 +423,19 @@ const CreatorPublicPage = () => {
 
       {/* Image Lightbox */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-7xl max-h-[95vh] p-0 overflow-hidden bg-black/95">
+        <DialogContent className="max-w-7xl max-h-[95vh] p-0 overflow-hidden bg-black/95" aria-describedby="image-description">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{selectedImage?.title || 'Image'}</DialogTitle>
+          </DialogHeader>
           {selectedImage && (
             <div className="relative w-full h-full flex items-center justify-center p-4">
               <img
                 src={selectedImage.file_url}
                 alt={selectedImage.title}
                 className="max-w-full max-h-[90vh] object-contain"
+                onContextMenu={(e) => e.stopPropagation()}
               />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">
+              <div id="image-description" className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">
                 <h3 className="text-white text-xl font-bold mb-2">{selectedImage.title}</h3>
                 {selectedImage.description && (
                   <p className="text-white/80 text-sm mb-3">{selectedImage.description}</p>
