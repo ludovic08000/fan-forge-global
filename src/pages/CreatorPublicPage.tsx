@@ -431,11 +431,10 @@ const CreatorPublicPage = () => {
           </DialogHeader>
           {selectedImage && (
             <div className="relative w-full h-full flex items-center justify-center p-4">
-              <img
-                src={selectedImage.file_url || selectedImage.thumbnail_url}
+              <OptimizedImage
+                src={selectedImage.thumbnail_url || selectedImage.file_url}
                 alt={selectedImage.title}
-                className="max-w-full max-h-[90vh] object-contain"
-                onContextMenu={(e) => e.stopPropagation()}
+                className="max-w-full max-h-[88vh] object-contain bg-transparent"
               />
               <div id="image-description" className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">
                 <h3 className="text-white text-xl font-bold mb-2">{selectedImage.title}</h3>

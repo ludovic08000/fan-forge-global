@@ -138,7 +138,7 @@ const ContentGallery: React.FC = () => {
           {selected && (
             <div className="relative w-full h-full flex items-center justify-center p-4">
               <img
-                src={selected.file_url || selected.thumbnail_url}
+                src={selected.thumbnail_url || selected.file_url}
                 alt={selected.title}
                 className="max-w-full max-h-full object-contain"
               />
