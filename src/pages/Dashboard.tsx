@@ -39,6 +39,7 @@ const Dashboard = () => {
     totalLikes: 0
   });
   const [creatorProfile, setCreatorProfile] = useState<any>(null);
+  const [isCreatorLocal, setIsCreatorLocal] = useState(false);
 
   // Tracker la vue de page
   useEffect(() => {
@@ -47,17 +48,18 @@ const Dashboard = () => {
 
   useEffect(() => {
     const loadCreatorStats = async () => {
-      if (!user || userRole !== 'creator') return;
+      if (!user) return;
 
       try {
-        // Récupérer les stats du créateur
+        // Récupérer les stats du créateur (si une ligne existe)
         const { data: creatorData } = await supabase
           .from('creators')
           .select('total_earnings, total_subscribers, total_content, featured_until')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (creatorData) {
+          setIsCreatorLocal(true);
           setCreatorProfile(creatorData);
           // Calculer les vues et likes totaux
           const totalViews = myContent?.reduce((sum, content) => sum + content.view_count, 0) || 0;
@@ -69,6 +71,8 @@ const Dashboard = () => {
             totalViews,
             totalLikes
           });
+        } else {
+          setIsCreatorLocal(false);
         }
       } catch (error) {
         console.error('Error loading creator stats:', error);
@@ -112,7 +116,7 @@ const Dashboard = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  const isCreator = userRole === 'creator' || userRole === 'admin';
+  const isCreator = isCreatorLocal || userRole === 'creator' || userRole === 'admin';
 
   return (
     <div className="min-h-screen bg-background pt-16">
