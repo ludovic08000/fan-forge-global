@@ -20,6 +20,7 @@ const CreatorPublicPage = () => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
     const loadCreator = async () => {
@@ -135,7 +136,13 @@ const CreatorPublicPage = () => {
         toast.error('Erreur lors de l\'abonnement : ' + error.message);
       }
     } else {
-      // Abonnement payant - rediriger vers Stripe
+      // Abonnement payant - ouvrir un onglet instantanément puis rediriger quand l'URL Stripe est prête
+      setRedirecting(true);
+      const newTab = window.open('', '_blank');
+      if (newTab) {
+        newTab.document.title = 'Redirection vers Stripe...';
+        try { newTab.document.body.innerHTML = '<p style="font-family:sans-serif">Redirection vers Stripe...</p>'; } catch {}
+      }
       try {
         const { data, error } = await supabase.functions.invoke('create-creator-checkout', {
           body: { creatorId: creator.id },
@@ -146,12 +153,21 @@ const CreatorPublicPage = () => {
 
         if (error) throw error;
 
-        if (data.url) {
-          window.open(data.url, '_blank');
+        if (data?.url) {
+          if (newTab) {
+            newTab.location.href = data.url;
+          } else {
+            window.open(data.url, '_blank');
+          }
+        } else {
+          throw new Error('URL Stripe manquante');
         }
       } catch (error: any) {
         console.error('Checkout error:', error);
-        toast.error('Erreur lors de la création du checkout : ' + error.message);
+        if (newTab) newTab.close();
+        toast.error('Erreur lors de la création du checkout : ' + (error.message || 'inconnue'));
+      } finally {
+        setRedirecting(false);
       }
     }
   };
@@ -256,9 +272,9 @@ const CreatorPublicPage = () => {
                       Abonné
                     </Badge>
                   ) : (
-                    <Button size="lg" variant="premium" onClick={handleSubscribe}>
+                    <Button size="lg" variant="premium" onClick={handleSubscribe} disabled={redirecting}>
                       <Crown className="h-4 w-4 mr-2" />
-                      {creator.subscription_price > 0 ? `S'abonner - ${creator.subscription_price}€/mois` : "S'abonner gratuitement"}
+                      {redirecting ? 'Redirection...' : (creator.subscription_price > 0 ? `S\'abonner - ${creator.subscription_price}€/mois` : "S'abonner gratuitement")}
                     </Button>
                   )
                 ) : (
@@ -361,9 +377,9 @@ const CreatorPublicPage = () => {
                 <p className="text-muted-foreground mb-4">
                   Abonnez-vous pour débloquer {premiumContent.length} contenus premium
                 </p>
-                <Button size="lg" variant="premium">
+                <Button size="lg" variant="premium" onClick={handleSubscribe} disabled={redirecting}>
                   <Crown className="h-4 w-4 mr-2" />
-                  S'abonner maintenant - {creator.subscription_price}€/mois
+                  {redirecting ? 'Redirection...' : `S\'abonner maintenant - ${creator.subscription_price}€/mois`}
                 </Button>
               </div>
             )}
