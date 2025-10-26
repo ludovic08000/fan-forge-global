@@ -200,42 +200,53 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Si l'inscription réussit, créer le rôle et le profil créateur si nécessaire
       if (data.user && role) {
-        // Créer le rôle dans user_roles
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: data.user.id,
-            role: role
-          });
-
-        if (roleError) {
-          console.error('Erreur lors de la création du rôle:', roleError);
-        }
-
-        // Si créateur, créer l'entrée dans la table creators
-        if (role === 'creator') {
-          const { error: creatorError } = await supabase
-            .from('creators')
+        try {
+          // Créer le rôle dans user_roles
+          const { error: roleError } = await supabase
+            .from('user_roles')
             .insert({
               user_id: data.user.id,
-              subscription_price: 9.99
+              role: role
             });
 
-          if (creatorError) {
-            console.error('Erreur lors de la création du profil créateur:', creatorError);
+          if (roleError) {
+            console.error('Erreur lors de la création du rôle:', roleError);
+            toast.error('Erreur lors de la création du rôle utilisateur');
           }
-        }
 
-        // Mettre à jour la date de naissance dans le profil si fournie
-        if (birthdate) {
-          const { error: birthdateError } = await supabase
-            .from('profiles')
-            .update({ birthdate })
-            .eq('user_id', data.user.id);
+          // Si créateur, créer l'entrée dans la table creators
+          if (role === 'creator') {
+            const { error: creatorError } = await supabase
+              .from('creators')
+              .insert({
+                user_id: data.user.id,
+                subscription_price: 9.99
+              });
 
-          if (birthdateError) {
-            console.error('Erreur lors de la mise à jour de la date de naissance:', birthdateError);
+            if (creatorError) {
+              console.error('Erreur lors de la création du profil créateur:', creatorError);
+              toast.error('Erreur lors de la création du profil créateur');
+            } else {
+              // Définir le rôle immédiatement après création réussie
+              setUserRole('creator');
+            }
+          } else {
+            setUserRole('subscriber');
           }
+
+          // Mettre à jour la date de naissance dans le profil si fournie
+          if (birthdate) {
+            const { error: birthdateError } = await supabase
+              .from('profiles')
+              .update({ birthdate })
+              .eq('user_id', data.user.id);
+
+            if (birthdateError) {
+              console.error('Erreur lors de la mise à jour de la date de naissance:', birthdateError);
+            }
+          }
+        } catch (err) {
+          console.error('Erreur lors de la configuration du compte:', err);
         }
       }
 
