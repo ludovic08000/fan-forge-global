@@ -23,7 +23,7 @@ const StripeConnectSetup: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [status, setStatus] = useState<StripeConnectStatus | null>(null);
-
+  const [lastStripeUrl, setLastStripeUrl] = useState<string | null>(null);
   useEffect(() => {
     if (user) {
       checkStatus();
@@ -77,32 +77,33 @@ const StripeConnectSetup: React.FC = () => {
     return <Badge variant="outline">{status.status}</Badge>;
   };
 
-  const handleOpenStripeDashboard = async () => {
-    setLoading(true);
-    // Ouvre un onglet immédiatement pour éviter les bloqueurs de pop-up
-    const popup = window.open('about:blank', '_blank');
-    try {
-      const { data, error } = await supabase.functions.invoke('stripe-connect-login-link');
-      if (error) throw error;
-      if (data?.url) {
-        if (popup) {
-          popup.location.href = data.url;
-        } else {
-          // Fallback si le popup a été bloqué
-          window.location.href = data.url;
-        }
-        toast.success('Ouverture du tableau de bord Stripe');
+const handleOpenStripeDashboard = async () => {
+  setLoading(true);
+  // Ouvre un onglet immédiatement pour éviter les bloqueurs de pop-up
+  const popup = window.open('about:blank', '_blank');
+  try {
+    const { data, error } = await supabase.functions.invoke('stripe-connect-login-link');
+    if (error) throw error;
+    if (data?.url) {
+      setLastStripeUrl(data.url);
+      if (popup) {
+        popup.location.href = data.url;
       } else {
-        throw new Error('Lien de connexion Stripe indisponible');
+        // Fallback si le popup a été bloqué
+        window.location.href = data.url;
       }
-    } catch (error: any) {
-      console.error('Erreur ouverture Stripe:', error);
-      if (popup) popup.close();
-      toast.error(error.message || "Impossible d'ouvrir Stripe. Autorisez les pop-ups et réessayez.");
-    } finally {
-      setLoading(false);
+      toast.success('Ouverture du tableau de bord Stripe');
+    } else {
+      throw new Error('Lien de connexion Stripe indisponible');
     }
-  };
+  } catch (error: any) {
+    console.error('Erreur ouverture Stripe:', error);
+    if (popup) popup.close();
+    toast.error(error.message || "Impossible d'ouvrir Stripe. Autorisez les pop-ups et réessayez.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (checking) {
     return (
@@ -218,26 +219,39 @@ const StripeConnectSetup: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Button
-                onClick={handleOpenStripeDashboard}
-                className="w-full"
-                size="lg"
-                disabled={loading}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Ouvrir Stripe
-              </Button>
-              <Button
-                onClick={checkStatus}
-                variant="outline"
-                className="w-full"
-                disabled={checking}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
-                Vérifier le statut
-              </Button>
-            </div>
+<div className="space-y-2">
+  <Button
+    onClick={handleOpenStripeDashboard}
+    className="w-full"
+    size="lg"
+    disabled={loading}
+  >
+    <ExternalLink className="h-4 w-4 mr-2" />
+    Ouvrir Stripe
+  </Button>
+  <Button
+    onClick={checkStatus}
+    variant="outline"
+    className="w-full"
+    disabled={checking}
+  >
+    <RefreshCw className={`h-4 w-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
+    Vérifier le statut
+  </Button>
+  {lastStripeUrl && (
+    <div className="text-xs text-muted-foreground text-center">
+      Si la fenêtre ne s'ouvre pas, 
+      <a href={lastStripeUrl} target="_blank" rel="noopener" className="underline ml-1">cliquez ici</a>
+      <button
+        onClick={() => navigator.clipboard.writeText(lastStripeUrl)}
+        className="ml-2 underline"
+        aria-label="Copier le lien Stripe"
+      >
+        Copier le lien
+      </button>
+    </div>
+  )}
+</div>
           </>
         )}
       </CardContent>
