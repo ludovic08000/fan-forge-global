@@ -24,6 +24,7 @@ const CreatorPublicPage = () => {
   const [copied, setCopied] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [preloadedSecret, setPreloadedSecret] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<any>(null);
 
   useEffect(() => {
     const loadCreator = async () => {
@@ -298,7 +299,11 @@ const CreatorPublicPage = () => {
             <h2 className="text-2xl font-bold mb-4">Contenu gratuit</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {freeContent.map((item) => (
-                <Card key={item.id} className="overflow-hidden group cursor-pointer">
+                <Card 
+                  key={item.id} 
+                  className="overflow-hidden group cursor-pointer"
+                  onClick={() => setSelectedImage(item)}
+                >
                   <div className="aspect-square bg-muted relative overflow-hidden">
                     <OptimizedImage
                       src={item.thumbnail_url || item.file_url}
@@ -334,12 +339,16 @@ const CreatorPublicPage = () => {
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {premiumContent.map((item) => (
-                <Card key={item.id} className="overflow-hidden relative">
+                <Card 
+                  key={item.id} 
+                  className="overflow-hidden relative"
+                  onClick={() => isSubscribed && setSelectedImage(item)}
+                >
                   <div className="aspect-square bg-muted relative overflow-hidden">
                     <OptimizedImage
                       src={item.thumbnail_url || item.file_url}
                       alt={item.title}
-                      className={`w-full h-full object-cover ${!isSubscribed ? 'blur-lg' : ''}`}
+                      className={`w-full h-full object-cover ${!isSubscribed ? 'blur-lg' : 'cursor-pointer group-hover:scale-105 transition-transform'}`}
                     />
                     {!isSubscribed && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/60">
@@ -401,6 +410,37 @@ const CreatorPublicPage = () => {
             </DialogTitle>
           </DialogHeader>
           {creator && <EmbeddedCheckout creatorId={creator.id} onClose={() => setShowCheckout(false)} preloadedSecret={preloadedSecret} />}
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Lightbox */}
+      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+        <DialogContent className="max-w-7xl max-h-[95vh] p-0 overflow-hidden bg-black/95">
+          {selectedImage && (
+            <div className="relative w-full h-full flex items-center justify-center p-4">
+              <img
+                src={selectedImage.file_url}
+                alt={selectedImage.title}
+                className="max-w-full max-h-[90vh] object-contain"
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">
+                <h3 className="text-white text-xl font-bold mb-2">{selectedImage.title}</h3>
+                {selectedImage.description && (
+                  <p className="text-white/80 text-sm mb-3">{selectedImage.description}</p>
+                )}
+                <div className="flex items-center gap-6 text-white/70 text-sm">
+                  <span className="flex items-center gap-2">
+                    <Eye className="h-4 w-4" />
+                    {selectedImage.view_count} vues
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <Heart className="h-4 w-4" />
+                    {selectedImage.like_count} likes
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
