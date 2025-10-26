@@ -51,3 +51,6 @@ verify_jwt = false
 
 [functions.notify-live-start]
 verify_jwt = false
+
+[functions.notify-iban-change]
+verify_jwt = true

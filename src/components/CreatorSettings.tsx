@@ -131,6 +131,10 @@ const CreatorSettings: React.FC = () => {
         tax_id: formData.taxId || null
       };
 
+      // Détecter les changements d'IBAN/BIC
+      const ibanChanged = profile && profile.bank_iban !== formData.bankIban;
+      const bicChanged = profile && profile.bank_bic !== formData.bankBic;
+
       if (profile) {
         // Mise à jour
         const { error } = await supabase
@@ -139,7 +143,24 @@ const CreatorSettings: React.FC = () => {
           .eq('user_id', user.id);
 
         if (error) throw error;
-        toast.success('Paramètres mis à jour avec succès');
+
+        // Envoyer notification si IBAN/BIC modifié
+        if (ibanChanged || bicChanged) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            await supabase.functions.invoke('notify-iban-change', {
+              body: {
+                oldIban: profile.bank_iban,
+                newIban: formData.bankIban,
+                oldBic: profile.bank_bic,
+                newBic: formData.bankBic,
+              }
+            });
+            toast.success('Paramètres mis à jour - Notification de sécurité envoyée');
+          }
+        } else {
+          toast.success('Paramètres mis à jour avec succès');
+        }
       } else {
         // Création
         const { error } = await supabase
@@ -331,6 +352,12 @@ const CreatorSettings: React.FC = () => {
               <p className="text-sm text-muted-foreground">
                 Ces informations sont nécessaires pour recevoir vos paiements. 
                 Elles sont sécurisées et ne seront jamais partagées publiquement.
+              </p>
+            </div>
+
+            <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg mb-4">
+              <p className="text-sm font-medium text-primary">
+                🔒 Sécurité : Toute modification d'IBAN ou de BIC générera une notification pour protéger votre compte.
               </p>
             </div>
 
