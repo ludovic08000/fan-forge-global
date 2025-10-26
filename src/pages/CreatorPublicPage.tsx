@@ -432,7 +432,7 @@ const CreatorPublicPage = () => {
           {selectedImage && (
             <div className="relative w-full h-full flex items-center justify-center p-4">
               <img
-                src={selectedImage.file_url}
+                src={selectedImage.file_url || selectedImage.thumbnail_url}
                 alt={selectedImage.title}
                 className="max-w-full max-h-[90vh] object-contain"
                 onContextMenu={(e) => e.stopPropagation()}
