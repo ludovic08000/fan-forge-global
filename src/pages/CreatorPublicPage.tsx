@@ -23,6 +23,7 @@ const CreatorPublicPage = () => {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [preloadedSecret, setPreloadedSecret] = useState<string | null>(null);
 
   useEffect(() => {
     const loadCreator = async () => {
@@ -101,6 +102,31 @@ const CreatorPublicPage = () => {
 
     loadCreator();
   }, [username, user]);
+
+  // Précharger le checkout en arrière-plan pour l'utilisateur connecté non-abonné
+  useEffect(() => {
+    const preloadCheckout = async () => {
+      if (!user || !creator || isSubscribed || creator.subscription_price <= 0) return;
+      
+      try {
+        const { data } = await supabase.functions.invoke('create-creator-checkout', {
+          body: { creatorId: creator.id },
+          headers: {
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+        });
+        
+        if (data?.clientSecret) {
+          setPreloadedSecret(data.clientSecret);
+        }
+      } catch (error) {
+        // Silencieux, le préchargement n'est qu'une optimisation
+        console.debug('Preload checkout:', error);
+      }
+    };
+
+    preloadCheckout();
+  }, [user, creator, isSubscribed]);
 
   const handleSubscribe = async () => {
     if (!user) {
@@ -377,7 +403,7 @@ const CreatorPublicPage = () => {
               </Button>
             </DialogTitle>
           </DialogHeader>
-          {creator && <EmbeddedCheckout creatorId={creator.id} onClose={() => setShowCheckout(false)} />}
+          {creator && <EmbeddedCheckout creatorId={creator.id} onClose={() => setShowCheckout(false)} preloadedSecret={preloadedSecret} />}
         </DialogContent>
       </Dialog>
     </div>

@@ -8,12 +8,19 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 
 interface EmbeddedCheckoutProps {
   creatorId: string;
   onClose: () => void;
+  preloadedSecret?: string | null;
 }
 
-export const EmbeddedCheckout = ({ creatorId, onClose }: EmbeddedCheckoutProps) => {
-  const [clientSecret, setClientSecret] = useState<string>('');
+export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: EmbeddedCheckoutProps) => {
+  const [clientSecret, setClientSecret] = useState<string>(preloadedSecret || '');
 
   useEffect(() => {
+    // Si déjà préchargé, pas besoin de refetch
+    if (preloadedSecret) {
+      setClientSecret(preloadedSecret);
+      return;
+    }
+
     const fetchClientSecret = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('create-creator-checkout', {
@@ -34,7 +41,7 @@ export const EmbeddedCheckout = ({ creatorId, onClose }: EmbeddedCheckoutProps) 
     };
 
     fetchClientSecret();
-  }, [creatorId, onClose]);
+  }, [creatorId, onClose, preloadedSecret]);
 
   if (!clientSecret) {
     return (

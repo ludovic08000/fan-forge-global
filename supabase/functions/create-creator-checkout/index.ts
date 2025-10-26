@@ -51,13 +51,19 @@ serve(async (req) => {
     if (!creatorId) throw new Error("Creator ID is required");
     logStep("Creator ID received", { creatorId });
 
-    // Récupérer les informations du créateur
-    const { data: creatorData, error: creatorError } = await supabaseClient
-      .from('creators')
-      .select('subscription_price, currency, stage_name, stripe_price_id, stripe_product_id')
-      .eq('id', creatorId)
-      .single();
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
+    // Paralléliser les requêtes créateur et client Stripe
+    const [creatorResult, customersResult] = await Promise.all([
+      supabaseClient
+        .from('creators')
+        .select('subscription_price, currency, stage_name, stripe_price_id, stripe_product_id')
+        .eq('id', creatorId)
+        .single(),
+      stripe.customers.list({ email: user.email, limit: 1 })
+    ]);
+
+    const { data: creatorData, error: creatorError } = creatorResult;
     if (creatorError || !creatorData) {
       throw new Error("Creator not found or error fetching creator data");
     }
@@ -73,13 +79,10 @@ serve(async (req) => {
       hasPriceId: !!creatorData.stripe_price_id 
     });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-
-    // Vérifier si un client Stripe existe
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    // Gérer le client Stripe
     let customerId;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
+    if (customersResult.data.length > 0) {
+      customerId = customersResult.data[0].id;
       logStep("Existing Stripe customer found", { customerId });
     } else {
       const customer = await stripe.customers.create({
