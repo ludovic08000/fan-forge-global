@@ -32,9 +32,14 @@ serve(async (req) => {
       .from("creators")
       .select("id, stripe_account_id")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
-    if (creatorError || !creator) throw new Error("Profil créateur non trouvé");
+    if (creatorError) {
+      console.error("Erreur récupération créateur:", creatorError);
+      throw new Error("Erreur lors de la récupération du profil créateur");
+    }
+    
+    if (!creator) throw new Error("Profil créateur non trouvé");
     if (!creator.stripe_account_id) throw new Error("Aucun compte Stripe Connect associé");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
