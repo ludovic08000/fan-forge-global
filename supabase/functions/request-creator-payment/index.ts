@@ -37,9 +37,9 @@ serve(async (req) => {
       throw new Error("Profil créateur non trouvé");
     }
 
-    // Vérifier les informations bancaires
-    if (!creator.bank_iban || !creator.bank_bic || !creator.bank_account_holder) {
-      throw new Error("Veuillez configurer vos informations bancaires avant de demander un paiement");
+    // Vérifier que Stripe Connect est configuré
+    if (!creator.stripe_account_id || !creator.stripe_onboarding_completed || !creator.stripe_payouts_enabled) {
+      throw new Error("Veuillez configurer Stripe Connect avant de demander un paiement");
     }
 
     // Calculer la période selon la fréquence
