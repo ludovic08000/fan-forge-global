@@ -77,6 +77,25 @@ const StripeConnectSetup: React.FC = () => {
     return <Badge variant="outline">{status.status}</Badge>;
   };
 
+  const handleOpenStripeDashboard = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('stripe-connect-login-link');
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, '_blank');
+        toast.success('Ouverture du tableau de bord Stripe');
+      } else {
+        throw new Error('Lien de connexion Stripe indisponible');
+      }
+    } catch (error: any) {
+      console.error('Erreur ouverture Stripe:', error);
+      toast.error(error.message || "Impossible d'ouvrir Stripe");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (checking) {
     return (
       <Card>
@@ -191,15 +210,26 @@ const StripeConnectSetup: React.FC = () => {
               </div>
             </div>
 
-            <Button
-              onClick={checkStatus}
-              variant="outline"
-              className="w-full"
-              disabled={checking}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
-              Vérifier le statut
-            </Button>
+            <div className="space-y-2">
+              <Button
+                onClick={handleOpenStripeDashboard}
+                className="w-full"
+                size="lg"
+                disabled={loading}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Ouvrir Stripe
+              </Button>
+              <Button
+                onClick={checkStatus}
+                variant="outline"
+                className="w-full"
+                disabled={checking}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
+                Vérifier le statut
+              </Button>
+            </div>
           </>
         )}
       </CardContent>
