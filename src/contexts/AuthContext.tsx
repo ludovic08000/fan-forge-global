@@ -192,6 +192,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { error };
       }
 
+      // Vérifier si l'utilisateur existe déjà (pas de session = utilisateur existant)
+      if (data.user && !data.session) {
+        toast.error('Cette adresse email est déjà utilisée. Veuillez vous connecter.');
+        return { error: { message: 'User already exists' } };
+      }
+
       // Si l'inscription réussit, créer le rôle et le profil créateur si nécessaire
       if (data.user && role) {
         // Créer le rôle dans user_roles
