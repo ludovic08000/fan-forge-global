@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { User, Crown, Settings, Upload, BarChart3, Heart, Eye, Euro, Plus, Video } from 'lucide-react';
+import { User, Crown, BarChart3, Heart, Eye, Euro, Settings, Plus, Video, Upload, Trash2 } from 'lucide-react';
 import ContentUpload from '@/components/ContentUpload';
 import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
 import CreatorSettings from '@/components/CreatorSettings';
@@ -40,6 +40,25 @@ const Dashboard = () => {
   });
   const [creatorProfile, setCreatorProfile] = useState<any>(null);
   const [isCreatorLocal, setIsCreatorLocal] = useState(false);
+
+  const handleDeleteContent = async (contentId: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce contenu ?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('content')
+        .delete()
+        .eq('id', contentId);
+      
+      if (error) throw error;
+      
+      toast.success('Contenu supprimé avec succès');
+      refetch();
+    } catch (error) {
+      console.error('Error deleting content:', error);
+      toast.error('Erreur lors de la suppression');
+    }
+  };
 
   // Tracker la vue de page
   useEffect(() => {
@@ -264,7 +283,7 @@ const Dashboard = () => {
               ) : myContent && myContent.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {myContent.map((content) => (
-                    <Card key={content.id} className="overflow-hidden">
+                    <Card key={content.id} className="overflow-hidden group relative">
                       <div className="aspect-square bg-muted overflow-hidden">
                         <img
                           src={content.thumbnail_url || content.file_url}
@@ -273,7 +292,17 @@ const Dashboard = () => {
                         />
                       </div>
                       <CardContent className="p-4">
-                        <h3 className="font-medium line-clamp-1">{content.title}</h3>
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-medium line-clamp-1 flex-1">{content.title}</h3>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => handleDeleteContent(content.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                         <div className="flex items-center justify-between mt-2 text-sm text-muted-foreground">
                           <div className="flex items-center space-x-4">
                             <div className="flex items-center space-x-1">

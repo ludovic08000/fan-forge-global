@@ -71,7 +71,10 @@ const CreatorAnalyticsDashboard: React.FC = () => {
   // Charger les statistiques
   useEffect(() => {
     const loadStats = async () => {
-      if (!creatorId) return;
+      if (!creatorId) {
+        setLoading(false);
+        return;
+      }
 
       setLoading(true);
       try {
@@ -79,13 +82,14 @@ const CreatorAnalyticsDashboard: React.FC = () => {
         setStats(analytics);
       } catch (error) {
         console.error('Erreur lors du chargement des analytics:', error);
+        setStats(null);
       } finally {
         setLoading(false);
       }
     };
 
     loadStats();
-  }, [creatorId, timeRange, getCreatorAnalytics]);
+  }, [creatorId, timeRange]);
 
   if (loading) {
     return (
