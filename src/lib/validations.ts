@@ -59,6 +59,7 @@ export const signUpSchema = authSchema.extend({
     errorMap: () => ({ message: "Rôle invalide" })
   }),
   birthdate: z.string().optional(),
+  gender: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Les mots de passe ne correspondent pas",
   path: ["confirmPassword"],
@@ -79,6 +80,14 @@ export const signUpSchema = authSchema.extend({
 }, {
   message: "Vous devez avoir au moins 18 ans pour devenir créateur",
   path: ["birthdate"],
+}).refine((data) => {
+  if (data.role === 'creator' && !data.gender) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Le genre est requis pour les créateurs",
+  path: ["gender"],
 });
 
 /**

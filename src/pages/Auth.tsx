@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, ArrowLeft, Mail, UserCircle, Video } from 'lucide-react';
 import { authSchema, signUpSchema } from '@/lib/validations';
@@ -33,7 +34,8 @@ const Auth = () => {
     firstName: '',
     lastName: '',
     role: 'subscriber' as 'subscriber' | 'creator',
-    birthdate: ''
+    birthdate: '',
+    gender: ''
   });
 
   // Redirect if already authenticated
@@ -87,7 +89,8 @@ const Auth = () => {
         validatedData.firstName,
         validatedData.lastName,
         validatedData.role,
-        validatedData.birthdate
+        validatedData.birthdate,
+        validatedData.gender
       );
       
       if (!error) {
@@ -98,7 +101,8 @@ const Auth = () => {
           firstName: '',
           lastName: '',
           role: 'subscriber',
-          birthdate: ''
+          birthdate: '',
+          gender: ''
         });
       }
     } catch (error) {
@@ -307,22 +311,42 @@ const Auth = () => {
                     </div>
                   </div>
 
-                  {/* Date de naissance pour les créateurs */}
+                  {/* Date de naissance et genre pour les créateurs */}
                   {signUpForm.role === 'creator' && (
-                    <div className="space-y-2">
-                      <Label htmlFor="birthdate">Date de naissance *</Label>
-                      <Input
-                        id="birthdate"
-                        type="date"
-                        required={signUpForm.role === 'creator'}
-                        value={signUpForm.birthdate}
-                        onChange={(e) => setSignUpForm({ ...signUpForm, birthdate: e.target.value })}
-                        max={new Date().toISOString().split('T')[0]}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Vous devez avoir au moins 18 ans pour devenir créateur
-                      </p>
-                    </div>
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="birthdate">Date de naissance *</Label>
+                        <Input
+                          id="birthdate"
+                          type="date"
+                          required={signUpForm.role === 'creator'}
+                          value={signUpForm.birthdate}
+                          onChange={(e) => setSignUpForm({ ...signUpForm, birthdate: e.target.value })}
+                          max={new Date().toISOString().split('T')[0]}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Vous devez avoir au moins 18 ans pour devenir créateur
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="gender">Genre *</Label>
+                        <Select
+                          value={signUpForm.gender}
+                          onValueChange={(value) => setSignUpForm({ ...signUpForm, gender: value })}
+                          required={signUpForm.role === 'creator'}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionnez votre genre" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="femme">Femme</SelectItem>
+                            <SelectItem value="homme">Homme</SelectItem>
+                            <SelectItem value="non-binaire">Non-binaire</SelectItem>
+                            <SelectItem value="trans">Trans</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
                   )}
 
                   <div className="space-y-2">

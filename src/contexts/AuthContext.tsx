@@ -10,7 +10,7 @@ interface AuthContextType {
   session: Session | null;
   userRole: UserRole | null;
   loading: boolean;
-  signUp: (email: string, password: string, firstName?: string, lastName?: string, role?: 'subscriber' | 'creator', birthdate?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, firstName?: string, lastName?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signInWithFacebook: () => Promise<{ error: any }>;
@@ -160,6 +160,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const pendingRole = localStorage.getItem('intended_role') || (session?.user?.user_metadata?.role as string | undefined) || undefined;
       const pendingBirthdate = localStorage.getItem('intended_birthdate') || (session?.user?.user_metadata?.birthdate as string | undefined) || undefined;
+      const pendingGender = localStorage.getItem('intended_gender') || (session?.user?.user_metadata?.gender as string | undefined) || undefined;
       if (pendingRole === 'creator') {
         // Vérifier s'il existe déjà un profil créateur
         const { data: existingCreator } = await supabase
@@ -171,7 +172,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (!existingCreator) {
           const { error: creatorError } = await supabase
             .from('creators')
-            .insert({ user_id: userId, subscription_price: 9.99 });
+            .insert({ 
+              user_id: userId, 
+              subscription_price: 9.99,
+              gender: pendingGender || null
+            });
           if (creatorError) {
             console.error('Création créateur après confirmation échouée:', creatorError);
             return;
@@ -191,6 +196,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUserRole('creator');
         localStorage.removeItem('intended_role');
         localStorage.removeItem('intended_birthdate');
+        localStorage.removeItem('intended_gender');
       }
     } catch (e) {
       console.error('Erreur processIntendedRole:', e);
@@ -207,7 +213,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * @param birthdate - Date de naissance (requis pour les créateurs)
    * @returns Objet contenant l'erreur éventuelle
    */
-  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, role?: 'subscriber' | 'creator', birthdate?: string) => {
+  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string) => {
     try {
       // URL de redirection après inscription
       const redirectUrl = `${window.location.origin}/`;
@@ -222,7 +228,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             first_name: firstName,
             last_name: lastName,
             role,
-            birthdate
+            birthdate,
+            gender
           }
         }
       });
@@ -243,10 +250,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { error: { message: 'User already exists' } };
       }
 
-      // Mémoriser le rôle choisi pour post-confirmation
+      // Mémoriser le rôle et le genre choisis pour post-confirmation
       try {
         if (role) localStorage.setItem('intended_role', role);
         if (birthdate) localStorage.setItem('intended_birthdate', birthdate);
+        if (gender) localStorage.setItem('intended_gender', gender);
       } catch {}
 
       // Si l'inscription réussit, créer le rôle et le profil créateur si nécessaire
@@ -271,7 +279,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               .from('creators')
               .insert({
                 user_id: data.user.id,
-                subscription_price: 9.99
+                subscription_price: 9.99,
+                gender: gender || null
               });
 
             if (creatorError) {

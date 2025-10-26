@@ -49,6 +49,7 @@ const CreatorSettings: React.FC = () => {
     'Technologie',
     'Éducation',
     'Divertissement',
+    'Publication érotique',
     'Autre'
   ];
 
