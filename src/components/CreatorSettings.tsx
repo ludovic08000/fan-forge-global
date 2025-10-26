@@ -44,7 +44,8 @@ const CreatorSettings: React.FC = () => {
     bankIban: '',
     bankBic: '',
     bankCountry: 'FR',
-    taxId: ''
+    taxId: '',
+    paymentFrequency: 'monthly'
   });
 
   const categories = [
@@ -90,7 +91,8 @@ const CreatorSettings: React.FC = () => {
             bankIban: data.bank_iban || '',
             bankBic: data.bank_bic || '',
             bankCountry: data.bank_country || 'FR',
-            taxId: data.tax_id || ''
+            taxId: data.tax_id || '',
+            paymentFrequency: data.payment_frequency || 'monthly'
           });
         }
       } catch (error: any) {
@@ -128,7 +130,8 @@ const CreatorSettings: React.FC = () => {
         bank_iban: formData.bankIban || null,
         bank_bic: formData.bankBic || null,
         bank_country: formData.bankCountry || null,
-        tax_id: formData.taxId || null
+        tax_id: formData.taxId || null,
+        payment_frequency: formData.paymentFrequency
       };
 
       // Détecter les changements d'IBAN/BIC
@@ -418,6 +421,26 @@ const CreatorSettings: React.FC = () => {
                 value={formData.taxId}
                 onChange={(e) => setFormData(prev => ({ ...prev, taxId: e.target.value }))}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="paymentFrequency">Fréquence de paiement préférée</Label>
+              <Select
+                value={formData.paymentFrequency}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, paymentFrequency: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weekly">Hebdomadaire</SelectItem>
+                  <SelectItem value="monthly">Mensuel</SelectItem>
+                  <SelectItem value="quarterly">Trimestriel</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                À quelle fréquence souhaitez-vous recevoir vos paiements ?
+              </p>
             </div>
           </CardContent>
         </Card>

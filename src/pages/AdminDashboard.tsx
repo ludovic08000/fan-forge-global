@@ -36,6 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, FileText, Users, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import CreatorPayments from '@/components/admin/CreatorPayments';
 
 interface ContentReport {
   id: string;
@@ -262,6 +263,7 @@ const AdminDashboard = () => {
         <TabsList>
           <TabsTrigger value="reports">Signalements</TabsTrigger>
           <TabsTrigger value="logs">Logs de connexion</TabsTrigger>
+          <TabsTrigger value="payments">Paiements créateurs</TabsTrigger>
         </TabsList>
 
         {/* Onglet Signalements */}
@@ -429,6 +431,11 @@ const AdminDashboard = () => {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Onglet Paiements créateurs */}
+        <TabsContent value="payments">
+          <CreatorPayments />
         </TabsContent>
       </Tabs>
     </div>

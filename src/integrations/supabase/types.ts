@@ -206,6 +206,7 @@ export type Database = {
           is_accepting_tips: boolean | null
           is_featured: boolean | null
           orientation: string | null
+          payment_frequency: string | null
           platform_commission_rate: number | null
           stage_name: string | null
           subscription_price: number | null
@@ -231,6 +232,7 @@ export type Database = {
           is_accepting_tips?: boolean | null
           is_featured?: boolean | null
           orientation?: string | null
+          payment_frequency?: string | null
           platform_commission_rate?: number | null
           stage_name?: string | null
           subscription_price?: number | null
@@ -256,6 +258,7 @@ export type Database = {
           is_accepting_tips?: boolean | null
           is_featured?: boolean | null
           orientation?: string | null
+          payment_frequency?: string | null
           platform_commission_rate?: number | null
           stage_name?: string | null
           subscription_price?: number | null
@@ -1038,6 +1041,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_creator_total_revenue: {
+        Args: { creator_uuid: string; end_date?: string; start_date?: string }
+        Returns: number
+      }
       calculate_live_revenue: {
         Args: { _live_stream_id: string; _minute_number: number }
         Returns: undefined
