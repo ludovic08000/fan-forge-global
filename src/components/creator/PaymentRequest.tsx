@@ -35,6 +35,7 @@ const PaymentRequest: React.FC = () => {
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [revenueBreakdown, setRevenueBreakdown] = useState<RevenueBreakdown | null>(null);
   const [creatorInfo, setCreatorInfo] = useState<any>(null);
+  const [stripeConnected, setStripeConnected] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -55,6 +56,13 @@ const PaymentRequest: React.FC = () => {
 
       if (error) throw error;
       setCreatorInfo(creator);
+
+      // Vérifier le statut Stripe Connect
+      setStripeConnected(
+        creator.stripe_account_id && 
+        creator.stripe_onboarding_completed && 
+        creator.stripe_payouts_enabled
+      );
 
       // Calculer le revenu disponible
       const now = new Date();
@@ -115,8 +123,8 @@ const PaymentRequest: React.FC = () => {
       return;
     }
 
-    if (!creatorInfo.bank_iban || !creatorInfo.bank_bic) {
-      toast.error('Veuillez configurer vos informations bancaires dans les paramètres');
+    if (!stripeConnected) {
+      toast.error('Veuillez d\'abord connecter votre compte Stripe Connect dans les paramètres');
       return;
     }
 
@@ -200,12 +208,20 @@ const PaymentRequest: React.FC = () => {
                   </div>
                   <Button
                     onClick={handleRequestPayment}
-                    disabled={loading || !revenueBreakdown || revenueBreakdown.total_after_commission <= 0}
+                    disabled={loading || !revenueBreakdown || revenueBreakdown.total_after_commission <= 0 || !stripeConnected}
                     size="lg"
                   >
                     {loading ? 'Traitement...' : 'Demander le paiement'}
                   </Button>
                 </div>
+
+                {!stripeConnected && (
+                  <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                    <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                      ⚠️ Connectez votre compte Stripe Connect dans les paramètres pour recevoir vos paiements automatiquement
+                    </p>
+                  </div>
+                )}
 
                 {/* Détail des revenus */}
                 {revenueBreakdown && (
@@ -253,9 +269,9 @@ const PaymentRequest: React.FC = () => {
               </div>
 
               {(!creatorInfo.bank_iban || !creatorInfo.bank_bic) && (
-                <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                  <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                    ⚠️ Configurez vos informations bancaires dans les paramètres pour recevoir vos paiements
+                <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    💡 Avec Stripe Connect, vous n'avez plus besoin de renseigner votre IBAN. Les virements sont automatiques et sécurisés.
                   </p>
                 </div>
               )}

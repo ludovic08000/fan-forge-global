@@ -265,6 +265,11 @@ export type Database = {
           payment_frequency: string | null
           platform_commission_rate: number | null
           stage_name: string | null
+          stripe_account_id: string | null
+          stripe_account_status: string | null
+          stripe_charges_enabled: boolean | null
+          stripe_onboarding_completed: boolean | null
+          stripe_payouts_enabled: boolean | null
           subscription_price: number | null
           tax_id: string | null
           total_content: number | null
@@ -291,6 +296,11 @@ export type Database = {
           payment_frequency?: string | null
           platform_commission_rate?: number | null
           stage_name?: string | null
+          stripe_account_id?: string | null
+          stripe_account_status?: string | null
+          stripe_charges_enabled?: boolean | null
+          stripe_onboarding_completed?: boolean | null
+          stripe_payouts_enabled?: boolean | null
           subscription_price?: number | null
           tax_id?: string | null
           total_content?: number | null
@@ -317,6 +327,11 @@ export type Database = {
           payment_frequency?: string | null
           platform_commission_rate?: number | null
           stage_name?: string | null
+          stripe_account_id?: string | null
+          stripe_account_status?: string | null
+          stripe_charges_enabled?: boolean | null
+          stripe_onboarding_completed?: boolean | null
+          stripe_payouts_enabled?: boolean | null
           subscription_price?: number | null
           tax_id?: string | null
           total_content?: number | null

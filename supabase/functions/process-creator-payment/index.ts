@@ -103,13 +103,28 @@ serve(async (req) => {
       customerId = customer.id;
     }
 
-    // Créer le paiement via Stripe
-    // Note: Pour un vrai système en production, vous devriez utiliser Stripe Connect
-    // pour transférer directement vers le compte bancaire du créateur
-    const paymentIntent = await stripe.paymentIntents.create({
+    // Créer le paiement via Stripe Transfer vers le compte Connect
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+      apiVersion: "2025-08-27.basil",
+    });
+
+    // Vérifier que le créateur a un compte Stripe Connect actif
+    if (!paymentRequest.creators.stripe_account_id) {
+      throw new Error("Le créateur n'a pas configuré son compte Stripe Connect");
+    }
+
+    // Vérifier le statut du compte
+    const account = await stripe.accounts.retrieve(paymentRequest.creators.stripe_account_id);
+    
+    if (!account.payouts_enabled) {
+      throw new Error("Le compte Stripe Connect du créateur n'est pas encore activé pour les virements");
+    }
+
+    // Créer le transfert vers le compte Connect du créateur
+    const transfer = await stripe.transfers.create({
       amount: Math.round(paymentRequest.amount * 100), // Conversion en centimes
       currency: paymentRequest.currency.toLowerCase(),
-      customer: customerId,
+      destination: paymentRequest.creators.stripe_account_id,
       description: `Paiement créateur ${paymentRequest.creators.stage_name} - Période ${new Date(paymentRequest.period_start).toLocaleDateString()} à ${new Date(paymentRequest.period_end).toLocaleDateString()}`,
       metadata: {
         creator_id: paymentRequest.creator_id,
@@ -155,7 +170,7 @@ serve(async (req) => {
       .from("creator_payment_requests")
       .update({
         status: "completed",
-        stripe_transfer_id: paymentIntent.id,
+        stripe_transfer_id: transfer.id,
         processed_at: new Date().toISOString(),
       })
       .eq("id", requestId);
@@ -170,21 +185,22 @@ serve(async (req) => {
         message: `Votre paiement de ${new Intl.NumberFormat('fr-FR', {
           style: 'currency',
           currency: paymentRequest.currency
-        }).format(paymentRequest.amount)} a été traité avec succès.`,
+        }).format(paymentRequest.amount)} a été transféré vers votre compte Stripe Connect.`,
         data: {
           amount: paymentRequest.amount,
           currency: paymentRequest.currency,
           request_id: requestId,
+          transfer_id: transfer.id,
         },
       });
 
-    console.log("Paiement traité avec succès:", paymentIntent.id);
+    console.log("Transfert Stripe Connect créé avec succès:", transfer.id);
 
     return new Response(
       JSON.stringify({
         success: true,
-        payment_intent_id: paymentIntent.id,
-        message: "Paiement traité avec succès",
+        transfer_id: transfer.id,
+        message: "Paiement transféré avec succès vers le compte Stripe Connect du créateur",
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

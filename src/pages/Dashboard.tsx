@@ -19,6 +19,7 @@ import CreatorBoost from '@/components/CreatorBoost';
 import CreatorAnalyticsDashboard from '@/components/analytics/CreatorAnalyticsDashboard';
 import { LiveStreamStudio } from '@/components/LiveStreamStudio';
 import PaymentRequest from '@/components/creator/PaymentRequest';
+import StripeConnectSetup from '@/components/creator/StripeConnectSetup';
 import { useContent } from '@/hooks/useContent';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -412,7 +413,7 @@ const Dashboard = () => {
             <TabsContent value="settings" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Colonne gauche - Boost */}
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 space-y-6">
                   <CreatorBoost 
                     currentBoostUntil={creatorProfile?.featured_until}
                     onBoostUpdate={() => {
@@ -421,6 +422,7 @@ const Dashboard = () => {
                       window.location.reload();
                     }}
                   />
+                  <StripeConnectSetup />
                 </div>
                 
                 {/* Colonne droite - Paramètres */}
