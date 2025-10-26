@@ -23,6 +23,7 @@ const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const CreatorProfile = lazy(() => import("./pages/CreatorProfile"));
+const CreatorPublicPage = lazy(() => import("./pages/CreatorPublicPage"));
 const Search = lazy(() => import("./pages/Search"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
@@ -77,6 +78,7 @@ const AppRoutes = () => {
           <Route path="/lives" element={<LiveStreams />} />
           <Route path="/live/:streamId" element={<WatchLive />} />
           <Route path="/creator/:userId" element={<CreatorProfile />} />
+          <Route path="/@:username" element={<CreatorPublicPage />} />
           <Route path="/install" element={<Install />} />
           <Route path="/dashboard" element={
             <ProtectedRoute>

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { User, Crown, BarChart3, Heart, Eye, Euro, Settings, Plus, Video, Upload, Trash2 } from 'lucide-react';
+import { User, Crown, BarChart3, Heart, Eye, Euro, Settings, Plus, Video, Upload, Trash2, Share2, Copy } from 'lucide-react';
 import ContentUpload from '@/components/ContentUpload';
 import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
 import CreatorSettings from '@/components/CreatorSettings';
@@ -40,6 +40,9 @@ const Dashboard = () => {
   });
   const [creatorProfile, setCreatorProfile] = useState<any>(null);
   const [isCreatorLocal, setIsCreatorLocal] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [shareLink, setShareLink] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const handleDeleteContent = async (contentId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce contenu ?')) return;
@@ -60,10 +63,44 @@ const Dashboard = () => {
     }
   };
 
+  const handleCopyLink = () => {
+    if (shareLink) {
+      navigator.clipboard.writeText(shareLink);
+      setCopied(true);
+      toast.success('Lien copié dans le presse-papier !');
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   // Tracker la vue de page
   useEffect(() => {
     trackPageView('dashboard');
   }, [trackPageView]);
+
+  // Charger le profil utilisateur pour le lien de partage
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!user) return;
+
+      try {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profileData?.username) {
+          setUserProfile(profileData);
+          const link = `${window.location.origin}/@${profileData.username}`;
+          setShareLink(link);
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      }
+    };
+
+    loadUserProfile();
+  }, [user]);
 
   useEffect(() => {
     const loadCreatorStats = async () => {
@@ -174,6 +211,16 @@ const Dashboard = () => {
           </div>
 
           <div className="flex items-center space-x-2">
+            {isCreator && shareLink && (
+              <Button
+                onClick={handleCopyLink}
+                variant="outline"
+                className="gap-2"
+              >
+                {copied ? <Copy className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+                {copied ? 'Copié !' : 'Partager mon profil'}
+              </Button>
+            )}
             {isCreator && (
               <Button
                 onClick={() => setShowUpload(!showUpload)}
