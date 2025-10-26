@@ -64,8 +64,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
     }
   };
 
-  const handleCreatorClick = (userId: string) => {
-    navigate(`/creator/${userId}`);
+  const handleCreatorClick = (usernameOrId: string) => {
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(usernameOrId);
+    if (isUUID) {
+      navigate(`/creator/${usernameOrId}`);
+    } else {
+      navigate(`/${usernameOrId}`);
+    }
     setShowSuggestions(false);
     setIsFocused(false);
     setSearchTerm('');
@@ -145,7 +150,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                       return (
                         <div
                           key={creator.id}
-                          onClick={() => handleCreatorClick(creator.user_id)}
+                          onClick={() => handleCreatorClick(creator.username || creator.user_id)}
                           className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors"
                         >
                           <Avatar className="h-8 w-8">
@@ -229,7 +234,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                     return (
                       <div
                         key={creator.id}
-                        onClick={() => handleCreatorClick(creator.user_id)}
+                        onClick={() => handleCreatorClick(creator.username || creator.user_id)}
                         className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted cursor-pointer transition-colors"
                       >
                         <Avatar className="h-8 w-8">

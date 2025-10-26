@@ -69,31 +69,28 @@ const CreatorProfile: React.FC = () => {
       if (!userId) return;
 
       try {
-        const { data, error } = await supabase
+        // Charger le créateur par user_id (sans relation embarquée pour éviter l'erreur PostgREST)
+        const { data: creatorData, error: creatorError } = await supabase
           .from('creators')
-          .select(`
-            *,
-            profiles (
-              username,
-              display_name,
-              bio,
-              avatar_url,
-              cover_url,
-              location,
-              website,
-              is_verified
-            )
-          `)
+          .select('*')
           .eq('user_id', userId)
           .single();
 
-        if (error) {
-          console.error('Error loading creator:', error);
+        if (creatorError || !creatorData) {
+          console.error('Error loading creator:', creatorError);
           navigate('/404');
           return;
         }
 
-        setCreator(data as any);
+        // Charger le profil associé manuellement
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('username, display_name, bio, avatar_url, cover_url, location, website, is_verified')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        const combined = { ...creatorData, profiles: profileData || null } as any;
+        setCreator(combined);
 
         // Vérifier si l'utilisateur suit ce créateur
         if (user) {
@@ -101,7 +98,7 @@ const CreatorProfile: React.FC = () => {
             .from('follows')
             .select('id')
             .eq('follower_id', user.id)
-            .eq('creator_id', data.id)
+            .eq('creator_id', creatorData.id)
             .single();
 
           setIsFollowing(!!followData);
@@ -111,7 +108,7 @@ const CreatorProfile: React.FC = () => {
             .from('subscriptions')
             .select('id')
             .eq('subscriber_id', user.id)
-            .eq('creator_id', data.id)
+            .eq('creator_id', creatorData.id)
             .eq('status', 'active')
             .single();
 
