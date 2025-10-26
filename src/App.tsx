@@ -78,7 +78,7 @@ const AppRoutes = () => {
           <Route path="/lives" element={<LiveStreams />} />
           <Route path="/live/:streamId" element={<WatchLive />} />
           <Route path="/creator/:userId" element={<CreatorProfile />} />
-          <Route path="/@:username" element={<CreatorPublicPage />} />
+          <Route path="/:username" element={<CreatorPublicPage />} />
           <Route path="/install" element={<Install />} />
           <Route path="/dashboard" element={
             <ProtectedRoute>

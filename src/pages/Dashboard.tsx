@@ -91,7 +91,7 @@ const Dashboard = () => {
 
         if (profileData?.username) {
           setUserProfile(profileData);
-          const link = `${window.location.origin}/@${profileData.username}`;
+          const link = `${window.location.origin}/${profileData.username}`;
           setShareLink(link);
         }
       } catch (error) {
