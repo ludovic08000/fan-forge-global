@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Banknote, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Banknote, Clock, CheckCircle, XCircle, AlertCircle, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -176,6 +176,22 @@ const PaymentRequest: React.FC = () => {
     }
   };
 
+  const handleOpenStripe = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('stripe-connect-login-link');
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, '_blank');
+        toast.success('Ouverture du tableau de bord Stripe');
+      } else {
+        toast.error('Lien Stripe indisponible');
+      }
+    } catch (e: any) {
+      console.error('Erreur ouverture Stripe:', e);
+      toast.error(e.message || "Impossible d'ouvrir Stripe");
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -245,6 +261,14 @@ const PaymentRequest: React.FC = () => {
                     {loading ? 'Traitement...' : 'Demander le paiement'}
                   </Button>
                 </div>
+
+                {stripeConnected && (
+                  <div className="flex justify-end">
+                    <Button variant="outline" onClick={handleOpenStripe} className="gap-2">
+                      <ExternalLink className="h-4 w-4" /> Ouvrir Stripe
+                    </Button>
+                  </div>
+                )}
 
                 {!stripeConnected && (
                   <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg space-y-3">
