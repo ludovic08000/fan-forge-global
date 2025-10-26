@@ -10,7 +10,7 @@ interface AuthContextType {
   session: Session | null;
   userRole: UserRole | null;
   loading: boolean;
-  signUp: (email: string, password: string, firstName?: string, lastName?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, firstName?: string, lastName?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signInWithFacebook: () => Promise<{ error: any }>;
@@ -161,6 +161,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const pendingRole = localStorage.getItem('intended_role') || (session?.user?.user_metadata?.role as string | undefined) || undefined;
       const pendingBirthdate = localStorage.getItem('intended_birthdate') || (session?.user?.user_metadata?.birthdate as string | undefined) || undefined;
       const pendingGender = localStorage.getItem('intended_gender') || (session?.user?.user_metadata?.gender as string | undefined) || undefined;
+      const pendingStageName = localStorage.getItem('intended_stageName') || (session?.user?.user_metadata?.stage_name as string | undefined) || undefined;
+      const pendingCategory = localStorage.getItem('intended_category') || (session?.user?.user_metadata?.category as string | undefined) || undefined;
       if (pendingRole === 'creator') {
         // Vérifier s'il existe déjà un profil créateur
         const { data: existingCreator } = await supabase
@@ -175,7 +177,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             .insert({ 
               user_id: userId, 
               subscription_price: 9.99,
-              gender: pendingGender || null
+              gender: pendingGender || null,
+              stage_name: pendingStageName || null,
+              category: pendingCategory || null
             });
           if (creatorError) {
             console.error('Création créateur après confirmation échouée:', creatorError);
@@ -197,6 +201,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem('intended_role');
         localStorage.removeItem('intended_birthdate');
         localStorage.removeItem('intended_gender');
+        localStorage.removeItem('intended_stageName');
+        localStorage.removeItem('intended_category');
       }
     } catch (e) {
       console.error('Erreur processIntendedRole:', e);
@@ -213,7 +219,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * @param birthdate - Date de naissance (requis pour les créateurs)
    * @returns Objet contenant l'erreur éventuelle
    */
-  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string) => {
+  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string) => {
     try {
       // URL de redirection après inscription
       const redirectUrl = `${window.location.origin}/`;
@@ -229,7 +235,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             last_name: lastName,
             role,
             birthdate,
-            gender
+            gender,
+            stage_name: stageName,
+            category
           }
         }
       });
@@ -255,6 +263,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (role) localStorage.setItem('intended_role', role);
         if (birthdate) localStorage.setItem('intended_birthdate', birthdate);
         if (gender) localStorage.setItem('intended_gender', gender);
+        if (stageName) localStorage.setItem('intended_stageName', stageName);
+        if (category) localStorage.setItem('intended_category', category);
       } catch {}
 
       // Si l'inscription réussit, créer le rôle et le profil créateur si nécessaire
@@ -280,7 +290,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               .insert({
                 user_id: data.user.id,
                 subscription_price: 9.99,
-                gender: gender || null
+                gender: gender || null,
+                stage_name: stageName || null,
+                category: category || null
               });
 
             if (creatorError) {

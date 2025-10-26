@@ -60,6 +60,8 @@ export const signUpSchema = authSchema.extend({
   }),
   birthdate: z.string().optional(),
   gender: z.string().optional(),
+  stageName: z.string().trim().min(3, { message: "Le surnom doit contenir au moins 3 caractères" }).max(50, { message: "Le surnom doit contenir moins de 50 caractères" }).optional(),
+  category: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Les mots de passe ne correspondent pas",
   path: ["confirmPassword"],
@@ -88,6 +90,22 @@ export const signUpSchema = authSchema.extend({
 }, {
   message: "Le genre est requis pour les créateurs",
   path: ["gender"],
+}).refine((data) => {
+  if (data.role === 'creator' && !data.stageName) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Le surnom est requis pour les créateurs",
+  path: ["stageName"],
+}).refine((data) => {
+  if (data.role === 'creator' && !data.category) {
+    return false;
+  }
+  return true;
+}, {
+  message: "La catégorie est requise pour les créateurs",
+  path: ["category"],
 });
 
 /**

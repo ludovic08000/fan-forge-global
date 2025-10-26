@@ -35,7 +35,9 @@ const Auth = () => {
     lastName: '',
     role: 'subscriber' as 'subscriber' | 'creator',
     birthdate: '',
-    gender: ''
+    gender: '',
+    stageName: '',
+    category: ''
   });
 
   const [signUpErrors, setSignUpErrors] = useState<{ email?: string }>({});
@@ -93,7 +95,9 @@ const Auth = () => {
         validatedData.lastName,
         validatedData.role,
         validatedData.birthdate,
-        validatedData.gender
+        validatedData.gender,
+        validatedData.stageName,
+        validatedData.category
       );
       
       if (!error) {
@@ -105,7 +109,9 @@ const Auth = () => {
           lastName: '',
           role: 'subscriber',
           birthdate: '',
-          gender: ''
+          gender: '',
+          stageName: '',
+          category: ''
         });
       } else {
         const msg = (error?.message || '').toLowerCase();
@@ -319,9 +325,46 @@ const Auth = () => {
                     </div>
                   </div>
 
-                  {/* Date de naissance et genre pour les créateurs */}
+                  {/* Champs spécifiques pour les créateurs */}
                   {signUpForm.role === 'creator' && (
                     <>
+                      <div className="space-y-2">
+                        <Label htmlFor="stageName">Surnom / Nom de scène *</Label>
+                        <Input
+                          id="stageName"
+                          type="text"
+                          placeholder="Ex: Luna_Star"
+                          required={signUpForm.role === 'creator'}
+                          value={signUpForm.stageName}
+                          onChange={(e) => setSignUpForm({ ...signUpForm, stageName: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Ce nom sera visible publiquement
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="category">Catégorie de contenu *</Label>
+                        <Select
+                          value={signUpForm.category}
+                          onValueChange={(value) => setSignUpForm({ ...signUpForm, category: value })}
+                          required={signUpForm.role === 'creator'}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionnez une catégorie" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="érotique">Érotique</SelectItem>
+                            <SelectItem value="glamour">Glamour</SelectItem>
+                            <SelectItem value="fitness">Fitness</SelectItem>
+                            <SelectItem value="lifestyle">Lifestyle</SelectItem>
+                            <SelectItem value="art">Art</SelectItem>
+                            <SelectItem value="mode">Mode</SelectItem>
+                            <SelectItem value="autre">Autre</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
                       <div className="space-y-2">
                         <Label htmlFor="birthdate">Date de naissance *</Label>
                         <Input
@@ -336,6 +379,7 @@ const Auth = () => {
                           Vous devez avoir au moins 18 ans pour devenir créateur
                         </p>
                       </div>
+
                       <div className="space-y-2">
                         <Label htmlFor="gender">Genre *</Label>
                         <Select
