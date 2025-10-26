@@ -158,8 +158,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Traite le rôle choisi après confirmation email
   async function processIntendedRole(userId: string) {
     try {
-      const pendingRole = localStorage.getItem('intended_role');
-      const pendingBirthdate = localStorage.getItem('intended_birthdate');
+      const pendingRole = localStorage.getItem('intended_role') || (session?.user?.user_metadata?.role as string | undefined) || undefined;
+      const pendingBirthdate = localStorage.getItem('intended_birthdate') || (session?.user?.user_metadata?.birthdate as string | undefined) || undefined;
       if (pendingRole === 'creator') {
         // Vérifier s'il existe déjà un profil créateur
         const { data: existingCreator } = await supabase
@@ -220,7 +220,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           emailRedirectTo: redirectUrl,
           data: {
             first_name: firstName,
-            last_name: lastName
+            last_name: lastName,
+            role,
+            birthdate
           }
         }
       });
