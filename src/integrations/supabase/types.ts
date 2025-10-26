@@ -270,6 +270,8 @@ export type Database = {
           stripe_charges_enabled: boolean | null
           stripe_onboarding_completed: boolean | null
           stripe_payouts_enabled: boolean | null
+          stripe_price_id: string | null
+          stripe_product_id: string | null
           subscription_price: number | null
           tax_id: string | null
           total_content: number | null
@@ -301,6 +303,8 @@ export type Database = {
           stripe_charges_enabled?: boolean | null
           stripe_onboarding_completed?: boolean | null
           stripe_payouts_enabled?: boolean | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
           subscription_price?: number | null
           tax_id?: string | null
           total_content?: number | null
@@ -332,6 +336,8 @@ export type Database = {
           stripe_charges_enabled?: boolean | null
           stripe_onboarding_completed?: boolean | null
           stripe_payouts_enabled?: boolean | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
           subscription_price?: number | null
           tax_id?: string | null
           total_content?: number | null

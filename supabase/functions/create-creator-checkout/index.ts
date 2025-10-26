@@ -19,7 +19,7 @@ serve(async (req) => {
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
   try {
@@ -33,7 +33,14 @@ serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header provided");
     
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    
+    // Créer un client avec la clé anon pour l'authentification
+    const authClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+    
+    const { data: userData, error: userError } = await authClient.auth.getUser(token);
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
@@ -47,7 +54,7 @@ serve(async (req) => {
     // Récupérer les informations du créateur
     const { data: creatorData, error: creatorError } = await supabaseClient
       .from('creators')
-      .select('subscription_price, currency, stage_name')
+      .select('subscription_price, currency, stage_name, stripe_price_id, stripe_product_id')
       .eq('id', creatorId)
       .single();
 
@@ -62,7 +69,8 @@ serve(async (req) => {
     logStep("Creator data loaded", { 
       price: creatorData.subscription_price, 
       currency: creatorData.currency,
-      stageName: creatorData.stage_name 
+      stageName: creatorData.stage_name,
+      hasPriceId: !!creatorData.stripe_price_id 
     });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
@@ -82,51 +90,56 @@ serve(async (req) => {
       logStep("New Stripe customer created", { customerId });
     }
 
-    // Créer un produit Stripe pour ce créateur s'il n'existe pas
-    const productName = `Abonnement ${creatorData.stage_name || 'Créateur'}`;
-    const products = await stripe.products.search({
-      query: `metadata['creator_id']:'${creatorId}'`,
-    });
+    let priceId = creatorData.stripe_price_id;
+    
+    // Si le price_id n'existe pas ou si le prix a changé, créer/recréer le produit et le prix
+    if (!priceId) {
+      logStep("No price_id stored, creating product and price");
+      
+      let productId = creatorData.stripe_product_id;
+      
+      // Créer un produit Stripe s'il n'existe pas
+      if (!productId) {
+        const productName = `Abonnement ${creatorData.stage_name || 'Créateur'}`;
+        const product = await stripe.products.create({
+          name: productName,
+          metadata: {
+            creator_id: creatorId,
+          },
+        });
+        productId = product.id;
+        logStep("New product created", { productId });
+        
+        // Sauvegarder le product_id
+        await supabaseClient
+          .from('creators')
+          .update({ stripe_product_id: productId })
+          .eq('id', creatorId);
+      }
 
-    let productId;
-    if (products.data.length > 0) {
-      productId = products.data[0].id;
-      logStep("Existing product found", { productId });
-    } else {
-      const product = await stripe.products.create({
-        name: productName,
-        metadata: {
-          creator_id: creatorId,
-        },
-      });
-      productId = product.id;
-      logStep("New product created", { productId });
-    }
-
-    // Créer ou récupérer le prix Stripe
-    const prices = await stripe.prices.search({
-      query: `product:'${productId}' AND metadata['amount']:'${Math.round(creatorData.subscription_price * 100)}'`,
-    });
-
-    let priceId;
-    if (prices.data.length > 0) {
-      priceId = prices.data[0].id;
-      logStep("Existing price found", { priceId });
-    } else {
+      // Créer le prix
       const price = await stripe.prices.create({
         product: productId,
-        unit_amount: Math.round(creatorData.subscription_price * 100), // Convertir en centimes
+        unit_amount: Math.round(creatorData.subscription_price * 100),
         currency: creatorData.currency.toLowerCase(),
         recurring: {
           interval: 'month',
         },
         metadata: {
           creator_id: creatorId,
-          amount: Math.round(creatorData.subscription_price * 100).toString(),
         },
       });
       priceId = price.id;
       logStep("New price created", { priceId, amount: price.unit_amount });
+      
+      // Sauvegarder le price_id
+      await supabaseClient
+        .from('creators')
+        .update({ stripe_price_id: priceId })
+        .eq('id', creatorId);
+      logStep("Price ID saved to database");
+    } else {
+      logStep("Using existing price ID", { priceId });
     }
 
     // Créer la session de checkout
