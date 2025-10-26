@@ -84,6 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Utiliser setTimeout pour éviter les problèmes de deadlock
           setTimeout(() => {
             loadUserRole(session.user.id);
+            processIntendedRole(session.user.id);
           }, 0);
         } else {
           setUserRole(null);
@@ -154,6 +155,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Traite le rôle choisi après confirmation email
+  async function processIntendedRole(userId: string) {
+    try {
+      const pendingRole = localStorage.getItem('intended_role');
+      const pendingBirthdate = localStorage.getItem('intended_birthdate');
+      if (pendingRole === 'creator') {
+        // Vérifier s'il existe déjà un profil créateur
+        const { data: existingCreator } = await supabase
+          .from('creators')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (!existingCreator) {
+          const { error: creatorError } = await supabase
+            .from('creators')
+            .insert({ user_id: userId, subscription_price: 9.99 });
+          if (creatorError) {
+            console.error('Création créateur après confirmation échouée:', creatorError);
+            return;
+          }
+        }
+
+        if (pendingBirthdate) {
+          const { error: birthdateError } = await supabase
+            .from('profiles')
+            .update({ birthdate: pendingBirthdate })
+            .eq('user_id', userId);
+          if (birthdateError) {
+            console.error('MAJ birthdate après confirmation échouée:', birthdateError);
+          }
+        }
+
+        setUserRole('creator');
+        localStorage.removeItem('intended_role');
+        localStorage.removeItem('intended_birthdate');
+      }
+    } catch (e) {
+      console.error('Erreur processIntendedRole:', e);
+    }
+  }
+
   /**
    * Inscription d'un nouvel utilisateur
    * @param email - Adresse email de l'utilisateur
@@ -198,8 +241,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { error: { message: 'User already exists' } };
       }
 
+      // Mémoriser le rôle choisi pour post-confirmation
+      try {
+        if (role) localStorage.setItem('intended_role', role);
+        if (birthdate) localStorage.setItem('intended_birthdate', birthdate);
+      } catch {}
+
       // Si l'inscription réussit, créer le rôle et le profil créateur si nécessaire
-      if (data.user && role) {
+      if (data.user && role && data.session) {
         try {
           // Créer le rôle dans user_roles
           const { error: roleError } = await supabase
