@@ -51,6 +51,7 @@ const Dashboard = () => {
     charges_enabled: boolean;
     payouts_enabled: boolean;
   } | null>(null);
+  const [tabsValue, setTabsValue] = useState<string>((userRole === 'creator' || userRole === 'admin' || isCreatorLocal) ? 'my-content' : 'explore');
 
   const handleDeleteContent = async (contentId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce contenu ?')) return;
@@ -317,13 +318,7 @@ const Dashboard = () => {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => {
-                      // Scroll vers l'onglet paramètres
-                      const settingsTab = document.querySelector('[value="settings"]');
-                      if (settingsTab) {
-                        (settingsTab as HTMLElement).click();
-                      }
-                    }}
+                    onClick={() => setTabsValue('settings')}
                   >
                     Configurer
                   </Button>
@@ -393,7 +388,7 @@ const Dashboard = () => {
         )}
 
         {/* Main Content */}
-        <Tabs defaultValue={isCreator ? "my-content" : "explore"} className="w-full">
+        <Tabs value={tabsValue} onValueChange={setTabsValue} className="w-full">
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6">
             {isCreator && <TabsTrigger value="my-content">Mon contenu</TabsTrigger>}
             {isCreator && (
