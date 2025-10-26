@@ -49,16 +49,19 @@ export const useContentProtection = (enabled: boolean = true) => {
 
     // Désactiver le menu contextuel (clic droit)
     const handleContextMenu = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      
-      // Bloquer sur les images, vidéos et leurs conteneurs
-      if (
-        target.tagName === 'IMG' ||
-        target.tagName === 'VIDEO' ||
-        target.closest('video') ||
-        target.closest('img') ||
-        target.classList.contains('protected-content')
-      ) {
+      const targetNode = e.target as Node | null;
+      if (!targetNode) return;
+
+      // Ne bloquer que sur les contenus protégés ou médias
+      let el: HTMLElement | null = null;
+      if (targetNode instanceof HTMLElement) el = targetNode;
+      else if ((targetNode as any)?.parentElement) el = (targetNode as any).parentElement as HTMLElement;
+
+      const isMedia = el?.tagName === 'IMG' || el?.tagName === 'VIDEO';
+      const isInsideMedia = el instanceof Element && (!!el.closest('video') || !!el.closest('img'));
+      const isProtected = !!el?.classList && el.classList.contains('protected-content');
+
+      if (isMedia || isInsideMedia || isProtected) {
         e.preventDefault();
         toast.error('Le clic droit est désactivé sur ce contenu');
         return false;
@@ -79,8 +82,14 @@ export const useContentProtection = (enabled: boolean = true) => {
 
     // Bloquer la sélection de texte sur les contenus protégés
     const handleSelectStart = (e: Event) => {
-      const target = e.target as HTMLElement;
-      if (target.classList.contains('protected-content')) {
+      const targetNode = e.target as Node | null;
+      if (!targetNode) return;
+
+      let el: HTMLElement | null = null;
+      if (targetNode instanceof HTMLElement) el = targetNode;
+      else if ((targetNode as any)?.parentElement) el = (targetNode as any).parentElement as HTMLElement;
+
+      if (el?.classList?.contains('protected-content')) {
         e.preventDefault();
         return false;
       }
@@ -88,12 +97,14 @@ export const useContentProtection = (enabled: boolean = true) => {
 
     // Bloquer le glisser-déposer d'images
     const handleDragStart = (e: DragEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName === 'IMG' ||
-        target.tagName === 'VIDEO' ||
-        target.classList.contains('protected-content')
-      ) {
+      const targetNode = e.target as Node | null;
+      if (!targetNode) return;
+
+      let el: HTMLElement | null = null;
+      if (targetNode instanceof HTMLElement) el = targetNode;
+      else if ((targetNode as any)?.parentElement) el = (targetNode as any).parentElement as HTMLElement;
+
+      if (el?.tagName === 'IMG' || el?.tagName === 'VIDEO' || el?.classList?.contains('protected-content')) {
         e.preventDefault();
         return false;
       }
