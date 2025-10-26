@@ -14,14 +14,11 @@ import { Badge } from '@/components/ui/badge';
 import { User, Crown, Settings, Upload, BarChart3, Heart, Eye, Euro, Plus, Video } from 'lucide-react';
 import ContentUpload from '@/components/ContentUpload';
 import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
-import SubscriptionPlans from '@/components/SubscriptionPlans';
-import SubscriptionStatus from '@/components/SubscriptionStatus';
 import CreatorSettings from '@/components/CreatorSettings';
 import CreatorBoost from '@/components/CreatorBoost';
 import CreatorAnalyticsDashboard from '@/components/analytics/CreatorAnalyticsDashboard';
 import { LiveStreamStudio } from '@/components/LiveStreamStudio';
 import { useContent } from '@/hooks/useContent';
-import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/lib/analytics';
@@ -32,7 +29,6 @@ import { useAnalytics } from '@/lib/analytics';
 const Dashboard = () => {
   const { user, userRole, loading } = useAuth();
   const { useMyContent } = useContent();
-  const { refreshSubscription } = useSubscription();
   const { trackPageView } = useAnalytics();
   const { data: myContent, isLoading: contentLoading, refetch } = useMyContent();
   const [showUpload, setShowUpload] = useState(false);
@@ -82,14 +78,9 @@ const Dashboard = () => {
     loadCreatorStats();
   }, [user, userRole, myContent]);
 
-  // Rafraîchir le statut d'abonnement après un paiement réussi
+  // Gérer les redirections après paiement
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('success') === 'true') {
-      refreshSubscription();
-      // Nettoyer l'URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
     
     // Gérer le succès du boost
     if (urlParams.get('boost_success') === 'true') {
@@ -107,7 +98,7 @@ const Dashboard = () => {
       // Nettoyer l'URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, [refreshSubscription]);
+  }, []);
 
   if (loading) {
     return (
@@ -239,7 +230,7 @@ const Dashboard = () => {
 
         {/* Main Content */}
         <Tabs defaultValue={isCreator ? "my-content" : "explore"} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
             {isCreator && <TabsTrigger value="my-content">Mon contenu</TabsTrigger>}
             {isCreator && (
               <TabsTrigger value="live" className="gap-1">
@@ -248,7 +239,6 @@ const Dashboard = () => {
               </TabsTrigger>
             )}
             <TabsTrigger value="explore">Explorer</TabsTrigger>
-            <TabsTrigger value="subscriptions">Abonnements</TabsTrigger>
             {isCreator && <TabsTrigger value="settings">Paramètres</TabsTrigger>}
             {isCreator && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
           </TabsList>
@@ -328,25 +318,6 @@ const Dashboard = () => {
               <h2 className="text-2xl font-semibold">Explorer le contenu</h2>
             </div>
             <OptimizedContentGallery />
-          </TabsContent>
-
-          {/* Subscriptions */}
-          <TabsContent value="subscriptions" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold">Abonnements</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Colonne gauche - Statut */}
-              <div className="lg:col-span-1">
-                <SubscriptionStatus />
-              </div>
-              
-              {/* Colonne droite - Plans */}
-              <div className="lg:col-span-2">
-                <SubscriptionPlans />
-              </div>
-            </div>
           </TabsContent>
 
           {/* Settings */}

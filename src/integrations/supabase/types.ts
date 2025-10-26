@@ -202,11 +202,8 @@ export type Database = {
           is_accepting_tips: boolean | null
           is_featured: boolean | null
           orientation: string | null
-          plan_type: string | null
+          platform_commission_rate: number | null
           stage_name: string | null
-          stripe_customer_id: string | null
-          subscription_active: boolean | null
-          subscription_end: string | null
           subscription_price: number | null
           total_content: number | null
           total_earnings: number | null
@@ -225,11 +222,8 @@ export type Database = {
           is_accepting_tips?: boolean | null
           is_featured?: boolean | null
           orientation?: string | null
-          plan_type?: string | null
+          platform_commission_rate?: number | null
           stage_name?: string | null
-          stripe_customer_id?: string | null
-          subscription_active?: boolean | null
-          subscription_end?: string | null
           subscription_price?: number | null
           total_content?: number | null
           total_earnings?: number | null
@@ -248,11 +242,8 @@ export type Database = {
           is_accepting_tips?: boolean | null
           is_featured?: boolean | null
           orientation?: string | null
-          plan_type?: string | null
+          platform_commission_rate?: number | null
           stage_name?: string | null
-          stripe_customer_id?: string | null
-          subscription_active?: boolean | null
-          subscription_end?: string | null
           subscription_price?: number | null
           total_content?: number | null
           total_earnings?: number | null
@@ -1036,34 +1027,8 @@ export type Database = {
         Args: { _live_stream_id: string; _minute_number: number }
         Returns: undefined
       }
-      cleanup_old_rate_limits: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      generate_stream_key: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      gtrgm_compress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_decompress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_options: {
-        Args: { "": unknown }
-        Returns: undefined
-      }
-      gtrgm_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
+      cleanup_old_rate_limits: { Args: never; Returns: undefined }
+      generate_stream_key: { Args: never; Returns: string }
       has_live_access: {
         Args: { _live_stream_id: string; _subscriber_id: string }
         Returns: boolean
@@ -1079,9 +1044,9 @@ export type Database = {
         Args: { _creator_id: string; _subscriber_id: string }
         Returns: boolean
       }
-      search_creators: {
-        Args:
-          | {
+      search_creators:
+        | {
+            Args: {
               category_filter?: string
               content_type_filter?: string[]
               featured_only?: boolean
@@ -1092,7 +1057,30 @@ export type Database = {
               price_filter?: string
               search_term?: string
             }
-          | {
+            Returns: {
+              avatar_url: string
+              bio: string
+              category: string
+              content_type: string[]
+              created_at: string
+              currency: string
+              display_name: string
+              gender: string
+              id: string
+              is_featured: boolean
+              is_verified: boolean
+              orientation: string
+              similarity_score: number
+              stage_name: string
+              subscription_price: number
+              total_content: number
+              total_subscribers: number
+              user_id: string
+              username: string
+            }[]
+          }
+        | {
+            Args: {
               category_filter?: string
               featured_only?: boolean
               limit_count?: number
@@ -1100,40 +1088,27 @@ export type Database = {
               price_filter?: string
               search_term?: string
             }
-        Returns: {
-          avatar_url: string
-          bio: string
-          category: string
-          content_type: string[]
-          created_at: string
-          currency: string
-          display_name: string
-          gender: string
-          id: string
-          is_featured: boolean
-          is_verified: boolean
-          orientation: string
-          similarity_score: number
-          stage_name: string
-          subscription_price: number
-          total_content: number
-          total_subscribers: number
-          user_id: string
-          username: string
-        }[]
-      }
-      set_limit: {
-        Args: { "": number }
-        Returns: number
-      }
-      show_limit: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      show_trgm: {
-        Args: { "": string }
-        Returns: string[]
-      }
+            Returns: {
+              avatar_url: string
+              bio: string
+              category: string
+              created_at: string
+              currency: string
+              display_name: string
+              id: string
+              is_featured: boolean
+              is_verified: boolean
+              similarity_score: number
+              stage_name: string
+              subscription_price: number
+              total_content: number
+              total_subscribers: number
+              user_id: string
+              username: string
+            }[]
+          }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       content_status: "draft" | "published" | "archived"
