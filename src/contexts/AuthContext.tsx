@@ -192,8 +192,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { error };
       }
 
-      // Vérifier si l'utilisateur existe déjà (pas de session = utilisateur existant)
-      if (data.user && !data.session) {
+      // Cas Supabase: inscription répétée -> pas d'erreur mais pas d'utilisateur ni de session
+      if (!data.user && !data.session) {
         toast.error('Cette adresse email est déjà utilisée. Veuillez vous connecter.');
         return { error: { message: 'User already exists' } };
       }
