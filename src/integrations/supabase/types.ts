@@ -1044,6 +1044,7 @@ export type Database = {
       }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       generate_stream_key: { Args: never; Returns: string }
+      generate_unique_username: { Args: { email: string }; Returns: string }
       has_live_access: {
         Args: { _live_stream_id: string; _subscriber_id: string }
         Returns: boolean
