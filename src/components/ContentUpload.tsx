@@ -28,8 +28,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    isPremium: false,
-    price: 0
+    isPremium: false
   });
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -82,7 +81,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
         title: formData.title,
         description: formData.description,
         isPremium: formData.isPremium,
-        price: formData.isPremium ? formData.price : undefined,
+        price: 0,
       });
       
       if (!validatedData.title.trim()) {
@@ -105,7 +104,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
         title: validatedData.title,
         description: validatedData.description || undefined,
         isPremium: validatedData.isPremium,
-        price: validatedData.isPremium ? validatedData.price : undefined,
+        price: 0,
         file: selectedFile
       }, creatorData.id, user.id);
 
@@ -113,8 +112,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
       setFormData({
         title: '',
         description: '',
-        isPremium: false,
-        price: 0
+        isPremium: false
       });
       setSelectedFile(null);
       setPreviewUrl('');
@@ -251,7 +249,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
               <div className="space-y-0.5">
                 <Label htmlFor="premium">Contenu Premium</Label>
                 <p className="text-sm text-muted-foreground">
-                  Réservé aux abonnés payants
+                  Réservé aux abonnés payants uniquement
                 </p>
               </div>
               <Switch
@@ -260,29 +258,9 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
                 onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPremium: checked }))}
               />
             </div>
-
-            {/* Price (si premium) */}
-            {formData.isPremium && (
-              <div className="space-y-2">
-                <Label htmlFor="price">Prix (optionnel)</Label>
-                <div className="relative">
-                  <Euro className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={formData.price}
-                    onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-                    className="pl-10"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Prix supplémentaire pour ce contenu (en plus de l'abonnement)
-                </p>
-              </div>
-            )}
+            <p className="text-xs text-muted-foreground bg-muted p-3 rounded-lg">
+              💡 Si activé, seuls vos abonnés pourront voir ce contenu. Sinon, tout le monde peut le voir gratuitement.
+            </p>
           </div>
 
           {/* Upload Progress */}
