@@ -163,7 +163,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const pendingGender = localStorage.getItem('intended_gender') || (session?.user?.user_metadata?.gender as string | undefined) || undefined;
       const pendingStageName = localStorage.getItem('intended_stageName') || (session?.user?.user_metadata?.stage_name as string | undefined) || undefined;
       const pendingCategory = localStorage.getItem('intended_category') || (session?.user?.user_metadata?.category as string | undefined) || undefined;
+      
       if (pendingRole === 'creator') {
+        // Créer le rôle dans user_roles
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: userId,
+            role: 'creator'
+          });
+        
+        if (roleError && !roleError.message.includes('duplicate')) {
+          console.error('Création rôle après confirmation échouée:', roleError);
+        }
+
         // Vérifier s'il existe déjà un profil créateur
         const { data: existingCreator } = await supabase
           .from('creators')
@@ -203,6 +216,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem('intended_gender');
         localStorage.removeItem('intended_stageName');
         localStorage.removeItem('intended_category');
+      } else if (pendingRole === 'subscriber') {
+        // Créer le rôle subscriber dans user_roles
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: userId,
+            role: 'subscriber'
+          });
+        
+        if (roleError && !roleError.message.includes('duplicate')) {
+          console.error('Création rôle subscriber après confirmation échouée:', roleError);
+        }
+        
+        setUserRole('subscriber');
+        localStorage.removeItem('intended_role');
       }
     } catch (e) {
       console.error('Erreur processIntendedRole:', e);
