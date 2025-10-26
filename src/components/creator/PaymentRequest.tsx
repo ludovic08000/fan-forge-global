@@ -124,7 +124,7 @@ const PaymentRequest: React.FC = () => {
     }
 
     if (!stripeConnected) {
-      toast.error('Veuillez d\'abord connecter votre compte Stripe Connect dans les paramètres');
+      toast.error("Veuillez d'abord connecter votre compte Stripe Connect");
       return;
     }
 
@@ -142,6 +142,20 @@ const PaymentRequest: React.FC = () => {
       toast.error(error.message || 'Erreur lors de la demande de paiement');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConnectStripe = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('create-stripe-connect-account');
+      if (error) throw error;
+      if (data?.onboarding_url) {
+        window.open(data.onboarding_url, '_blank');
+        toast.success("Onboarding Stripe ouvert - complétez votre inscription");
+      }
+    } catch (e: any) {
+      console.error('Erreur connexion Stripe:', e);
+      toast.error(e.message || "Erreur lors de l'ouverture de Stripe Connect");
     }
   };
 
@@ -216,10 +230,15 @@ const PaymentRequest: React.FC = () => {
                 </div>
 
                 {!stripeConnected && (
-                  <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                  <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg space-y-3">
                     <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                      ⚠️ Connectez votre compte Stripe Connect dans les paramètres pour recevoir vos paiements automatiquement
+                      ⚠️ Connectez votre compte Stripe Connect pour recevoir vos paiements automatiquement
                     </p>
+                    <div>
+                      <Button onClick={handleConnectStripe}>
+                        Configurer Stripe Connect
+                      </Button>
+                    </div>
                   </div>
                 )}
 
