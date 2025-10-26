@@ -11,13 +11,14 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { User, Crown, BarChart3, Heart, Eye, Euro, Settings, Plus, Video, Upload, Trash2, Share2, Copy } from 'lucide-react';
+import { User, Crown, BarChart3, Heart, Eye, Euro, Settings, Plus, Video, Upload, Trash2, Share2, Copy, Banknote } from 'lucide-react';
 import ContentUpload from '@/components/ContentUpload';
 import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
 import CreatorSettings from '@/components/CreatorSettings';
 import CreatorBoost from '@/components/CreatorBoost';
 import CreatorAnalyticsDashboard from '@/components/analytics/CreatorAnalyticsDashboard';
 import { LiveStreamStudio } from '@/components/LiveStreamStudio';
+import PaymentRequest from '@/components/creator/PaymentRequest';
 import { useContent } from '@/hooks/useContent';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -300,7 +301,7 @@ const Dashboard = () => {
 
         {/* Main Content */}
         <Tabs defaultValue={isCreator ? "my-content" : "explore"} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6">
             {isCreator && <TabsTrigger value="my-content">Mon contenu</TabsTrigger>}
             {isCreator && (
               <TabsTrigger value="live" className="gap-1">
@@ -309,6 +310,12 @@ const Dashboard = () => {
               </TabsTrigger>
             )}
             <TabsTrigger value="explore">Explorer</TabsTrigger>
+            {isCreator && (
+              <TabsTrigger value="payments" className="gap-1">
+                <Banknote className="h-4 w-4" />
+                Paiements
+              </TabsTrigger>
+            )}
             {isCreator && <TabsTrigger value="settings">Paramètres</TabsTrigger>}
             {isCreator && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
           </TabsList>
@@ -421,6 +428,13 @@ const Dashboard = () => {
                   <CreatorSettings />
                 </div>
               </div>
+            </TabsContent>
+          )}
+
+          {/* Payments */}
+          {isCreator && (
+            <TabsContent value="payments" className="space-y-6">
+              <PaymentRequest />
             </TabsContent>
           )}
 

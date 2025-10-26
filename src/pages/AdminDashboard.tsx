@@ -36,6 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import PaymentRequestsManager from '@/components/admin/PaymentRequestsManager';
 
 interface ContentReport {
   id: string;
@@ -395,6 +396,7 @@ const AdminDashboard = () => {
         <TabsList>
           <TabsTrigger value="reports">Signalements</TabsTrigger>
           <TabsTrigger value="logs">Logs de connexion</TabsTrigger>
+          <TabsTrigger value="payment-requests">Demandes de paiement</TabsTrigger>
           <TabsTrigger value="payments">Paiements créateurs</TabsTrigger>
         </TabsList>
 
@@ -506,6 +508,11 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Onglet Demandes de Paiement */}
+        <TabsContent value="payment-requests" className="space-y-4">
+          <PaymentRequestsManager />
         </TabsContent>
 
         {/* Onglet Paiements Créateurs */}

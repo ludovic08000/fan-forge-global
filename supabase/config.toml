@@ -54,3 +54,9 @@ verify_jwt = false
 
 [functions.notify-iban-change]
 verify_jwt = true
+
+[functions.request-creator-payment]
+verify_jwt = true
+
+[functions.process-creator-payment]
+verify_jwt = true

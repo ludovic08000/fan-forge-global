@@ -190,6 +190,62 @@ export type Database = {
           },
         ]
       }
+      creator_payment_requests: {
+        Row: {
+          amount: number
+          created_at: string | null
+          creator_id: string
+          currency: string
+          error_message: string | null
+          id: string
+          period_end: string
+          period_start: string
+          processed_at: string | null
+          requested_at: string | null
+          status: string
+          stripe_transfer_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          creator_id: string
+          currency?: string
+          error_message?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+          processed_at?: string | null
+          requested_at?: string | null
+          status?: string
+          stripe_transfer_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          creator_id?: string
+          currency?: string
+          error_message?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          processed_at?: string | null
+          requested_at?: string | null
+          status?: string
+          stripe_transfer_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_payment_requests_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creators: {
         Row: {
           bank_account_holder: string | null
