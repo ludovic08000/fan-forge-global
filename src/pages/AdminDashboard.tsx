@@ -34,9 +34,8 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, FileText, Users, Search } from 'lucide-react';
+import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download } from 'lucide-react';
 import { toast } from 'sonner';
-import CreatorPayments from '@/components/admin/CreatorPayments';
 
 interface ContentReport {
   id: string;
@@ -64,6 +63,23 @@ interface LoginLog {
   created_at: string;
 }
 
+interface CreatorPayment {
+  id: string;
+  user_id: string;
+  stage_name: string;
+  email: string;
+  bank_account_holder: string;
+  bank_iban: string;
+  bank_bic: string;
+  bank_country: string;
+  payment_frequency: string;
+  currency: string;
+  weekly_revenue: number;
+  monthly_revenue: number;
+  quarterly_revenue: number;
+  total_subscribers: number;
+}
+
 /**
  * Page du dashboard administrateur
  */
@@ -71,10 +87,13 @@ const AdminDashboard = () => {
   const { userRole } = useAuth();
   const [reports, setReports] = useState<ContentReport[]>([]);
   const [loginLogs, setLoginLogs] = useState<LoginLog[]>([]);
+  const [creatorPayments, setCreatorPayments] = useState<CreatorPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<ContentReport | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [paymentSearchTerm, setPaymentSearchTerm] = useState('');
+  const [selectedPeriod, setSelectedPeriod] = useState<'weekly' | 'monthly' | 'quarterly'>('monthly');
 
   // ⚠️ ATTENTION: Vérification du rôle admin DÉSACTIVÉE pour les tests
   // À RÉACTIVER EN PRODUCTION!
@@ -122,6 +141,78 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error('Erreur chargement logs:', error);
       toast.error('Erreur lors du chargement des logs');
+    }
+  };
+
+  /**
+   * Charger les informations de paiement des créateurs
+   */
+  const loadCreatorPayments = async () => {
+    try {
+      // Calculer les dates pour chaque période
+      const now = new Date();
+      const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+
+      const { data: creators, error } = await supabase
+        .from('creators')
+        .select(`
+          id,
+          user_id,
+          stage_name,
+          bank_account_holder,
+          bank_iban,
+          bank_bic,
+          bank_country,
+          payment_frequency,
+          currency,
+          total_subscribers
+        `)
+        .not('bank_iban', 'is', null);
+
+      if (error) throw error;
+
+      // Pour chaque créateur, calculer les revenus
+      const paymentsData = await Promise.all(
+        (creators || []).map(async (creator: any) => {
+          // Récupérer l'email de l'utilisateur
+          const { data: authUsers } = await supabase.auth.admin.listUsers();
+          const user = authUsers?.users.find((u: any) => u.id === creator.user_id);
+
+          // Calculer les revenus pour chaque période
+          const [weeklyRev, monthlyRev, quarterlyRev] = await Promise.all([
+            supabase.rpc('calculate_creator_total_revenue', {
+              creator_uuid: creator.id,
+              start_date: startOfWeek.toISOString(),
+              end_date: new Date().toISOString(),
+            }),
+            supabase.rpc('calculate_creator_total_revenue', {
+              creator_uuid: creator.id,
+              start_date: startOfMonth.toISOString(),
+              end_date: new Date().toISOString(),
+            }),
+            supabase.rpc('calculate_creator_total_revenue', {
+              creator_uuid: creator.id,
+              start_date: startOfQuarter.toISOString(),
+              end_date: new Date().toISOString(),
+            }),
+          ]);
+
+          return {
+            ...creator,
+            email: user?.email || 'N/A',
+            weekly_revenue: weeklyRev.data || 0,
+            monthly_revenue: monthlyRev.data || 0,
+            quarterly_revenue: quarterlyRev.data || 0,
+          };
+        })
+      );
+
+      setCreatorPayments(paymentsData);
+    } catch (error) {
+      console.error('Erreur chargement paiements:', error);
+      toast.error('Erreur lors du chargement des informations de paiement');
     }
   };
 
@@ -176,10 +267,51 @@ const AdminDashboard = () => {
     );
   });
 
+  /**
+   * Exporter les données de paiement en CSV
+   */
+  const exportPaymentsToCSV = () => {
+    const headers = ['Créateur', 'Email', 'IBAN', 'BIC', 'Pays', 'Fréquence', 'Devise', 'Revenu Semaine', 'Revenu Mois', 'Revenu Trimestre', 'Abonnés'];
+    const rows = filteredPayments.map(p => [
+      p.stage_name || 'N/A',
+      p.email,
+      p.bank_iban || 'N/A',
+      p.bank_bic || 'N/A',
+      p.bank_country || 'N/A',
+      p.payment_frequency,
+      p.currency,
+      p.weekly_revenue.toFixed(2),
+      p.monthly_revenue.toFixed(2),
+      p.quarterly_revenue.toFixed(2),
+      p.total_subscribers,
+    ]);
+
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `paiements-createurs-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    toast.success('Export CSV téléchargé');
+  };
+
+  /**
+   * Filtrer les paiements par terme de recherche
+   */
+  const filteredPayments = creatorPayments.filter((payment) => {
+    const search = paymentSearchTerm.toLowerCase();
+    return (
+      payment.stage_name?.toLowerCase().includes(search) ||
+      payment.email?.toLowerCase().includes(search) ||
+      payment.bank_iban?.toLowerCase().includes(search)
+    );
+  });
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([loadReports(), loadLoginLogs()]);
+      await Promise.all([loadReports(), loadLoginLogs(), loadCreatorPayments()]);
       setLoading(false);
     };
     loadData();
@@ -376,6 +508,171 @@ const AdminDashboard = () => {
           )}
         </TabsContent>
 
+        {/* Onglet Paiements Créateurs */}
+        <TabsContent value="payments" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Wallet className="h-5 w-5 text-primary" />
+                  <span>Gestion des paiements créateurs</span>
+                </div>
+                <Button onClick={exportPaymentsToCSV} variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Exporter CSV
+                </Button>
+              </CardTitle>
+              <CardDescription>
+                IBAN et revenus des créateurs pour effectuer les paiements
+              </CardDescription>
+              <div className="flex items-center gap-4 mt-4">
+                <div className="flex items-center gap-2 flex-1">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher par nom, email, IBAN..."
+                    value={paymentSearchTerm}
+                    onChange={(e) => setPaymentSearchTerm(e.target.value)}
+                    className="max-w-sm"
+                  />
+                </div>
+                <Select
+                  value={selectedPeriod}
+                  onValueChange={(value: any) => setSelectedPeriod(value)}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="weekly">Semaine</SelectItem>
+                    <SelectItem value="monthly">Mois</SelectItem>
+                    <SelectItem value="quarterly">Trimestre</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Créateur</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>IBAN</TableHead>
+                    <TableHead>BIC</TableHead>
+                    <TableHead>Titulaire</TableHead>
+                    <TableHead>Fréquence</TableHead>
+                    <TableHead className="text-right">Revenu</TableHead>
+                    <TableHead className="text-right">Abonnés</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPayments.map((payment) => {
+                    const revenue = selectedPeriod === 'weekly' 
+                      ? payment.weekly_revenue 
+                      : selectedPeriod === 'monthly'
+                      ? payment.monthly_revenue
+                      : payment.quarterly_revenue;
+
+                    return (
+                      <TableRow key={payment.id}>
+                        <TableCell className="font-medium">
+                          {payment.stage_name || 'Sans nom'}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {payment.email}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {payment.bank_iban || '-'}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {payment.bank_bic || '-'}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {payment.bank_account_holder || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={
+                            payment.payment_frequency === 'weekly' ? 'default' :
+                            payment.payment_frequency === 'monthly' ? 'secondary' : 'outline'
+                          }>
+                            {payment.payment_frequency === 'weekly' ? 'Hebdo' :
+                             payment.payment_frequency === 'monthly' ? 'Mensuel' : 'Trimestriel'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-bold">
+                          {new Intl.NumberFormat('fr-FR', {
+                            style: 'currency',
+                            currency: payment.currency || 'EUR'
+                          }).format(revenue)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {payment.total_subscribers}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {filteredPayments.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                        Aucun créateur avec IBAN enregistré
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+
+              {/* Statistiques totales */}
+              <div className="mt-6 grid grid-cols-3 gap-4">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold">
+                        {new Intl.NumberFormat('fr-FR', {
+                          style: 'currency',
+                          currency: 'EUR'
+                        }).format(
+                          filteredPayments.reduce((sum, p) => 
+                            sum + (selectedPeriod === 'weekly' ? p.weekly_revenue :
+                                   selectedPeriod === 'monthly' ? p.monthly_revenue : 
+                                   p.quarterly_revenue), 0
+                          )
+                        )}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Total à verser ({selectedPeriod === 'weekly' ? 'semaine' : 
+                                        selectedPeriod === 'monthly' ? 'mois' : 'trimestre'})
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold">
+                        {filteredPayments.length}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Créateurs à payer
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold">
+                        {filteredPayments.reduce((sum, p) => sum + p.total_subscribers, 0)}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Abonnés totaux
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Onglet Logs de connexion */}
         <TabsContent value="logs" className="space-y-4">
           <Card>
@@ -431,11 +728,6 @@ const AdminDashboard = () => {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        {/* Onglet Paiements créateurs */}
-        <TabsContent value="payments">
-          <CreatorPayments />
         </TabsContent>
       </Tabs>
     </div>

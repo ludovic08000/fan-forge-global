@@ -92,7 +92,7 @@ const CreatorSettings: React.FC = () => {
             bankBic: data.bank_bic || '',
             bankCountry: data.bank_country || 'FR',
             taxId: data.tax_id || '',
-            paymentFrequency: data.payment_frequency || 'monthly'
+            paymentFrequency: (data as any).payment_frequency || 'monthly'
           });
         }
       } catch (error: any) {
