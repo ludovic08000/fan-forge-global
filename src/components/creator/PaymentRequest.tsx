@@ -57,12 +57,19 @@ const PaymentRequest: React.FC = () => {
       if (error) throw error;
       setCreatorInfo(creator);
 
-      // Vérifier le statut Stripe Connect
+      // Vérifier le statut Stripe Connect (maintenant mis à jour par check-stripe-connect-status)
       setStripeConnected(
         creator.stripe_account_id && 
         creator.stripe_onboarding_completed && 
         creator.stripe_payouts_enabled
       );
+
+      console.log('✅ Creator info loaded:', {
+        stripe_account_id: creator.stripe_account_id,
+        stripe_onboarding_completed: creator.stripe_onboarding_completed,
+        stripe_payouts_enabled: creator.stripe_payouts_enabled,
+        stripeConnected: creator.stripe_account_id && creator.stripe_onboarding_completed && creator.stripe_payouts_enabled
+      });
 
       // Calculer le revenu disponible
       const now = new Date();
@@ -85,6 +92,7 @@ const PaymentRequest: React.FC = () => {
 
       if (revenue && revenue.length > 0) {
         setRevenueBreakdown(revenue[0]);
+        console.log('💰 Revenue breakdown:', revenue[0]);
       }
     } catch (error) {
       console.error('Erreur chargement créateur:', error);
@@ -130,10 +138,15 @@ const PaymentRequest: React.FC = () => {
 
     setLoading(true);
     try {
+      console.log('🚀 Requesting payment...');
       const { data, error } = await supabase.functions.invoke('request-creator-payment');
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Payment request error:', error);
+        throw error;
+      }
 
+      console.log('✅ Payment request success:', data);
       toast.success(data.message);
       loadPaymentRequests();
       loadCreatorInfo();
