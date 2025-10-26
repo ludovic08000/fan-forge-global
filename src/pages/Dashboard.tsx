@@ -45,6 +45,12 @@ const Dashboard = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [shareLink, setShareLink] = useState('');
   const [copied, setCopied] = useState(false);
+  const [stripeStatus, setStripeStatus] = useState<{
+    connected: boolean;
+    active: boolean;
+    charges_enabled: boolean;
+    payouts_enabled: boolean;
+  } | null>(null);
 
   const handleDeleteContent = async (contentId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce contenu ?')) return;
@@ -112,13 +118,22 @@ const Dashboard = () => {
         // Récupérer les stats du créateur (si une ligne existe)
         const { data: creatorData } = await supabase
           .from('creators')
-          .select('total_earnings, total_subscribers, total_content, featured_until')
+          .select('total_earnings, total_subscribers, total_content, featured_until, stripe_account_status, stripe_charges_enabled, stripe_payouts_enabled')
           .eq('user_id', user.id)
           .maybeSingle();
 
         if (creatorData) {
           setIsCreatorLocal(true);
           setCreatorProfile(creatorData);
+          
+          // Mettre à jour le statut Stripe
+          setStripeStatus({
+            connected: creatorData.stripe_account_status === 'active',
+            active: creatorData.stripe_account_status === 'active',
+            charges_enabled: creatorData.stripe_charges_enabled || false,
+            payouts_enabled: creatorData.stripe_payouts_enabled || false,
+          });
+          
           // Calculer les vues et likes totaux
           const totalViews = myContent?.reduce((sum, content) => sum + content.view_count, 0) || 0;
           const totalLikes = myContent?.reduce((sum, content) => sum + content.like_count, 0) || 0;
@@ -263,7 +278,60 @@ const Dashboard = () => {
 
         {/* Creator Stats */}
         {isCreator && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <>
+            {/* Statut Stripe Connect */}
+            {stripeStatus && (
+              <Card className={`mb-4 ${
+                stripeStatus.active && stripeStatus.charges_enabled && stripeStatus.payouts_enabled
+                  ? 'border-green-500/50 bg-green-500/5'
+                  : 'border-orange-500/50 bg-orange-500/5'
+              }`}>
+                <CardContent className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3">
+                    {stripeStatus.active && stripeStatus.charges_enabled && stripeStatus.payouts_enabled ? (
+                      <>
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-500/20">
+                          <Banknote className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-green-600">✅ Stripe Connect actif</p>
+                          <p className="text-xs text-muted-foreground">Vous pouvez recevoir des paiements</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-500/20">
+                          <Banknote className="h-5 w-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-orange-600">⚠️ Stripe Connect inactif</p>
+                          <p className="text-xs text-muted-foreground">
+                            {!stripeStatus.connected 
+                              ? "Connectez votre compte pour recevoir des paiements"
+                              : "Complétez la configuration dans l'onglet Paramètres"}
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      // Scroll vers l'onglet paramètres
+                      const settingsTab = document.querySelector('[value="settings"]');
+                      if (settingsTab) {
+                        (settingsTab as HTMLElement).click();
+                      }
+                    }}
+                  >
+                    Configurer
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <Card>
               <CardContent className="flex items-center p-6">
                 <Euro className="h-8 w-8 text-green-500 mr-3" />
@@ -309,6 +377,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </div>
+        </>
         )}
 
         {/* Upload Component */}
