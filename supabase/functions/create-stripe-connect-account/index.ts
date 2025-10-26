@@ -45,6 +45,14 @@ serve(async (req) => {
         apiVersion: "2025-08-27.basil",
       });
 
+      // S'assurer que les capacités nécessaires sont bien demandées
+      await stripe.accounts.update(creator.stripe_account_id, {
+        capabilities: {
+          transfers: { requested: true },
+          card_payments: { requested: true },
+        },
+      });
+
       const accountLink = await stripe.accountLinks.create({
         account: creator.stripe_account_id,
         refresh_url: `${req.headers.get("origin")}/dashboard`,

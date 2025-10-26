@@ -84,6 +84,9 @@ serve(async (req) => {
         charges_enabled: account.charges_enabled,
         payouts_enabled: account.payouts_enabled,
         details_submitted: account.details_submitted,
+        requirements_due: account.requirements?.currently_due || [],
+        requirements_past_due: account.requirements?.past_due || [],
+        disabled_reason: (account as any).disabled_reason || account.requirements?.disabled_reason || null,
         message: account.details_submitted
           ? "Compte Stripe Connect actif"
           : "Onboarding Stripe en cours",

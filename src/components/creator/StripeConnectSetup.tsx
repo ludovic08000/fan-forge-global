@@ -13,6 +13,9 @@ interface StripeConnectStatus {
   charges_enabled?: boolean;
   payouts_enabled?: boolean;
   details_submitted?: boolean;
+  requirements_due?: string[];
+  requirements_past_due?: string[];
+  disabled_reason?: string | null;
 }
 
 const StripeConnectSetup: React.FC = () => {
@@ -109,10 +112,23 @@ const StripeConnectSetup: React.FC = () => {
             </div>
 
             {status?.connected && status.status === 'pending' && (
-              <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+              <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg space-y-2">
                 <p className="text-sm text-yellow-600 dark:text-yellow-400">
                   ⚠️ Votre compte Stripe est en cours de configuration. Complétez l'onboarding pour activer les paiements.
                 </p>
+                {status?.requirements_due && status.requirements_due.length > 0 && (
+                  <div className="text-sm">
+                    <p className="font-medium mb-1">Éléments à compléter :</p>
+                    <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                      {status.requirements_due.map((item, i) => (
+                        <li key={i}>{item.replace(/_/g, ' ')}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {status?.disabled_reason && (
+                  <p className="text-xs text-muted-foreground">Raison: {status.disabled_reason.replace(/_/g, ' ')}</p>
+                )}
               </div>
             )}
 
