@@ -140,7 +140,7 @@ const Dashboard = () => {
     loadCreatorStats();
   }, [user, userRole, myContent]);
 
-  // Gérer les redirections après paiement
+  // Gérer les redirections après paiement et Stripe Connect
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     
@@ -159,6 +159,29 @@ const Dashboard = () => {
       toast.error('Achat de boost annulé.');
       // Nettoyer l'URL
       window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // Gérer le retour d'onboarding Stripe Connect
+    if (urlParams.get('stripe_connect') === 'success') {
+      toast.success('Retour de Stripe détecté — vérification du statut...');
+      supabase.functions.invoke('check-stripe-connect-status')
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Erreur check-stripe-connect-status:', error);
+            toast.error("Impossible de vérifier le statut Stripe");
+          } else {
+            if (data?.payouts_enabled) {
+              toast.success('Stripe Connect activé — virements disponibles');
+            } else {
+              toast.message?.('Statut mis à jour — finalisez l\'onboarding si besoin');
+            }
+          }
+        })
+        .finally(() => {
+          // Nettoyer l'URL puis recharger pour rafraîchir toutes les vues
+          window.history.replaceState({}, document.title, window.location.pathname);
+          window.location.reload();
+        });
     }
   }, []);
 
