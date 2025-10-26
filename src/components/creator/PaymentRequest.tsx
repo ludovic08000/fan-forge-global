@@ -155,7 +155,11 @@ const PaymentRequest: React.FC = () => {
       }
     } catch (e: any) {
       console.error('Erreur connexion Stripe:', e);
-      toast.error(e.message || "Erreur lors de l'ouverture de Stripe Connect");
+      if (e.message?.includes('permissions')) {
+        toast.error("Configuration Stripe incorrecte - contactez le support");
+      } else {
+        toast.error(e.message || "Erreur lors de l'ouverture de Stripe Connect");
+      }
     }
   };
 
