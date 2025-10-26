@@ -127,8 +127,65 @@ const handleOpenStripeDashboard = async () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Statut global du compte */}
+        {status?.connected && (
+          <div className={`p-4 rounded-lg border ${
+            status.status === 'active' && status.charges_enabled && status.payouts_enabled
+              ? 'bg-green-500/10 border-green-500/20'
+              : 'bg-orange-500/10 border-orange-500/20'
+          }`}>
+            <div className="flex items-start gap-2">
+              {status.status === 'active' && status.charges_enabled && status.payouts_enabled ? (
+                <>
+                  <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-semibold text-sm text-green-600 dark:text-green-400">
+                      ✅ Votre compte Stripe Connect est actif et opérationnel
+                    </h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Vous pouvez recevoir des paiements et les virements sont activés.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-semibold text-sm text-orange-600 dark:text-orange-400">
+                      ⚠️ Votre compte Stripe Connect nécessite une action
+                    </h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {!status.charges_enabled && !status.payouts_enabled 
+                        ? "Les paiements et virements ne sont pas encore activés."
+                        : !status.charges_enabled
+                        ? "Les paiements ne sont pas activés."
+                        : "Les virements ne sont pas activés."
+                      }
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
         {!status?.connected || status.status !== 'active' ? (
           <>
+            {!status?.connected && (
+              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h4 className="font-semibold text-sm text-red-600 dark:text-red-400">
+                      ❌ Compte Stripe Connect non connecté
+                    </h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Vous devez connecter Stripe pour recevoir des paiements.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
               <h4 className="font-medium text-sm mb-2">Pourquoi Stripe Connect ?</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
