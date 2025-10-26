@@ -25,12 +25,32 @@ const CreatorPublicPage = () => {
       if (!username) return;
 
       try {
-        // Chercher le profil par username
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('username', username)
-          .single();
+        // Essayer d'abord de chercher par username
+        let profileData = null;
+        let profileError = null;
+
+        // Vérifier si c'est un UUID (user_id) ou un username
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(username);
+
+        if (isUUID) {
+          // Chercher par user_id
+          const result = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', username)
+            .single();
+          profileData = result.data;
+          profileError = result.error;
+        } else {
+          // Chercher par username
+          const result = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('username', username)
+            .single();
+          profileData = result.data;
+          profileError = result.error;
+        }
 
         if (profileError) throw profileError;
         setProfile(profileData);

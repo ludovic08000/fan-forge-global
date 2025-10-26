@@ -26,7 +26,9 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
   };
 
   const handleViewProfile = () => {
-    navigate(`/creator/${creator.user_id}`);
+    // Utiliser le username si disponible, sinon fallback sur user_id
+    const identifier = creator.username || creator.user_id;
+    navigate(`/creator/${identifier}`);
   };
 
   if (compact) {
