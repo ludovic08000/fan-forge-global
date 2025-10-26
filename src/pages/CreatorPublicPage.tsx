@@ -4,11 +4,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Heart, Eye, Lock, Crown, Share2, CheckCircle2 } from 'lucide-react';
+import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, X } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
+import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
 
 const CreatorPublicPage = () => {
   const { username } = useParams<{ username: string }>();
@@ -20,7 +22,7 @@ const CreatorPublicPage = () => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
 
   useEffect(() => {
     const loadCreator = async () => {
@@ -136,39 +138,8 @@ const CreatorPublicPage = () => {
         toast.error('Erreur lors de l\'abonnement : ' + error.message);
       }
     } else {
-      // Abonnement payant - ouvrir un onglet instantanément puis rediriger quand l'URL Stripe est prête
-      setRedirecting(true);
-      const newTab = window.open('', '_blank');
-      if (newTab) {
-        newTab.document.title = 'Redirection vers Stripe...';
-        try { newTab.document.body.innerHTML = '<p style="font-family:sans-serif">Redirection vers Stripe...</p>'; } catch {}
-      }
-      try {
-        const { data, error } = await supabase.functions.invoke('create-creator-checkout', {
-          body: { creatorId: creator.id },
-          headers: {
-            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          },
-        });
-
-        if (error) throw error;
-
-        if (data?.url) {
-          if (newTab) {
-            newTab.location.href = data.url;
-          } else {
-            window.open(data.url, '_blank');
-          }
-        } else {
-          throw new Error('URL Stripe manquante');
-        }
-      } catch (error: any) {
-        console.error('Checkout error:', error);
-        if (newTab) newTab.close();
-        toast.error('Erreur lors de la création du checkout : ' + (error.message || 'inconnue'));
-      } finally {
-        setRedirecting(false);
-      }
+      // Abonnement payant - ouvrir le checkout embedded
+      setShowCheckout(true);
     }
   };
 
@@ -272,9 +243,9 @@ const CreatorPublicPage = () => {
                       Abonné
                     </Badge>
                   ) : (
-                    <Button size="lg" variant="premium" onClick={handleSubscribe} disabled={redirecting}>
+                    <Button size="lg" variant="premium" onClick={handleSubscribe}>
                       <Crown className="h-4 w-4 mr-2" />
-                      {redirecting ? 'Redirection...' : (creator.subscription_price > 0 ? `S\'abonner - ${creator.subscription_price}€/mois` : "S'abonner gratuitement")}
+                      {creator.subscription_price > 0 ? `S'abonner - ${creator.subscription_price}€/mois` : "S'abonner gratuitement"}
                     </Button>
                   )
                 ) : (
@@ -377,9 +348,9 @@ const CreatorPublicPage = () => {
                 <p className="text-muted-foreground mb-4">
                   Abonnez-vous pour débloquer {premiumContent.length} contenus premium
                 </p>
-                <Button size="lg" variant="premium" onClick={handleSubscribe} disabled={redirecting}>
+                <Button size="lg" variant="premium" onClick={handleSubscribe}>
                   <Crown className="h-4 w-4 mr-2" />
-                  {redirecting ? 'Redirection...' : `S\'abonner maintenant - ${creator.subscription_price}€/mois`}
+                  S'abonner maintenant - {creator.subscription_price}€/mois
                 </Button>
               </div>
             )}
@@ -394,6 +365,21 @@ const CreatorPublicPage = () => {
           </Card>
         )}
       </div>
+
+      {/* Checkout Embedded Dialog */}
+      <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Abonnement à {creator?.stage_name || 'ce créateur'}</span>
+              <Button variant="ghost" size="icon" onClick={() => setShowCheckout(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          {creator && <EmbeddedCheckout creatorId={creator.id} onClose={() => setShowCheckout(false)} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

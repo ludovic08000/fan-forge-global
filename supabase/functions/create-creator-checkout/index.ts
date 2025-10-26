@@ -142,7 +142,7 @@ serve(async (req) => {
       logStep("Using existing price ID", { priceId });
     }
 
-    // Créer la session de checkout
+    // Créer la session de checkout en mode embedded
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [
@@ -152,17 +152,17 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/dashboard?success=true`,
-      cancel_url: `${req.headers.get("origin")}/creator/${creatorId}?canceled=true`,
+      ui_mode: "embedded",
+      return_url: `${req.headers.get("origin")}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
         creator_id: creatorId,
         user_id: user.id,
       },
     });
 
-    logStep("Checkout session created", { sessionId: session.id, url: session.url });
+    logStep("Embedded checkout session created", { sessionId: session.id, clientSecret: session.client_secret });
 
-    return new Response(JSON.stringify({ url: session.url }), {
+    return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
