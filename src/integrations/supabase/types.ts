@@ -689,6 +689,75 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_commissions: {
+        Row: {
+          commission_amount: number
+          commission_rate: number
+          created_at: string | null
+          creator_id: string
+          creator_payout: number
+          currency: string
+          id: string
+          live_revenue: number
+          payment_request_id: string | null
+          period_end: string
+          period_start: string
+          private_content_revenue: number
+          subscription_revenue: number
+          tips_revenue: number
+          total_revenue: number
+        }
+        Insert: {
+          commission_amount: number
+          commission_rate?: number
+          created_at?: string | null
+          creator_id: string
+          creator_payout: number
+          currency?: string
+          id?: string
+          live_revenue?: number
+          payment_request_id?: string | null
+          period_end: string
+          period_start: string
+          private_content_revenue?: number
+          subscription_revenue?: number
+          tips_revenue?: number
+          total_revenue: number
+        }
+        Update: {
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string | null
+          creator_id?: string
+          creator_payout?: number
+          currency?: string
+          id?: string
+          live_revenue?: number
+          payment_request_id?: string | null
+          period_end?: string
+          period_start?: string
+          private_content_revenue?: number
+          subscription_revenue?: number
+          tips_revenue?: number
+          total_revenue?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_commissions_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_commissions_payment_request_id_fkey"
+            columns: ["payment_request_id"]
+            isOneToOne: false
+            referencedRelation: "creator_payment_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       private_content_payments: {
         Row: {
           amount: number
@@ -1097,6 +1166,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_creator_revenue_with_commission: {
+        Args: { creator_uuid: string; end_date?: string; start_date?: string }
+        Returns: {
+          commission_amount: number
+          live_revenue: number
+          private_content_revenue: number
+          subscription_revenue: number
+          tips_revenue: number
+          total_after_commission: number
+          total_before_commission: number
+        }[]
+      }
       calculate_creator_total_revenue: {
         Args: { creator_uuid: string; end_date?: string; start_date?: string }
         Returns: number

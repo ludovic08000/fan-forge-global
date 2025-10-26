@@ -19,11 +19,21 @@ interface PaymentRequest {
   error_message: string | null;
 }
 
+interface RevenueBreakdown {
+  subscription_revenue: number;
+  tips_revenue: number;
+  live_revenue: number;
+  private_content_revenue: number;
+  total_before_commission: number;
+  commission_amount: number;
+  total_after_commission: number;
+}
+
 const PaymentRequest: React.FC = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
-  const [availableRevenue, setAvailableRevenue] = useState(0);
+  const [revenueBreakdown, setRevenueBreakdown] = useState<RevenueBreakdown | null>(null);
   const [creatorInfo, setCreatorInfo] = useState<any>(null);
 
   useEffect(() => {
@@ -59,13 +69,15 @@ const PaymentRequest: React.FC = () => {
         periodStart = new Date(now.getFullYear(), quarter * 3, 1);
       }
 
-      const { data: revenue } = await supabase.rpc('calculate_creator_total_revenue', {
+      const { data: revenue } = await supabase.rpc('calculate_creator_revenue_with_commission', {
         creator_uuid: creator.id,
         start_date: periodStart.toISOString(),
         end_date: now.toISOString(),
       });
 
-      setAvailableRevenue(revenue || 0);
+      if (revenue && revenue.length > 0) {
+        setRevenueBreakdown(revenue[0]);
+      }
     } catch (error) {
       console.error('Erreur chargement créateur:', error);
     }
@@ -171,26 +183,73 @@ const PaymentRequest: React.FC = () => {
         <CardContent className="space-y-4">
           {creatorInfo && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
-                <div>
-                  <p className="text-sm text-muted-foreground">Revenu disponible</p>
-                  <p className="text-2xl font-bold">
-                    {new Intl.NumberFormat('fr-FR', {
-                      style: 'currency',
-                      currency: creatorInfo.currency || 'EUR',
-                    }).format(availableRevenue)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Fréquence de paiement: {getFrequencyLabel(creatorInfo.payment_frequency)}
-                  </p>
+              <div className="space-y-4">
+                {/* Revenu net disponible */}
+                <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground">Revenu net disponible</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {new Intl.NumberFormat('fr-FR', {
+                        style: 'currency',
+                        currency: creatorInfo.currency || 'EUR',
+                      }).format(revenueBreakdown?.total_after_commission || 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Fréquence de paiement: {getFrequencyLabel(creatorInfo.payment_frequency)}
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleRequestPayment}
+                    disabled={loading || !revenueBreakdown || revenueBreakdown.total_after_commission <= 0}
+                    size="lg"
+                  >
+                    {loading ? 'Traitement...' : 'Demander le paiement'}
+                  </Button>
                 </div>
-                <Button
-                  onClick={handleRequestPayment}
-                  disabled={loading || availableRevenue <= 0}
-                  size="lg"
-                >
-                  {loading ? 'Traitement...' : 'Demander le paiement'}
-                </Button>
+
+                {/* Détail des revenus */}
+                {revenueBreakdown && (
+                  <div className="p-4 border rounded-lg space-y-2 bg-card">
+                    <h4 className="font-medium text-sm mb-3">Détail des revenus</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Abonnements</span>
+                        <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: creatorInfo.currency }).format(revenueBreakdown.subscription_revenue)}</span>
+                      </div>
+                      <div className="flex justify-between text-green-600">
+                        <span>Pourboires (sans commission)</span>
+                        <span className="font-medium">{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: creatorInfo.currency }).format(revenueBreakdown.tips_revenue)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Lives</span>
+                        <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: creatorInfo.currency }).format(revenueBreakdown.live_revenue)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Contenu privé</span>
+                        <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: creatorInfo.currency }).format(revenueBreakdown.private_content_revenue)}</span>
+                      </div>
+                      <div className="border-t pt-2 mt-2">
+                        <div className="flex justify-between font-medium">
+                          <span>Total brut</span>
+                          <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: creatorInfo.currency }).format(revenueBreakdown.total_before_commission)}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-red-600">
+                        <span>Commission plateforme (15%)</span>
+                        <span>-{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: creatorInfo.currency }).format(revenueBreakdown.commission_amount)}</span>
+                      </div>
+                      <div className="border-t pt-2 mt-2">
+                        <div className="flex justify-between font-bold text-lg text-green-600">
+                          <span>Vous recevrez</span>
+                          <span>{new Intl.NumberFormat('fr-FR', { style: 'currency', currency: creatorInfo.currency }).format(revenueBreakdown.total_after_commission)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3 pt-3 border-t">
+                      💡 Les pourboires sont versés à 100% (sans commission)
+                    </p>
+                  </div>
+                )}
               </div>
 
               {(!creatorInfo.bank_iban || !creatorInfo.bank_bic) && (

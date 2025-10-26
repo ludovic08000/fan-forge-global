@@ -57,19 +57,20 @@ serve(async (req) => {
       periodStart = new Date(now.getFullYear(), quarter * 3, 1);
     }
 
-    // Calculer le montant dû
+    // Calculer le montant dû avec commission
     const { data: revenueData, error: revenueError } = await supabaseClient
-      .rpc("calculate_creator_total_revenue", {
+      .rpc("calculate_creator_revenue_with_commission", {
         creator_uuid: creator.id,
         start_date: periodStart.toISOString(),
         end_date: periodEnd.toISOString(),
       });
 
-    if (revenueError) {
+    if (revenueError || !revenueData || revenueData.length === 0) {
       throw new Error("Erreur lors du calcul des revenus");
     }
 
-    const amount = revenueData || 0;
+    const revenueBreakdown = revenueData[0];
+    const amount = revenueBreakdown.total_after_commission;
 
     // Vérifier qu'il y a un montant à payer
     if (amount <= 0) {

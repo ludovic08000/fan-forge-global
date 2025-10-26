@@ -37,6 +37,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentRequestsManager from '@/components/admin/PaymentRequestsManager';
+import PlatformCommissions from '@/components/admin/PlatformCommissions';
 
 interface ContentReport {
   id: string;
@@ -397,6 +398,7 @@ const AdminDashboard = () => {
           <TabsTrigger value="reports">Signalements</TabsTrigger>
           <TabsTrigger value="logs">Logs de connexion</TabsTrigger>
           <TabsTrigger value="payment-requests">Demandes de paiement</TabsTrigger>
+          <TabsTrigger value="commissions">Commissions</TabsTrigger>
           <TabsTrigger value="payments">Paiements créateurs</TabsTrigger>
         </TabsList>
 
@@ -513,6 +515,11 @@ const AdminDashboard = () => {
         {/* Onglet Demandes de Paiement */}
         <TabsContent value="payment-requests" className="space-y-4">
           <PaymentRequestsManager />
+        </TabsContent>
+
+        {/* Onglet Commissions */}
+        <TabsContent value="commissions" className="space-y-4">
+          <PlatformCommissions />
         </TabsContent>
 
         {/* Onglet Paiements Créateurs */}

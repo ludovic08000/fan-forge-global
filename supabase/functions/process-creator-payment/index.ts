@@ -44,18 +44,20 @@ serve(async (req) => {
       throw new Error("ID de demande de paiement requis");
     }
 
-    // Récupérer la demande de paiement
+    // Récupérer la demande de paiement avec les revenus détaillés
     const { data: paymentRequest, error: requestError } = await supabaseClient
       .from("creator_payment_requests")
       .select(`
         *,
         creators:creator_id (
+          id,
           bank_iban,
           bank_bic,
           bank_account_holder,
           bank_country,
           stage_name,
-          user_id
+          user_id,
+          platform_commission_rate
         )
       `)
       .eq("id", requestId)
@@ -116,6 +118,37 @@ serve(async (req) => {
         period_end: paymentRequest.period_end,
       },
     });
+
+    // Calculer les revenus détaillés pour enregistrer la commission
+    const { data: revenueData } = await supabaseClient
+      .rpc("calculate_creator_revenue_with_commission", {
+        creator_uuid: paymentRequest.creator_id,
+        start_date: paymentRequest.period_start,
+        end_date: paymentRequest.period_end,
+      });
+
+    const revenueBreakdown = revenueData?.[0];
+
+    // Enregistrer la commission dans l'historique
+    if (revenueBreakdown) {
+      await supabaseClient
+        .from("platform_commissions")
+        .insert({
+          creator_id: paymentRequest.creator_id,
+          payment_request_id: requestId,
+          period_start: paymentRequest.period_start,
+          period_end: paymentRequest.period_end,
+          subscription_revenue: revenueBreakdown.subscription_revenue,
+          tips_revenue: revenueBreakdown.tips_revenue,
+          live_revenue: revenueBreakdown.live_revenue,
+          private_content_revenue: revenueBreakdown.private_content_revenue,
+          total_revenue: revenueBreakdown.total_before_commission,
+          commission_rate: paymentRequest.creators.platform_commission_rate || 0.15,
+          commission_amount: revenueBreakdown.commission_amount,
+          creator_payout: revenueBreakdown.total_after_commission,
+          currency: paymentRequest.currency,
+        });
+    }
 
     // Mettre à jour la demande de paiement
     await supabaseClient
