@@ -38,6 +38,8 @@ const Auth = () => {
     gender: ''
   });
 
+  const [signUpErrors, setSignUpErrors] = useState<{ email?: string }>({});
+
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
@@ -79,6 +81,7 @@ const Auth = () => {
     if (!isAllowed) return;
 
     setIsLoading(true);
+    setSignUpErrors({});
 
     try {
       const validatedData = signUpSchema.parse(signUpForm);
@@ -104,6 +107,11 @@ const Auth = () => {
           birthdate: '',
           gender: ''
         });
+      } else {
+        const msg = (error?.message || '').toLowerCase();
+        if (msg.includes('already') || msg.includes('registered')) {
+          setSignUpErrors({ email: 'Cet email est déjà utilisé. Connectez-vous ou utilisez un autre email.' });
+        }
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -357,12 +365,16 @@ const Auth = () => {
                         id="signup-email"
                         type="email"
                         placeholder="votre@email.com"
-                        className="pl-10"
+                        className={`pl-10 ${signUpErrors.email ? 'border-destructive' : ''}`}
+                        aria-invalid={!!signUpErrors.email}
                         required
                         value={signUpForm.email}
                         onChange={(e) => setSignUpForm({ ...signUpForm, email: e.target.value })}
                       />
                     </div>
+                    {signUpErrors.email && (
+                      <p className="text-sm text-destructive">{signUpErrors.email}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Mot de passe</Label>
