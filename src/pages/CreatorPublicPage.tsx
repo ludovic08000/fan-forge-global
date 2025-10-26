@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -12,6 +12,7 @@ import { OptimizedImage } from '@/components/ui/optimized-image';
 
 const CreatorPublicPage = () => {
   const { username } = useParams<{ username: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [creator, setCreator] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -97,6 +98,63 @@ const CreatorPublicPage = () => {
 
     loadCreator();
   }, [username, user]);
+
+  const handleSubscribe = async () => {
+    if (!user) {
+      toast.info('Connectez-vous pour vous abonner');
+      navigate('/auth');
+      return;
+    }
+
+    if (!creator) return;
+
+    if (creator.subscription_price <= 0) {
+      // Abonnement gratuit
+      try {
+        const { error } = await supabase
+          .from('subscriptions')
+          .insert({
+            subscriber_id: user.id,
+            creator_id: creator.id,
+            price: 0,
+            currency: creator.currency
+          });
+
+        if (error) {
+          if (error.code === '23505') {
+            toast.error('Vous êtes déjà abonné à ce créateur');
+          } else {
+            throw error;
+          }
+          return;
+        }
+
+        setIsSubscribed(true);
+        toast.success('Abonnement gratuit créé avec succès !');
+      } catch (error: any) {
+        toast.error('Erreur lors de l\'abonnement : ' + error.message);
+      }
+    } else {
+      // Abonnement payant - rediriger vers Stripe
+      try {
+        const { data, error } = await supabase.functions.invoke('create-creator-checkout', {
+          body: { creatorId: creator.id },
+          headers: {
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+        });
+
+        if (error) throw error;
+
+        if (data.url) {
+          window.open(data.url, '_blank');
+        }
+      } catch (error: any) {
+        console.error('Checkout error:', error);
+        toast.error('Erreur lors de la création du checkout : ' + error.message);
+      }
+    }
+  };
 
   const handleShare = () => {
     const url = window.location.href;
@@ -198,9 +256,9 @@ const CreatorPublicPage = () => {
                       Abonné
                     </Badge>
                   ) : (
-                    <Button size="lg" variant="premium">
+                    <Button size="lg" variant="premium" onClick={handleSubscribe}>
                       <Crown className="h-4 w-4 mr-2" />
-                      S'abonner - {creator.subscription_price}€/mois
+                      {creator.subscription_price > 0 ? `S'abonner - ${creator.subscription_price}€/mois` : "S'abonner gratuitement"}
                     </Button>
                   )
                 ) : (
