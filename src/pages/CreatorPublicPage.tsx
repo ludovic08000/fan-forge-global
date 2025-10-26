@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, X } from 'lucide-react';
+import { Heart, Eye, Lock, Crown, Share2, CheckCircle2 } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
 
@@ -396,11 +396,8 @@ const CreatorPublicPage = () => {
       <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>Abonnement à {creator?.stage_name || 'ce créateur'}</span>
-              <Button variant="ghost" size="icon" onClick={() => setShowCheckout(false)}>
-                <X className="h-4 w-4" />
-              </Button>
+            <DialogTitle>
+              Abonnement à {creator?.stage_name || 'ce créateur'}
             </DialogTitle>
           </DialogHeader>
           {creator && <EmbeddedCheckout creatorId={creator.id} onClose={() => setShowCheckout(false)} preloadedSecret={preloadedSecret} />}
