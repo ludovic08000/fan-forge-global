@@ -64,6 +64,9 @@ serve(async (req) => {
       charges_enabled: account.charges_enabled,
       payouts_enabled: account.payouts_enabled,
       details_submitted: account.details_submitted,
+      currently_due: account.requirements?.currently_due || [],
+      past_due: account.requirements?.past_due || [],
+      disabled_reason: (account as any).disabled_reason || account.requirements?.disabled_reason || null,
     });
 
     // Mettre à jour le statut dans la base de données

@@ -276,6 +276,49 @@ const handleOpenStripeDashboard = async () => {
               </div>
             </div>
 
+            {/* Afficher les requirements même si le compte est actif */}
+            {(!status.payouts_enabled || !status.charges_enabled) && (
+              <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg space-y-2">
+                <p className="text-sm font-medium text-orange-600 dark:text-orange-400">
+                  ⚠️ Actions requises pour activer les virements
+                </p>
+                {status?.requirements_due && status.requirements_due.length > 0 && (
+                  <div className="text-sm">
+                    <p className="font-medium mb-1">Éléments à compléter :</p>
+                    <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                      {status.requirements_due.map((item, i) => (
+                        <li key={i}>{item.replace(/_/g, ' ')}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {status?.requirements_past_due && status.requirements_past_due.length > 0 && (
+                  <div className="text-sm">
+                    <p className="font-medium mb-1 text-red-600 dark:text-red-400">Éléments en retard :</p>
+                    <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                      {status.requirements_past_due.map((item, i) => (
+                        <li key={i}>{item.replace(/_/g, ' ')}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {status?.disabled_reason && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Raison: {status.disabled_reason.replace(/_/g, ' ')}
+                  </p>
+                )}
+                <Button
+                  onClick={handleConnectStripe}
+                  variant="outline"
+                  className="w-full mt-2"
+                  size="sm"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Compléter les informations
+                </Button>
+              </div>
+            )}
+
 <div className="space-y-2">
   <Button
     onClick={handleOpenStripeDashboard}
