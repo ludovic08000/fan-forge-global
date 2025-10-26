@@ -16,13 +16,15 @@ interface ContentCardProps {
   onLike?: (contentId: string) => void;
   isLiked?: boolean;
   showCreatorInfo?: boolean;
+  onOpenFreeImage?: (content: Content) => void;
 }
 
 const ContentCard: React.FC<ContentCardProps> = ({ 
   content, 
   onLike, 
   isLiked = false,
-  showCreatorInfo = true 
+  showCreatorInfo = true,
+  onOpenFreeImage,
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -41,7 +43,13 @@ const ContentCard: React.FC<ContentCardProps> = ({
       return;
     }
 
-    // Contenu gratuit - ouvrir en modal ou page dédiée
+    // Contenu gratuit
+    if (content.content_type !== 'video' && onOpenFreeImage) {
+      onOpenFreeImage(content);
+      return;
+    }
+
+    // Fallback navigation (ex: page dédiée)
     navigate(`/content/${content.id}`);
   };
 

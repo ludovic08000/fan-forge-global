@@ -6,6 +6,7 @@ import { Search, Filter, Grid, List } from 'lucide-react';
 import ContentCard from './ContentCard';
 import { useContent } from '@/hooks/useContent';
 import { useAuth } from '@/contexts/AuthContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const ContentGallery: React.FC = () => {
   const { contents, isLoading, likeMutation } = useContent();
@@ -13,6 +14,7 @@ const ContentGallery: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filter, setFilter] = useState<'all' | 'free' | 'premium'>('all');
+  const [selected, setSelected] = useState<any>(null);
 
   const handleLike = (contentId: string) => {
     likeMutation.mutate(contentId);
@@ -112,6 +114,7 @@ const ContentGallery: React.FC = () => {
               onLike={handleLike}
               isLiked={false} // TODO: Implémenter la logique de vérification des likes
               showCreatorInfo={true}
+              onOpenFreeImage={(c) => setSelected(c)}
             />
           ))}
         </div>
@@ -125,6 +128,30 @@ const ContentGallery: React.FC = () => {
           </Button>
         </div>
       )}
+
+      {/* Lightbox pour contenu gratuit (images) */}
+      <Dialog open={!!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}>
+        <DialogContent className="z-[1000] max-w-7xl max-h-[95vh] p-0 overflow-hidden bg-black/95" aria-describedby="gallery-image-description">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{selected?.title || 'Image'}</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <div className="relative w-full h-full flex items-center justify-center p-4">
+              <img
+                src={selected.file_url || selected.thumbnail_url}
+                alt={selected.title}
+                className="max-w-full max-h-[90vh] object-contain"
+              />
+              <div id="gallery-image-description" className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">
+                <h3 className="text-white text-xl font-bold mb-2">{selected.title}</h3>
+                {selected.description && (
+                  <p className="text-white/80 text-sm mb-3">{selected.description}</p>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
