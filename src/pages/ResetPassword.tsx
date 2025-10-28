@@ -26,15 +26,31 @@ const ResetPassword = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Vérifier si nous avons un token de réinitialisation
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const type = hashParams.get('type');
+    // Attendre un court instant pour que le hash soit disponible
+    const timer = setTimeout(() => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const type = hashParams.get('type');
 
-    if (!accessToken || type !== 'recovery') {
-      toast.error('Lien de réinitialisation invalide ou expiré');
-      navigate('/auth');
-    }
+      // Si pas de token de récupération, rediriger vers auth
+      if (!accessToken || type !== 'recovery') {
+        // Seulement rediriger si on est sûr qu'il n'y a pas de hash à venir
+        if (window.location.hash && !accessToken) {
+          toast.error('Lien de réinitialisation invalide ou expiré');
+          navigate('/auth');
+        } else if (!window.location.hash) {
+          // Pas de hash du tout, attendre un peu plus
+          setTimeout(() => {
+            if (!window.location.hash) {
+              toast.error('Lien de réinitialisation invalide ou expiré');
+              navigate('/auth');
+            }
+          }, 1000);
+        }
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {

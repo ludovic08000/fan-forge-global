@@ -150,8 +150,12 @@ const Auth = () => {
 
     try {
       const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Construire l'URL complète de redirection
+      const redirectUrl = `${window.location.origin}/reset-password`;
+      
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: redirectUrl,
       });
 
       if (error) {
