@@ -31,6 +31,7 @@ const LiveStreams = lazy(() => import("./pages/LiveStreams"));
 const WatchLive = lazy(() => import("./pages/WatchLive"));
 const LiveAnalytics = lazy(() => import("./pages/LiveAnalytics"));
 const Install = lazy(() => import("./pages/Install"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 // Composant de chargement pour le Suspense
 const PageLoader = () => (
@@ -74,6 +75,7 @@ const AppRoutes = () => {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/search" element={<Search />} />
           <Route path="/lives" element={<LiveStreams />} />
           <Route path="/live/:streamId" element={<WatchLive />} />
