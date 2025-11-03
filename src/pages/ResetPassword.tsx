@@ -26,31 +26,47 @@ const ResetPassword = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Attendre un court instant pour que le hash soit disponible
-    const timer = setTimeout(() => {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const type = hashParams.get('type');
+    const init = async () => {
+      try {
+        // 1) Gérer le flux "code" (PKCE) -> échange contre une session
+        const searchParams = new URLSearchParams(window.location.search);
+        const code = searchParams.get('code');
 
-      // Si pas de token de récupération, rediriger vers auth
-      if (!accessToken || type !== 'recovery') {
-        // Seulement rediriger si on est sûr qu'il n'y a pas de hash à venir
-        if (window.location.hash && !accessToken) {
-          toast.error('Lien de réinitialisation invalide ou expiré');
-          navigate('/auth');
-        } else if (!window.location.hash) {
-          // Pas de hash du tout, attendre un peu plus
-          setTimeout(() => {
-            if (!window.location.hash) {
-              toast.error('Lien de réinitialisation invalide ou expiré');
-              navigate('/auth');
-            }
-          }, 1000);
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            toast.error("Lien de réinitialisation invalide ou expiré");
+            navigate("/auth");
+            return;
+          }
+          // Nettoyer l'URL (on garde /reset-password sans paramètres)
+          window.history.replaceState({}, document.title, `${window.location.origin}/reset-password`);
+          return; // la session est prête, le formulaire peut être utilisé
         }
-      }
-    }, 100);
 
-    return () => clearTimeout(timer);
+        // 2) Gérer le flux basé sur le hash (#access_token&type=recovery)
+        await new Promise((r) => setTimeout(r, 150)); // petit délai pour laisser le hash se propager
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get("access_token");
+        const type = hashParams.get("type");
+
+        if (accessToken && type === "recovery") {
+          return;
+        }
+
+        // 3) En dernier recours, vérifier si une session existe déjà
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) return;
+
+        toast.error("Lien de réinitialisation invalide ou expiré");
+        navigate("/auth");
+      } catch {
+        toast.error("Une erreur est survenue");
+        navigate("/auth");
+      }
+    };
+
+    void init();
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
