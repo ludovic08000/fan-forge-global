@@ -8,7 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -65,6 +65,20 @@ const queryClient = new QueryClient({
 const AppRoutes = () => {
   // Activer la protection anti-capture globalement
   useContentProtection(true);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const search = location.search || "";
+    const hash = location.hash || "";
+    const hasCode = search.includes("code=");
+    const isRecovery = hash.includes("type=recovery");
+
+    if ((hasCode || isRecovery) && location.pathname !== "/reset-password") {
+      navigate(`/reset-password${search}${hash}`, { replace: true });
+    }
+  }, [location.pathname, location.search, location.hash, navigate]);
   
   return (
     <>
