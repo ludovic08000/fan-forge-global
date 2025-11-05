@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { User, Crown, BarChart3, Heart, Eye, Euro, Settings, Plus, Video, Upload, Trash2, Share2, Copy, Banknote } from 'lucide-react';
+import { User, Crown, BarChart3, Heart, Eye, Euro, Settings, Plus, Video, Upload, Trash2, Share2, Copy, Banknote, Shield } from 'lucide-react';
 import ContentUpload from '@/components/ContentUpload';
 import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
 import CreatorSettings from '@/components/CreatorSettings';
@@ -24,6 +24,7 @@ import { useContent } from '@/hooks/useContent';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/lib/analytics';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * Composant principal du Dashboard
@@ -32,6 +33,7 @@ const Dashboard = () => {
   const { user, userRole, loading } = useAuth();
   const { useMyContent } = useContent();
   const { trackPageView } = useAnalytics();
+  const navigate = useNavigate();
   const { data: myContent, isLoading: contentLoading, refetch } = useMyContent();
   const [showUpload, setShowUpload] = useState(false);
   const [creatorStats, setCreatorStats] = useState({
@@ -271,6 +273,14 @@ const Dashboard = () => {
                 Nouveau contenu
               </Button>
             )}
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={() => navigate('/security')}
+              title="Sécurité"
+            >
+              <Shield className="h-4 w-4" />
+            </Button>
             <Button variant="outline" size="icon">
               <Settings className="h-4 w-4" />
             </Button>
