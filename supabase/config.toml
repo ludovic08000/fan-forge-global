@@ -13,6 +13,9 @@ port = 54322
 shadow_port = 54320
 major_version = 15
 
+[functions.auto-process-creator-payments]
+verify_jwt = false
+
 [functions.check-subscription]
 verify_jwt = true
 
