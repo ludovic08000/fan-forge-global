@@ -79,9 +79,17 @@ serve(async (req) => {
       status: isLimited ? 429 : 200,
     });
   } catch (error) {
-    console.error('Rate limit check error:', error);
+    // Properly serialize error object for logging
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : typeof error === 'object' && error !== null
+        ? JSON.stringify(error, Object.getOwnPropertyNames(error))
+        : String(error);
+    
+    console.error('Rate limit check error:', errorMessage);
+    
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage || 'Unknown error occurred',
       allowed: true // En cas d'erreur, on laisse passer
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
