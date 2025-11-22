@@ -79,21 +79,24 @@ serve(async (req) => {
       status: isLimited ? 429 : 200,
     });
   } catch (error) {
-    // Properly serialize error object for logging
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : typeof error === 'object' && error !== null
+    // Serialize full error for logging and response, but never block the user
+    const errorDetails =
+      typeof error === 'object' && error !== null
         ? JSON.stringify(error, Object.getOwnPropertyNames(error))
         : String(error);
-    
-    console.error('Rate limit check error:', errorMessage);
-    
-    return new Response(JSON.stringify({ 
-      error: errorMessage || 'Unknown error occurred',
-      allowed: true // En cas d'erreur, on laisse passer
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+
+    console.error('Rate limit check error:', errorDetails);
+
+    // Fail open: allow the request even if rate-limit check fails
+    return new Response(
+      JSON.stringify({
+        allowed: true,
+        error: errorDetails || 'Unknown error occurred',
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    );
   }
 });
