@@ -20,6 +20,7 @@ import CreatorAnalyticsDashboard from '@/components/analytics/CreatorAnalyticsDa
 import { LiveStreamStudio } from '@/components/LiveStreamStudio';
 import PaymentRequest from '@/components/creator/PaymentRequest';
 import StripeConnectSetup from '@/components/creator/StripeConnectSetup';
+import SubscriptionPricing from '@/components/creator/SubscriptionPricing';
 import { useContent } from '@/hooks/useContent';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -121,7 +122,7 @@ const Dashboard = () => {
         // Récupérer les stats du créateur (si une ligne existe)
         const { data: creatorData } = await supabase
           .from('creators')
-          .select('total_earnings, total_subscribers, total_content, featured_until, stripe_account_status, stripe_charges_enabled, stripe_payouts_enabled')
+          .select('id, total_earnings, total_subscribers, total_content, featured_until, stripe_account_status, stripe_charges_enabled, stripe_payouts_enabled')
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -509,9 +510,12 @@ const Dashboard = () => {
           {isCreator && (
             <TabsContent value="settings" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Colonne gauche - Boost */}
+                {/* Colonne gauche - Boost & Prix */}
                 <div className="lg:col-span-1 space-y-6">
-                  <CreatorBoost 
+                  {creatorProfile?.id && (
+                    <SubscriptionPricing creatorId={creatorProfile.id} />
+                  )}
+                  <CreatorBoost
                     currentBoostUntil={creatorProfile?.featured_until}
                     onBoostUpdate={() => {
                       // Recharger les données du créateur

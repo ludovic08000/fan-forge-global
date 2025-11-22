@@ -398,7 +398,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signInWithGoogle = async () => {
     try {
       // URL de redirection après authentification OAuth
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/dashboard`;
       
       // Appel à l'API Supabase pour connexion OAuth Google
       const { error } = await supabase.auth.signInWithOAuth({
@@ -426,7 +426,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signInWithFacebook = async () => {
     try {
       // URL de redirection après authentification OAuth
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/dashboard`;
       
       // Appel à l'API Supabase pour connexion OAuth Facebook
       const { error } = await supabase.auth.signInWithOAuth({
