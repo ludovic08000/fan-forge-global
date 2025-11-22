@@ -52,6 +52,9 @@ verify_jwt = false
 [functions.notify-live-start]
 verify_jwt = false
 
+[functions.add-watermark]
+verify_jwt = true
+
 [functions.check-stripe-connect-status]
 verify_jwt = true
 

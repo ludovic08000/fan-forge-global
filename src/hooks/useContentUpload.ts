@@ -25,11 +25,71 @@ export const useContentUpload = () => {
       // Déterminer le type de contenu
       const contentType = data.file.type.startsWith('video/') ? 'video' : 'image';
 
-      // 1. Upload du fichier principal
+      let fileToUpload = data.file;
+
+      // Ajouter un filigrane pour les images
+      if (contentType === 'image') {
+        setProgress(10);
+        
+        // Récupérer le nom du créateur
+        const { data: creatorData } = await supabase
+          .from('creators')
+          .select('stage_name')
+          .eq('id', creatorId)
+          .single();
+
+        const creatorName = creatorData?.stage_name || 'Créateur';
+
+        // Convertir l'image en base64
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => {
+            const base64 = (reader.result as string).split(',')[1];
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(data.file);
+        });
+
+        const imageBase64 = await base64Promise;
+
+        // Appeler l'edge function pour ajouter le filigrane
+        try {
+          const { data: watermarkData, error: watermarkError } = await supabase.functions.invoke('add-watermark', {
+            body: { 
+              imageBase64,
+              creatorName 
+            }
+          });
+
+          if (watermarkError) {
+            console.error('Watermark error:', watermarkError);
+            toast.warning('Le filigrane n\'a pas pu être ajouté, l\'image sera uploadée sans protection.');
+          } else if (watermarkData?.watermarkedImage) {
+            // Convertir le base64 en blob
+            const base64Data = watermarkData.watermarkedImage.split(',')[1];
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: data.file.type });
+            fileToUpload = new File([blob], data.file.name, { type: data.file.type });
+            
+            toast.success('Filigrane ajouté pour protéger votre contenu !');
+          }
+        } catch (watermarkError) {
+          console.error('Watermark processing error:', watermarkError);
+          toast.warning('Le filigrane n\'a pas pu être ajouté, l\'image sera uploadée sans protection.');
+        }
+      }
+
+      // 1. Upload du fichier principal (avec ou sans filigrane)
       setProgress(25);
       const { error: uploadError } = await supabase.storage
         .from('content')
-        .upload(fileName, data.file);
+        .upload(fileName, fileToUpload);
 
       if (uploadError) {
         throw uploadError;
@@ -42,7 +102,7 @@ export const useContentUpload = () => {
       if (contentType === 'image') {
         const { error: thumbError } = await supabase.storage
           .from('thumbnails')
-          .upload(fileName, data.file);
+          .upload(fileName, fileToUpload);
         
         if (!thumbError) {
           const { data: thumbUrlData } = supabase.storage
@@ -73,7 +133,7 @@ export const useContentUpload = () => {
           thumbnail_url: thumbnailUrl || fileUrl,
           is_premium: data.isPremium,
           price: data.isPremium ? (data.price || 0) : 0,
-          file_size: data.file.size,
+          file_size: fileToUpload.size,
         })
         .select()
         .single();

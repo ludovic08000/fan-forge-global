@@ -158,6 +158,16 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
           <div className="space-y-4">
             <Label>Fichier média</Label>
             
+            {/* Info sur le filigrane */}
+            <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 mb-4">
+              <p className="text-sm text-primary flex items-center gap-2">
+                <span className="text-lg">🛡️</span>
+                <span>
+                  <strong>Protection automatique :</strong> Un filigrane avec votre nom sera automatiquement ajouté aux images pour protéger votre contenu.
+                </span>
+              </p>
+            </div>
+            
             {!selectedFile ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
