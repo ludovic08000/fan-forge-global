@@ -12,6 +12,7 @@ import { authSchema, signUpSchema } from '@/lib/validations';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -65,7 +66,25 @@ const Auth = () => {
       const { error } = await signIn(validatedData.email, validatedData.password);
       
       if (!error) {
-        navigate('/');
+        // Charger le rôle pour rediriger vers la bonne page
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user) {
+          // Vérifier si l'utilisateur est créateur
+          const { data: creatorData } = await supabase
+            .from('creators')
+            .select('id')
+            .eq('user_id', userData.user.id)
+            .maybeSingle();
+          
+          // Rediriger vers le dashboard pour les créateurs, sinon vers l'accueil
+          if (creatorData) {
+            navigate('/dashboard');
+          } else {
+            navigate('/');
+          }
+        } else {
+          navigate('/');
+        }
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
