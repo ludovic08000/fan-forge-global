@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet';
+import { useEffect } from 'react';
 
 interface SEOHeadProps {
   title?: string;
@@ -8,10 +8,7 @@ interface SEOHeadProps {
   url?: string;
   type?: 'website' | 'article' | 'profile';
   author?: string;
-  publishedTime?: string;
-  modifiedTime?: string;
   noindex?: boolean;
-  structuredData?: object;
 }
 
 const SEOHead = ({
@@ -22,63 +19,59 @@ const SEOHead = ({
   url = "https://creatorhub.com",
   type = "website",
   author,
-  publishedTime,
-  modifiedTime,
   noindex = false,
-  structuredData,
 }: SEOHeadProps) => {
   const fullTitle = title.includes("CreatorHub") ? title : `${title} | CreatorHub`;
 
-  return (
-    <Helmet>
-      {/* Primary Meta Tags */}
-      <title>{fullTitle}</title>
-      <meta name="title" content={fullTitle} />
-      <meta name="description" content={description} />
-      <meta name="keywords" content={keywords} />
-      {author && <meta name="author" content={author} />}
-      
-      {/* Robots */}
-      <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />
-      
-      {/* Canonical */}
-      <link rel="canonical" href={url} />
+  useEffect(() => {
+    // Update document title
+    document.title = fullTitle;
 
-      {/* Open Graph / Facebook */}
-      <meta property="og:type" content={type} />
-      <meta property="og:url" content={url} />
-      <meta property="og:title" content={fullTitle} />
-      <meta property="og:description" content={description} />
-      <meta property="og:image" content={image} />
-      <meta property="og:locale" content="fr_FR" />
-      <meta property="og:site_name" content="CreatorHub" />
-      
-      {/* Article specific */}
-      {type === 'article' && publishedTime && (
-        <meta property="article:published_time" content={publishedTime} />
-      )}
-      {type === 'article' && modifiedTime && (
-        <meta property="article:modified_time" content={modifiedTime} />
-      )}
-      {type === 'article' && author && (
-        <meta property="article:author" content={author} />
-      )}
+    // Helper to update or create meta tag
+    const setMeta = (name: string, content: string, isProperty = false) => {
+      const attr = isProperty ? 'property' : 'name';
+      let meta = document.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement;
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute(attr, name);
+        document.head.appendChild(meta);
+      }
+      meta.content = content;
+    };
 
-      {/* Twitter */}
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:url" content={url} />
-      <meta name="twitter:title" content={fullTitle} />
-      <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={image} />
+    // Primary Meta Tags
+    setMeta('description', description);
+    setMeta('keywords', keywords);
+    if (author) setMeta('author', author);
+    setMeta('robots', noindex ? 'noindex, nofollow' : 'index, follow');
 
-      {/* Structured Data */}
-      {structuredData && (
-        <script type="application/ld+json">
-          {JSON.stringify(structuredData)}
-        </script>
-      )}
-    </Helmet>
-  );
+    // Open Graph
+    setMeta('og:type', type, true);
+    setMeta('og:url', url, true);
+    setMeta('og:title', fullTitle, true);
+    setMeta('og:description', description, true);
+    setMeta('og:image', image, true);
+    setMeta('og:locale', 'fr_FR', true);
+    setMeta('og:site_name', 'CreatorHub', true);
+
+    // Twitter
+    setMeta('twitter:card', 'summary_large_image');
+    setMeta('twitter:url', url);
+    setMeta('twitter:title', fullTitle);
+    setMeta('twitter:description', description);
+    setMeta('twitter:image', image);
+
+    // Canonical
+    let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = url;
+  }, [fullTitle, description, keywords, image, url, type, author, noindex]);
+
+  return null;
 };
 
 export default SEOHead;
