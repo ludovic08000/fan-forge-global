@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Play, Shield, Users, Lock, Sparkles, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const HeroSection = () => {
+  const { user } = useAuth();
+
   return (
     <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
       {/* Background Gradients */}
@@ -52,9 +55,15 @@ const HeroSection = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="hero" size="lg" asChild>
-              <Link to="/auth?tab=signup">Rejoindre Crub</Link>
-            </Button>
+            {user ? (
+              <Button variant="hero" size="lg" asChild>
+                <Link to="/subscriptions">Mon espace</Link>
+              </Button>
+            ) : (
+              <Button variant="hero" size="lg" asChild>
+                <Link to="/auth?tab=signup">Rejoindre Crub</Link>
+              </Button>
+            )}
             <Button variant="outline" size="lg" asChild>
               <Link to="/search">
                 <Play className="h-4 w-4 mr-2" />
