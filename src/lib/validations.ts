@@ -68,7 +68,7 @@ export const signUpSchema = authSchema.extend({
   }),
   birthdate: z.string().optional(),
   gender: z.string().optional(),
-  stageName: z.string().trim().min(3, { message: "Le surnom doit contenir au moins 3 caractères" }).max(50, { message: "Le surnom doit contenir moins de 50 caractères" }).optional(),
+  stageName: z.string().trim().max(50, { message: "Le surnom doit contenir moins de 50 caractères" }).optional().or(z.literal('')),
   category: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Les mots de passe ne correspondent pas",
