@@ -26,7 +26,6 @@ const LiveStreams = () => {
 
   const liveNow = liveStreams.filter((s) => s.status === 'live');
   const upcoming = liveStreams.filter((s) => s.status === 'scheduled');
-  const ended = liveStreams.filter((s) => s.status === 'ended');
 
   /**
    * Carte de live stream
@@ -136,9 +135,6 @@ const LiveStreams = () => {
           <TabsTrigger value="upcoming">
             À venir ({upcoming.length})
           </TabsTrigger>
-          <TabsTrigger value="ended">
-            Terminés ({ended.length})
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="live" className="space-y-6">
@@ -177,23 +173,6 @@ const LiveStreams = () => {
           )}
         </TabsContent>
 
-        <TabsContent value="ended" className="space-y-6">
-          {ended.length === 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-center text-muted-foreground">
-                  Aucun live terminé
-                </CardTitle>
-              </CardHeader>
-            </Card>
-          ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {ended.map((stream) => (
-                <StreamCard key={stream.id} stream={stream} />
-              ))}
-            </div>
-          )}
-        </TabsContent>
       </Tabs>
     </div>
   );
