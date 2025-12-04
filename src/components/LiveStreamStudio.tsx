@@ -42,7 +42,7 @@ export const LiveStreamStudio = () => {
   const { messages, sendMessage } = useLiveChat(currentStream?.id || '');
   
   // LiveKit broadcast hook
-  const { isStreaming, isConnecting: isLiveKitConnecting, connectedViewers, error: liveKitError, startBroadcast, stopBroadcast } = useLiveKitBroadcast(currentStream?.id || '');
+  const { isStreaming, isConnecting: isLiveKitConnecting, connectedViewers, error: liveKitError, startBroadcast, stopBroadcast } = useLiveKitBroadcast();
 
   // Référence pour stocker l'ID du stream actuel pour le cleanup
   const currentStreamIdRef = useRef<string | null>(null);
@@ -215,9 +215,9 @@ export const LiveStreamStudio = () => {
       await startLiveStream(stream.id);
       setIsLive(true);
       
-      // Démarrer la diffusion LiveKit
-      await startBroadcast(streamRef.current);
-      console.log('[Studio] LiveKit broadcast started', streamRef.current ? 'with media' : 'test mode');
+      // Démarrer la diffusion LiveKit avec le streamId
+      await startBroadcast(stream.id, streamRef.current);
+      console.log('[Studio] LiveKit broadcast started for stream:', stream.id);
       
       // Démarrer le tracking des revenus par minute
       const revenueInterval = setInterval(async () => {

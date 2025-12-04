@@ -4,24 +4,26 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Room, RoomEvent, LocalParticipant, Track, createLocalTracks } from 'livekit-client';
+import { Room, RoomEvent, createLocalTracks } from 'livekit-client';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const LIVEKIT_URL = 'wss://plaisir-ykn9lxey.livekit.cloud';
 
-export const useLiveKitBroadcast = (streamId: string) => {
+export const useLiveKitBroadcast = () => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedViewers, setConnectedViewers] = useState(0);
   const [error, setError] = useState<string | null>(null);
   
   const roomRef = useRef<Room | null>(null);
+  const currentStreamIdRef = useRef<string | null>(null);
 
   /**
    * Obtenir un token LiveKit depuis l'edge function
    */
-  const getToken = useCallback(async (isPublisher: boolean) => {
+  const getToken = useCallback(async (streamId: string, isPublisher: boolean) => {
+    console.log('[LiveKit Broadcast] Getting token for stream:', streamId);
     const { data, error } = await supabase.functions.invoke('livekit-token', {
       body: {
         roomName: `live-${streamId}`,
@@ -30,24 +32,38 @@ export const useLiveKitBroadcast = (streamId: string) => {
       },
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('[LiveKit Broadcast] Token error:', error);
+      throw error;
+    }
+    console.log('[LiveKit Broadcast] Token received');
     return data.token;
-  }, [streamId]);
+  }, []);
 
   /**
    * Démarrer la diffusion LiveKit
    */
-  const startBroadcast = useCallback(async (mediaStream?: MediaStream | null) => {
-    if (!streamId || isConnecting || isStreaming) return;
+  const startBroadcast = useCallback(async (streamId: string, mediaStream?: MediaStream | null) => {
+    if (!streamId) {
+      console.error('[LiveKit Broadcast] No streamId provided');
+      toast.error('ID du stream manquant');
+      return;
+    }
+
+    if (isConnecting || isStreaming) {
+      console.log('[LiveKit Broadcast] Already connecting or streaming');
+      return;
+    }
 
     console.log('[LiveKit Broadcast] Starting broadcast for stream:', streamId);
+    currentStreamIdRef.current = streamId;
     setIsConnecting(true);
     setError(null);
 
     try {
       // Obtenir le token
-      const token = await getToken(true);
-      console.log('[LiveKit Broadcast] Token obtained');
+      const token = await getToken(streamId, true);
+      console.log('[LiveKit Broadcast] Token obtained, connecting to room...');
 
       // Créer et connecter la room
       const room = new Room({
@@ -100,6 +116,7 @@ export const useLiveKitBroadcast = (streamId: string) => {
         }
       } else {
         // Créer de nouveaux tracks
+        console.log('[LiveKit Broadcast] Creating local tracks...');
         try {
           const tracks = await createLocalTracks({
             audio: true,
@@ -128,7 +145,7 @@ export const useLiveKitBroadcast = (streamId: string) => {
       setIsConnecting(false);
       toast.error('Erreur de connexion LiveKit');
     }
-  }, [streamId, isConnecting, isStreaming, getToken]);
+  }, [isConnecting, isStreaming, getToken]);
 
   /**
    * Arrêter la diffusion
@@ -141,6 +158,7 @@ export const useLiveKitBroadcast = (streamId: string) => {
       roomRef.current = null;
     }
 
+    currentStreamIdRef.current = null;
     setIsStreaming(false);
     setConnectedViewers(0);
   }, []);
