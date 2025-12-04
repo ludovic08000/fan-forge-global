@@ -79,11 +79,9 @@ const CreatorSection = () => {
 
         {/* CTA */}
         <div className="text-center">
-          <Link to="/auth">
-            <Button variant="premium" size="lg">
-              Devenir créateur
-            </Button>
-          </Link>
+          <Button variant="premium" size="lg" asChild>
+            <Link to="/auth">Devenir créateur</Link>
+          </Button>
         </div>
       </div>
     </section>
