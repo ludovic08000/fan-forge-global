@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import ContentCard from '@/components/ContentCard';
 import PrivateChat from '@/components/PrivateChat';
 import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
+import AgeVerificationGate from '@/components/AgeVerificationGate';
 
 interface Creator {
   id: string;
@@ -253,6 +254,7 @@ const CreatorProfile: React.FC = () => {
   const creatorInitials = creatorName.charAt(0).toUpperCase();
 
   return (
+    <AgeVerificationGate category={creator.category}>
     <div className="min-h-screen bg-background pt-16">
       {/* Cover Section */}
       <div className="relative h-64 bg-gradient-to-br from-primary/20 to-primary-glow/20 overflow-hidden">
@@ -500,6 +502,7 @@ const CreatorProfile: React.FC = () => {
         )}
       </div>
     </div>
+    </AgeVerificationGate>
   );
 };
 

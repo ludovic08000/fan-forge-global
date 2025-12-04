@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Heart, Eye, Lock, Crown, Share2, CheckCircle2 } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
+import AgeVerificationGate from '@/components/AgeVerificationGate';
 
 const CreatorPublicPage = () => {
   const { username } = useParams<{ username: string }>();
@@ -203,6 +204,7 @@ const CreatorPublicPage = () => {
   const premiumContent = content.filter(c => c.is_premium);
 
   return (
+    <AgeVerificationGate category={creator.category} contentType={creator.content_type}>
     <div className="min-h-screen bg-background pt-16">
       {/* Header avec cover */}
       <div className="relative h-64 bg-gradient-to-r from-primary/20 to-primary/10">
@@ -457,6 +459,7 @@ const CreatorPublicPage = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </AgeVerificationGate>
   );
 };
 
