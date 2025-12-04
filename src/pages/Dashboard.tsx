@@ -4,7 +4,7 @@
  * Updated: 2025-12-04
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,13 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { User, Crown, BarChart3, Heart, Eye, Euro, Settings, Plus, Video, Upload, Trash2, Share2, Copy, Banknote, Shield } from 'lucide-react';
+import { User, Crown, BarChart3, Heart, Eye, Euro, Settings, Plus, Video, Upload, Trash2, Share2, Copy, Banknote, Shield, Loader2 } from 'lucide-react';
 import ContentUpload from '@/components/ContentUpload';
 import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
 import CreatorSettings from '@/components/CreatorSettings';
 import CreatorBoost from '@/components/CreatorBoost';
 import CreatorAnalyticsDashboard from '@/components/analytics/CreatorAnalyticsDashboard';
-import { LiveStreamStudio } from '@/components/LiveStreamStudio';
 import PaymentRequest from '@/components/creator/PaymentRequest';
 import StripeConnectSetup from '@/components/creator/StripeConnectSetup';
 import SubscriptionPricing from '@/components/creator/SubscriptionPricing';
@@ -27,6 +26,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/lib/analytics';
 import { useNavigate } from 'react-router-dom';
+
+// Lazy load LiveStreamStudio to avoid blocking if livekit-client fails
+const LiveStreamStudio = lazy(() => import('@/components/LiveStreamStudio').then(m => ({ default: m.LiveStreamStudio })));
+
+// Fallback for LiveStreamStudio loading
+const LiveStreamFallback = () => (
+  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+    <Loader2 className="h-8 w-8 animate-spin mb-4" />
+    <p>Chargement du studio live...</p>
+  </div>
+);
 
 /**
  * Composant principal du Dashboard
@@ -500,7 +510,9 @@ const Dashboard = () => {
           {/* Live Studio */}
           {isCreator && (
             <TabsContent value="live">
-              <LiveStreamStudio />
+              <Suspense fallback={<LiveStreamFallback />}>
+                <LiveStreamStudio />
+              </Suspense>
             </TabsContent>
           )}
 

@@ -4,11 +4,37 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Room, RoomEvent, Track, RemoteParticipant, RemoteTrackPublication, RemoteTrack } from 'livekit-client';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 const LIVEKIT_URL = 'wss://plaisir-ykn9lxey.livekit.cloud';
+
+// Cache du module LiveKit
+let liveKitModule: typeof import('livekit-client') | null = null;
+let liveKitLoadPromise: Promise<typeof import('livekit-client')> | null = null;
+
+/**
+ * Charger le module LiveKit de manière lazy
+ */
+const loadLiveKit = async () => {
+  if (liveKitModule) return liveKitModule;
+  
+  if (!liveKitLoadPromise) {
+    liveKitLoadPromise = import('livekit-client')
+      .then(module => {
+        liveKitModule = module;
+        console.log('[LiveKit Viewer] Module loaded successfully');
+        return module;
+      })
+      .catch(err => {
+        console.error('[LiveKit Viewer] Failed to load module:', err);
+        liveKitLoadPromise = null;
+        throw new Error('LiveKit non disponible dans cet environnement');
+      });
+  }
+  
+  return liveKitLoadPromise;
+};
 
 export const useLiveKitViewer = (streamId: string) => {
   const { user } = useAuth();
@@ -18,7 +44,7 @@ export const useLiveKitViewer = (streamId: string) => {
   const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   
-  const roomRef = useRef<Room | null>(null);
+  const roomRef = useRef<any>(null);
   const isConnectingRef = useRef(false);
 
   /**
@@ -51,6 +77,10 @@ export const useLiveKitViewer = (streamId: string) => {
     setError(null);
 
     try {
+      // Charger LiveKit de manière lazy
+      const liveKit = await loadLiveKit();
+      const { Room, RoomEvent, Track } = liveKit;
+
       // Obtenir le token
       const token = await getToken();
       console.log('[LiveKit Viewer] Token obtained');
@@ -63,9 +93,9 @@ export const useLiveKitViewer = (streamId: string) => {
 
       // Handler pour attacher les tracks
       const handleTrackSubscribed = (
-        track: RemoteTrack,
-        publication: RemoteTrackPublication,
-        participant: RemoteParticipant
+        track: any,
+        publication: any,
+        participant: any
       ) => {
         console.log('[LiveKit Viewer] Track subscribed:', track.kind, 'from', participant.identity);
         
@@ -82,7 +112,7 @@ export const useLiveKitViewer = (streamId: string) => {
       };
 
       // Handler pour détacher les tracks
-      const handleTrackUnsubscribed = (track: RemoteTrack) => {
+      const handleTrackUnsubscribed = (track: any) => {
         console.log('[LiveKit Viewer] Track unsubscribed:', track.kind);
         track.detach();
       };
@@ -104,7 +134,7 @@ export const useLiveKitViewer = (streamId: string) => {
         isConnectingRef.current = false;
       });
 
-      room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
+      room.on(RoomEvent.ParticipantConnected, (participant: any) => {
         console.log('[LiveKit Viewer] Participant connected:', participant.identity);
       });
 
@@ -113,8 +143,8 @@ export const useLiveKitViewer = (streamId: string) => {
       roomRef.current = room;
 
       // Vérifier si le broadcaster est déjà présent
-      room.remoteParticipants.forEach((participant: RemoteParticipant) => {
-        participant.trackPublications.forEach((publication: RemoteTrackPublication) => {
+      room.remoteParticipants.forEach((participant: any) => {
+        participant.trackPublications.forEach((publication: any) => {
           if (publication.track && publication.isSubscribed) {
             handleTrackSubscribed(
               publication.track,
@@ -125,9 +155,9 @@ export const useLiveKitViewer = (streamId: string) => {
         });
       });
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('[LiveKit Viewer] Connection error:', err);
-      setError('Erreur de connexion au stream');
+      setError(err?.message || 'Erreur de connexion au stream');
       setIsConnecting(false);
       isConnectingRef.current = false;
     }
