@@ -192,7 +192,7 @@ const Dashboard = () => {
             if (data?.payouts_enabled) {
               toast.success('Stripe Connect activé — virements disponibles');
             } else {
-              toast.message?.('Statut mis à jour — finalisez l\'onboarding si besoin');
+              toast.info('Statut mis à jour — finalisez l\'onboarding si besoin');
             }
           }
         })
