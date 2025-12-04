@@ -6,10 +6,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Crown, Calendar, ExternalLink, Settings, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Crown, Calendar, ExternalLink, Settings, Loader2, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
 
 interface Subscription {
   id: string;
@@ -160,7 +162,7 @@ const MySubscriptions = () => {
                   <Badge variant="secondary">Expirés</Badge>
                   <span>{expiredSubscriptions.length} abonnement{expiredSubscriptions.length > 1 ? 's' : ''}</span>
                 </h2>
-                <div className="grid gap-4 opacity-60">
+                <div className="grid gap-4">
                   {expiredSubscriptions.map((sub) => (
                     <SubscriptionCard key={sub.id} subscription={sub} />
                   ))}
@@ -176,6 +178,7 @@ const MySubscriptions = () => {
 
 const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
   const [isManaging, setIsManaging] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
   const creator = subscription.creator;
   const profile = creator.profile;
   const displayName = creator.stage_name || profile?.display_name || profile?.username || 'Créateur';
@@ -201,82 +204,118 @@ const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
     }
   };
 
+  const handleResubscribe = () => {
+    if (creator.subscription_price <= 0) {
+      toast.info('Ce créateur propose un abonnement gratuit');
+      return;
+    }
+    setShowCheckout(true);
+  };
+
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-4">
-          <Link to={username ? `/${username}` : '#'}>
-            <Avatar className="h-16 w-16 border-2 border-primary/20">
-              <AvatarImage src={profile?.avatar_url || undefined} />
-              <AvatarFallback className="text-lg bg-primary/10">
-                {displayName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          </Link>
-          
-          <div className="flex-1 min-w-0">
-            <Link 
-              to={username ? `/${username}` : '#'}
-              className="font-semibold text-lg hover:text-primary transition-colors line-clamp-1"
-            >
-              {displayName}
+    <>
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <Link to={username ? `/${username}` : '#'}>
+              <Avatar className="h-16 w-16 border-2 border-primary/20">
+                <AvatarImage src={profile?.avatar_url || undefined} />
+                <AvatarFallback className="text-lg bg-primary/10">
+                  {displayName.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
             </Link>
-            {username && (
-              <p className="text-sm text-muted-foreground">@{username}</p>
-            )}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" />
-                Depuis {format(new Date(subscription.start_date), 'dd MMM yyyy', { locale: fr })}
-              </span>
-              {subscription.end_date && subscription.status === 'active' && (
-                <span className="flex items-center gap-1 text-primary">
-                  Renouvellement : {format(new Date(subscription.end_date), 'dd MMM yyyy', { locale: fr })}
-                </span>
+            
+            <div className="flex-1 min-w-0">
+              <Link 
+                to={username ? `/${username}` : '#'}
+                className="font-semibold text-lg hover:text-primary transition-colors line-clamp-1"
+              >
+                {displayName}
+              </Link>
+              {username && (
+                <p className="text-sm text-muted-foreground">@{username}</p>
               )}
-              {subscription.end_date && subscription.status !== 'active' && (
-                <span className="flex items-center gap-1 text-destructive">
-                  Expiré le {format(new Date(subscription.end_date), 'dd MMM yyyy', { locale: fr })}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Depuis {format(new Date(subscription.start_date), 'dd MMM yyyy', { locale: fr })}
                 </span>
+                {subscription.end_date && subscription.status === 'active' && (
+                  <span className="flex items-center gap-1 text-primary">
+                    Renouvellement : {format(new Date(subscription.end_date), 'dd MMM yyyy', { locale: fr })}
+                  </span>
+                )}
+                {subscription.end_date && subscription.status !== 'active' && (
+                  <span className="flex items-center gap-1 text-destructive">
+                    Expiré le {format(new Date(subscription.end_date), 'dd MMM yyyy', { locale: fr })}
+                  </span>
+                )}
+                <span className="font-medium text-foreground">
+                  {creator.subscription_price}€/mois
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
+                {subscription.status === 'active' ? 'Actif' : 'Expiré'}
+              </Badge>
+              {subscription.status === 'active' && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleManageSubscription}
+                  disabled={isManaging}
+                >
+                  {isManaging ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Settings className="h-4 w-4 mr-1" />
+                      Gérer
+                    </>
+                  )}
+                </Button>
               )}
-              <span className="font-medium text-foreground">
-                {subscription.price}€/mois
-              </span>
+              {subscription.status !== 'active' && (
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={handleResubscribe}
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Se réabonner
+                </Button>
+              )}
+              {username && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link to={`/${username}`}>
+                    <ExternalLink className="h-4 w-4" />
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <div className="flex items-center gap-2">
-            <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
-              {subscription.status === 'active' ? 'Actif' : 'Expiré'}
-            </Badge>
-            {subscription.status === 'active' && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleManageSubscription}
-                disabled={isManaging}
-              >
-                {isManaging ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <Settings className="h-4 w-4 mr-1" />
-                    Gérer
-                  </>
-                )}
-              </Button>
-            )}
-            {username && (
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/${username}`}>
-                  <ExternalLink className="h-4 w-4" />
-                </Link>
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      {/* Checkout Dialog */}
+      <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Se réabonner à {displayName}</DialogTitle>
+          </DialogHeader>
+          <EmbeddedCheckout 
+            creatorId={creator.id} 
+            onClose={() => {
+              setShowCheckout(false);
+              window.location.reload();
+            }} 
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
