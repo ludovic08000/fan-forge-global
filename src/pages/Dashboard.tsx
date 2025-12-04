@@ -218,6 +218,11 @@ const Dashboard = () => {
 
   const isCreator = isCreatorLocal || userRole === 'creator' || userRole === 'admin';
 
+  // Rediriger les non-créateurs vers la page abonnements
+  if (!loading && !isCreator) {
+    return <Navigate to="/subscriptions" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-background pt-16">
       <div className="container mx-auto px-4 py-8">
