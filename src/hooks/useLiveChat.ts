@@ -32,7 +32,10 @@ export const useLiveChat = (streamId: string) => {
   /**
    * Charger les messages avec pagination
    */
-  const loadMessages = useCallback(async (loadMore = false) => {
+  const loadMessages = useCallback(async (loadMore = false, fromDate?: string | null) => {
+    // Ne pas charger si pas de streamId
+    if (!streamId) return;
+    
     try {
       setLoading(true);
       let query = supabase
@@ -43,8 +46,8 @@ export const useLiveChat = (streamId: string) => {
         .limit(MESSAGES_PER_PAGE);
 
       // Si on charge plus de messages, partir du plus ancien message actuel
-      if (loadMore && oldestMessageDate) {
-        query = query.lt('created_at', oldestMessageDate);
+      if (loadMore && fromDate) {
+        query = query.lt('created_at', fromDate);
       }
 
       const { data, error } = await query;
@@ -76,7 +79,7 @@ export const useLiveChat = (streamId: string) => {
     } finally {
       setLoading(false);
     }
-  }, [streamId, oldestMessageDate]);
+  }, [streamId]);
 
   /**
    * Envoyer un message
@@ -113,6 +116,9 @@ export const useLiveChat = (streamId: string) => {
    * Écouter les nouveaux messages en temps réel
    */
   useEffect(() => {
+    // Ne pas s'abonner si pas de streamId
+    if (!streamId) return;
+    
     loadMessages();
 
     const channel = supabase
@@ -145,6 +151,6 @@ export const useLiveChat = (streamId: string) => {
     loading,
     hasMore,
     sendMessage,
-    loadMore: () => loadMessages(true),
+    loadMore: () => loadMessages(true, oldestMessageDate),
   };
 };

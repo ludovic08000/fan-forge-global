@@ -33,6 +33,8 @@ export const LiveStreamStudio = () => {
   const [price, setPrice] = useState(0);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [isMediaReady, setIsMediaReady] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -93,6 +95,8 @@ export const LiveStreamStudio = () => {
   useEffect(() => {
     const initializeMedia = async () => {
       try {
+        setMediaError(null);
+        
         // Détecter si mobile
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         
@@ -118,6 +122,7 @@ export const LiveStreamStudio = () => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
+        setIsMediaReady(true);
       } catch (error) {
         console.error('Erreur accès média:', error);
         
@@ -132,10 +137,13 @@ export const LiveStreamStudio = () => {
           if (videoRef.current) {
             videoRef.current.srcObject = basicStream;
           }
+          setIsMediaReady(true);
           
           toast.warning('Qualité vidéo réduite pour compatibilité');
         } catch (fallbackError) {
           console.error('Erreur accès média (fallback):', fallbackError);
+          const errorMessage = fallbackError instanceof Error ? fallbackError.message : 'Erreur inconnue';
+          setMediaError(`Impossible d'accéder à la caméra: ${errorMessage}`);
           toast.error('Impossible d\'accéder à la caméra ou au microphone');
         }
       }
@@ -337,6 +345,17 @@ export const LiveStreamStudio = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Erreur média */}
+            {mediaError && (
+              <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 text-center">
+                <VideoOff className="h-8 w-8 mx-auto mb-2 text-destructive" />
+                <p className="text-sm text-destructive">{mediaError}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Veuillez autoriser l'accès à la caméra et au microphone pour diffuser un live.
+                </p>
+              </div>
+            )}
+            
             {/* Prévisualisation */}
             <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
               <video
@@ -346,6 +365,16 @@ export const LiveStreamStudio = () => {
                 playsInline
                 className="w-full h-full object-cover"
               />
+              
+              {/* Message si pas encore de média */}
+              {!isMediaReady && !mediaError && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-white text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                    <p className="text-sm">Initialisation de la caméra...</p>
+                  </div>
+                </div>
+              )}
               
               {/* Compteur de spectateurs WebRTC */}
               {isLive && (
@@ -375,6 +404,7 @@ export const LiveStreamStudio = () => {
                 variant={isVideoEnabled ? 'default' : 'destructive'}
                 size="icon"
                 onClick={toggleVideo}
+                disabled={!isMediaReady}
               >
                 {isVideoEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
               </Button>
@@ -382,6 +412,7 @@ export const LiveStreamStudio = () => {
                 variant={isAudioEnabled ? 'default' : 'destructive'}
                 size="icon"
                 onClick={toggleAudio}
+                disabled={!isMediaReady}
               >
                 {isAudioEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
               </Button>
@@ -389,7 +420,13 @@ export const LiveStreamStudio = () => {
 
             {/* Boutons contrôle live */}
             {!isLive ? (
-              <Button onClick={handleStartLive} className="w-full" size="lg">
+              <Button 
+                onClick={handleStartLive} 
+                className="w-full" 
+                size="lg"
+                disabled={!isMediaReady || !!mediaError}
+              >
+                <Video className="h-4 w-4 mr-2" />
                 Démarrer le live
               </Button>
             ) : (
