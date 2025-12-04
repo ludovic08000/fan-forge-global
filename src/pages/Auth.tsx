@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +23,8 @@ const Auth = () => {
   const { signIn, signUp, signInWithGoogle, signInWithFacebook, user } = useAuth();
   const { checkRateLimit } = useRateLimitServer();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
 
   // Form states
   const [signInForm, setSignInForm] = useState({
@@ -297,7 +299,7 @@ const Auth = () => {
                 </form>
               </div>
             ) : (
-              <Tabs defaultValue="signin" className="w-full">
+              <Tabs defaultValue={defaultTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="signin">Connexion</TabsTrigger>
                   <TabsTrigger value="signup">Inscription</TabsTrigger>
