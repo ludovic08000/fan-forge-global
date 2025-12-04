@@ -4,37 +4,11 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { Room, RoomEvent, createLocalTracks, LocalTrack } from 'livekit-client';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const LIVEKIT_URL = 'wss://plaisir-ykn9lxey.livekit.cloud';
-
-// Cache pour le module LiveKit
-let liveKitModule: any = null;
-let liveKitLoadPromise: Promise<any> | null = null;
-
-/**
- * Charger le module LiveKit une seule fois
- */
-const loadLiveKitModule = async () => {
-  if (liveKitModule) return liveKitModule;
-  
-  if (!liveKitLoadPromise) {
-    liveKitLoadPromise = import('livekit-client')
-      .then(module => {
-        liveKitModule = module;
-        console.log('[LiveKit] Module loaded successfully');
-        return module;
-      })
-      .catch(err => {
-        console.error('[LiveKit] Failed to load module:', err);
-        liveKitLoadPromise = null;
-        throw err;
-      });
-  }
-  
-  return liveKitLoadPromise;
-};
 
 export const useLiveKitBroadcast = () => {
   const [isStreaming, setIsStreaming] = useState(false);
@@ -42,7 +16,7 @@ export const useLiveKitBroadcast = () => {
   const [connectedViewers, setConnectedViewers] = useState(0);
   const [error, setError] = useState<string | null>(null);
   
-  const roomRef = useRef<any>(null);
+  const roomRef = useRef<Room | null>(null);
   const currentStreamIdRef = useRef<string | null>(null);
 
   /**
@@ -87,10 +61,6 @@ export const useLiveKitBroadcast = () => {
     setError(null);
 
     try {
-      // Charger le module LiveKit
-      const liveKit = await loadLiveKitModule();
-      const { Room, RoomEvent, createLocalTracks } = liveKit;
-      
       // Obtenir le token
       const token = await getToken(streamId, true);
       console.log('[LiveKit Broadcast] Token obtained, connecting to room...');
@@ -148,7 +118,7 @@ export const useLiveKitBroadcast = () => {
         // Créer de nouveaux tracks
         console.log('[LiveKit Broadcast] Creating local tracks...');
         try {
-          const tracks = await createLocalTracks({
+          const tracks: LocalTrack[] = await createLocalTracks({
             audio: true,
             video: true,
           });

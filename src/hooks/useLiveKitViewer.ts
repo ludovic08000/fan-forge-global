@@ -4,13 +4,11 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { Room, RoomEvent, Track, RemoteParticipant, RemoteTrackPublication, RemoteTrack } from 'livekit-client';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 const LIVEKIT_URL = 'wss://plaisir-ykn9lxey.livekit.cloud';
-
-// Types pour LiveKit (pour éviter les erreurs d'import)
-type Room = any;
 
 export const useLiveKitViewer = (streamId: string) => {
   const { user } = useAuth();
@@ -22,23 +20,6 @@ export const useLiveKitViewer = (streamId: string) => {
   
   const roomRef = useRef<Room | null>(null);
   const isConnectingRef = useRef(false);
-  const liveKitModuleRef = useRef<any>(null);
-
-  /**
-   * Charger le module LiveKit de manière dynamique
-   */
-  const loadLiveKit = useCallback(async () => {
-    if (liveKitModuleRef.current) return liveKitModuleRef.current;
-    
-    try {
-      const module = await import('livekit-client');
-      liveKitModuleRef.current = module;
-      return module;
-    } catch (err) {
-      console.error('[LiveKit Viewer] Failed to load livekit-client:', err);
-      throw new Error('LiveKit non disponible');
-    }
-  }, []);
 
   /**
    * Obtenir un token LiveKit depuis l'edge function
@@ -70,10 +51,6 @@ export const useLiveKitViewer = (streamId: string) => {
     setError(null);
 
     try {
-      // Charger LiveKit dynamiquement
-      const liveKit = await loadLiveKit();
-      const { Room, RoomEvent, Track } = liveKit;
-
       // Obtenir le token
       const token = await getToken();
       console.log('[LiveKit Viewer] Token obtained');
@@ -86,9 +63,9 @@ export const useLiveKitViewer = (streamId: string) => {
 
       // Handler pour attacher les tracks
       const handleTrackSubscribed = (
-        track: any,
-        publication: any,
-        participant: any
+        track: RemoteTrack,
+        publication: RemoteTrackPublication,
+        participant: RemoteParticipant
       ) => {
         console.log('[LiveKit Viewer] Track subscribed:', track.kind, 'from', participant.identity);
         
@@ -105,7 +82,7 @@ export const useLiveKitViewer = (streamId: string) => {
       };
 
       // Handler pour détacher les tracks
-      const handleTrackUnsubscribed = (track: any) => {
+      const handleTrackUnsubscribed = (track: RemoteTrack) => {
         console.log('[LiveKit Viewer] Track unsubscribed:', track.kind);
         track.detach();
       };
@@ -127,7 +104,7 @@ export const useLiveKitViewer = (streamId: string) => {
         isConnectingRef.current = false;
       });
 
-      room.on(RoomEvent.ParticipantConnected, (participant: any) => {
+      room.on(RoomEvent.ParticipantConnected, (participant: RemoteParticipant) => {
         console.log('[LiveKit Viewer] Participant connected:', participant.identity);
       });
 
@@ -136,8 +113,8 @@ export const useLiveKitViewer = (streamId: string) => {
       roomRef.current = room;
 
       // Vérifier si le broadcaster est déjà présent
-      room.remoteParticipants.forEach((participant: any) => {
-        participant.trackPublications.forEach((publication: any) => {
+      room.remoteParticipants.forEach((participant: RemoteParticipant) => {
+        participant.trackPublications.forEach((publication: RemoteTrackPublication) => {
           if (publication.track && publication.isSubscribed) {
             handleTrackSubscribed(
               publication.track,
@@ -148,13 +125,13 @@ export const useLiveKitViewer = (streamId: string) => {
         });
       });
 
-    } catch (error) {
-      console.error('[LiveKit Viewer] Connection error:', error);
+    } catch (err) {
+      console.error('[LiveKit Viewer] Connection error:', err);
       setError('Erreur de connexion au stream');
       setIsConnecting(false);
       isConnectingRef.current = false;
     }
-  }, [streamId, isConnected, getToken, videoElement, loadLiveKit]);
+  }, [streamId, isConnected, getToken, videoElement]);
 
   /**
    * Se déconnecter
