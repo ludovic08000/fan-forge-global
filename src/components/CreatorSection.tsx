@@ -1,17 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   DollarSign, 
-  Users, 
   BarChart3, 
   MessageSquare, 
   Camera, 
   Shield,
-  Zap,
-  TrendingUp
+  Zap
 } from "lucide-react";
 import { useTranslation } from "@/contexts/TranslationContext";
-import dashboardImage from "@/assets/dashboard-preview.jpg";
+import { Link } from "react-router-dom";
 
 const CreatorSection = () => {
   const { t } = useTranslation();
@@ -19,147 +16,74 @@ const CreatorSection = () => {
   const features = [
     {
       icon: DollarSign,
-      title: t('creator.monetization.title'),
-      description: t('creator.monetization.description')
+      title: "Monétisation flexible",
+      description: "Abonnements, contenus payants et pourboires"
     },
     {
       icon: BarChart3,
-      title: t('creator.analytics.title'),
-      description: t('creator.analytics.description')
+      title: "Statistiques détaillées",
+      description: "Suivez vos revenus et votre audience en temps réel"
     },
     {
-      icon: Users,
-      title: "Gestion des Fans", 
-      description: "Messagerie intégrée, notifications et outils de gestion des abonnés"
+      icon: MessageSquare,
+      title: "Messagerie privée",
+      description: "Échangez directement avec vos abonnés"
     },
     {
       icon: Camera,
-      title: t('creator.upload.title'),
-      description: t('creator.upload.description')
+      title: "Upload facile",
+      description: "Photos, vidéos et lives en quelques clics"
     },
     {
       icon: Shield,
-      title: "Protection du Contenu",
-      description: "DRM avancé, filigrane et mesures anti-piratage"
+      title: "Protection du contenu",
+      description: "Filigrane automatique sur vos images"
     },
     {
       icon: Zap,
-      title: "Paiements Instantanés",
-      description: "Soyez payé plus rapidement avec des paiements quotidiens et des frais réduits"
+      title: "85% de revenus",
+      description: "Gardez la majorité de vos gains"
     }
   ];
 
   return (
-    <section id="creators" className="py-20 bg-gradient-to-br from-background to-card/20">
+    <section id="creators" className="py-16 bg-gradient-to-br from-background to-card/20">
       <div className="container mx-auto px-4 lg:px-8">
         {/* Section Header */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center px-4 py-2 mb-6 bg-card/50 backdrop-blur-sm border border-border rounded-full">
-            <TrendingUp className="h-4 w-4 text-primary mr-2" />
-            <span className="text-sm font-medium">Pour les Créateurs de Contenu</span>
-          </div>
-          
-          <h2 className="text-3xl md:text-5xl font-bold mb-6">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
             {t('creator.title')}
             <span className="block bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent">
               {t('creator.subtitle')}
             </span>
           </h2>
-          
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Tout ce dont vous avez besoin pour développer votre audience, créer du contenu incroyable 
-            et générer des revenus durables en faisant ce que vous aimez.
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Développez votre audience et monétisez votre contenu facilement.
           </p>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-2 gap-12 items-center mb-16">
-          {/* Dashboard Preview */}
-          <div className="relative">
-            <div className="bg-card/30 backdrop-blur-sm border border-border rounded-2xl p-8 shadow-[var(--shadow-card)]">
-              <img 
-                src={dashboardImage}
-                alt="Creator dashboard interface preview"
-                className="w-full rounded-lg shadow-lg"
-              />
-              <div className="absolute -bottom-4 -right-4 bg-primary/20 blur-2xl w-32 h-32 rounded-full"></div>
-            </div>
-          </div>
-
-          {/* Features */}
-          <div className="space-y-6">
-            <h3 className="text-2xl font-bold mb-8">Pourquoi les Créateurs Nous Choisissent</h3>
-            
-            {features.map((feature, index) => (
-              <div key={index} className="flex items-start space-x-4">
-                <div className="bg-primary/10 p-3 rounded-lg">
-                  <feature.icon className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h4 className="text-lg font-semibold mb-2">{feature.title}</h4>
-                  <p className="text-muted-foreground">{feature.description}</p>
-                </div>
+        {/* Features Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          {features.map((feature, index) => (
+            <div key={index} className="flex items-start space-x-4 p-4 bg-card/30 backdrop-blur-sm border border-border rounded-xl">
+              <div className="bg-primary/10 p-3 rounded-lg shrink-0">
+                <feature.icon className="h-5 w-5 text-primary" />
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
-          <Card className="bg-card/50 backdrop-blur-sm border-border">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <DollarSign className="h-5 w-5 text-primary mr-2" />
-                Revenus Supérieurs
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-primary mb-2">85%</div>
-              <CardDescription>
-                Gardez plus de ce que vous gagnez avec notre partage de revenus leader du marché
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 backdrop-blur-sm border-border">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="h-5 w-5 text-primary mr-2" />
-                Croissance des Fans
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-primary mb-2">3x</div>
-              <CardDescription>
-                Croissance d&apos;audience plus rapide grâce à notre algorithme de découverte
-              </CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 backdrop-blur-sm border-border">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <MessageSquare className="h-5 w-5 text-primary mr-2" />
-                Engagement
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-primary mb-2">5x</div>
-              <CardDescription>
-                Meilleure interaction avec les fans grâce à des outils de messagerie avancés
-              </CardDescription>
-            </CardContent>
-          </Card>
+              <div>
+                <h4 className="font-semibold mb-1">{feature.title}</h4>
+                <p className="text-sm text-muted-foreground">{feature.description}</p>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* CTA */}
         <div className="text-center">
-          <Button variant="premium" size="xl" className="shadow-[var(--shadow-premium)]">
-            Commencez Votre Parcours de Créateur
-          </Button>
-          <p className="text-sm text-muted-foreground mt-4">
-            Rejoignez des milliers de créateurs à succès. Gratuit pour commencer, sans frais mensuels.
-          </p>
+          <Link to="/auth">
+            <Button variant="premium" size="lg">
+              Devenir créateur
+            </Button>
+          </Link>
         </div>
       </div>
     </section>
