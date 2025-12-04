@@ -18,7 +18,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { useContentProtection } from "@/hooks/useContentProtection";
-import AgeVerificationGate from "@/components/AgeVerificationGate";
+// AgeVerificationGate est maintenant utilisé uniquement sur les pages avec contenu adulte
 
 // Lazy loading des pages pour améliorer les performances
 const Index = lazy(() => import("./pages/Index"));
@@ -146,19 +146,17 @@ const App = () => (
   <HelmetProvider>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-        <AgeVerificationGate>
-          <AuthProvider>
-            <TranslationProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <AppRoutes />
-                </BrowserRouter>
-              </TooltipProvider>
-            </TranslationProvider>
-          </AuthProvider>
-        </AgeVerificationGate>
+        <AuthProvider>
+          <TranslationProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </TooltipProvider>
+          </TranslationProvider>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   </HelmetProvider>
