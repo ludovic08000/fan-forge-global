@@ -55,6 +55,13 @@ export const signUpSchema = authSchema.extend({
     .min(2, { message: "Le nom doit contenir au moins 2 caractères" })
     .max(50, { message: "Le nom doit contenir moins de 50 caractères" })
     .regex(/^[a-zA-ZÀ-ÿ\s-]+$/, { message: "Le nom ne peut contenir que des lettres" }),
+  username: z
+    .string()
+    .trim()
+    .min(3, { message: "Le pseudo doit contenir au moins 3 caractères" })
+    .max(30, { message: "Le pseudo doit contenir moins de 30 caractères" })
+    .regex(/^[a-zA-Z0-9_]+$/, { message: "Le pseudo ne peut contenir que des lettres, chiffres et underscores" })
+    .optional(),
   role: z.enum(['subscriber', 'creator'], {
     errorMap: () => ({ message: "Rôle invalide" })
   }),
