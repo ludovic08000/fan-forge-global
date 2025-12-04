@@ -865,9 +865,11 @@ export type Database = {
           cover_url: string | null
           created_at: string | null
           display_name: string | null
+          gender: string | null
           id: string
           is_verified: boolean | null
           location: string | null
+          orientation: string | null
           phone: string | null
           updated_at: string | null
           user_id: string
@@ -881,9 +883,11 @@ export type Database = {
           cover_url?: string | null
           created_at?: string | null
           display_name?: string | null
+          gender?: string | null
           id?: string
           is_verified?: boolean | null
           location?: string | null
+          orientation?: string | null
           phone?: string | null
           updated_at?: string | null
           user_id: string
@@ -897,9 +901,11 @@ export type Database = {
           cover_url?: string | null
           created_at?: string | null
           display_name?: string | null
+          gender?: string | null
           id?: string
           is_verified?: boolean | null
           location?: string | null
+          orientation?: string | null
           phone?: string | null
           updated_at?: string | null
           user_id?: string
@@ -1161,6 +1167,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_photos: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          location: string | null
+          photo_url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location?: string | null
+          photo_url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location?: string | null
+          photo_url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -1225,6 +1258,7 @@ export type Database = {
         Args: { _creator_id: string; _subscriber_id: string }
         Returns: boolean
       }
+      is_user_adult: { Args: { _user_id: string }; Returns: boolean }
       search_creators:
         | {
             Args: {
