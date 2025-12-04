@@ -25,14 +25,17 @@ export const useWebRTCViewer = (streamId: string) => {
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const viewerIdRef = useRef<string>(crypto.randomUUID());
+  const isConnectingRef = useRef(false);
+  const isConnectedRef = useRef(false);
 
   /**
    * Se connecter au stream du créateur
    */
   const connect = useCallback(async () => {
-    if (!streamId || isConnecting || isConnected) return;
+    if (!streamId || isConnectingRef.current || isConnectedRef.current) return;
 
     console.log('[Viewer] Connecting to stream:', streamId);
+    isConnectingRef.current = true;
     setIsConnecting(true);
     setError(null);
 
@@ -46,6 +49,8 @@ export const useWebRTCViewer = (streamId: string) => {
         console.log('[Viewer] Received track:', event.track.kind);
         if (event.streams && event.streams[0]) {
           setRemoteStream(event.streams[0]);
+          isConnectedRef.current = true;
+          isConnectingRef.current = false;
           setIsConnected(true);
           setIsConnecting(false);
         }
@@ -71,6 +76,7 @@ export const useWebRTCViewer = (streamId: string) => {
         console.log('[Viewer] ICE connection state:', pc.iceConnectionState);
         if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
           setError('Connexion perdue avec le créateur');
+          isConnectedRef.current = false;
           setIsConnected(false);
         }
       };
@@ -78,10 +84,13 @@ export const useWebRTCViewer = (streamId: string) => {
       pc.onconnectionstatechange = () => {
         console.log('[Viewer] Connection state:', pc.connectionState);
         if (pc.connectionState === 'connected') {
+          isConnectedRef.current = true;
+          isConnectingRef.current = false;
           setIsConnected(true);
           setIsConnecting(false);
         } else if (pc.connectionState === 'failed') {
           setError('Impossible de se connecter au stream');
+          isConnectingRef.current = false;
           setIsConnecting(false);
         }
       };
@@ -148,24 +157,28 @@ export const useWebRTCViewer = (streamId: string) => {
 
       // Timeout si pas de connexion après 15 secondes
       setTimeout(() => {
-        if (!isConnected && isConnecting) {
+        if (!isConnectedRef.current && isConnectingRef.current) {
           setError('Le créateur n\'est pas en direct ou le stream n\'est pas disponible');
+          isConnectingRef.current = false;
           setIsConnecting(false);
-          disconnect();
         }
       }, 15000);
 
     } catch (error) {
       console.error('[Viewer] Connection error:', error);
       setError('Erreur de connexion au stream');
+      isConnectingRef.current = false;
       setIsConnecting(false);
     }
-  }, [streamId, isConnecting, isConnected]);
+  }, [streamId]);
 
   /**
    * Se déconnecter du stream
    */
   const disconnect = useCallback(() => {
+    // Skip if already disconnected
+    if (!channelRef.current && !peerConnectionRef.current) return;
+    
     console.log('[Viewer] Disconnecting');
 
     // Notifier le broadcaster
@@ -186,6 +199,8 @@ export const useWebRTCViewer = (streamId: string) => {
     }
 
     setRemoteStream(null);
+    isConnectedRef.current = false;
+    isConnectingRef.current = false;
     setIsConnected(false);
     setIsConnecting(false);
   }, []);

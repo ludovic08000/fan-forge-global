@@ -120,7 +120,8 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
         disconnect();
       }
     };
-  }, [streamId, user, hasAccess, connect, disconnect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streamId, user?.id, hasAccess]);
 
   /**
    * Attacher le stream WebRTC à la vidéo
