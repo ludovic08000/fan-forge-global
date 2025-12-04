@@ -18,7 +18,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { useContentProtection } from "@/hooks/useContentProtection";
-// AgeVerificationGate est maintenant utilisé uniquement sur les pages avec contenu adulte
+
 
 // Lazy loading des pages pour améliorer les performances
 const Index = lazy(() => import("./pages/Index"));
