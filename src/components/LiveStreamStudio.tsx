@@ -393,19 +393,22 @@ export const LiveStreamStudio = () => {
                   {isLiveKitConnecting ? (
                     <div className="bg-yellow-500/90 text-white px-3 py-1 rounded-full flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-xs">Connexion LiveKit...</span>
+                      <span className="text-xs">Connexion...</span>
                     </div>
                   ) : isStreaming ? (
                     <div className="bg-green-500/90 text-white px-3 py-1 rounded-full flex items-center gap-2">
                       <Wifi className="h-4 w-4" />
-                      <span className="text-xs">LiveKit actif</span>
-                    </div>
-                  ) : liveKitError ? (
-                    <div className="bg-red-500/90 text-white px-3 py-1 rounded-full flex items-center gap-2">
-                      <WifiOff className="h-4 w-4" />
-                      <span className="text-xs">Erreur</span>
+                      <span className="text-xs">Diffusion active</span>
                     </div>
                   ) : null}
+                </div>
+              )}
+              
+              {/* Erreur LiveKit (mode preview) */}
+              {liveKitError && isLive && (
+                <div className="absolute bottom-4 left-4 right-4 bg-amber-500/90 text-white px-3 py-2 rounded-lg text-xs text-center">
+                  <p className="font-medium">Mode aperçu - Diffusion limitée</p>
+                  <p className="opacity-80">La diffusion LiveKit n'est pas disponible dans l'aperçu. Publiez l'app pour tester.</p>
                 </div>
               )}
             </div>
