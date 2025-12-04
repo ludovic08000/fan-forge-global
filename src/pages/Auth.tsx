@@ -38,6 +38,7 @@ const Auth = () => {
     confirmPassword: '',
     firstName: '',
     lastName: '',
+    username: '',
     role: 'subscriber' as 'subscriber' | 'creator',
     birthdate: '',
     gender: '',
@@ -116,6 +117,7 @@ const Auth = () => {
         validatedData.password,
         validatedData.firstName,
         validatedData.lastName,
+        validatedData.username,
         validatedData.role,
         validatedData.birthdate,
         validatedData.gender,
@@ -130,6 +132,7 @@ const Auth = () => {
           confirmPassword: '',
           firstName: '',
           lastName: '',
+          username: '',
           role: 'subscriber',
           birthdate: '',
           gender: '',
@@ -425,6 +428,24 @@ const Auth = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Pseudo pour les utilisateurs */}
+                  {signUpForm.role === 'subscriber' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="username">Pseudo *</Label>
+                      <Input
+                        id="username"
+                        type="text"
+                        placeholder="Ex: john_doe"
+                        required
+                        value={signUpForm.username}
+                        onChange={(e) => setSignUpForm({ ...signUpForm, username: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Ce pseudo sera visible par les autres utilisateurs
+                      </p>
+                    </div>
+                  )}
 
                   {/* Champs spécifiques pour les créateurs */}
                   {signUpForm.role === 'creator' && (

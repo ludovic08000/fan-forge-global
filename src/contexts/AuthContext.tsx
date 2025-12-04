@@ -10,7 +10,7 @@ interface AuthContextType {
   session: Session | null;
   userRole: UserRole | null;
   loading: boolean;
-  signUp: (email: string, password: string, firstName?: string, lastName?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, firstName?: string, lastName?: string, username?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signInWithFacebook: () => Promise<{ error: any }>;
@@ -243,11 +243,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * @param password - Mot de passe de l'utilisateur
    * @param firstName - Prénom de l'utilisateur (optionnel)
    * @param lastName - Nom de famille de l'utilisateur (optionnel)
+   * @param username - Pseudo de l'utilisateur (optionnel)
    * @param role - Rôle de l'utilisateur (subscriber ou creator)
    * @param birthdate - Date de naissance (requis pour les créateurs)
    * @returns Objet contenant l'erreur éventuelle
    */
-  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string) => {
+  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, username?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string) => {
     try {
       // URL de redirection après inscription
       const redirectUrl = `${window.location.origin}/`;
@@ -261,6 +262,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           data: {
             first_name: firstName,
             last_name: lastName,
+            username,
             role,
             birthdate,
             gender,
@@ -293,6 +295,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (gender) localStorage.setItem('intended_gender', gender);
         if (stageName) localStorage.setItem('intended_stageName', stageName);
         if (category) localStorage.setItem('intended_category', category);
+        if (username) localStorage.setItem('intended_username', username);
       } catch {}
 
       // Si l'inscription réussit, créer le rôle et le profil créateur si nécessaire
@@ -334,15 +337,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setUserRole('subscriber');
           }
 
-          // Mettre à jour la date de naissance dans le profil si fournie
-          if (birthdate) {
-            const { error: birthdateError } = await supabase
+          // Mettre à jour le profil avec le pseudo et la date de naissance
+          const profileUpdate: { birthdate?: string; username?: string; display_name?: string } = {};
+          if (birthdate) profileUpdate.birthdate = birthdate;
+          if (username) {
+            profileUpdate.username = username;
+            profileUpdate.display_name = username;
+          }
+          
+          if (Object.keys(profileUpdate).length > 0) {
+            const { error: profileError } = await supabase
               .from('profiles')
-              .update({ birthdate })
+              .update(profileUpdate)
               .eq('user_id', data.user.id);
 
-            if (birthdateError) {
-              console.error('Erreur lors de la mise à jour de la date de naissance:', birthdateError);
+            if (profileError) {
+              console.error('Erreur lors de la mise à jour du profil:', profileError);
             }
           }
         } catch (err) {
