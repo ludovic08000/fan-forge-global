@@ -10,9 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Users, Send, Circle, Heart, Lock, ChevronUp } from 'lucide-react';
+import { Users, Send, Circle, Heart, Lock, ChevronUp, Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { useLiveStream } from '@/hooks/useLiveStream';
 import { useLiveChat } from '@/hooks/useLiveChat';
+import { useWebRTCViewer } from '@/hooks/useWebRTCViewer';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -33,8 +34,11 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   const { messages, sendMessage, hasMore, loadMore, loading: chatLoading } = useLiveChat(streamId);
   const { trackError } = useAnalytics();
   const { isUserBanned, settings } = useLiveModeration(streamId);
+  
+  // WebRTC viewer hook
+  const { isConnected, isConnecting, remoteStream, error: webrtcError, connect, disconnect } = useWebRTCViewer(streamId);
+  
   const [newMessage, setNewMessage] = useState('');
-  const [viewerCount, setViewerCount] = useState(0);
   const [likes, setLikes] = useState(0);
   const [hasAccess, setHasAccess] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
@@ -106,14 +110,27 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   useEffect(() => {
     if (user && hasAccess) {
       joinLiveStream(streamId);
+      // Se connecter au stream WebRTC
+      connect();
     }
 
     return () => {
       if (user && hasAccess) {
         leaveLiveStream(streamId);
+        disconnect();
       }
     };
-  }, [streamId, user, hasAccess]);
+  }, [streamId, user, hasAccess, connect, disconnect]);
+
+  /**
+   * Attacher le stream WebRTC à la vidéo
+   */
+  useEffect(() => {
+    if (videoRef.current && remoteStream) {
+      console.log('[Viewer] Attaching remote stream to video element');
+      videoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
 
   /**
    * Auto-scroll vers le dernier message
@@ -266,6 +283,24 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
           <Card>
             <CardContent className="p-0">
               <div className="relative aspect-video bg-black rounded-t-lg overflow-hidden">
+                {/* Affichage du stream WebRTC */}
+                {isConnecting && !isConnected && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                    <p className="text-white">Connexion au stream...</p>
+                  </div>
+                )}
+                
+                {webrtcError && !isConnected && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10">
+                    <WifiOff className="h-12 w-12 text-red-500 mb-4" />
+                    <p className="text-white mb-2">{webrtcError}</p>
+                    <Button onClick={connect} variant="secondary">
+                      Réessayer
+                    </Button>
+                  </div>
+                )}
+
                 <video
                   ref={videoRef}
                   autoPlay
@@ -273,18 +308,23 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                   className="w-full h-full object-cover"
                 />
                 
-                {/* Badge EN DIRECT */}
-                <div className="absolute top-4 left-4">
+                {/* Badge EN DIRECT + Status WebRTC */}
+                <div className="absolute top-4 left-4 flex items-center gap-2">
                   <Badge variant="destructive" className="gap-1 animate-pulse">
                     <Circle className="h-2 w-2 fill-current" />
                     EN DIRECT
                   </Badge>
-                </div>
-
-                {/* Compteur de spectateurs */}
-                <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <span>{viewerCount}</span>
+                  {isConnected ? (
+                    <Badge variant="secondary" className="gap-1 bg-green-500/90">
+                      <Wifi className="h-3 w-3" />
+                      Connecté
+                    </Badge>
+                  ) : isConnecting ? (
+                    <Badge variant="secondary" className="gap-1 bg-yellow-500/90">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Connexion...
+                    </Badge>
+                  ) : null}
                 </div>
 
                 {/* Bouton like flottant */}
