@@ -7,11 +7,14 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Crown, Calendar, ExternalLink, Settings, Loader2, RefreshCw } from 'lucide-react';
+import { Crown, Calendar, ExternalLink, Settings, Loader2, RefreshCw, Search, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
+import SearchBar from '@/components/SearchBar';
+import { useQuery } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Subscription {
   id: string;
@@ -108,15 +111,119 @@ const MySubscriptions = () => {
   const activeSubscriptions = subscriptions.filter(s => s.status === 'active');
   const expiredSubscriptions = subscriptions.filter(s => s.status !== 'active');
 
+  // Fetch most active creators
+  const { data: activeCreators, isLoading: creatorsLoading } = useQuery({
+    queryKey: ['active-creators'],
+    queryFn: async () => {
+      const { data: creators, error } = await supabase
+        .from('creators')
+        .select('id, stage_name, subscription_price, total_content, total_subscribers, user_id')
+        .order('total_content', { ascending: false })
+        .limit(6);
+
+      if (error) throw error;
+
+      // Fetch profiles for each creator
+      const creatorsWithProfiles = await Promise.all(
+        (creators || []).map(async (creator) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username, display_name, avatar_url')
+            .eq('user_id', creator.user_id)
+            .single();
+          return { ...creator, profile };
+        })
+      );
+
+      return creatorsWithProfiles;
+    }
+  });
+
   return (
     <div className="min-h-screen bg-background pt-20">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Crown className="h-8 w-8 text-primary" />
-            Mes abonnements
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        {/* Search Section - Centered */}
+        <div className="flex flex-col items-center text-center mb-10">
+          <h1 className="text-3xl md:text-4xl font-bold mb-3">
+            Découvrez des créateurs
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-muted-foreground mb-6 max-w-md">
+            Recherchez parmi nos créateurs et trouvez du contenu exclusif
+          </p>
+          <div className="w-full max-w-xl">
+            <SearchBar placeholder="Rechercher un créateur..." />
+          </div>
+        </div>
+
+        {/* Active Creators Section */}
+        <div className="mb-12">
+          <div className="flex items-center gap-2 mb-6">
+            <TrendingUp className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold">Créateurs les plus actifs</h2>
+          </div>
+          
+          {creatorsLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-40 rounded-xl" />
+              ))}
+            </div>
+          ) : activeCreators && activeCreators.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {activeCreators.map((creator) => (
+                <Link
+                  key={creator.id}
+                  to={creator.profile?.username ? `/${creator.profile.username}` : '#'}
+                  className="group"
+                >
+                  <Card className="overflow-hidden hover:shadow-lg transition-all hover:scale-[1.02] h-full">
+                    <CardContent className="p-4 flex flex-col items-center text-center">
+                      <Avatar className="h-16 w-16 mb-3 border-2 border-primary/20 group-hover:border-primary transition-colors">
+                        <AvatarImage src={creator.profile?.avatar_url || undefined} />
+                        <AvatarFallback className="text-lg bg-primary/10">
+                          {(creator.stage_name || creator.profile?.display_name || 'C').charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <h3 className="font-semibold line-clamp-1 group-hover:text-primary transition-colors">
+                        {creator.stage_name || creator.profile?.display_name || creator.profile?.username || 'Créateur'}
+                      </h3>
+                      {creator.profile?.username && (
+                        <p className="text-sm text-muted-foreground">@{creator.profile.username}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                        <span>{creator.total_content || 0} contenus</span>
+                        <span>{creator.total_subscribers || 0} abonnés</span>
+                      </div>
+                      <Badge variant="secondary" className="mt-2">
+                        {creator.subscription_price > 0 ? `${creator.subscription_price}€/mois` : 'Gratuit'}
+                      </Badge>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Aucun créateur pour le moment
+              </CardContent>
+            </Card>
+          )}
+          
+          <div className="text-center mt-6">
+            <Button asChild variant="outline">
+              <Link to="/search">Voir tous les créateurs</Link>
+            </Button>
+          </div>
+        </div>
+
+        {/* My Subscriptions Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Crown className="h-6 w-6 text-primary" />
+            Mes abonnements
+          </h2>
+          <p className="text-muted-foreground mt-1">
             Les créateurs auxquels vous êtes abonné
           </p>
         </div>
