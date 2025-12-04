@@ -17,6 +17,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { useContentProtection } from "@/hooks/useContentProtection";
+import AgeVerificationGate from "@/components/AgeVerificationGate";
 
 // Lazy loading des pages pour améliorer les performances
 const Index = lazy(() => import("./pages/Index"));
@@ -33,6 +34,10 @@ const LiveAnalytics = lazy(() => import("./pages/LiveAnalytics"));
 const Install = lazy(() => import("./pages/Install"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const SecuritySettings = lazy(() => import("./pages/SecuritySettings"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const LegalNotice = lazy(() => import("./pages/LegalNotice"));
+const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 
 // Composant de chargement pour le Suspense
 const PageLoader = () => (
@@ -95,8 +100,12 @@ const AppRoutes = () => {
           <Route path="/lives" element={<LiveStreams />} />
           <Route path="/live/:streamId" element={<WatchLive />} />
           <Route path="/creator/:userId" element={<CreatorProfile />} />
-          <Route path="/:username" element={<CreatorPublicPage />} />
           <Route path="/install" element={<Install />} />
+          {/* Pages légales */}
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/legal" element={<LegalNotice />} />
+          <Route path="/cookies" element={<CookiePolicy />} />
           <Route path="/security" element={
             <ProtectedRoute>
               <SecuritySettings />
@@ -117,7 +126,9 @@ const AppRoutes = () => {
               <AdminDashboard />
             </ProtectedRoute>
           } />
-          {/* Ajouter toutes les routes personnalisées au-dessus de la route catch-all "*" */}
+          {/* Route dynamique pour les profils créateurs - doit être en dernier */}
+          <Route path="/:username" element={<CreatorPublicPage />} />
+          {/* Route catch-all */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
@@ -133,17 +144,19 @@ const AppRoutes = () => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-      <AuthProvider>
-        <TranslationProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </TooltipProvider>
-      </TranslationProvider>
-    </AuthProvider>
+      <AgeVerificationGate>
+        <AuthProvider>
+          <TranslationProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </TooltipProvider>
+          </TranslationProvider>
+        </AuthProvider>
+      </AgeVerificationGate>
     </ThemeProvider>
   </QueryClientProvider>
 );

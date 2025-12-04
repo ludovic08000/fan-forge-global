@@ -90,11 +90,10 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-6">Légal</h3>
             <ul className="space-y-3 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">Conditions d&apos;Utilisation</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Politique de Confidentialité</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Politique des Cookies</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">DMCA</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Vérification d&apos;Âge</a></li>
+              <li><a href="/terms" className="hover:text-primary transition-colors">Conditions d&apos;Utilisation</a></li>
+              <li><a href="/privacy" className="hover:text-primary transition-colors">Politique de Confidentialité</a></li>
+              <li><a href="/cookies" className="hover:text-primary transition-colors">Politique des Cookies</a></li>
+              <li><a href="/legal" className="hover:text-primary transition-colors">Mentions Légales</a></li>
             </ul>
           </div>
 
