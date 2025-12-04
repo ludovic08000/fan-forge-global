@@ -11,9 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3 } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, WifiOff } from 'lucide-react';
 import { useLiveStream } from '@/hooks/useLiveStream';
 import { useLiveChat } from '@/hooks/useLiveChat';
+import { useWebRTCBroadcast } from '@/hooks/useWebRTCBroadcast';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -32,11 +33,13 @@ export const LiveStreamStudio = () => {
   const [price, setPrice] = useState(0);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [viewerCount, setViewerCount] = useState(0);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { messages, sendMessage } = useLiveChat(currentStream?.id || '');
+  
+  // WebRTC broadcast hook
+  const { isStreaming, connectedViewers, startBroadcast, stopBroadcast } = useWebRTCBroadcast(currentStream?.id || '');
 
   // Référence pour stocker l'ID du stream actuel pour le cleanup
   const currentStreamIdRef = useRef<string | null>(null);
@@ -203,6 +206,12 @@ export const LiveStreamStudio = () => {
       await startLiveStream(stream.id);
       setIsLive(true);
       
+      // Démarrer la diffusion WebRTC
+      if (streamRef.current) {
+        await startBroadcast(streamRef.current);
+        console.log('[Studio] WebRTC broadcast started');
+      }
+      
       // Démarrer le tracking des revenus par minute
       const revenueInterval = setInterval(async () => {
         const liveStartTime = new Date(stream.started_at || Date.now());
@@ -252,6 +261,10 @@ export const LiveStreamStudio = () => {
     if (!currentStream) return;
 
     try {
+      // Arrêter la diffusion WebRTC
+      stopBroadcast();
+      console.log('[Studio] WebRTC broadcast stopped');
+      
       await endLiveStream(currentStream.id);
       setIsLive(false);
       
@@ -334,11 +347,24 @@ export const LiveStreamStudio = () => {
                 className="w-full h-full object-cover"
               />
               
-              {/* Compteur de spectateurs */}
+              {/* Compteur de spectateurs WebRTC */}
               {isLive && (
-                <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1 rounded-full flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <span>{viewerCount}</span>
+                <div className="absolute top-4 right-4 flex items-center gap-2">
+                  <div className="bg-black/70 text-white px-3 py-1 rounded-full flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span>{connectedViewers}</span>
+                  </div>
+                  {isStreaming ? (
+                    <div className="bg-green-500/90 text-white px-3 py-1 rounded-full flex items-center gap-2">
+                      <Wifi className="h-4 w-4" />
+                      <span className="text-xs">Diffusion active</span>
+                    </div>
+                  ) : (
+                    <div className="bg-yellow-500/90 text-white px-3 py-1 rounded-full flex items-center gap-2">
+                      <WifiOff className="h-4 w-4" />
+                      <span className="text-xs">Connexion...</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
