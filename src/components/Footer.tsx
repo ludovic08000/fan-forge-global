@@ -17,10 +17,10 @@ const Footer = () => {
               </span>
             </div>
             <p className="text-muted-foreground mb-2">
-              Crub est une plateforme créative moderne dédiée aux créateurs et à leur communauté.
+              Crub est une plateforme premium dédiée aux créateurs et à leur communauté.
             </p>
             <p className="text-muted-foreground text-sm">
-              Un hub premium pensé pour le partage, la créativité et l'interaction. Crub, le futur de la création digitale.
+              Un hub moderne, sécurisé et conçu pour la création de contenu exclusif. Crub – La nouvelle génération de plateformes créatives.
             </p>
           </div>
 
