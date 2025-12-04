@@ -13,11 +13,14 @@ const Footer = () => {
                 <Crown className="h-6 w-6 text-primary-foreground" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent">
-                CreatorHub
+                Crub
               </span>
             </div>
-            <p className="text-muted-foreground">
-              La plateforme nouvelle génération pour créateurs de contenu.
+            <p className="text-muted-foreground mb-2">
+              Crub est une plateforme créative moderne dédiée aux créateurs et à leur communauté.
+            </p>
+            <p className="text-muted-foreground text-sm">
+              Un hub premium pensé pour le partage, la créativité et l'interaction. Crub, le futur de la création digitale.
             </p>
           </div>
 
@@ -53,7 +56,7 @@ const Footer = () => {
         <div className="pt-8 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-muted-foreground text-sm">
-              © {new Date().getFullYear()} CreatorHub. Tous droits réservés.
+              © {new Date().getFullYear()} Crub. Tous droits réservés.
             </div>
             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
               <span>Conforme RGPD</span>

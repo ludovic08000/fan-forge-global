@@ -12,16 +12,16 @@ interface SEOHeadProps {
 }
 
 const SEOHead = ({
-  title = "CreatorHub - Plateforme Premium pour Créateurs de Contenu",
-  description = "La plateforme française n°1 pour créateurs de contenu. Live streaming, abonnements, messagerie privée. Monétisez votre passion.",
-  keywords = "créateurs de contenu, plateforme créateurs, live streaming, abonnements, monétisation",
-  image = "https://creatorhub.com/og-image.jpg",
-  url = "https://creatorhub.com",
+  title = "Crub – Plateforme Créateurs Moderne | Le Hub Premium du Contenu",
+  description = "Crub est la plateforme créative moderne dédiée aux créateurs. Partage, contenu exclusif, communauté premium et espace sécurisé. Rejoignez le Hub Crub.",
+  keywords = "Crub, plateforme Crub, Crub créateurs, Crub réseau social, Crub hub créatif, Crub contenu exclusif, Crub plateforme premium",
+  image = "https://crub.com/og-image.jpg",
+  url = "https://crub.com",
   type = "website",
   author,
   noindex = false,
 }: SEOHeadProps) => {
-  const fullTitle = title.includes("CreatorHub") ? title : `${title} | CreatorHub`;
+  const fullTitle = title.includes("Crub") ? title : `${title} | Crub`;
 
   useEffect(() => {
     // Update document title
@@ -52,7 +52,7 @@ const SEOHead = ({
     setMeta('og:description', description, true);
     setMeta('og:image', image, true);
     setMeta('og:locale', 'fr_FR', true);
-    setMeta('og:site_name', 'CreatorHub', true);
+    setMeta('og:site_name', 'Crub', true);
 
     // Twitter
     setMeta('twitter:card', 'summary_large_image');
