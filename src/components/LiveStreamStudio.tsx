@@ -35,6 +35,7 @@ export const LiveStreamStudio = () => {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [isMediaReady, setIsMediaReady] = useState(false);
+  const [testMode, setTestMode] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -346,28 +347,56 @@ export const LiveStreamStudio = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Erreur média */}
-            {mediaError && (
+            {mediaError && !testMode && (
               <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 text-center">
                 <VideoOff className="h-8 w-8 mx-auto mb-2 text-destructive" />
                 <p className="text-sm text-destructive">{mediaError}</p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Veuillez autoriser l'accès à la caméra et au microphone pour diffuser un live.
+                  La caméra n'est pas accessible dans l'aperçu. Utilisez le mode test ou publiez votre app.
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-3"
+                  onClick={() => setTestMode(true)}
+                >
+                  Activer le mode test (sans caméra)
+                </Button>
+              </div>
+            )}
+            
+            {/* Mode test actif */}
+            {testMode && (
+              <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 text-center">
+                <Video className="h-8 w-8 mx-auto mb-2 text-primary" />
+                <p className="text-sm font-medium">Mode test activé</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Le live fonctionnera mais sans diffusion vidéo. Publiez l'app pour utiliser la caméra.
                 </p>
               </div>
             )}
             
             {/* Prévisualisation */}
             <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-              <video
-                ref={videoRef}
-                autoPlay
-                muted
-                playsInline
-                className="w-full h-full object-cover"
-              />
+              {!testMode ? (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-muted">
+                  <div className="text-center">
+                    <Video className="h-16 w-16 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-muted-foreground">Mode test - Pas de vidéo</p>
+                  </div>
+                </div>
+              )}
               
               {/* Message si pas encore de média */}
-              {!isMediaReady && !mediaError && (
+              {!isMediaReady && !mediaError && !testMode && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-white text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
@@ -399,24 +428,26 @@ export const LiveStreamStudio = () => {
             </div>
 
             {/* Contrôles média */}
-            <div className="flex gap-2 justify-center">
-              <Button
-                variant={isVideoEnabled ? 'default' : 'destructive'}
-                size="icon"
-                onClick={toggleVideo}
-                disabled={!isMediaReady}
-              >
-                {isVideoEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-              </Button>
-              <Button
-                variant={isAudioEnabled ? 'default' : 'destructive'}
-                size="icon"
-                onClick={toggleAudio}
-                disabled={!isMediaReady}
-              >
-                {isAudioEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-              </Button>
-            </div>
+            {!testMode && (
+              <div className="flex gap-2 justify-center">
+                <Button
+                  variant={isVideoEnabled ? 'default' : 'destructive'}
+                  size="icon"
+                  onClick={toggleVideo}
+                  disabled={!isMediaReady}
+                >
+                  {isVideoEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant={isAudioEnabled ? 'default' : 'destructive'}
+                  size="icon"
+                  onClick={toggleAudio}
+                  disabled={!isMediaReady}
+                >
+                  {isAudioEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                </Button>
+              </div>
+            )}
 
             {/* Boutons contrôle live */}
             {!isLive ? (
@@ -424,10 +455,10 @@ export const LiveStreamStudio = () => {
                 onClick={handleStartLive} 
                 className="w-full" 
                 size="lg"
-                disabled={!isMediaReady || !!mediaError}
+                disabled={(!isMediaReady && !testMode) || (!!mediaError && !testMode)}
               >
                 <Video className="h-4 w-4 mr-2" />
-                Démarrer le live
+                {testMode ? 'Démarrer le live (mode test)' : 'Démarrer le live'}
               </Button>
             ) : (
               <Button
