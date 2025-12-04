@@ -103,24 +103,16 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('📝 Début inscription avec:', { ...signUpForm, password: '***', confirmPassword: '***' });
     
     const isAllowed = await checkRateLimit('auth');
-    console.log('🔒 Rate limit check:', isAllowed);
-    if (!isAllowed) {
-      console.log('❌ Rate limit bloqué');
-      return;
-    }
+    if (!isAllowed) return;
 
     setIsLoading(true);
     setSignUpErrors({});
 
     try {
-      console.log('🔍 Validation du formulaire...');
       const validatedData = signUpSchema.parse(signUpForm);
-      console.log('✅ Validation réussie:', { ...validatedData, password: '***', confirmPassword: '***' });
 
-      console.log('📤 Appel signUp...');
       const { error } = await signUp(
         validatedData.email,
         validatedData.password,
@@ -133,8 +125,6 @@ const Auth = () => {
         validatedData.stageName,
         validatedData.category
       );
-      
-      console.log('📥 Résultat signUp:', error ? `Erreur: ${error.message}` : 'Succès');
       
       if (!error) {
         setSignUpForm({
@@ -157,11 +147,9 @@ const Auth = () => {
         }
       }
     } catch (error) {
-      console.log('❌ Erreur attrapée:', error);
       if (error instanceof z.ZodError) {
         const errors: Record<string, string> = {};
         error.errors.forEach(err => {
-          console.log('❌ Erreur validation:', err.path, err.message);
           const field = err.path[0] as string;
           if (field && !errors[field]) {
             errors[field] = err.message;
