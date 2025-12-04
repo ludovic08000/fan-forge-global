@@ -1,6 +1,7 @@
 /**
  * Page Dashboard - Interface principale pour créateurs et abonnés
  * Affiche les statistiques, le contenu et les paramètres selon le rôle
+ * Updated: 2025-12-04
  */
 
 import React, { useState, useEffect } from 'react';
