@@ -6,12 +6,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Room, RoomEvent, createLocalTracks, type LocalTrack } from 'livekit-client';
 
 const LIVEKIT_URL = 'wss://plaisir-ykn9lxey.livekit.cloud';
-
-// Types pour LiveKit (pour éviter les erreurs d'import)
-type Room = any;
-type RoomEvent = any;
 
 export const useLiveKitBroadcast = () => {
   const [isStreaming, setIsStreaming] = useState(false);
@@ -21,23 +18,6 @@ export const useLiveKitBroadcast = () => {
   
   const roomRef = useRef<Room | null>(null);
   const currentStreamIdRef = useRef<string | null>(null);
-  const liveKitModuleRef = useRef<any>(null);
-
-  /**
-   * Charger le module LiveKit de manière dynamique
-   */
-  const loadLiveKit = useCallback(async () => {
-    if (liveKitModuleRef.current) return liveKitModuleRef.current;
-    
-    try {
-      const module = await import('livekit-client');
-      liveKitModuleRef.current = module;
-      return module;
-    } catch (err) {
-      console.error('[LiveKit Broadcast] Failed to load livekit-client:', err);
-      throw new Error('LiveKit non disponible');
-    }
-  }, []);
 
   /**
    * Obtenir un token LiveKit depuis l'edge function
@@ -81,10 +61,6 @@ export const useLiveKitBroadcast = () => {
     setError(null);
 
     try {
-      // Charger LiveKit dynamiquement
-      const liveKit = await loadLiveKit();
-      const { Room, RoomEvent, createLocalTracks } = liveKit;
-
       // Obtenir le token
       const token = await getToken(streamId, true);
       console.log('[LiveKit Broadcast] Token obtained, connecting to room...');
@@ -153,7 +129,6 @@ export const useLiveKitBroadcast = () => {
           }
         } catch (trackError) {
           console.warn('[LiveKit Broadcast] Could not create local tracks:', trackError);
-          // Continuer sans média (mode test)
         }
       }
 
@@ -169,7 +144,7 @@ export const useLiveKitBroadcast = () => {
       setIsConnecting(false);
       toast.error('Erreur de connexion LiveKit');
     }
-  }, [isConnecting, isStreaming, getToken, loadLiveKit]);
+  }, [isConnecting, isStreaming, getToken]);
 
   /**
    * Arrêter la diffusion
