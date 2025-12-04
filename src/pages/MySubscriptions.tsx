@@ -6,9 +6,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Crown, Calendar, ExternalLink } from 'lucide-react';
+import { Crown, Calendar, ExternalLink, Settings, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 interface Subscription {
   id: string;
@@ -174,10 +175,31 @@ const MySubscriptions = () => {
 };
 
 const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
+  const [isManaging, setIsManaging] = useState(false);
   const creator = subscription.creator;
   const profile = creator.profile;
   const displayName = creator.stage_name || profile?.display_name || profile?.username || 'Créateur';
   const username = profile?.username;
+
+  const handleManageSubscription = async () => {
+    setIsManaging(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('customer-portal');
+      
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error('No portal URL returned');
+      }
+    } catch (error: any) {
+      console.error('Error opening customer portal:', error);
+      toast.error(error.message || 'Impossible d\'ouvrir le portail de gestion');
+    } finally {
+      setIsManaging(false);
+    }
+  };
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
@@ -217,6 +239,23 @@ const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
             <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
               {subscription.status === 'active' ? 'Actif' : 'Expiré'}
             </Badge>
+            {subscription.status === 'active' && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleManageSubscription}
+                disabled={isManaging}
+              >
+                {isManaging ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Settings className="h-4 w-4 mr-1" />
+                    Gérer
+                  </>
+                )}
+              </Button>
+            )}
             {username && (
               <Button variant="outline" size="sm" asChild>
                 <Link to={`/${username}`}>
