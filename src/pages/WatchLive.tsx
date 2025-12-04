@@ -2,8 +2,26 @@
  * Page pour regarder un live stream spécifique
  */
 
+import { Suspense, lazy } from 'react';
 import { useParams } from 'react-router-dom';
-import { LiveStreamViewer } from '@/components/LiveStreamViewer';
+import { Loader2 } from 'lucide-react';
+
+// Lazy load LiveStreamViewer to avoid blocking if livekit-client fails
+const LiveStreamViewer = lazy(() => 
+  import('@/components/LiveStreamViewer').then(m => ({ default: m.LiveStreamViewer }))
+);
+
+/**
+ * Fallback pendant le chargement
+ */
+const LoadingFallback = () => (
+  <div className="container mx-auto py-8 px-4">
+    <div className="flex flex-col items-center justify-center min-h-[400px] text-muted-foreground">
+      <Loader2 className="h-12 w-12 animate-spin mb-4" />
+      <p>Chargement du lecteur...</p>
+    </div>
+  </div>
+);
 
 /**
  * Page de visualisation d'un live
@@ -22,7 +40,11 @@ const WatchLive = () => {
     );
   }
 
-  return <LiveStreamViewer streamId={streamId} />;
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <LiveStreamViewer streamId={streamId} />
+    </Suspense>
+  );
 };
 
 export default WatchLive;
