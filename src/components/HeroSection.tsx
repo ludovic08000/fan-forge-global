@@ -138,18 +138,6 @@ const HeroSection = () => {
             </div>
           </div>
 
-          {/* H2 - Crub, une identité forte et unique */}
-          <div className="text-center bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-2xl p-8">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-foreground">
-              Crub, une identité forte et unique
-            </h2>
-            <p className="text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-              Le nom Crub est court, original, facile à retenir et optimise la visibilité SEO. 
-              Il se distingue immédiatement des plateformes traditionnelles grâce à une prononciation simple, 
-              une identité marquante et une marque valorisante.
-            </p>
-          </div>
-
           {/* Final CTA */}
           <div className="text-center">
             <h2 className="text-2xl md:text-3xl font-bold mb-4 text-foreground">
