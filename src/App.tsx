@@ -36,6 +36,7 @@ const Install = lazy(() => import("./pages/Install"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const SecuritySettings = lazy(() => import("./pages/SecuritySettings"));
 const ProfileSettings = lazy(() => import("./pages/ProfileSettings"));
+const MySubscriptions = lazy(() => import("./pages/MySubscriptions"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const LegalNotice = lazy(() => import("./pages/LegalNotice"));
@@ -116,6 +117,11 @@ const AppRoutes = () => {
           <Route path="/profile" element={
             <ProtectedRoute>
               <ProfileSettings />
+            </ProtectedRoute>
+          } />
+          <Route path="/subscriptions" element={
+            <ProtectedRoute>
+              <MySubscriptions />
             </ProtectedRoute>
           } />
           <Route path="/dashboard" element={

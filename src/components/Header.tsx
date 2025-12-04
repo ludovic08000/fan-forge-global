@@ -67,6 +67,12 @@ const Header: React.FC = () => {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                  <Link to="/subscriptions" className="flex items-center">
+                    <Crown className="mr-2 h-4 w-4" />
+                    <span>Mes abonnements</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link to="/admin" className="flex items-center text-orange-600">
                     <Crown className="mr-2 h-4 w-4" />
                     <span>Admin (TEST)</span>
@@ -159,6 +165,13 @@ const Header: React.FC = () => {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Mon profil
+                  </Link>
+                  <Link 
+                    to="/subscriptions" 
+                    className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Mes abonnements
                   </Link>
                   <Link 
                     to="/admin" 
