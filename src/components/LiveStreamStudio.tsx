@@ -11,10 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, WifiOff } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { useLiveStream } from '@/hooks/useLiveStream';
 import { useLiveChat } from '@/hooks/useLiveChat';
-import { useWebRTCBroadcast } from '@/hooks/useWebRTCBroadcast';
+import { useLiveKitBroadcast } from '@/hooks/useLiveKitBroadcast';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -41,8 +41,8 @@ export const LiveStreamStudio = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const { messages, sendMessage } = useLiveChat(currentStream?.id || '');
   
-  // WebRTC broadcast hook
-  const { isStreaming, connectedViewers, startBroadcast, stopBroadcast } = useWebRTCBroadcast(currentStream?.id || '');
+  // LiveKit broadcast hook
+  const { isStreaming, isConnecting: isLiveKitConnecting, connectedViewers, error: liveKitError, startBroadcast, stopBroadcast } = useLiveKitBroadcast(currentStream?.id || '');
 
   // Référence pour stocker l'ID du stream actuel pour le cleanup
   const currentStreamIdRef = useRef<string | null>(null);
@@ -215,9 +215,9 @@ export const LiveStreamStudio = () => {
       await startLiveStream(stream.id);
       setIsLive(true);
       
-      // Démarrer la diffusion WebRTC (même en mode test pour le signaling)
+      // Démarrer la diffusion LiveKit
       await startBroadcast(streamRef.current);
-      console.log('[Studio] WebRTC broadcast started', streamRef.current ? 'with media' : 'test mode');
+      console.log('[Studio] LiveKit broadcast started', streamRef.current ? 'with media' : 'test mode');
       
       // Démarrer le tracking des revenus par minute
       const revenueInterval = setInterval(async () => {
@@ -268,9 +268,9 @@ export const LiveStreamStudio = () => {
     if (!currentStream) return;
 
     try {
-      // Arrêter la diffusion WebRTC
-      stopBroadcast();
-      console.log('[Studio] WebRTC broadcast stopped');
+      // Arrêter la diffusion LiveKit
+      await stopBroadcast();
+      console.log('[Studio] LiveKit broadcast stopped');
       
       await endLiveStream(currentStream.id);
       setIsLive(false);
@@ -403,24 +403,29 @@ export const LiveStreamStudio = () => {
                 </div>
               )}
               
-              {/* Compteur de spectateurs WebRTC */}
+              {/* Compteur de spectateurs LiveKit */}
               {isLive && (
                 <div className="absolute top-4 right-4 flex items-center gap-2">
                   <div className="bg-black/70 text-white px-3 py-1 rounded-full flex items-center gap-2">
                     <Users className="h-4 w-4" />
                     <span>{connectedViewers}</span>
                   </div>
-                  {isStreaming ? (
+                  {isLiveKitConnecting ? (
+                    <div className="bg-yellow-500/90 text-white px-3 py-1 rounded-full flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-xs">Connexion LiveKit...</span>
+                    </div>
+                  ) : isStreaming ? (
                     <div className="bg-green-500/90 text-white px-3 py-1 rounded-full flex items-center gap-2">
                       <Wifi className="h-4 w-4" />
-                      <span className="text-xs">Diffusion active</span>
+                      <span className="text-xs">LiveKit actif</span>
                     </div>
-                  ) : (
-                    <div className="bg-yellow-500/90 text-white px-3 py-1 rounded-full flex items-center gap-2">
+                  ) : liveKitError ? (
+                    <div className="bg-red-500/90 text-white px-3 py-1 rounded-full flex items-center gap-2">
                       <WifiOff className="h-4 w-4" />
-                      <span className="text-xs">Connexion...</span>
+                      <span className="text-xs">Erreur</span>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               )}
             </div>

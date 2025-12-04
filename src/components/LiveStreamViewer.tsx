@@ -13,7 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Users, Send, Circle, Heart, Lock, ChevronUp, Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { useLiveStream } from '@/hooks/useLiveStream';
 import { useLiveChat } from '@/hooks/useLiveChat';
-import { useWebRTCViewer } from '@/hooks/useWebRTCViewer';
+import { useLiveKitViewer } from '@/hooks/useLiveKitViewer';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -35,8 +35,8 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   const { trackError } = useAnalytics();
   const { isUserBanned, settings } = useLiveModeration(streamId);
   
-  // WebRTC viewer hook
-  const { isConnected, isConnecting, remoteStream, error: webrtcError, connect, disconnect } = useWebRTCViewer(streamId);
+  // LiveKit viewer hook
+  const { isConnected, isConnecting, error: liveKitError, connect, disconnect, setVideoRef } = useLiveKitViewer(streamId);
   
   const [newMessage, setNewMessage] = useState('');
   const [likes, setLikes] = useState(0);
@@ -45,7 +45,6 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   const [liveStream, setLiveStream] = useState<any>(null);
   const [isCreator, setIsCreator] = useState(false);
   const [lastMessageTime, setLastMessageTime] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
@@ -110,7 +109,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   useEffect(() => {
     if (user && hasAccess) {
       joinLiveStream(streamId);
-      // Se connecter au stream WebRTC
+      // Se connecter au stream LiveKit
       connect();
     }
 
@@ -122,16 +121,6 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamId, user?.id, hasAccess]);
-
-  /**
-   * Attacher le stream WebRTC à la vidéo
-   */
-  useEffect(() => {
-    if (videoRef.current && remoteStream) {
-      console.log('[Viewer] Attaching remote stream to video element');
-      videoRef.current.srcObject = remoteStream;
-    }
-  }, [remoteStream]);
 
   /**
    * Auto-scroll vers le dernier message
@@ -284,18 +273,18 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
           <Card>
             <CardContent className="p-0">
               <div className="relative aspect-video bg-black rounded-t-lg overflow-hidden">
-                {/* Affichage du stream WebRTC */}
+                {/* Affichage du stream LiveKit */}
                 {isConnecting && !isConnected && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10">
                     <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                    <p className="text-white">Connexion au stream...</p>
+                    <p className="text-white">Connexion au stream LiveKit...</p>
                   </div>
                 )}
                 
-                {webrtcError && !isConnected && (
+                {liveKitError && !isConnected && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10">
                     <WifiOff className="h-12 w-12 text-red-500 mb-4" />
-                    <p className="text-white mb-2">{webrtcError}</p>
+                    <p className="text-white mb-2">{liveKitError}</p>
                     <Button onClick={connect} variant="secondary">
                       Réessayer
                     </Button>
@@ -303,13 +292,13 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                 )}
 
                 <video
-                  ref={videoRef}
+                  ref={setVideoRef}
                   autoPlay
                   playsInline
                   className="w-full h-full object-cover"
                 />
                 
-                {/* Badge EN DIRECT + Status WebRTC */}
+                {/* Badge EN DIRECT + Status LiveKit */}
                 <div className="absolute top-4 left-4 flex items-center gap-2">
                   <Badge variant="destructive" className="gap-1 animate-pulse">
                     <Circle className="h-2 w-2 fill-current" />
@@ -318,12 +307,12 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                   {isConnected ? (
                     <Badge variant="secondary" className="gap-1 bg-green-500/90">
                       <Wifi className="h-3 w-3" />
-                      Connecté
+                      LiveKit connecté
                     </Badge>
                   ) : isConnecting ? (
                     <Badge variant="secondary" className="gap-1 bg-yellow-500/90">
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      Connexion...
+                      Connexion LiveKit...
                     </Badge>
                   ) : null}
                 </div>
