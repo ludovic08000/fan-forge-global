@@ -12,6 +12,7 @@ import { authSchema, signUpSchema } from '@/lib/validations';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { PasswordRequirements } from '@/components/PasswordRequirements';
 import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
@@ -46,7 +47,7 @@ const Auth = () => {
     category: ''
   });
 
-  const [signUpErrors, setSignUpErrors] = useState<{ email?: string }>({});
+  const [signUpErrors, setSignUpErrors] = useState<Record<string, string>>({});
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -147,9 +148,14 @@ const Auth = () => {
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
+        const errors: Record<string, string> = {};
         error.errors.forEach(err => {
-          toast.error(err.message);
+          const field = err.path[0] as string;
+          if (field && !errors[field]) {
+            errors[field] = err.message;
+          }
         });
+        setSignUpErrors(errors);
       }
     } finally {
       setIsLoading(false);
@@ -408,42 +414,68 @@ const Auth = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="firstName">Prénom</Label>
+                      <Label htmlFor="firstName">Prénom *</Label>
                       <Input
                         id="firstName"
                         type="text"
                         placeholder="Prénom"
+                        required
+                        className={signUpErrors.firstName ? 'border-destructive' : ''}
                         value={signUpForm.firstName}
-                        onChange={(e) => setSignUpForm({ ...signUpForm, firstName: e.target.value })}
+                        onChange={(e) => {
+                          setSignUpForm({ ...signUpForm, firstName: e.target.value });
+                          if (signUpErrors.firstName) setSignUpErrors(prev => ({ ...prev, firstName: '' }));
+                        }}
                       />
+                      {signUpErrors.firstName && (
+                        <p className="text-xs text-destructive">{signUpErrors.firstName}</p>
+                      )}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="lastName">Nom</Label>
+                      <Label htmlFor="lastName">Nom *</Label>
                       <Input
                         id="lastName"
                         type="text"
                         placeholder="Nom"
+                        required
+                        className={signUpErrors.lastName ? 'border-destructive' : ''}
                         value={signUpForm.lastName}
-                        onChange={(e) => setSignUpForm({ ...signUpForm, lastName: e.target.value })}
+                        onChange={(e) => {
+                          setSignUpForm({ ...signUpForm, lastName: e.target.value });
+                          if (signUpErrors.lastName) setSignUpErrors(prev => ({ ...prev, lastName: '' }));
+                        }}
                       />
+                      {signUpErrors.lastName && (
+                        <p className="text-xs text-destructive">{signUpErrors.lastName}</p>
+                      )}
                     </div>
                   </div>
 
                   {/* Pseudo pour les utilisateurs */}
                   {signUpForm.role === 'subscriber' && (
                     <div className="space-y-2">
-                      <Label htmlFor="username">Pseudo *</Label>
+                      <div className="flex justify-between items-center">
+                        <Label htmlFor="username">Pseudo</Label>
+                        <span className="text-xs text-muted-foreground">{signUpForm.username.length}/30</span>
+                      </div>
                       <Input
                         id="username"
                         type="text"
                         placeholder="Ex: john_doe"
-                        required
+                        className={signUpErrors.username ? 'border-destructive' : ''}
                         value={signUpForm.username}
-                        onChange={(e) => setSignUpForm({ ...signUpForm, username: e.target.value })}
+                        onChange={(e) => {
+                          setSignUpForm({ ...signUpForm, username: e.target.value });
+                          if (signUpErrors.username) setSignUpErrors(prev => ({ ...prev, username: '' }));
+                        }}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Ce pseudo sera visible par les autres utilisateurs
-                      </p>
+                      {signUpErrors.username ? (
+                        <p className="text-xs text-destructive">{signUpErrors.username}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Optionnel - Ce pseudo sera visible par les autres utilisateurs
+                        </p>
+                      )}
                     </div>
                   )}
 
@@ -543,16 +575,19 @@ const Auth = () => {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Mot de passe</Label>
+                    <Label htmlFor="signup-password">Mot de passe *</Label>
                     <div className="relative">
                       <Input
                         id="signup-password"
                         type={showPassword ? "text" : "password"}
                         placeholder="••••••••"
                         required
-                        minLength={6}
+                        className={signUpErrors.password ? 'border-destructive' : ''}
                         value={signUpForm.password}
-                        onChange={(e) => setSignUpForm({ ...signUpForm, password: e.target.value })}
+                        onChange={(e) => {
+                          setSignUpForm({ ...signUpForm, password: e.target.value });
+                          if (signUpErrors.password) setSignUpErrors(prev => ({ ...prev, password: '' }));
+                        }}
                       />
                       <Button
                         type="button"
@@ -568,6 +603,10 @@ const Auth = () => {
                         )}
                       </Button>
                     </div>
+                    {signUpErrors.password && (
+                      <p className="text-xs text-destructive">{signUpErrors.password}</p>
+                    )}
+                    <PasswordRequirements password={signUpForm.password} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
