@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Crown, ShieldAlert } from "lucide-react";
+import { Crown, ShieldAlert, AlertTriangle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAdultAccess } from "@/hooks/useAdultAccess";
+import { Link } from "react-router-dom";
 
 const AGE_VERIFICATION_KEY = "age-verified";
 const VERIFICATION_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 jours
@@ -67,6 +70,8 @@ export const requiresAgeVerification = (category?: string | null, contentType?: 
 };
 
 const AgeVerificationGate = ({ children, category, contentType }: AgeVerificationGateProps) => {
+  const { user } = useAuth();
+  const { isAdult: isUserAdult, isLoading: isLoadingAge, hasBirthdate, age } = useAdultAccess();
   const [isVerified, setIsVerified] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(true);
 
@@ -80,6 +85,17 @@ const AgeVerificationGate = ({ children, category, contentType }: AgeVerificatio
       return;
     }
 
+    // Si l'utilisateur est connecté et a une date de naissance
+    if (user && !isLoadingAge) {
+      if (hasBirthdate) {
+        // Vérification basée sur la date de naissance en base
+        setIsVerified(isUserAdult === true);
+        setIsChecking(false);
+        return;
+      }
+    }
+
+    // Fallback: vérification localStorage pour les non-connectés ou sans date de naissance
     const storedVerification = localStorage.getItem(AGE_VERIFICATION_KEY);
     
     if (storedVerification) {
@@ -97,7 +113,7 @@ const AgeVerificationGate = ({ children, category, contentType }: AgeVerificatio
     }
     
     setIsChecking(false);
-  }, [needsVerification]);
+  }, [needsVerification, user, isUserAdult, isLoadingAge, hasBirthdate]);
 
   const handleVerification = (isAdult: boolean) => {
     if (isAdult) {
@@ -110,6 +126,54 @@ const AgeVerificationGate = ({ children, category, contentType }: AgeVerificatio
       window.location.href = "https://www.google.com";
     }
   };
+
+  // Si utilisateur connecté et mineur (date de naissance vérifiée)
+  if (needsVerification && user && hasBirthdate && isUserAdult === false && !isLoadingAge) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-destructive bg-card/95 backdrop-blur-sm">
+          <CardHeader className="text-center space-y-4">
+            <div className="mx-auto bg-destructive/20 p-4 rounded-2xl w-fit">
+              <AlertTriangle className="h-12 w-12 text-destructive" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-destructive">
+              Accès interdit
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <CardDescription className="text-center text-base leading-relaxed">
+              Vous avez {age} ans. Ce contenu est strictement réservé aux personnes majeures (18 ans et plus).
+              Selon votre date de naissance enregistrée, vous n'êtes pas autorisé(e) à accéder à cette section.
+            </CardDescription>
+
+            <div className="bg-destructive/10 p-4 rounded-lg border border-destructive/30">
+              <p className="text-sm text-muted-foreground text-center">
+                Cette restriction est automatique et basée sur votre profil. 
+                Si vous pensez qu'il s'agit d'une erreur, vérifiez votre date de naissance dans vos paramètres.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Link to="/profile">
+                <Button variant="outline" className="w-full">
+                  Vérifier mon profil
+                </Button>
+              </Link>
+              <Link to="/">
+                <Button className="w-full">
+                  Retour à l'accueil
+                </Button>
+              </Link>
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center">
+              Conformément à la loi française, l'accès à ce contenu est interdit aux mineurs.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Si pas besoin de vérification, afficher le contenu
   if (!needsVerification) {
