@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import SEOHead from "@/components/SEOHead";
 
 const PrivacyPolicy = () => {
   useEffect(() => {
@@ -7,6 +8,13 @@ const PrivacyPolicy = () => {
 
   return (
     <main className="min-h-screen bg-background py-16">
+      <SEOHead 
+        title="Politique de Confidentialité RGPD - CreatorHub"
+        description="Politique de confidentialité de CreatorHub conforme au RGPD. Découvrez comment nous collectons, utilisons et protégeons vos données personnelles."
+        keywords="politique confidentialité, RGPD, protection données, vie privée, données personnelles"
+        url="https://creatorhub.com/privacy"
+        noindex={false}
+      />
       <div className="container mx-auto px-4 max-w-4xl">
         <h1 className="text-4xl font-bold mb-8">Politique de Confidentialité</h1>
         <p className="text-muted-foreground mb-8">Dernière mise à jour : {new Date().toLocaleDateString('fr-FR')}</p>

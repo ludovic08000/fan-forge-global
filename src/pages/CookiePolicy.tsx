@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import SEOHead from "@/components/SEOHead";
 
 const CookiePolicy = () => {
   useEffect(() => {
@@ -7,6 +8,13 @@ const CookiePolicy = () => {
 
   return (
     <main className="min-h-screen bg-background py-16">
+      <SEOHead 
+        title="Politique des Cookies - CreatorHub"
+        description="Politique des cookies de CreatorHub. Découvrez les cookies utilisés sur notre site et comment les gérer selon vos préférences."
+        keywords="cookies, politique cookies, traceurs, RGPD cookies, consentement cookies"
+        url="https://creatorhub.com/cookies"
+        noindex={false}
+      />
       <div className="container mx-auto px-4 max-w-4xl">
         <h1 className="text-4xl font-bold mb-8">Politique des Cookies</h1>
         <p className="text-muted-foreground mb-8">Dernière mise à jour : {new Date().toLocaleDateString('fr-FR')}</p>

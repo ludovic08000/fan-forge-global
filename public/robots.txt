@@ -1,3 +1,34 @@
+# Robots.txt for CreatorHub
+# https://creatorhub.com
+
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://creatorhub.com/sitemap.xml
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Disallow admin and private areas
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /api/
+Disallow: /auth
+Disallow: /reset-password
+
+# Allow important pages
+Allow: /
+Allow: /search
+Allow: /lives
+Allow: /terms
+Allow: /privacy
+Allow: /legal
+Allow: /cookies
+Allow: /install
+
+# Allow specific bots full access to public content
 User-agent: Googlebot
 Allow: /
 
@@ -10,5 +41,15 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
+User-agent: LinkedInBot
 Allow: /
+
+# Block bad bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /

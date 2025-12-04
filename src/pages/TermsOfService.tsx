@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import SEOHead from "@/components/SEOHead";
 
 const TermsOfService = () => {
   useEffect(() => {
@@ -7,6 +8,13 @@ const TermsOfService = () => {
 
   return (
     <main className="min-h-screen bg-background py-16">
+      <SEOHead 
+        title="Conditions Générales d'Utilisation (CGU) - CreatorHub"
+        description="Lisez les Conditions Générales d'Utilisation de CreatorHub. Découvrez vos droits et obligations en tant qu'utilisateur de notre plateforme de créateurs de contenu."
+        keywords="CGU, conditions utilisation, mentions légales, règlement, plateforme créateurs"
+        url="https://creatorhub.com/terms"
+        noindex={false}
+      />
       <div className="container mx-auto px-4 max-w-4xl">
         <h1 className="text-4xl font-bold mb-8">Conditions Générales d'Utilisation</h1>
         <p className="text-muted-foreground mb-8">Dernière mise à jour : {new Date().toLocaleDateString('fr-FR')}</p>
