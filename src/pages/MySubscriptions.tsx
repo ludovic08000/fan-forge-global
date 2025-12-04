@@ -224,11 +224,21 @@ const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
             {username && (
               <p className="text-sm text-muted-foreground">@{username}</p>
             )}
-            <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" />
                 Depuis {format(new Date(subscription.start_date), 'dd MMM yyyy', { locale: fr })}
               </span>
+              {subscription.end_date && subscription.status === 'active' && (
+                <span className="flex items-center gap-1 text-primary">
+                  Renouvellement : {format(new Date(subscription.end_date), 'dd MMM yyyy', { locale: fr })}
+                </span>
+              )}
+              {subscription.end_date && subscription.status !== 'active' && (
+                <span className="flex items-center gap-1 text-destructive">
+                  Expiré le {format(new Date(subscription.end_date), 'dd MMM yyyy', { locale: fr })}
+                </span>
+              )}
               <span className="font-medium text-foreground">
                 {subscription.price}€/mois
               </span>
