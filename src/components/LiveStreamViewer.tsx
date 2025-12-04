@@ -283,11 +283,19 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                 
                 {liveKitError && !isConnected && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10">
-                    <WifiOff className="h-12 w-12 text-red-500 mb-4" />
-                    <p className="text-white mb-2">{liveKitError}</p>
-                    <Button onClick={connect} variant="secondary">
-                      Réessayer
-                    </Button>
+                    <div className="text-center max-w-md px-4">
+                      <div className="bg-amber-500/20 border border-amber-500/50 rounded-lg p-6">
+                        <Wifi className="h-12 w-12 text-amber-400 mx-auto mb-4" />
+                        <h3 className="text-white font-semibold mb-2">Mode aperçu limité</h3>
+                        <p className="text-white/80 text-sm mb-4">
+                          La diffusion vidéo LiveKit n'est pas disponible dans l'environnement d'aperçu. 
+                          Pour tester la réception vidéo, publiez l'application.
+                        </p>
+                        <Button onClick={connect} variant="secondary" size="sm">
+                          Réessayer la connexion
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
 
