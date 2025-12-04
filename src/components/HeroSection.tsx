@@ -51,7 +51,7 @@ const HeroSection = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/auth">
+            <Link to="/auth?tab=signup">
               <Button variant="hero" size="lg">
                 {t('hero.joinAsCreator')}
               </Button>
