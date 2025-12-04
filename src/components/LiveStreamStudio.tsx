@@ -215,11 +215,9 @@ export const LiveStreamStudio = () => {
       await startLiveStream(stream.id);
       setIsLive(true);
       
-      // Démarrer la diffusion WebRTC
-      if (streamRef.current) {
-        await startBroadcast(streamRef.current);
-        console.log('[Studio] WebRTC broadcast started');
-      }
+      // Démarrer la diffusion WebRTC (même en mode test pour le signaling)
+      await startBroadcast(streamRef.current);
+      console.log('[Studio] WebRTC broadcast started', streamRef.current ? 'with media' : 'test mode');
       
       // Démarrer le tracking des revenus par minute
       const revenueInterval = setInterval(async () => {

@@ -143,14 +143,15 @@ export const useWebRTCBroadcast = (streamId: string) => {
 
   /**
    * Démarrer la diffusion
+   * @param stream - MediaStream optionnel (null pour mode test)
    */
-  const startBroadcast = useCallback(async (stream: MediaStream) => {
+  const startBroadcast = useCallback(async (stream: MediaStream | null) => {
     if (!streamId) {
       toast.error('ID du stream manquant');
       return;
     }
 
-    console.log('[Broadcast] Starting broadcast for stream:', streamId);
+    console.log('[Broadcast] Starting broadcast for stream:', streamId, stream ? 'with media' : 'test mode');
     localStreamRef.current = stream;
 
     // Créer le canal de signalisation
