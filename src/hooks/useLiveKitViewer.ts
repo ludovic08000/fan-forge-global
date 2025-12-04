@@ -4,11 +4,13 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Room, RoomEvent, RemoteTrack, RemoteTrackPublication, RemoteParticipant, Track } from 'livekit-client';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 const LIVEKIT_URL = 'wss://plaisir-ykn9lxey.livekit.cloud';
+
+// Types pour LiveKit (pour éviter les erreurs d'import)
+type Room = any;
 
 export const useLiveKitViewer = (streamId: string) => {
   const { user } = useAuth();
@@ -20,6 +22,23 @@ export const useLiveKitViewer = (streamId: string) => {
   
   const roomRef = useRef<Room | null>(null);
   const isConnectingRef = useRef(false);
+  const liveKitModuleRef = useRef<any>(null);
+
+  /**
+   * Charger le module LiveKit de manière dynamique
+   */
+  const loadLiveKit = useCallback(async () => {
+    if (liveKitModuleRef.current) return liveKitModuleRef.current;
+    
+    try {
+      const module = await import('livekit-client');
+      liveKitModuleRef.current = module;
+      return module;
+    } catch (err) {
+      console.error('[LiveKit Viewer] Failed to load livekit-client:', err);
+      throw new Error('LiveKit non disponible');
+    }
+  }, []);
 
   /**
    * Obtenir un token LiveKit depuis l'edge function
@@ -40,40 +59,6 @@ export const useLiveKitViewer = (streamId: string) => {
   }, [streamId, user?.id]);
 
   /**
-   * Attacher les tracks aux éléments média
-   */
-  const handleTrackSubscribed = useCallback((
-    track: RemoteTrack,
-    publication: RemoteTrackPublication,
-    participant: RemoteParticipant
-  ) => {
-    console.log('[LiveKit Viewer] Track subscribed:', track.kind, 'from', participant.identity);
-    
-    if (track.kind === Track.Kind.Video && videoElement) {
-      track.attach(videoElement);
-      console.log('[LiveKit Viewer] Video attached');
-    } else if (track.kind === Track.Kind.Audio) {
-      const audio = track.attach();
-      audio.volume = 1;
-      document.body.appendChild(audio);
-      setAudioElement(audio);
-      console.log('[LiveKit Viewer] Audio attached');
-    }
-  }, [videoElement]);
-
-  /**
-   * Détacher les tracks
-   */
-  const handleTrackUnsubscribed = useCallback((
-    track: RemoteTrack,
-    publication: RemoteTrackPublication,
-    participant: RemoteParticipant
-  ) => {
-    console.log('[LiveKit Viewer] Track unsubscribed:', track.kind);
-    track.detach();
-  }, []);
-
-  /**
    * Se connecter au stream
    */
   const connect = useCallback(async () => {
@@ -85,6 +70,10 @@ export const useLiveKitViewer = (streamId: string) => {
     setError(null);
 
     try {
+      // Charger LiveKit dynamiquement
+      const liveKit = await loadLiveKit();
+      const { Room, RoomEvent, Track } = liveKit;
+
       // Obtenir le token
       const token = await getToken();
       console.log('[LiveKit Viewer] Token obtained');
@@ -94,6 +83,32 @@ export const useLiveKitViewer = (streamId: string) => {
         adaptiveStream: true,
         dynacast: true,
       });
+
+      // Handler pour attacher les tracks
+      const handleTrackSubscribed = (
+        track: any,
+        publication: any,
+        participant: any
+      ) => {
+        console.log('[LiveKit Viewer] Track subscribed:', track.kind, 'from', participant.identity);
+        
+        if (track.kind === Track.Kind.Video && videoElement) {
+          track.attach(videoElement);
+          console.log('[LiveKit Viewer] Video attached');
+        } else if (track.kind === Track.Kind.Audio) {
+          const audio = track.attach();
+          audio.volume = 1;
+          document.body.appendChild(audio);
+          setAudioElement(audio);
+          console.log('[LiveKit Viewer] Audio attached');
+        }
+      };
+
+      // Handler pour détacher les tracks
+      const handleTrackUnsubscribed = (track: any) => {
+        console.log('[LiveKit Viewer] Track unsubscribed:', track.kind);
+        track.detach();
+      };
 
       // Écouter les événements
       room.on(RoomEvent.TrackSubscribed, handleTrackSubscribed);
@@ -112,7 +127,7 @@ export const useLiveKitViewer = (streamId: string) => {
         isConnectingRef.current = false;
       });
 
-      room.on(RoomEvent.ParticipantConnected, (participant) => {
+      room.on(RoomEvent.ParticipantConnected, (participant: any) => {
         console.log('[LiveKit Viewer] Participant connected:', participant.identity);
       });
 
@@ -121,12 +136,12 @@ export const useLiveKitViewer = (streamId: string) => {
       roomRef.current = room;
 
       // Vérifier si le broadcaster est déjà présent
-      room.remoteParticipants.forEach((participant) => {
-        participant.trackPublications.forEach((publication) => {
+      room.remoteParticipants.forEach((participant: any) => {
+        participant.trackPublications.forEach((publication: any) => {
           if (publication.track && publication.isSubscribed) {
             handleTrackSubscribed(
-              publication.track as RemoteTrack,
-              publication as RemoteTrackPublication,
+              publication.track,
+              publication,
               participant
             );
           }
@@ -139,7 +154,7 @@ export const useLiveKitViewer = (streamId: string) => {
       setIsConnecting(false);
       isConnectingRef.current = false;
     }
-  }, [streamId, isConnected, getToken, handleTrackSubscribed, handleTrackUnsubscribed]);
+  }, [streamId, isConnected, getToken, videoElement, loadLiveKit]);
 
   /**
    * Se déconnecter
