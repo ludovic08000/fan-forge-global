@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Play, Shield, Zap, Users, Lock, Sparkles } from "lucide-react";
+import { Play, Shield, Users, Lock, Sparkles, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const HeroSection = () => {
@@ -18,20 +18,20 @@ const HeroSection = () => {
           {/* Badge */}
           <div className="inline-flex items-center px-4 py-2 mb-8 bg-card/60 backdrop-blur-md border border-primary/20 rounded-full">
             <Sparkles className="h-4 w-4 text-primary mr-2" />
-            <span className="text-sm font-medium">Le Hub Créatif Moderne</span>
+            <span className="text-sm font-medium">Plateforme Créateurs Premium</span>
           </div>
 
-          {/* Main Heading - H1 SEO */}
+          {/* H1 SEO */}
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight">
             <span className="block text-foreground mb-2">Crub</span>
-            <span className="block bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent">
-              Le Hub Créatif Moderne
+            <span className="block text-2xl md:text-3xl lg:text-4xl bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent">
+              La Plateforme Premium des Créateurs Modernes
             </span>
           </h1>
 
           {/* Subtitle */}
           <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
-            Crub est une plateforme moderne pensée pour les créateurs qui souhaitent partager du contenu exclusif avec leur communauté.
+            Crub est une plateforme digitale premium pensée pour les créateurs souhaitant partager du contenu exclusif avec une communauté engagée.
           </p>
 
           {/* Feature Pills */}
@@ -42,11 +42,11 @@ const HeroSection = () => {
             </div>
             <div className="flex items-center px-4 py-2 bg-card/40 backdrop-blur-sm border border-primary/20 rounded-full">
               <Users className="h-4 w-4 text-primary mr-2" />
-              <span className="text-sm">Communauté premium</span>
+              <span className="text-sm">Communauté privée</span>
             </div>
             <div className="flex items-center px-4 py-2 bg-card/40 backdrop-blur-sm border border-primary/20 rounded-full">
               <Lock className="h-4 w-4 text-primary mr-2" />
-              <span className="text-sm">Contenu exclusif</span>
+              <span className="text-sm">Contenus exclusifs</span>
             </div>
           </div>
 
@@ -64,76 +64,78 @@ const HeroSection = () => {
           </div>
         </div>
 
-        {/* SEO Content Section */}
+        {/* SEO Content Sections */}
         <div className="max-w-4xl mx-auto mt-20 space-y-12 text-left">
-          {/* H2 - Crub : le nouveau hub des créateurs */}
+          {/* H2 - Crub, la nouvelle référence */}
           <div>
             <h2 className="text-2xl md:text-3xl font-bold mb-4 text-foreground">
-              Crub : le nouveau hub des créateurs
+              Crub, la nouvelle référence des créateurs
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              Crub est une plateforme moderne pensée pour les créateurs qui souhaitent partager du contenu exclusif avec leur communauté. 
-              Le nom Crub combine "Créer" et "Hub", symbolisant le point central où les créateurs développent leur univers.
+              Avec une interface moderne et un système sécurisé, Crub offre une expérience fluide, professionnelle et adaptée aux besoins des créateurs.
             </p>
           </div>
 
-          {/* H2 - Pourquoi choisir Crub ? */}
+          {/* H2 - Plateforme intuitive */}
           <div>
             <h2 className="text-2xl md:text-3xl font-bold mb-6 text-foreground">
-              Pourquoi choisir Crub ?
+              Une plateforme intuitive pensée pour les créateurs
             </h2>
             
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-3 gap-6">
               <div className="bg-card/30 backdrop-blur-sm border border-border/50 rounded-xl p-6">
                 <h3 className="text-lg font-semibold mb-3 text-foreground flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-primary" />
-                  Un espace créatif premium
+                  Espace premium
                 </h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  Crub offre un environnement sécurisé, épuré et optimisé pour la création de contenu. 
-                  Chaque créateur peut personnaliser son profil, partager des publications et développer sa communauté.
+                  Crub propose un espace personnel organisé, élégant et adapté à la mise en valeur de chaque créateur.
                 </p>
               </div>
               
               <div className="bg-card/30 backdrop-blur-sm border border-border/50 rounded-xl p-6">
                 <h3 className="text-lg font-semibold mb-3 text-foreground flex items-center gap-2">
                   <Zap className="h-5 w-5 text-primary" />
-                  Une plateforme intuitive
+                  Outils de publication
                 </h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  L'expérience Crub est pensée pour être simple, fluide et agréable, autant pour les créateurs que pour les abonnés. 
-                  L'interface met en avant les publications et la relation créateur–membre.
+                  Les utilisateurs peuvent publier, gérer et présenter leur contenu de manière claire et structurée.
+                </p>
+              </div>
+
+              <div className="bg-card/30 backdrop-blur-sm border border-border/50 rounded-xl p-6">
+                <h3 className="text-lg font-semibold mb-3 text-foreground flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Communauté privée
+                </h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  Crub permet de développer une relation privilégiée entre créateurs et abonnés, dans un cadre sécurisé.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* H2 - Les fonctionnalités clés de Crub */}
-          <div>
-            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-foreground">
-              Les fonctionnalités clés de Crub
+          {/* H2 - Sécurité */}
+          <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-2xl p-8">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-foreground">
+              Sécurité, qualité, confidentialité : l'ADN de Crub
             </h2>
-            
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="bg-card/20 border border-border/30 rounded-lg p-5">
-                <h3 className="font-semibold mb-2 text-foreground">Profil personnalisable</h3>
-                <p className="text-muted-foreground text-sm">
-                  Ajoutez une photo de profil, publiez des photos de lieux, personnalisez votre espace et organisez votre contenu.
-                </p>
+            <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+              <div className="text-center">
+                <Shield className="h-8 w-8 text-primary mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Environnement protégé</p>
               </div>
-              
-              <div className="bg-card/20 border border-border/30 rounded-lg p-5">
-                <h3 className="font-semibold mb-2 text-foreground">Gestion de communauté</h3>
-                <p className="text-muted-foreground text-sm">
-                  Crub facilite l'interaction : messages, abonnements, publications privées et bien plus encore.
-                </p>
+              <div className="text-center">
+                <Lock className="h-8 w-8 text-primary mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Gestion stricte des accès</p>
               </div>
-              
-              <div className="bg-card/20 border border-border/30 rounded-lg p-5">
-                <h3 className="font-semibold mb-2 text-foreground">Sécurité & confidentialité</h3>
-                <p className="text-muted-foreground text-sm">
-                  Crub met en avant un environnement protégé, avec des contrôles d'accès stricts et une gestion responsable des profils.
-                </p>
+              <div className="text-center">
+                <Users className="h-8 w-8 text-primary mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Confidentialité renforcée</p>
+              </div>
+              <div className="text-center">
+                <Sparkles className="h-8 w-8 text-primary mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Expérience professionnelle</p>
               </div>
             </div>
           </div>
@@ -141,11 +143,10 @@ const HeroSection = () => {
           {/* Final CTA */}
           <div className="text-center">
             <h2 className="text-2xl md:text-3xl font-bold mb-4 text-foreground">
-              Rejoignez Crub, le Hub qui valorise les créateurs
+              Rejoignez Crub, le Hub Premium des Créateurs
             </h2>
             <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-              Avec Crub, les créateurs disposent d'un espace moderne pour développer leur activité, 
-              fédérer une communauté et partager du contenu exclusif dans un cadre sécurisé.
+              Crub s'impose comme une plateforme nouvelle génération, idéale pour développer sa visibilité, consolider sa communauté et partager du contenu exclusif dans un environnement élégant et sécurisé.
             </p>
             <Button variant="hero" size="lg" asChild>
               <Link to="/auth?tab=signup">Commencer maintenant</Link>
