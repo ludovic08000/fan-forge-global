@@ -35,6 +35,7 @@ import {
 import { useSearch, SearchFilters } from '@/hooks/useSearch';
 import CreatorSearchCard from '@/components/CreatorSearchCard';
 import SearchBar from '@/components/SearchBar';
+import SEOHead from '@/components/SEOHead';
 
 const SearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -120,6 +121,12 @@ const SearchPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background pt-16">
+      <SEOHead 
+        title="Rechercher des Créateurs - CreatorHub"
+        description="Trouvez et découvrez les meilleurs créateurs de contenu sur CreatorHub. Filtrez par catégorie, genre, type de contenu. Des milliers de créateurs français vous attendent."
+        keywords="recherche créateurs, découvrir créateurs, créateurs contenu France, streamers français, influenceurs"
+        url="https://creatorhub.com/search"
+      />
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">

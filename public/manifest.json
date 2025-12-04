@@ -1,12 +1,14 @@
 {
-  "name": "ContentHub - Plateforme Créateurs",
-  "short_name": "ContentHub",
-  "description": "Plateforme de contenu pour créateurs et abonnés avec live streaming",
+  "name": "CreatorHub - Plateforme Premium Créateurs",
+  "short_name": "CreatorHub",
+  "description": "La plateforme française n°1 pour créateurs de contenu. Live streaming HD, abonnements, messagerie privée.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0A0A0A",
   "theme_color": "#9b87f5",
   "orientation": "portrait-primary",
+  "lang": "fr-FR",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/pwa-icon-192.png",
@@ -42,6 +44,18 @@
       "short_name": "Lives",
       "description": "Voir les live streams en cours",
       "url": "/lives",
+      "icons": [
+        {
+          "src": "/pwa-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Rechercher",
+      "short_name": "Recherche",
+      "description": "Découvrir des créateurs",
+      "url": "/search",
       "icons": [
         {
           "src": "/pwa-icon-192.png",

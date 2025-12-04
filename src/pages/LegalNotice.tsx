@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import SEOHead from "@/components/SEOHead";
 
 const LegalNotice = () => {
   useEffect(() => {
@@ -7,6 +8,13 @@ const LegalNotice = () => {
 
   return (
     <main className="min-h-screen bg-background py-16">
+      <SEOHead 
+        title="Mentions Légales - CreatorHub"
+        description="Mentions légales de CreatorHub. Informations sur l'éditeur, l'hébergeur, la propriété intellectuelle et les conditions d'utilisation du site."
+        keywords="mentions légales, éditeur site, hébergeur, propriété intellectuelle, informations légales"
+        url="https://creatorhub.com/legal"
+        noindex={false}
+      />
       <div className="container mx-auto px-4 max-w-4xl">
         <h1 className="text-4xl font-bold mb-8">Mentions Légales</h1>
         <p className="text-muted-foreground mb-8">Dernière mise à jour : {new Date().toLocaleDateString('fr-FR')}</p>

@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Circle, Users, Calendar, Play } from 'lucide-react';
 import { useLiveStream } from '@/hooks/useLiveStream';
+import SEOHead from '@/components/SEOHead';
 
 /**
  * Page des live streams
@@ -113,6 +114,12 @@ const LiveStreams = () => {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      <SEOHead 
+        title="Lives en Direct - Streaming Créateurs - CreatorHub"
+        description="Regardez les lives en direct de vos créateurs préférés sur CreatorHub. Streaming HD, chat en direct, replay disponible. Découvrez les prochains lives programmés."
+        keywords="live streaming, direct créateurs, streaming France, lives en cours, regarder live"
+        url="https://creatorhub.com/lives"
+      />
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Live Streams</h1>
         <p className="text-muted-foreground">

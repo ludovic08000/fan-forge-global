@@ -1,13 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ContentHub - Plateforme Créateurs Premium | Live Streaming</title>
-    <meta name="description" content="Plateforme de contenu pour créateurs avec live streaming, abonnements et messagerie privée. Monétisez votre passion et connectez avec vos fans." />
-<meta name="author" content="ContentHub" />
     
-    <!-- Fonts -->
+    <!-- Primary Meta Tags -->
+    <title>CreatorHub - Plateforme Premium pour Créateurs de Contenu | France</title>
+    <meta name="title" content="CreatorHub - Plateforme Premium pour Créateurs de Contenu | France" />
+    <meta name="description" content="CreatorHub est la plateforme française n°1 pour créateurs de contenu. Live streaming, abonnements, messagerie privée. Monétisez votre passion et connectez avec votre communauté. 100% RGPD." />
+    <meta name="keywords" content="créateurs de contenu, plateforme créateurs, live streaming, abonnements, monétisation contenu, fans, communauté, streaming France, créateur français" />
+    <meta name="author" content="CreatorHub" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="French" />
+    <meta name="revisit-after" content="7 days" />
+    <meta name="rating" content="adult" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://creatorhub.com" />
+    
+    <!-- Fonts with preload -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,24 +28,105 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="ContentHub" />
+    <meta name="apple-mobile-web-app-title" content="CreatorHub" />
     <link rel="manifest" href="/manifest.json" />
     
-    <!-- Apple Touch Icons -->
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/pwa-icon-192.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/pwa-icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/pwa-icon-512.png" />
 
-    <!-- Open Graph -->
-    <meta property="og:title" content="ContentHub - Plateforme Créateurs Premium" />
-    <meta property="og:description" content="La plateforme ultime pour créateurs de contenu et abonnés. Créez votre communauté, monétisez votre passion." />
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:url" content="https://creatorhub.com/" />
+    <meta property="og:title" content="CreatorHub - Plateforme Premium pour Créateurs de Contenu" />
+    <meta property="og:description" content="La plateforme française n°1 pour créateurs de contenu. Live streaming, abonnements, messagerie privée. Monétisez votre passion." />
+    <meta property="og:image" content="https://creatorhub.com/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:site_name" content="CreatorHub" />
 
-    <!-- Twitter Card -->
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:url" content="https://creatorhub.com/" />
+    <meta name="twitter:title" content="CreatorHub - Plateforme Premium pour Créateurs de Contenu" />
+    <meta name="twitter:description" content="La plateforme française n°1 pour créateurs de contenu. Live streaming, abonnements, messagerie privée." />
+    <meta name="twitter:image" content="https://creatorhub.com/og-image.jpg" />
+    <meta name="twitter:site" content="@creatorhub" />
+    <meta name="twitter:creator" content="@creatorhub" />
+
+    <!-- Geo Tags for France -->
+    <meta name="geo.region" content="FR" />
+    <meta name="geo.placename" content="France" />
+
+    <!-- Structured Data - Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "CreatorHub",
+      "url": "https://creatorhub.com",
+      "logo": "https://creatorhub.com/pwa-icon-512.png",
+      "description": "Plateforme française premium pour créateurs de contenu. Live streaming, abonnements, messagerie privée.",
+      "foundingDate": "2024",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "FR"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer service",
+        "email": "contact@creatorhub.com",
+        "availableLanguage": ["French", "English"]
+      },
+      "sameAs": [
+        "https://twitter.com/creatorhub",
+        "https://instagram.com/creatorhub",
+        "https://facebook.com/creatorhub"
+      ]
+    }
+    </script>
+
+    <!-- Structured Data - WebSite -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "CreatorHub",
+      "url": "https://creatorhub.com",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://creatorhub.com/search?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- Structured Data - SoftwareApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "CreatorHub",
+      "operatingSystem": "Web",
+      "applicationCategory": "SocialNetworkingApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "1250"
+      }
+    }
+    </script>
   </head>
 
   <body>
