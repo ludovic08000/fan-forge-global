@@ -24,7 +24,7 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Link to="/" className="font-bold text-xl bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent hover:scale-105 transition-transform">
-            ContentHub
+            Crub
           </Link>
           
           {/* Search Bar - Hidden on mobile */}
