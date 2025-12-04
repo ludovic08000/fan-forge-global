@@ -38,6 +38,52 @@ export const LiveStreamStudio = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const { messages, sendMessage } = useLiveChat(currentStream?.id || '');
 
+  // Référence pour stocker l'ID du stream actuel pour le cleanup
+  const currentStreamIdRef = useRef<string | null>(null);
+
+  // Mettre à jour la référence quand currentStream change
+  useEffect(() => {
+    currentStreamIdRef.current = currentStream?.id || null;
+  }, [currentStream]);
+
+  /**
+   * Terminer le live automatiquement quand le créateur quitte la page
+   */
+  useEffect(() => {
+    const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
+      if (currentStreamIdRef.current && isLive) {
+        // Terminer le live de manière synchrone avec sendBeacon
+        const url = `https://usjxcgauyvdocngfkhys.supabase.co/rest/v1/live_streams?id=eq.${currentStreamIdRef.current}`;
+        const body = JSON.stringify({
+          status: 'ended',
+          ended_at: new Date().toISOString()
+        });
+        
+        navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+        
+        // Message de confirmation pour l'utilisateur
+        e.preventDefault();
+        e.returnValue = 'Votre live est en cours. Êtes-vous sûr de vouloir quitter?';
+        return e.returnValue;
+      }
+    };
+
+    const handleVisibilityChange = async () => {
+      // Ne pas terminer sur simple changement d'onglet, seulement sur fermeture
+      if (document.visibilityState === 'hidden' && currentStreamIdRef.current && isLive) {
+        console.log('Page hidden while live - keeping stream active');
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isLive]);
+
   /**
    * Initialiser les dispositifs média avec fallbacks mobile
    */
@@ -123,6 +169,11 @@ export const LiveStreamStudio = () => {
       }
       
       window.removeEventListener('orientationchange', handleOrientationChange);
+      
+      // Terminer le live si encore actif lors du démontage du composant
+      if (currentStreamIdRef.current) {
+        endLiveStream(currentStreamIdRef.current);
+      }
     };
   }, []);
 
