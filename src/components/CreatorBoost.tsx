@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Star, Clock, TrendingUp, Zap, Euro, X } from 'lucide-react';
+import { Star, Clock, TrendingUp, Zap, Euro } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -195,15 +195,10 @@ const CreatorBoost: React.FC<CreatorBoostProps> = ({ currentBoostUntil, onBoostU
       <Dialog open={showCheckout} onOpenChange={handleCloseCheckout}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2">
-                <Star className="h-5 w-5 text-primary" />
-                {selectedBoost ? `Boost ${selectedBoost.name}` : 'Paiement du boost'}
-              </DialogTitle>
-              <Button variant="ghost" size="icon" onClick={handleCloseCheckout}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+            <DialogTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5 text-primary" />
+              {selectedBoost ? `Boost ${selectedBoost.name}` : 'Paiement du boost'}
+            </DialogTitle>
           </DialogHeader>
           
           {clientSecret ? (
