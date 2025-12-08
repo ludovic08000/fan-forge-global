@@ -29,7 +29,7 @@ export const LiveStreamStudio = () => {
   const [isLive, setIsLive] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [isPremium, setIsPremium] = useState(false);
+  const [isFree, setIsFree] = useState(false); // Par défaut: abonnés seulement
   const [price, setPrice] = useState(0);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
@@ -203,8 +203,8 @@ export const LiveStreamStudio = () => {
       const { data: stream } = await createLiveStream({
         title,
         description,
-        is_premium: isPremium,
-        price: isPremium ? price : 0,
+        is_premium: !isFree, // true = abonnés seulement, false = gratuit pour tous
+        price: !isFree ? price : 0,
       });
 
       if (!stream) return;
@@ -504,28 +504,33 @@ export const LiveStreamStudio = () => {
 
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Contenu premium</Label>
+                  <Label>Live gratuit</Label>
                   <p className="text-sm text-muted-foreground">
-                    Réservé aux abonnés payants
+                    Par défaut, seuls vos abonnés peuvent voir le live
                   </p>
                 </div>
                 <Switch
-                  checked={isPremium}
-                  onCheckedChange={setIsPremium}
+                  checked={isFree}
+                  onCheckedChange={setIsFree}
                   disabled={isLive}
                 />
               </div>
 
-              {isPremium && (
-                <div className="space-y-2">
-                  <Label htmlFor="price">Prix (€)</Label>
+              {!isFree && (
+                <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    Ce live sera réservé à vos abonnés. 
+                    Vous pouvez aussi définir un prix pour un accès unique.
+                  </p>
+                  <Label htmlFor="price">Prix accès unique (€) - optionnel</Label>
                   <Input
                     id="price"
                     type="number"
                     min="0"
                     step="0.01"
                     value={price}
-                    onChange={(e) => setPrice(parseFloat(e.target.value))}
+                    onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+                    placeholder="0 = abonnés seulement"
                     disabled={isLive}
                   />
                 </div>

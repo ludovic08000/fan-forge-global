@@ -239,22 +239,27 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
             <div>
               <h2 className="text-2xl font-bold mb-2">{liveStream.title}</h2>
               <p className="text-muted-foreground mb-4">
-                Ce live est réservé aux abonnés ou nécessite un paiement unique
+                Ce live est réservé aux abonnés
               </p>
-              <div className="p-4 bg-muted rounded-lg mb-4">
-                <p className="text-2xl font-bold">
-                  {new Intl.NumberFormat('fr-FR', {
-                    style: 'currency',
-                    currency: 'EUR'
-                  }).format(liveStream.price)}
-                </p>
-                <p className="text-sm text-muted-foreground">Accès unique</p>
-              </div>
+              
+              {liveStream.price > 0 && (
+                <div className="p-4 bg-muted rounded-lg mb-4">
+                  <p className="text-sm text-muted-foreground mb-1">Ou accès unique :</p>
+                  <p className="text-2xl font-bold">
+                    {new Intl.NumberFormat('fr-FR', {
+                      style: 'currency',
+                      currency: 'EUR'
+                    }).format(liveStream.price)}
+                  </p>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
-              <Button onClick={handlePayForAccess} className="w-full" variant="premium">
-                Acheter l'accès
-              </Button>
+              {liveStream.price > 0 && (
+                <Button onClick={handlePayForAccess} className="w-full" variant="premium">
+                  Acheter l'accès
+                </Button>
+              )}
               <Button 
                 variant="outline" 
                 className="w-full"
