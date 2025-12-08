@@ -37,10 +37,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Create Supabase client using the anon key for user authentication
+  // Create Supabase client with anon key for auth
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+  );
+
+  // Create admin client for database operations (bypasses RLS)
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
   try {
@@ -62,8 +68,8 @@ serve(async (req) => {
     if (!user?.email) throw new Error("Utilisateur non authentifié");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    // Check if user is a creator
-    const { data: creator, error: creatorError } = await supabaseClient
+    // Check if user is a creator (use admin client to bypass RLS)
+    const { data: creator, error: creatorError } = await supabaseAdmin
       .from("creators")
       .select("id")
       .eq("user_id", user.id)
