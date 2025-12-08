@@ -34,10 +34,18 @@ const CreatorPublicPage = () => {
   // Activer la protection anti-capture sur toute la page
   useContentProtection(true);
 
+  // Liste des chemins réservés qui ne sont pas des usernames
+  const RESERVED_PATHS = ['admin', 'backstage', 'dashboard', 'login', 'signup', 'auth', 'search', 'lives', 'live', 'install', 'terms', 'privacy', 'legal', 'cookies', 'security', 'profile', 'subscriptions', 'reset-password', 'suspended'];
+
   useEffect(() => {
     const loadCreator = async () => {
       if (!username) return;
 
+      // Vérifier si c'est un chemin réservé
+      if (RESERVED_PATHS.includes(username.toLowerCase())) {
+        setLoading(false);
+        return;
+      }
       try {
         // Essayer d'abord de chercher par username via la vue publique
         let profileData = null;
