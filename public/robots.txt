@@ -1,12 +1,12 @@
-# Robots.txt for CreatorHub
-# https://creatorhub.com
+# Robots.txt for Crub
+# https://crub.fr
 
 # Allow all crawlers
 User-agent: *
 Allow: /
 
-# Sitemap location
-Sitemap: https://creatorhub.com/sitemap.xml
+# Sitemap location (dynamique via Supabase Edge Function)
+Sitemap: https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/sitemap
 
 # Crawl-delay for respectful crawling
 Crawl-delay: 1
@@ -14,14 +14,19 @@ Crawl-delay: 1
 # Disallow admin and private areas
 Disallow: /admin
 Disallow: /dashboard
-Disallow: /api/
-Disallow: /auth
+Disallow: /settings
+Disallow: /profile-settings
+Disallow: /security-settings
+Disallow: /my-subscriptions
 Disallow: /reset-password
 
-# Allow important pages
+# Allow important public pages
 Allow: /
 Allow: /search
 Allow: /lives
+Allow: /creator/
+Allow: /signup
+Allow: /login
 Allow: /terms
 Allow: /privacy
 Allow: /legal
@@ -52,4 +57,10 @@ User-agent: SemrushBot
 Disallow: /
 
 User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: BLEXBot
 Disallow: /
