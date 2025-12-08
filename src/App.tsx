@@ -138,8 +138,8 @@ const AppRoutes = () => {
               <LiveAnalytics />
             </ProtectedRoute>
           } />
-          <Route path="/admin" element={
-            <ProtectedRoute>
+          <Route path="/backstage" element={
+            <ProtectedRoute requireRole="admin">
               <AdminDashboard />
             </ProtectedRoute>
           } />
