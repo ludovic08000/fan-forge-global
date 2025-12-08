@@ -7,7 +7,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-const LIVEKIT_URL = 'wss://plaisir-ykn9lxey.livekit.cloud';
+// L'URL LiveKit sera récupérée dynamiquement depuis l'edge function
 
 // Cache pour le module LiveKit
 let liveKitModule: typeof import('livekit-client') | null = null;
@@ -62,8 +62,8 @@ export const useLiveKitBroadcast = () => {
       console.error('[LiveKit Broadcast] Token error:', error);
       throw error;
     }
-    console.log('[LiveKit Broadcast] Token received');
-    return data.token;
+    console.log('[LiveKit Broadcast] Token received, URL:', data.url);
+    return { token: data.token, url: data.url };
   }, []);
 
   /**
@@ -91,9 +91,10 @@ export const useLiveKitBroadcast = () => {
       const liveKit = await loadLiveKitModule();
       const { Room, RoomEvent, createLocalTracks } = liveKit;
       
-      // Obtenir le token
-      const token = await getToken(streamId, true);
-      console.log('[LiveKit Broadcast] Token obtained, connecting to room...');
+      // Obtenir le token et l'URL
+      const { token, url: livekitUrl } = await getToken(streamId, true);
+      console.log('[LiveKit Broadcast] Token obtained, connecting to room at:', livekitUrl);
+
 
       // Créer et connecter la room
       const room = new Room({
@@ -119,7 +120,7 @@ export const useLiveKitBroadcast = () => {
       });
 
       // Connecter à la room
-      await room.connect(LIVEKIT_URL, token);
+      await room.connect(livekitUrl, token);
       console.log('[LiveKit Broadcast] Connected to room');
 
       roomRef.current = room;
