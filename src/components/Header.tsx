@@ -87,10 +87,10 @@ const Header: React.FC = () => {
           ) : (
             <div className="flex items-center space-x-2">
               <Button variant="ghost" asChild className="hover:text-primary">
-                <Link to="/auth">Connexion</Link>
+                <Link to="/auth?tab=signin">Connexion</Link>
               </Button>
               <Button asChild className="bg-gradient-to-r from-primary to-primary-glow hover:scale-105 transition-transform shadow-lg shadow-primary/30">
-                <Link to="/auth">Inscription</Link>
+                <Link to="/auth?tab=signup">Inscription</Link>
               </Button>
             </div>
           )}
