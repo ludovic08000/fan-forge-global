@@ -8,11 +8,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Download, Plus, Euro, Loader2, Printer, Calendar } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FileText, Download, Plus, Euro, Loader2, Printer, Calendar, DollarSign } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Taux de TVA par pays UE (2024)
 const EU_VAT_RATES: Record<string, { name: string; rate: number }> = {
@@ -44,6 +47,63 @@ const EU_VAT_RATES: Record<string, { name: string; rate: number }> = {
   ES: { name: 'Espagne', rate: 0.21 },
   SE: { name: 'Suède', rate: 0.25 },
 };
+
+// Taxes par état US (Sales Tax 2024) - Les plus courants
+const US_STATE_TAXES: Record<string, { name: string; rate: number }> = {
+  AL: { name: 'Alabama', rate: 0.04 },
+  AK: { name: 'Alaska', rate: 0 },
+  AZ: { name: 'Arizona', rate: 0.056 },
+  AR: { name: 'Arkansas', rate: 0.065 },
+  CA: { name: 'California', rate: 0.0725 },
+  CO: { name: 'Colorado', rate: 0.029 },
+  CT: { name: 'Connecticut', rate: 0.0635 },
+  DE: { name: 'Delaware', rate: 0 },
+  FL: { name: 'Florida', rate: 0.06 },
+  GA: { name: 'Georgia', rate: 0.04 },
+  HI: { name: 'Hawaii', rate: 0.04 },
+  ID: { name: 'Idaho', rate: 0.06 },
+  IL: { name: 'Illinois', rate: 0.0625 },
+  IN: { name: 'Indiana', rate: 0.07 },
+  IA: { name: 'Iowa', rate: 0.06 },
+  KS: { name: 'Kansas', rate: 0.065 },
+  KY: { name: 'Kentucky', rate: 0.06 },
+  LA: { name: 'Louisiana', rate: 0.0445 },
+  ME: { name: 'Maine', rate: 0.055 },
+  MD: { name: 'Maryland', rate: 0.06 },
+  MA: { name: 'Massachusetts', rate: 0.0625 },
+  MI: { name: 'Michigan', rate: 0.06 },
+  MN: { name: 'Minnesota', rate: 0.06875 },
+  MS: { name: 'Mississippi', rate: 0.07 },
+  MO: { name: 'Missouri', rate: 0.04225 },
+  MT: { name: 'Montana', rate: 0 },
+  NE: { name: 'Nebraska', rate: 0.055 },
+  NV: { name: 'Nevada', rate: 0.0685 },
+  NH: { name: 'New Hampshire', rate: 0 },
+  NJ: { name: 'New Jersey', rate: 0.06625 },
+  NM: { name: 'New Mexico', rate: 0.05125 },
+  NY: { name: 'New York', rate: 0.04 },
+  NC: { name: 'North Carolina', rate: 0.0475 },
+  ND: { name: 'North Dakota', rate: 0.05 },
+  OH: { name: 'Ohio', rate: 0.0575 },
+  OK: { name: 'Oklahoma', rate: 0.045 },
+  OR: { name: 'Oregon', rate: 0 },
+  PA: { name: 'Pennsylvania', rate: 0.06 },
+  RI: { name: 'Rhode Island', rate: 0.07 },
+  SC: { name: 'South Carolina', rate: 0.06 },
+  SD: { name: 'South Dakota', rate: 0.045 },
+  TN: { name: 'Tennessee', rate: 0.07 },
+  TX: { name: 'Texas', rate: 0.0625 },
+  UT: { name: 'Utah', rate: 0.061 },
+  VT: { name: 'Vermont', rate: 0.06 },
+  VA: { name: 'Virginia', rate: 0.053 },
+  WA: { name: 'Washington', rate: 0.065 },
+  WV: { name: 'West Virginia', rate: 0.06 },
+  WI: { name: 'Wisconsin', rate: 0.05 },
+  WY: { name: 'Wyoming', rate: 0.04 },
+  DC: { name: 'Washington D.C.', rate: 0.06 },
+};
+
+type MarketType = 'eu' | 'us';
 
 interface Invoice {
   id: string;
@@ -85,7 +145,8 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
   const [newInvoice, setNewInvoice] = useState({
     periodStart: format(new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1), 'yyyy-MM-dd'),
     periodEnd: format(new Date(new Date().getFullYear(), new Date().getMonth(), 0), 'yyyy-MM-dd'),
-    country: 'FR'
+    country: 'FR',
+    market: 'eu' as MarketType
   });
 
   useEffect(() => {
@@ -127,11 +188,30 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
     }
   };
 
+  const getTaxRate = (market: MarketType, countryOrState: string): number => {
+    if (market === 'eu') {
+      return EU_VAT_RATES[countryOrState]?.rate || 0.20;
+    } else {
+      return US_STATE_TAXES[countryOrState]?.rate || 0;
+    }
+  };
+
+  const getLocationName = (market: MarketType, code: string): string => {
+    if (market === 'eu') {
+      return EU_VAT_RATES[code]?.name || code;
+    } else {
+      return US_STATE_TAXES[code]?.name || code;
+    }
+  };
+
+  const getCurrency = (market: MarketType): string => {
+    return market === 'eu' ? 'EUR' : 'USD';
+  };
+
   const generateInvoice = async () => {
     setGenerating(true);
     
     try {
-      // Calculer les revenus pour la période
       const { data: revenueData, error: revenueError } = await supabase
         .rpc('calculate_creator_revenue_with_commission', {
           creator_uuid: creatorId,
@@ -151,20 +231,19 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
         total_after_commission: 0
       };
 
-      const vatRate = EU_VAT_RATES[newInvoice.country]?.rate || 0.20;
+      const taxRate = getTaxRate(newInvoice.market, newInvoice.country);
       const grossAmount = revenue.total_before_commission;
       const commissionAmount = revenue.commission_amount;
-      const netBeforeVat = grossAmount - commissionAmount;
-      const vatAmount = netBeforeVat * vatRate;
-      const netAmount = netBeforeVat - vatAmount;
+      const netBeforeTax = grossAmount - commissionAmount;
+      const taxAmount = netBeforeTax * taxRate;
+      const netAmount = netBeforeTax - taxAmount;
+      const currency = getCurrency(newInvoice.market);
 
-      // Générer le numéro de facture
       const { data: invoiceNum, error: numError } = await supabase
         .rpc('generate_invoice_number');
 
       if (numError) throw numError;
 
-      // Créer la facture
       const { error: insertError } = await supabase
         .from('creator_invoices')
         .insert({
@@ -180,13 +259,14 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
           platform_commission_rate: 0.15,
           platform_commission_amount: commissionAmount,
           creator_country: newInvoice.country,
-          vat_rate: vatRate,
-          vat_amount: vatAmount,
+          vat_rate: taxRate,
+          vat_amount: taxAmount,
           net_amount: netAmount,
           creator_name: creatorInfo?.stage_name || creatorInfo?.profiles?.display_name || 'Créateur',
           creator_address: null,
           creator_tax_id: creatorInfo?.tax_id,
           creator_iban: creatorInfo?.bank_iban,
+          currency: currency,
           status: 'finalized',
           finalized_at: new Date().toISOString()
         });
@@ -202,6 +282,120 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
     } finally {
       setGenerating(false);
     }
+  };
+
+  const generatePDF = (invoice: Invoice) => {
+    const doc = new jsPDF();
+    const isUS = invoice.currency === 'USD';
+    const taxLabel = isUS ? 'Sales Tax' : 'TVA';
+    
+    // En-tête
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text(isUS ? 'INVOICE' : 'FACTURE', 20, 30);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(invoice.invoice_number, 20, 38);
+    doc.text(`Date: ${format(new Date(invoice.created_at), isUS ? 'MM/dd/yyyy' : 'dd/MM/yyyy')}`, 20, 44);
+    
+    // Logo / Nom plateforme
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Crub', 150, 30);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(isUS ? 'Creator Platform' : 'Plateforme de créateurs', 150, 38);
+    
+    // Infos créateur
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(isUS ? 'Issuer' : 'Émetteur', 20, 60);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(invoice.creator_name, 20, 68);
+    if (invoice.creator_address) {
+      doc.text(invoice.creator_address, 20, 74);
+    }
+    if (invoice.creator_tax_id) {
+      doc.text(`${isUS ? 'Tax ID' : 'N° TVA'}: ${invoice.creator_tax_id}`, 20, 80);
+    }
+    const locationName = getLocationName(isUS ? 'us' : 'eu', invoice.creator_country);
+    doc.text(`${isUS ? 'State' : 'Pays'}: ${locationName}`, 20, invoice.creator_tax_id ? 86 : 80);
+    
+    // Période
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(isUS ? 'Billing Period' : 'Période de facturation', 120, 60);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const dateFormat = isUS ? 'MM/dd/yyyy' : 'dd/MM/yyyy';
+    doc.text(`${format(new Date(invoice.period_start), dateFormat)} - ${format(new Date(invoice.period_end), dateFormat)}`, 120, 68);
+    
+    // Tableau des revenus
+    const revenueData = [
+      [isUS ? 'Subscription Revenue' : 'Revenus d\'abonnements', formatCurrency(invoice.subscription_revenue, invoice.currency)],
+      [isUS ? 'Tips Received' : 'Pourboires reçus', formatCurrency(invoice.tips_revenue, invoice.currency)],
+      [isUS ? 'Live Stream Revenue' : 'Revenus des lives', formatCurrency(invoice.live_revenue, invoice.currency)],
+      [isUS ? 'Private Content' : 'Contenu privé payant', formatCurrency(invoice.private_content_revenue, invoice.currency)],
+    ];
+    
+    autoTable(doc, {
+      startY: 100,
+      head: [[isUS ? 'Description' : 'Description', isUS ? 'Amount' : 'Montant']],
+      body: revenueData,
+      theme: 'grid',
+      headStyles: { fillColor: [59, 130, 246] },
+      columnStyles: {
+        1: { halign: 'right' }
+      }
+    });
+    
+    // Calcul final
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    
+    doc.setFillColor(245, 245, 245);
+    doc.rect(20, finalY, 170, 60, 'F');
+    
+    doc.setFontSize(10);
+    let yPos = finalY + 10;
+    
+    doc.text(isUS ? 'Gross Total' : 'Total brut', 25, yPos);
+    doc.text(formatCurrency(invoice.gross_amount, invoice.currency), 180, yPos, { align: 'right' });
+    
+    yPos += 8;
+    doc.setTextColor(220, 38, 38);
+    doc.text(isUS ? 'Platform Commission (15%)' : 'Commission plateforme (15%)', 25, yPos);
+    doc.text(`-${formatCurrency(invoice.platform_commission_amount, invoice.currency)}`, 180, yPos, { align: 'right' });
+    
+    yPos += 8;
+    doc.setTextColor(0, 0, 0);
+    doc.text(isUS ? 'Subtotal' : 'Sous-total HT', 25, yPos);
+    doc.text(formatCurrency(invoice.gross_amount - invoice.platform_commission_amount, invoice.currency), 180, yPos, { align: 'right' });
+    
+    yPos += 8;
+    doc.setTextColor(220, 38, 38);
+    const taxPercent = (invoice.vat_rate * 100).toFixed(2);
+    doc.text(`${taxLabel} (${taxPercent}% - ${locationName})`, 25, yPos);
+    doc.text(`-${formatCurrency(invoice.vat_amount, invoice.currency)}`, 180, yPos, { align: 'right' });
+    
+    yPos += 10;
+    doc.setTextColor(22, 163, 74);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(isUS ? 'Net Amount' : 'Net à percevoir', 25, yPos);
+    doc.text(formatCurrency(invoice.net_amount, invoice.currency), 180, yPos, { align: 'right' });
+    
+    // Footer
+    doc.setTextColor(128, 128, 128);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(isUS ? 'This invoice was automatically generated by Crub platform.' : 'Cette facture a été générée automatiquement par la plateforme Crub.', 20, 280);
+    doc.text(isUS ? 'For any questions, contact support@crub.com' : 'Pour toute question, contactez support@crub.fr', 20, 285);
+    
+    // Télécharger
+    doc.save(`${invoice.invoice_number}.pdf`);
+    toast.success('PDF téléchargé !');
   };
 
   const handlePrint = () => {
@@ -239,8 +433,11 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
+  const formatCurrency = (amount: number, currency: string = 'EUR') => {
+    return new Intl.NumberFormat(currency === 'USD' ? 'en-US' : 'fr-FR', { 
+      style: 'currency', 
+      currency: currency 
+    }).format(amount);
   };
 
   const getStatusBadge = (status: string) => {
@@ -256,6 +453,8 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
     }
   };
 
+  const isUSInvoice = (invoice: Invoice) => invoice.currency === 'USD';
+
   return (
     <Card>
       <CardHeader>
@@ -266,7 +465,7 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
               Mes Factures
             </CardTitle>
             <CardDescription>
-              Générez et téléchargez vos factures avec TVA détaillée
+              Générez et téléchargez vos factures avec TVA/Taxes détaillées (EU & US)
             </CardDescription>
           </div>
           <Button onClick={() => setShowCreateDialog(true)} variant="premium" size="sm">
@@ -294,8 +493,9 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
                 <TableHead>N° Facture</TableHead>
                 <TableHead>Période</TableHead>
                 <TableHead>Montant brut</TableHead>
-                <TableHead>TVA ({(invoices[0]?.vat_rate * 100).toFixed(0)}%)</TableHead>
+                <TableHead>Taxes</TableHead>
                 <TableHead>Net à percevoir</TableHead>
+                <TableHead>Devise</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -307,11 +507,30 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
                   <TableCell className="text-sm">
                     {format(new Date(invoice.period_start), 'dd MMM', { locale: fr })} - {format(new Date(invoice.period_end), 'dd MMM yyyy', { locale: fr })}
                   </TableCell>
-                  <TableCell>{formatCurrency(invoice.gross_amount)}</TableCell>
-                  <TableCell className="text-orange-600">-{formatCurrency(invoice.vat_amount)}</TableCell>
-                  <TableCell className="font-bold text-green-600">{formatCurrency(invoice.net_amount)}</TableCell>
+                  <TableCell>{formatCurrency(invoice.gross_amount, invoice.currency)}</TableCell>
+                  <TableCell className="text-orange-600">
+                    -{formatCurrency(invoice.vat_amount, invoice.currency)}
+                    <span className="text-xs text-muted-foreground ml-1">
+                      ({(invoice.vat_rate * 100).toFixed(1)}%)
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-bold text-green-600">{formatCurrency(invoice.net_amount, invoice.currency)}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="flex items-center gap-1 w-fit">
+                      {invoice.currency === 'USD' ? <DollarSign className="h-3 w-3" /> : <Euro className="h-3 w-3" />}
+                      {invoice.currency}
+                    </Badge>
+                  </TableCell>
                   <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => generatePDF(invoice)}
+                      title="Télécharger PDF"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -319,8 +538,9 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
                         setSelectedInvoice(invoice);
                         setShowInvoiceDialog(true);
                       }}
+                      title="Voir détails"
                     >
-                      <Download className="h-4 w-4" />
+                      <FileText className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -332,7 +552,7 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
 
       {/* Dialog création facture */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Générer une facture</DialogTitle>
             <DialogDescription>
@@ -341,6 +561,27 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Sélection du marché */}
+            <div className="space-y-2">
+              <Label>Marché</Label>
+              <Tabs value={newInvoice.market} onValueChange={(v) => setNewInvoice(prev => ({ 
+                ...prev, 
+                market: v as MarketType,
+                country: v === 'eu' ? 'FR' : 'CA'
+              }))}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="eu" className="flex items-center gap-2">
+                    <Euro className="h-4 w-4" />
+                    Europe (TVA)
+                  </TabsTrigger>
+                  <TabsTrigger value="us" className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    États-Unis (Sales Tax)
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Date de début</Label>
@@ -361,7 +602,7 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
             </div>
 
             <div className="space-y-2">
-              <Label>Pays (pour le taux de TVA)</Label>
+              <Label>{newInvoice.market === 'eu' ? 'Pays (pour le taux de TVA)' : 'État (pour la Sales Tax)'}</Label>
               <Select
                 value={newInvoice.country}
                 onValueChange={(value) => setNewInvoice(prev => ({ ...prev, country: value }))}
@@ -369,22 +610,37 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(EU_VAT_RATES).map(([code, info]) => (
-                    <SelectItem key={code} value={code}>
-                      {info.name} - {(info.rate * 100).toFixed(0)}% TVA
-                    </SelectItem>
-                  ))}
+                <SelectContent className="max-h-60">
+                  {newInvoice.market === 'eu' ? (
+                    Object.entries(EU_VAT_RATES).map(([code, info]) => (
+                      <SelectItem key={code} value={code}>
+                        {info.name} - {(info.rate * 100).toFixed(0)}% TVA
+                      </SelectItem>
+                    ))
+                  ) : (
+                    Object.entries(US_STATE_TAXES).map(([code, info]) => (
+                      <SelectItem key={code} value={code}>
+                        {info.name} - {(info.rate * 100).toFixed(2)}% Sales Tax
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="bg-muted/50 p-4 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                <strong>TVA applicable :</strong> {(EU_VAT_RATES[newInvoice.country]?.rate * 100 || 20).toFixed(0)}%
+                <strong>{newInvoice.market === 'eu' ? 'TVA' : 'Sales Tax'} applicable :</strong>{' '}
+                {(getTaxRate(newInvoice.market, newInvoice.country) * 100).toFixed(2)}%
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                La TVA sera calculée sur le montant net après commission plateforme (15%)
+                {newInvoice.market === 'eu' 
+                  ? 'La TVA sera calculée sur le montant net après commission plateforme (15%)'
+                  : 'La Sales Tax sera calculée sur le montant net après commission plateforme (15%)'
+                }
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                <strong>Devise :</strong> {getCurrency(newInvoice.market)}
               </p>
             </div>
 
@@ -411,10 +667,16 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
           <DialogHeader>
             <div className="flex items-center justify-between">
               <DialogTitle>Facture {selectedInvoice?.invoice_number}</DialogTitle>
-              <Button onClick={handlePrint} variant="outline" size="sm">
-                <Printer className="h-4 w-4 mr-2" />
-                Imprimer / PDF
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => selectedInvoice && generatePDF(selectedInvoice)} variant="default" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Télécharger PDF
+                </Button>
+                <Button onClick={handlePrint} variant="outline" size="sm">
+                  <Printer className="h-4 w-4 mr-2" />
+                  Imprimer
+                </Button>
+              </div>
             </div>
           </DialogHeader>
 
@@ -423,15 +685,15 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
               {/* En-tête */}
               <div className="flex justify-between items-start">
                 <div>
-                  <h1 className="text-2xl font-bold">FACTURE</h1>
+                  <h1 className="text-2xl font-bold">{isUSInvoice(selectedInvoice) ? 'INVOICE' : 'FACTURE'}</h1>
                   <p className="text-muted-foreground">{selectedInvoice.invoice_number}</p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Date : {format(new Date(selectedInvoice.created_at), 'dd MMMM yyyy', { locale: fr })}
+                    Date : {format(new Date(selectedInvoice.created_at), isUSInvoice(selectedInvoice) ? 'MM/dd/yyyy' : 'dd MMMM yyyy', { locale: isUSInvoice(selectedInvoice) ? undefined : fr })}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-lg">Crub</p>
-                  <p className="text-sm text-muted-foreground">Plateforme de créateurs</p>
+                  <p className="text-sm text-muted-foreground">{isUSInvoice(selectedInvoice) ? 'Creator Platform' : 'Plateforme de créateurs'}</p>
                 </div>
               </div>
 
@@ -440,24 +702,26 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
               {/* Infos créateur */}
               <div className="grid grid-cols-2 gap-8">
                 <div>
-                  <h3 className="font-semibold mb-2">Émetteur</h3>
+                  <h3 className="font-semibold mb-2">{isUSInvoice(selectedInvoice) ? 'Issuer' : 'Émetteur'}</h3>
                   <p className="font-medium">{selectedInvoice.creator_name}</p>
                   {selectedInvoice.creator_address && <p className="text-sm">{selectedInvoice.creator_address}</p>}
                   {selectedInvoice.creator_tax_id && (
-                    <p className="text-sm">N° TVA : {selectedInvoice.creator_tax_id}</p>
+                    <p className="text-sm">{isUSInvoice(selectedInvoice) ? 'Tax ID' : 'N° TVA'} : {selectedInvoice.creator_tax_id}</p>
                   )}
-                  <p className="text-sm">Pays : {EU_VAT_RATES[selectedInvoice.creator_country]?.name || selectedInvoice.creator_country}</p>
+                  <p className="text-sm">
+                    {isUSInvoice(selectedInvoice) ? 'State' : 'Pays'} : {getLocationName(isUSInvoice(selectedInvoice) ? 'us' : 'eu', selectedInvoice.creator_country)}
+                  </p>
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-2">Période de facturation</h3>
+                  <h3 className="font-semibold mb-2">{isUSInvoice(selectedInvoice) ? 'Billing Period' : 'Période de facturation'}</h3>
                   <p className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    {format(new Date(selectedInvoice.period_start), 'dd MMMM yyyy', { locale: fr })}
+                    {format(new Date(selectedInvoice.period_start), isUSInvoice(selectedInvoice) ? 'MM/dd/yyyy' : 'dd MMMM yyyy', { locale: isUSInvoice(selectedInvoice) ? undefined : fr })}
                   </p>
-                  <p className="text-sm text-muted-foreground">au</p>
+                  <p className="text-sm text-muted-foreground">{isUSInvoice(selectedInvoice) ? 'to' : 'au'}</p>
                   <p className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    {format(new Date(selectedInvoice.period_end), 'dd MMMM yyyy', { locale: fr })}
+                    {format(new Date(selectedInvoice.period_end), isUSInvoice(selectedInvoice) ? 'MM/dd/yyyy' : 'dd MMMM yyyy', { locale: isUSInvoice(selectedInvoice) ? undefined : fr })}
                   </p>
                 </div>
               </div>
@@ -466,34 +730,34 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
 
               {/* Détail des revenus */}
               <div>
-                <h3 className="font-semibold mb-4">Détail des revenus</h3>
+                <h3 className="font-semibold mb-4">{isUSInvoice(selectedInvoice) ? 'Revenue Breakdown' : 'Détail des revenus'}</h3>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Montant</TableHead>
+                      <TableHead className="text-right">{isUSInvoice(selectedInvoice) ? 'Amount' : 'Montant'}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow>
-                      <TableCell>Revenus d'abonnements</TableCell>
-                      <TableCell className="text-right">{formatCurrency(selectedInvoice.subscription_revenue)}</TableCell>
+                      <TableCell>{isUSInvoice(selectedInvoice) ? 'Subscription Revenue' : 'Revenus d\'abonnements'}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(selectedInvoice.subscription_revenue, selectedInvoice.currency)}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Pourboires reçus</TableCell>
-                      <TableCell className="text-right">{formatCurrency(selectedInvoice.tips_revenue)}</TableCell>
+                      <TableCell>{isUSInvoice(selectedInvoice) ? 'Tips Received' : 'Pourboires reçus'}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(selectedInvoice.tips_revenue, selectedInvoice.currency)}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Revenus des lives</TableCell>
-                      <TableCell className="text-right">{formatCurrency(selectedInvoice.live_revenue)}</TableCell>
+                      <TableCell>{isUSInvoice(selectedInvoice) ? 'Live Stream Revenue' : 'Revenus des lives'}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(selectedInvoice.live_revenue, selectedInvoice.currency)}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Contenu privé payant</TableCell>
-                      <TableCell className="text-right">{formatCurrency(selectedInvoice.private_content_revenue)}</TableCell>
+                      <TableCell>{isUSInvoice(selectedInvoice) ? 'Private Content' : 'Contenu privé payant'}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(selectedInvoice.private_content_revenue, selectedInvoice.currency)}</TableCell>
                     </TableRow>
                     <TableRow className="font-semibold">
-                      <TableCell>Total brut</TableCell>
-                      <TableCell className="text-right">{formatCurrency(selectedInvoice.gross_amount)}</TableCell>
+                      <TableCell>{isUSInvoice(selectedInvoice) ? 'Gross Total' : 'Total brut'}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(selectedInvoice.gross_amount, selectedInvoice.currency)}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -502,33 +766,35 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
               {/* Calcul final */}
               <div className="bg-muted/30 p-4 rounded-lg space-y-2">
                 <div className="flex justify-between">
-                  <span>Total brut</span>
-                  <span>{formatCurrency(selectedInvoice.gross_amount)}</span>
+                  <span>{isUSInvoice(selectedInvoice) ? 'Gross Total' : 'Total brut'}</span>
+                  <span>{formatCurrency(selectedInvoice.gross_amount, selectedInvoice.currency)}</span>
                 </div>
                 <div className="flex justify-between text-orange-600">
-                  <span>Commission plateforme (15%)</span>
-                  <span>-{formatCurrency(selectedInvoice.platform_commission_amount)}</span>
+                  <span>{isUSInvoice(selectedInvoice) ? 'Platform Commission (15%)' : 'Commission plateforme (15%)'}</span>
+                  <span>-{formatCurrency(selectedInvoice.platform_commission_amount, selectedInvoice.currency)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between">
-                  <span>Sous-total HT</span>
-                  <span>{formatCurrency(selectedInvoice.gross_amount - selectedInvoice.platform_commission_amount)}</span>
+                  <span>{isUSInvoice(selectedInvoice) ? 'Subtotal' : 'Sous-total HT'}</span>
+                  <span>{formatCurrency(selectedInvoice.gross_amount - selectedInvoice.platform_commission_amount, selectedInvoice.currency)}</span>
                 </div>
                 <div className="flex justify-between text-orange-600">
-                  <span>TVA ({(selectedInvoice.vat_rate * 100).toFixed(0)}% - {EU_VAT_RATES[selectedInvoice.creator_country]?.name})</span>
-                  <span>-{formatCurrency(selectedInvoice.vat_amount)}</span>
+                  <span>
+                    {isUSInvoice(selectedInvoice) ? 'Sales Tax' : 'TVA'} ({(selectedInvoice.vat_rate * 100).toFixed(2)}% - {getLocationName(isUSInvoice(selectedInvoice) ? 'us' : 'eu', selectedInvoice.creator_country)})
+                  </span>
+                  <span>-{formatCurrency(selectedInvoice.vat_amount, selectedInvoice.currency)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-bold text-green-600">
-                  <span>Net à percevoir</span>
-                  <span>{formatCurrency(selectedInvoice.net_amount)}</span>
+                  <span>{isUSInvoice(selectedInvoice) ? 'Net Amount' : 'Net à percevoir'}</span>
+                  <span>{formatCurrency(selectedInvoice.net_amount, selectedInvoice.currency)}</span>
                 </div>
               </div>
 
               {/* Footer */}
               <div className="text-xs text-muted-foreground pt-4 border-t">
-                <p>Cette facture a été générée automatiquement par la plateforme Crub.</p>
-                <p>Pour toute question, contactez support@crub.fr</p>
+                <p>{isUSInvoice(selectedInvoice) ? 'This invoice was automatically generated by Crub platform.' : 'Cette facture a été générée automatiquement par la plateforme Crub.'}</p>
+                <p>{isUSInvoice(selectedInvoice) ? 'For any questions, contact support@crub.com' : 'Pour toute question, contactez support@crub.fr'}</p>
               </div>
             </div>
           )}
