@@ -12,6 +12,7 @@ import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, MessageCircle } from 'lu
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
 import PrivateChat from '@/components/PrivateChat';
+import SEOHead from '@/components/SEOHead';
 
 const CreatorPublicPage = () => {
   const { username } = useParams<{ username: string }>();
@@ -204,8 +205,37 @@ const CreatorPublicPage = () => {
   const freeContent = content.filter(c => !c.is_premium);
   const premiumContent = content.filter(c => c.is_premium);
 
+  const creatorName = creator?.stage_name || profile?.display_name || profile?.username || 'Créateur';
+  const creatorDescription = profile?.bio 
+    ? `${profile.bio.substring(0, 150)}${profile.bio.length > 150 ? '...' : ''}`
+    : `Découvrez le profil de ${creatorName} sur Crub. ${creator?.category ? `Catégorie: ${creator.category}.` : ''} ${creator?.total_subscribers || 0} abonnés.`;
+  const creatorImage = profile?.avatar_url || '/og-image.jpg';
+  const creatorUrl = `https://crub.fr/creator/${profile?.username || username}`;
+
   return (
     <div className="min-h-screen bg-background pt-16">
+      {/* SEO Head avec JSON-LD */}
+      <SEOHead
+        title={`${creatorName} - Profil Créateur`}
+        description={creatorDescription}
+        image={creatorImage}
+        url={creatorUrl}
+        type="profile"
+        keywords={`${creatorName}, créateur Crub, ${creator?.category || 'contenu exclusif'}, abonnement créateur`}
+        creator={{
+          name: creatorName,
+          username: profile?.username || '',
+          category: creator?.category,
+          bio: profile?.bio,
+          subscriberCount: creator?.total_subscribers || 0,
+          contentCount: content.length,
+          isVerified: profile?.is_verified,
+          subscriptionPrice: creator?.subscription_price,
+          currency: creator?.currency || 'EUR'
+        }}
+        modifiedTime={creator?.updated_at}
+      />
+
       {/* Header avec cover */}
       <div className="relative h-64 bg-gradient-to-r from-primary/20 to-primary/10">
         {profile.cover_url && (
