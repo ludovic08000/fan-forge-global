@@ -85,6 +85,60 @@ export type Database = {
           },
         ]
       }
+      content_leaks: {
+        Row: {
+          action_taken: string | null
+          action_taken_at: string | null
+          action_taken_by: string | null
+          created_at: string
+          detected_at: string
+          detected_by: string
+          id: string
+          leak_timestamp: string | null
+          notes: string | null
+          short_id: string
+          source_url: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          watermark_pattern: string
+        }
+        Insert: {
+          action_taken?: string | null
+          action_taken_at?: string | null
+          action_taken_by?: string | null
+          created_at?: string
+          detected_at?: string
+          detected_by: string
+          id?: string
+          leak_timestamp?: string | null
+          notes?: string | null
+          short_id: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          watermark_pattern: string
+        }
+        Update: {
+          action_taken?: string | null
+          action_taken_at?: string | null
+          action_taken_by?: string | null
+          created_at?: string
+          detected_at?: string
+          detected_by?: string
+          id?: string
+          leak_timestamp?: string | null
+          notes?: string | null
+          short_id?: string
+          source_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          watermark_pattern?: string
+        }
+        Relationships: []
+      }
       content_likes: {
         Row: {
           content_id: string
@@ -1362,6 +1416,17 @@ export type Database = {
       generate_invoice_number: { Args: never; Returns: string }
       generate_stream_key: { Args: never; Returns: string }
       generate_unique_username: { Args: { base_text: string }; Returns: string }
+      get_recidivist_users: {
+        Args: { min_leaks?: number }
+        Returns: {
+          first_leak: string
+          last_leak: string
+          leak_count: number
+          user_email: string
+          user_id: string
+          username: string
+        }[]
+      }
       has_live_access: {
         Args: { _live_stream_id: string; _subscriber_id: string }
         Returns: boolean
