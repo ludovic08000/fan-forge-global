@@ -58,8 +58,8 @@ const Login = () => {
           
           if (suspension) {
             await supabase.auth.signOut();
-            const suspendedDate = new Date(suspension.suspended_at).toLocaleDateString('fr-FR');
-            toast.error(`Votre compte a été suspendu le ${suspendedDate}. Raison : ${suspension.reason}. Contactez le support pour plus d'informations.`);
+            sessionStorage.setItem('suspension_details', JSON.stringify(suspension));
+            navigate('/suspended');
             return;
           }
 
