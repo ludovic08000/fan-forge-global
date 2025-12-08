@@ -184,18 +184,18 @@ const AdminDashboard = () => {
           const [weeklyRev, monthlyRev, quarterlyRev] = await Promise.all([
             supabase.rpc('calculate_creator_total_revenue', {
               creator_uuid: creator.id,
-              start_date: startOfWeek.toISOString(),
-              end_date: new Date().toISOString(),
+              p_start_date: startOfWeek.toISOString(),
+              p_end_date: new Date().toISOString(),
             }),
             supabase.rpc('calculate_creator_total_revenue', {
               creator_uuid: creator.id,
-              start_date: startOfMonth.toISOString(),
-              end_date: new Date().toISOString(),
+              p_start_date: startOfMonth.toISOString(),
+              p_end_date: new Date().toISOString(),
             }),
             supabase.rpc('calculate_creator_total_revenue', {
               creator_uuid: creator.id,
-              start_date: startOfQuarter.toISOString(),
-              end_date: new Date().toISOString(),
+              p_start_date: startOfQuarter.toISOString(),
+              p_end_date: new Date().toISOString(),
             }),
           ]);
 
