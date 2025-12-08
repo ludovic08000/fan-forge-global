@@ -143,6 +143,8 @@ const AppRoutes = () => {
               <AdminDashboard />
             </ProtectedRoute>
           } />
+          {/* Redirection sécurisée de l'ancien chemin admin */}
+          <Route path="/admin" element={<NotFound />} />
           {/* Route dynamique pour les profils créateurs - doit être en dernier */}
           <Route path="/:username" element={<CreatorPublicPage />} />
           {/* Route catch-all */}
