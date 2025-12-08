@@ -174,14 +174,22 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
 
   const loadCreatorInfo = async () => {
     try {
+      // Récupérer les infos du créateur
       const { data: creator } = await supabase
         .from('creators')
-        .select('*, profiles!creators_user_id_fkey(display_name, username)')
+        .select('*')
         .eq('id', creatorId)
         .single();
       
       if (creator) {
-        setCreatorInfo(creator);
+        // Récupérer les infos du profil séparément
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name, username')
+          .eq('user_id', creator.user_id)
+          .maybeSingle();
+        
+        setCreatorInfo({ ...creator, profile });
       }
     } catch (error) {
       console.error('Error loading creator info:', error);
