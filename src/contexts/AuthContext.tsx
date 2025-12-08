@@ -70,6 +70,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  /**
+   * Vérifie si un utilisateur est suspendu et le déconnecte si c'est le cas
+   * @param userId - L'identifiant de l'utilisateur
+   * @returns true si l'utilisateur est suspendu
+   */
+  const checkAndHandleSuspension = async (userId: string): Promise<boolean> => {
+    try {
+      const { data: isSuspended } = await supabase
+        .rpc('is_user_suspended', { _user_id: userId });
+      
+      if (isSuspended) {
+        await supabase.auth.signOut();
+        toast.error('Votre compte a été suspendu. Contactez le support pour plus d\'informations.');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Erreur lors de la vérification de suspension:', error);
+      return false;
+    }
+  };
+
   // Effet pour gérer l'authentification et charger le rôle utilisateur
   useEffect(() => {
     // Configuration de l'écouteur d'état d'authentification EN PREMIER
@@ -79,10 +101,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Charger le rôle utilisateur après connexion
+        // Vérifier la suspension et charger le rôle utilisateur après connexion
         if (session?.user) {
           // Utiliser setTimeout pour éviter les problèmes de deadlock
-          setTimeout(() => {
+          setTimeout(async () => {
+            // Vérifier si l'utilisateur est suspendu (surtout pour OAuth)
+            const isSuspended = await checkAndHandleSuspension(session.user.id);
+            if (isSuspended) return;
+            
             loadUserRole(session.user.id);
             processIntendedRole(session.user.id);
           }, 0);
