@@ -1701,6 +1701,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_creator_owner: {
+        Args: { _creator_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_own_creator_profile: {
         Args: { _creator_id: string }
         Returns: boolean
