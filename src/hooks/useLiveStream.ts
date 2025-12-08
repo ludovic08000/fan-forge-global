@@ -50,6 +50,9 @@ export const useLiveStream = () => {
 
       if (status) {
         query = query.eq('status', status);
+      } else {
+        // Par défaut, exclure les lives terminés et annulés
+        query = query.in('status', ['live', 'scheduled']);
       }
 
       const { data, error } = await query;
