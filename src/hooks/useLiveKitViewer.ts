@@ -41,11 +41,12 @@ export const useLiveKitViewer = (streamId: string) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   
   const roomRef = useRef<any>(null);
   const isConnectingRef = useRef(false);
+  const isConnectedRef = useRef(false);
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
 
   /**
    * Obtenir un token LiveKit depuis l'edge function
@@ -69,7 +70,7 @@ export const useLiveKitViewer = (streamId: string) => {
    * Se connecter au stream
    */
   const connect = useCallback(async () => {
-    if (!streamId || isConnectingRef.current || isConnected) return;
+    if (!streamId || isConnectingRef.current || isConnectedRef.current) return;
 
     console.log('[LiveKit Viewer] Connecting to stream:', streamId);
     isConnectingRef.current = true;
@@ -118,7 +119,7 @@ export const useLiveKitViewer = (streamId: string) => {
           const audio = track.attach();
           audio.volume = 1;
           document.body.appendChild(audio);
-          setAudioElement(audio);
+          audioElementRef.current = audio;
           console.log('[LiveKit Viewer] Audio attached');
         }
       };
@@ -135,6 +136,7 @@ export const useLiveKitViewer = (streamId: string) => {
 
       room.on(RoomEvent.Connected, () => {
         console.log('[LiveKit Viewer] Connected to room');
+        isConnectedRef.current = true;
         setIsConnected(true);
         setIsConnecting(false);
         isConnectingRef.current = false;
@@ -142,6 +144,7 @@ export const useLiveKitViewer = (streamId: string) => {
 
       room.on(RoomEvent.Disconnected, () => {
         console.log('[LiveKit Viewer] Disconnected from room');
+        isConnectedRef.current = false;
         setIsConnected(false);
         isConnectingRef.current = false;
       });
@@ -172,8 +175,9 @@ export const useLiveKitViewer = (streamId: string) => {
       setError(err?.message || 'Erreur de connexion au stream');
       setIsConnecting(false);
       isConnectingRef.current = false;
+      isConnectedRef.current = false;
     }
-  }, [streamId, isConnected, getToken]);
+  }, [streamId, getToken]);
 
   /**
    * Se déconnecter
@@ -186,14 +190,15 @@ export const useLiveKitViewer = (streamId: string) => {
       roomRef.current = null;
     }
 
-    if (audioElement) {
-      audioElement.remove();
-      setAudioElement(null);
+    if (audioElementRef.current) {
+      audioElementRef.current.remove();
+      audioElementRef.current = null;
     }
 
+    isConnectedRef.current = false;
     setIsConnected(false);
     isConnectingRef.current = false;
-  }, [audioElement]);
+  }, []);
 
   /**
    * Définir l'élément vidéo pour attacher le stream
@@ -208,11 +213,11 @@ export const useLiveKitViewer = (streamId: string) => {
       if (roomRef.current) {
         roomRef.current.disconnect();
       }
-      if (audioElement) {
-        audioElement.remove();
+      if (audioElementRef.current) {
+        audioElementRef.current.remove();
       }
     };
-  }, [audioElement]);
+  }, []);
 
   return {
     isConnected,

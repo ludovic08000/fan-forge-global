@@ -107,18 +107,22 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
    * Rejoindre le live si accès autorisé
    */
   useEffect(() => {
-    if (user && hasAccess) {
-      joinLiveStream(streamId);
-      // Se connecter au stream LiveKit
+    if (!user || !hasAccess) return;
+    
+    // Joindre le stream
+    joinLiveStream(streamId);
+    
+    // Se connecter au stream LiveKit (seulement une fois)
+    const connectTimeout = setTimeout(() => {
       connect();
-    }
+    }, 100);
 
     return () => {
-      if (user && hasAccess) {
-        leaveLiveStream(streamId);
-        disconnect();
-      }
+      clearTimeout(connectTimeout);
+      leaveLiveStream(streamId);
+      disconnect();
     };
+    // On ne met PAS connect/disconnect dans les deps car ils changent à chaque render
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamId, user?.id, hasAccess]);
 
