@@ -2,9 +2,26 @@ import { Button } from "@/components/ui/button";
 import { Play, Shield, Users, Lock, Sparkles, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const HeroSection = () => {
   const { user } = useAuth();
+
+  // Vérifier si l'utilisateur est un créateur
+  const { data: isCreator } = useQuery({
+    queryKey: ['is-creator', user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!user,
+  });
 
   return (
     <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
@@ -57,7 +74,7 @@ const HeroSection = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {user ? (
               <Button variant="hero" size="lg" asChild>
-                <Link to="/subscriptions">Mon espace</Link>
+                <Link to={isCreator ? "/dashboard" : "/subscriptions"}>Mon espace</Link>
               </Button>
             ) : (
               <Button variant="hero" size="lg" asChild>
