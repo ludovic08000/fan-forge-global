@@ -115,6 +115,8 @@ const ContentCard: React.FC<ContentCardProps> = ({
       <ProtectedMedia 
         className="relative aspect-square bg-muted overflow-hidden cursor-pointer"
         watermarkText={content.is_premium ? creatorName : undefined}
+        enableForensicWatermark={content.is_premium && isSubscribed}
+        forensicOpacity={0.04}
       >
       <div onClick={handleContentClick}>
         {/* Premium Overlay pour contenu preview flouté */}
