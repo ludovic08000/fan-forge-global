@@ -24,6 +24,7 @@ const LiveStreams = () => {
     fetchLiveStreams();
   }, []);
 
+  // Filtrer les lives en cours et à venir (exclure les terminés et annulés)
   const liveNow = liveStreams.filter((s) => s.status === 'live');
   const upcoming = liveStreams.filter((s) => s.status === 'scheduled');
 

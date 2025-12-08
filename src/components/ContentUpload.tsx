@@ -28,7 +28,8 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    isPremium: false
+    isPremium: false,
+    isPreview: false
   });
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -104,6 +105,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
         title: validatedData.title,
         description: validatedData.description || undefined,
         isPremium: validatedData.isPremium,
+        isPreview: formData.isPreview,
         price: 0,
         file: selectedFile
       }, creatorData.id, user.id);
@@ -112,7 +114,8 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
       setFormData({
         title: '',
         description: '',
-        isPremium: false
+        isPremium: false,
+        isPreview: false
       });
       setSelectedFile(null);
       setPreviewUrl('');
@@ -265,11 +268,40 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
               <Switch
                 id="premium"
                 checked={formData.isPremium}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPremium: checked }))}
+                onCheckedChange={(checked) => setFormData(prev => ({ 
+                  ...prev, 
+                  isPremium: checked,
+                  isPreview: checked ? prev.isPreview : false 
+                }))}
               />
             </div>
+            
+            {/* Preview Toggle - Only show when content is premium */}
+            {formData.isPremium && (
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
+                <div className="space-y-0.5">
+                  <Label htmlFor="preview" className="flex items-center gap-2">
+                    👁️ Photo d'aperçu
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Visible par tous (non-abonnés voient une version floutée)
+                  </p>
+                </div>
+                <Switch
+                  id="preview"
+                  checked={formData.isPreview}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPreview: checked }))}
+                />
+              </div>
+            )}
+            
             <p className="text-xs text-muted-foreground bg-muted p-3 rounded-lg">
-              💡 Si activé, seuls vos abonnés pourront voir ce contenu. Sinon, tout le monde peut le voir gratuitement.
+              💡 {formData.isPremium 
+                ? formData.isPreview 
+                  ? "Ce contenu sera visible par tous mais flouté pour les non-abonnés." 
+                  : "Seuls vos abonnés pourront voir ce contenu."
+                : "Tout le monde pourra voir ce contenu gratuitement."
+              }
             </p>
           </div>
 
