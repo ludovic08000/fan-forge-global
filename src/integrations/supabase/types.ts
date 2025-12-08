@@ -1247,6 +1247,7 @@ export type Database = {
         Returns: undefined
       }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
+      cleanup_stale_live_streams: { Args: never; Returns: undefined }
       generate_stream_key: { Args: never; Returns: string }
       generate_unique_username: { Args: { base_text: string }; Returns: string }
       has_live_access: {
