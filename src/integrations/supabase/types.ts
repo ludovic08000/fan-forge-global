@@ -1705,6 +1705,10 @@ export type Database = {
         Args: { _creator_id: string; _user_id: string }
         Returns: boolean
       }
+      is_live_stream_creator: {
+        Args: { _live_stream_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_own_creator_profile: {
         Args: { _creator_id: string }
         Returns: boolean
