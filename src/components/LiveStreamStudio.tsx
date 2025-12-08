@@ -54,55 +54,15 @@ export const LiveStreamStudio = () => {
   }, [currentStream]);
 
   /**
-   * Heartbeat pour signaler que le live est toujours actif
+   * Terminer le live automatiquement quand le créateur quitte la page (navigation ou fermeture)
    */
   useEffect(() => {
-    if (!isLive || !currentStreamIdRef.current) return;
-
-    // Envoyer un heartbeat immédiatement
-    const sendHeartbeat = async () => {
-      try {
-        await supabase.functions.invoke('live-heartbeat', {
-          body: { 
-            liveStreamId: currentStreamIdRef.current,
-            action: 'heartbeat'
-          }
-        });
-        console.log('[Heartbeat] Sent for stream:', currentStreamIdRef.current);
-      } catch (error) {
-        console.error('[Heartbeat] Error:', error);
-      }
-    };
-
-    sendHeartbeat();
-
-    // Envoyer un heartbeat toutes les 30 secondes
-    const heartbeatInterval = setInterval(sendHeartbeat, 30000);
-
-    // Vérifier et nettoyer les lives zombies toutes les minutes
-    const cleanupInterval = setInterval(async () => {
-      try {
-        await supabase.functions.invoke('live-heartbeat', {
-          body: { action: 'cleanup' }
-        });
-      } catch (error) {
-        console.error('[Cleanup] Error:', error);
-      }
-    }, 60000);
-
+    // Terminer le live quand le composant est démonté (changement de page)
     return () => {
-      clearInterval(heartbeatInterval);
-      clearInterval(cleanupInterval);
-    };
-  }, [isLive]);
-
-  /**
-   * Terminer le live automatiquement quand le créateur quitte la page
-   */
-  useEffect(() => {
-    const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
-      if (currentStreamIdRef.current && isLive) {
-        // Terminer le live de manière synchrone avec sendBeacon
+      if (currentStreamIdRef.current) {
+        console.log('[Studio] Component unmounting, ending live:', currentStreamIdRef.current);
+        
+        // Utiliser sendBeacon pour garantir l'envoi même lors de la navigation
         const url = `https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/live-heartbeat`;
         const body = JSON.stringify({
           liveStreamId: currentStreamIdRef.current,
@@ -110,8 +70,16 @@ export const LiveStreamStudio = () => {
         });
         
         navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
-        
-        // Message de confirmation pour l'utilisateur
+      }
+    };
+  }, []);
+
+  /**
+   * Confirmation avant fermeture de l'onglet/navigateur
+   */
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (currentStreamIdRef.current && isLive) {
         e.preventDefault();
         e.returnValue = 'Votre live est en cours. Êtes-vous sûr de vouloir quitter?';
         return e.returnValue;
