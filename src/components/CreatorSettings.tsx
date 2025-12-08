@@ -13,6 +13,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { creatorProfileSchema } from '@/lib/validations';
 import { z } from 'zod';
+import AccountDeletion from '@/components/settings/AccountDeletion';
+import CreatorAccountPause from '@/components/creator/CreatorAccountPause';
 
 interface CreatorProfile {
   id: string;
@@ -350,6 +352,21 @@ const CreatorSettings: React.FC = () => {
           {saving ? 'Sauvegarde...' : 'Sauvegarder les paramètres'}
         </Button>
       </form>
+
+      {/* Gestion du compte */}
+      <Separator className="my-8" />
+      
+      <div className="space-y-6">
+        <h3 className="text-xl font-semibold">Gestion du compte</h3>
+        
+        {/* Pause du compte */}
+        {profile?.id && (
+          <CreatorAccountPause creatorId={profile.id} />
+        )}
+        
+        {/* Suppression du compte */}
+        <AccountDeletion isCreator={true} creatorId={profile?.id} />
+      </div>
     </div>
   );
 };

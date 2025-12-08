@@ -441,7 +441,9 @@ export type Database = {
           id: string
           is_accepting_tips: boolean | null
           is_featured: boolean | null
+          is_paused: boolean | null
           orientation: string | null
+          paused_at: string | null
           payment_frequency: string | null
           platform_commission_rate: number | null
           stage_name: string | null
@@ -474,7 +476,9 @@ export type Database = {
           id?: string
           is_accepting_tips?: boolean | null
           is_featured?: boolean | null
+          is_paused?: boolean | null
           orientation?: string | null
+          paused_at?: string | null
           payment_frequency?: string | null
           platform_commission_rate?: number | null
           stage_name?: string | null
@@ -507,7 +511,9 @@ export type Database = {
           id?: string
           is_accepting_tips?: boolean | null
           is_featured?: boolean | null
+          is_paused?: boolean | null
           orientation?: string | null
+          paused_at?: string | null
           payment_frequency?: string | null
           platform_commission_rate?: number | null
           stage_name?: string | null
@@ -1624,7 +1630,13 @@ export type Database = {
         Returns: undefined
       }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
+      cleanup_paused_creators: { Args: never; Returns: number }
       cleanup_stale_live_streams: { Args: never; Returns: undefined }
+      delete_creator_completely: {
+        Args: { _creator_id: string }
+        Returns: undefined
+      }
+      delete_user_completely: { Args: { _user_id: string }; Returns: undefined }
       generate_invoice_number: { Args: never; Returns: string }
       generate_stream_key: { Args: never; Returns: string }
       generate_unique_username: { Args: { base_text: string }; Returns: string }

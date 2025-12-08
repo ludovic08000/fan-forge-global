@@ -84,3 +84,6 @@ verify_jwt = true
 
 [functions.decode-watermark]
 verify_jwt = true
+
+[functions.cleanup-paused-creators]
+verify_jwt = false
