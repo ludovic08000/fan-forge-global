@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { User, Crown, BarChart3, Heart, Eye, Euro, Settings, Plus, Video, Upload, Trash2, Share2, Copy, Banknote, Shield, Loader2 } from 'lucide-react';
+import { User, Crown, BarChart3, Heart, Eye, Euro, Settings, Plus, Video, Upload, Trash2, Share2, Copy, Banknote, Shield, Loader2, MessageCircle } from 'lucide-react';
 import ContentUpload from '@/components/ContentUpload';
 import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
 import CreatorSettings from '@/components/CreatorSettings';
@@ -26,6 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/lib/analytics';
 import { useNavigate } from 'react-router-dom';
+import CreatorMessages from '@/components/CreatorMessages';
 
 // Lazy load LiveStreamStudio to avoid blocking if livekit-client fails
 const LiveStreamStudio = lazy(() => import('@/components/LiveStreamStudio').then(m => ({ default: m.LiveStreamStudio })));
@@ -416,12 +417,18 @@ const Dashboard = () => {
 
         {/* Main Content */}
         <Tabs value={tabsValue} onValueChange={setTabsValue} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-7">
             {isCreator && <TabsTrigger value="my-content">Mon contenu</TabsTrigger>}
             {isCreator && (
               <TabsTrigger value="live" className="gap-1">
                 <Video className="h-4 w-4" />
                 Live
+              </TabsTrigger>
+            )}
+            {isCreator && (
+              <TabsTrigger value="messages" className="gap-1">
+                <MessageCircle className="h-4 w-4" />
+                Messages
               </TabsTrigger>
             )}
             <TabsTrigger value="explore">Explorer</TabsTrigger>
@@ -513,6 +520,13 @@ const Dashboard = () => {
               <Suspense fallback={<LiveStreamFallback />}>
                 <LiveStreamStudio />
               </Suspense>
+            </TabsContent>
+          )}
+
+          {/* Messages */}
+          {isCreator && (
+            <TabsContent value="messages" className="space-y-6">
+              <CreatorMessages />
             </TabsContent>
           )}
 
