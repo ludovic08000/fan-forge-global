@@ -6,6 +6,53 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
+/* =====================================================
+   PROTECTION ANTI-TÉLÉCHARGEMENT DES MÉDIAS
+   ===================================================== */
+
+/* Empêcher la sélection et le drag sur les contenus protégés */
+.protected-content,
+.protected-content * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-drag: none !important;
+}
+
+/* Empêcher le drag des images dans les contenus protégés */
+.protected-content img,
+.protected-content video {
+  pointer-events: none !important;
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+}
+
+/* Désactiver le menu contextuel sur les médias */
+.protected-media-content img,
+.protected-media-content video {
+  -webkit-touch-callout: none;
+  pointer-events: none;
+}
+
+/* Protection contre l'impression via CSS */
+@media print {
+  .protected-content,
+  .protected-content * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  
+  body::before {
+    content: "L'impression de ce contenu est interdite.";
+    display: block;
+    font-size: 24px;
+    text-align: center;
+    padding: 50px;
+  }
+}
+
 @layer base {
   :root {
     /* Light theme colors - Premium design */
