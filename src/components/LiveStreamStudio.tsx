@@ -54,16 +54,59 @@ export const LiveStreamStudio = () => {
   }, [currentStream]);
 
   /**
+   * Heartbeat pour signaler que le live est toujours actif
+   */
+  useEffect(() => {
+    if (!isLive || !currentStreamIdRef.current) return;
+
+    // Envoyer un heartbeat immédiatement
+    const sendHeartbeat = async () => {
+      try {
+        await supabase.functions.invoke('live-heartbeat', {
+          body: { 
+            liveStreamId: currentStreamIdRef.current,
+            action: 'heartbeat'
+          }
+        });
+        console.log('[Heartbeat] Sent for stream:', currentStreamIdRef.current);
+      } catch (error) {
+        console.error('[Heartbeat] Error:', error);
+      }
+    };
+
+    sendHeartbeat();
+
+    // Envoyer un heartbeat toutes les 30 secondes
+    const heartbeatInterval = setInterval(sendHeartbeat, 30000);
+
+    // Vérifier et nettoyer les lives zombies toutes les minutes
+    const cleanupInterval = setInterval(async () => {
+      try {
+        await supabase.functions.invoke('live-heartbeat', {
+          body: { action: 'cleanup' }
+        });
+      } catch (error) {
+        console.error('[Cleanup] Error:', error);
+      }
+    }, 60000);
+
+    return () => {
+      clearInterval(heartbeatInterval);
+      clearInterval(cleanupInterval);
+    };
+  }, [isLive]);
+
+  /**
    * Terminer le live automatiquement quand le créateur quitte la page
    */
   useEffect(() => {
     const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
       if (currentStreamIdRef.current && isLive) {
         // Terminer le live de manière synchrone avec sendBeacon
-        const url = `https://usjxcgauyvdocngfkhys.supabase.co/rest/v1/live_streams?id=eq.${currentStreamIdRef.current}`;
+        const url = `https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/live-heartbeat`;
         const body = JSON.stringify({
-          status: 'ended',
-          ended_at: new Date().toISOString()
+          liveStreamId: currentStreamIdRef.current,
+          action: 'end'
         });
         
         navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
@@ -75,19 +118,10 @@ export const LiveStreamStudio = () => {
       }
     };
 
-    const handleVisibilityChange = async () => {
-      // Ne pas terminer sur simple changement d'onglet, seulement sur fermeture
-      if (document.visibilityState === 'hidden' && currentStreamIdRef.current && isLive) {
-        console.log('Page hidden while live - keeping stream active');
-      }
-    };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [isLive]);
 

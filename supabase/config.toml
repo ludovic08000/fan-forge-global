@@ -1,5 +1,8 @@
 project_id = "usjxcgauyvdocngfkhys"
 
+[functions.live-heartbeat]
+verify_jwt = false
+
 [api]
 enabled = true
 port = 54321
