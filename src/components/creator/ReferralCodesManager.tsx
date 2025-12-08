@@ -204,7 +204,18 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
               Créez des codes promotionnels pour attirer de nouveaux abonnés
             </CardDescription>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            // Générer automatiquement un code à l'ouverture
+            if (open && !newCode.code) {
+              const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+              let code = '';
+              for (let i = 0; i < 8; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+              }
+              setNewCode(prev => ({ ...prev, code }));
+            }
+          }}>
             <DialogTrigger asChild>
               <Button variant="premium" size="sm">
                 <Plus className="h-4 w-4 mr-2" />
@@ -227,12 +238,14 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
                       value={newCode.code}
                       onChange={(e) => setNewCode(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
                       placeholder="Ex: PROMO2024"
-                      className="uppercase"
+                      className="uppercase font-mono"
                     />
-                    <Button variant="outline" size="icon" onClick={generateRandomCode}>
-                      <Gift className="h-4 w-4" />
+                    <Button variant="outline" onClick={generateRandomCode} title="Générer un code aléatoire">
+                      <Gift className="h-4 w-4 mr-2" />
+                      Générer
                     </Button>
                   </div>
+                  <p className="text-xs text-muted-foreground">Un code a été généré automatiquement. Vous pouvez le modifier.</p>
                 </div>
 
                 <div className="space-y-2">
