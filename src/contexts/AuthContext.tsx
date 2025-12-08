@@ -157,7 +157,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const loadUserRole = async (userId: string) => {
     try {
-      // Vérifier d'abord si l'utilisateur est un créateur
+      // D'abord vérifier si admin (priorité maximale)
+      const { data: adminRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (adminRole) {
+        setUserRole('admin');
+        return;
+      }
+
+      // Ensuite vérifier si créateur
       const { data: creatorData } = await supabase
         .from('creators')
         .select('id')
@@ -179,11 +192,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (roleData) {
         setUserRole(roleData.role as UserRole);
       } else {
-        setUserRole(null);
+        setUserRole('subscriber');
       }
     } catch (error) {
       console.error('Erreur lors du chargement du rôle utilisateur:', error);
-      setUserRole('subscriber'); // Défaut en cas d'erreur
+      setUserRole('subscriber');
     }
   };
 
