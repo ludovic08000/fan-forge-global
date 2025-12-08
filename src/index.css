@@ -53,6 +53,36 @@
   }
 }
 
+/* Mode extension de capture détectée - protection renforcée */
+body.screenshot-extension-detected .protected-content {
+  position: relative;
+}
+
+body.screenshot-extension-detected .protected-content::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 8px,
+    rgba(255, 255, 255, 0.08) 8px,
+    rgba(255, 255, 255, 0.08) 16px
+  );
+  pointer-events: none;
+  z-index: 100;
+  animation: protection-shimmer 2s linear infinite;
+}
+
+@keyframes protection-shimmer {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 32px 32px;
+  }
+}
+
 @layer base {
   :root {
     /* Light theme colors - Premium design */
