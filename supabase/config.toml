@@ -81,3 +81,6 @@ verify_jwt = false
 
 [functions.get-signed-url]
 verify_jwt = true
+
+[functions.decode-watermark]
+verify_jwt = true
