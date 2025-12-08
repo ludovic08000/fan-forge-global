@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Star, Clock, TrendingUp, Zap, Euro } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Star, Clock, TrendingUp, Zap, Euro, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 const BOOST_OPTIONS = [
   {
@@ -45,6 +49,9 @@ interface CreatorBoostProps {
 
 const CreatorBoost: React.FC<CreatorBoostProps> = ({ currentBoostUntil, onBoostUpdate }) => {
   const [loading, setLoading] = useState<string | null>(null);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [selectedBoost, setSelectedBoost] = useState<typeof BOOST_OPTIONS[0] | null>(null);
   const { user } = useAuth();
 
   const isCurrentlyBoosted = currentBoostUntil && new Date(currentBoostUntil) > new Date();
@@ -55,7 +62,11 @@ const CreatorBoost: React.FC<CreatorBoostProps> = ({ currentBoostUntil, onBoostU
       return;
     }
 
+    const boost = BOOST_OPTIONS.find(b => b.id === boostType);
+    if (!boost) return;
+
     setLoading(boostType);
+    setSelectedBoost(boost);
     
     try {
       const { data, error } = await supabase.functions.invoke('create-creator-boost', {
@@ -64,10 +75,9 @@ const CreatorBoost: React.FC<CreatorBoostProps> = ({ currentBoostUntil, onBoostU
 
       if (error) throw error;
 
-      if (data?.url) {
-        // Open Stripe checkout in a new tab
-        window.open(data.url, '_blank');
-        toast.success(`Redirection vers le paiement pour le boost ${data.boost_info?.name}`);
+      if (data?.clientSecret) {
+        setClientSecret(data.clientSecret);
+        setShowCheckout(true);
       }
     } catch (error: any) {
       console.error('Error creating boost checkout:', error);
@@ -75,6 +85,12 @@ const CreatorBoost: React.FC<CreatorBoostProps> = ({ currentBoostUntil, onBoostU
     } finally {
       setLoading(null);
     }
+  };
+
+  const handleCloseCheckout = () => {
+    setShowCheckout(false);
+    setClientSecret(null);
+    setSelectedBoost(null);
   };
 
   const formatBoostEndTime = (dateString: string) => {
@@ -89,87 +105,121 @@ const CreatorBoost: React.FC<CreatorBoostProps> = ({ currentBoostUntil, onBoostU
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center space-x-2">
-          <Star className="h-5 w-5 text-primary" />
-          <CardTitle>Boost de Visibilité</CardTitle>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Augmentez votre visibilité et apparaissez en tête des résultats de recherche
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {isCurrentlyBoosted && (
-          <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
-            <div className="flex items-center space-x-2 mb-2">
-              <Star className="h-4 w-4 text-primary" />
-              <span className="font-medium text-primary">Boost Actif</span>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center space-x-2">
+            <Star className="h-5 w-5 text-primary" />
+            <CardTitle>Boost de Visibilité</CardTitle>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Augmentez votre visibilité et apparaissez en tête des résultats de recherche
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {isCurrentlyBoosted && (
+            <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+              <div className="flex items-center space-x-2 mb-2">
+                <Star className="h-4 w-4 text-primary" />
+                <span className="font-medium text-primary">Boost Actif</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Votre profil est boosté jusqu'au {formatBoostEndTime(currentBoostUntil)}
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Votre profil est boosté jusqu'au {formatBoostEndTime(currentBoostUntil)}
-            </p>
-          </div>
-        )}
+          )}
 
-        <div className="space-y-4">
-          <h4 className="font-medium">Choisissez votre boost :</h4>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {BOOST_OPTIONS.map((option) => {
-              const Icon = option.icon;
-              return (
-                <div
-                  key={option.id}
-                  className="relative p-4 border rounded-lg transition-all hover:shadow-md border-border"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Icon className={`h-5 w-5 ${option.color}`} />
-                      <span className="font-medium">{option.name}</span>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-1">
-                        <Euro className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-2xl font-bold">{option.price}€</span>
+          <div className="space-y-4">
+            <h4 className="font-medium">Choisissez votre boost :</h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {BOOST_OPTIONS.map((option) => {
+                const Icon = option.icon;
+                return (
+                  <div
+                    key={option.id}
+                    className="relative p-4 border rounded-lg transition-all hover:shadow-md border-border"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Icon className={`h-5 w-5 ${option.color}`} />
+                        <span className="font-medium">{option.name}</span>
                       </div>
-                      <p className="text-sm text-muted-foreground">{option.description}</p>
+                      
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-1">
+                          <Euro className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-2xl font-bold">{option.price}€</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{option.description}</p>
+                      </div>
+                      
+                      <Button
+                        onClick={() => handleBoostPurchase(option.id)}
+                        disabled={loading === option.id || isCurrentlyBoosted}
+                        className="w-full"
+                      >
+                        {loading === option.id ? (
+                          <div className="flex items-center gap-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            Chargement...
+                          </div>
+                        ) : isCurrentlyBoosted ? (
+                          "Déjà boosté"
+                        ) : (
+                          `Boost ${option.duration}`
+                        )}
+                      </Button>
                     </div>
-                    
-                    <Button
-                      onClick={() => handleBoostPurchase(option.id)}
-                      disabled={loading === option.id || isCurrentlyBoosted}
-                      className="w-full"
-                    >
-                      {loading === option.id ? (
-                        "Redirection..."
-                      ) : isCurrentlyBoosted ? (
-                        "Déjà boosté"
-                      ) : (
-                        `Boost ${option.duration}`
-                      )}
-                    </Button>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        <Separator />
-        
-        <div className="space-y-2">
-          <h5 className="font-medium text-sm">Avantages du boost :</h5>
-          <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• Apparition en tête des résultats de recherche</li>
-            <li>• Badge "En vedette" sur votre profil</li> 
-            <li>• Visibilité maximale auprès des nouveaux abonnés</li>
-            <li>• Augmentation du trafic sur votre profil</li>
-          </ul>
-        </div>
-      </CardContent>
-    </Card>
+          <Separator />
+          
+          <div className="space-y-2">
+            <h5 className="font-medium text-sm">Avantages du boost :</h5>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li>• Apparition en tête des résultats de recherche</li>
+              <li>• Badge "En vedette" sur votre profil</li> 
+              <li>• Visibilité maximale auprès des nouveaux abonnés</li>
+              <li>• Augmentation du trafic sur votre profil</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Embedded Checkout Dialog */}
+      <Dialog open={showCheckout} onOpenChange={handleCloseCheckout}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2">
+                <Star className="h-5 w-5 text-primary" />
+                {selectedBoost ? `Boost ${selectedBoost.name}` : 'Paiement du boost'}
+              </DialogTitle>
+              <Button variant="ghost" size="icon" onClick={handleCloseCheckout}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+          
+          {clientSecret ? (
+            <div className="min-h-[400px]">
+              <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
+                <EmbeddedCheckout />
+              </EmbeddedCheckoutProvider>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center p-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
