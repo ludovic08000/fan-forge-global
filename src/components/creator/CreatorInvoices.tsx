@@ -8,14 +8,15 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Download, Plus, Euro, Loader2, Printer, Calendar, DollarSign } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FileText, Download, Plus, Euro, Loader2, Printer, Calendar, DollarSign, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useGeoLocation } from '@/hooks/useGeoLocation';
 
 // Taux de TVA par pays UE (2024)
 const EU_VAT_RATES: Record<string, { name: string; rate: number }> = {
@@ -142,12 +143,29 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
   const [creatorInfo, setCreatorInfo] = useState<any>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
   
+  // Auto-detect location
+  const { geoData, getMarket, getStateCode, loading: geoLoading } = useGeoLocation();
+  
   const [newInvoice, setNewInvoice] = useState({
     periodStart: format(new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1), 'yyyy-MM-dd'),
     periodEnd: format(new Date(new Date().getFullYear(), new Date().getMonth(), 0), 'yyyy-MM-dd'),
     country: 'FR',
     market: 'eu' as MarketType
   });
+
+  // Update default country when geo data is loaded
+  useEffect(() => {
+    if (!geoLoading && geoData) {
+      const market = getMarket();
+      const stateCode = getStateCode();
+      
+      setNewInvoice(prev => ({
+        ...prev,
+        market: market === 'us' ? 'us' : 'eu',
+        country: market === 'us' && stateCode ? stateCode : geoData.countryCode
+      }));
+    }
+  }, [geoLoading, geoData]);
 
   useEffect(() => {
     loadInvoices();
@@ -561,13 +579,24 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Indicateur de localisation détectée */}
+            {!geoLoading && geoData && (
+              <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg text-sm">
+                <MapPin className="h-4 w-4 text-primary" />
+                <span>
+                  Localisation détectée : <strong>{geoData.countryName}</strong>
+                  {geoData.region && ` (${geoData.region})`}
+                </span>
+              </div>
+            )}
+
             {/* Sélection du marché */}
             <div className="space-y-2">
               <Label>Marché</Label>
               <Tabs value={newInvoice.market} onValueChange={(v) => setNewInvoice(prev => ({ 
                 ...prev, 
                 market: v as MarketType,
-                country: v === 'eu' ? 'FR' : 'CA'
+                country: v === 'eu' ? (geoData?.isEU ? geoData.countryCode : 'FR') : (getStateCode() || 'CA')
               }))}>
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="eu" className="flex items-center gap-2">

@@ -1,4 +1,4 @@
-export const translations = {
+export const translations: Record<string, any> = {
   en: {
     header: {
       forCreators: "For Creators",
@@ -78,6 +78,16 @@ export const translations = {
       terms: "Terms of Service",
       guidelines: "Community Guidelines",
       copyright: "All rights reserved."
+    },
+    common: {
+      loading: "Loading...",
+      error: "An error occurred",
+      save: "Save",
+      cancel: "Cancel",
+      delete: "Delete",
+      edit: "Edit",
+      search: "Search",
+      noResults: "No results found"
     }
   },
   fr: {
@@ -159,6 +169,16 @@ export const translations = {
       terms: "Conditions d'Utilisation",
       guidelines: "Règles de la Communauté",
       copyright: "Tous droits réservés."
+    },
+    common: {
+      loading: "Chargement...",
+      error: "Une erreur est survenue",
+      save: "Enregistrer",
+      cancel: "Annuler",
+      delete: "Supprimer",
+      edit: "Modifier",
+      search: "Rechercher",
+      noResults: "Aucun résultat trouvé"
     }
   },
   es: {
@@ -240,6 +260,16 @@ export const translations = {
       terms: "Términos de Servicio",
       guidelines: "Pautas de la Comunidad",
       copyright: "Todos los derechos reservados."
+    },
+    common: {
+      loading: "Cargando...",
+      error: "Ocurrió un error",
+      save: "Guardar",
+      cancel: "Cancelar",
+      delete: "Eliminar",
+      edit: "Editar",
+      search: "Buscar",
+      noResults: "No se encontraron resultados"
     }
   },
   de: {
@@ -321,6 +351,16 @@ export const translations = {
       terms: "Nutzungsbedingungen",
       guidelines: "Community-Richtlinien",
       copyright: "Alle Rechte vorbehalten."
+    },
+    common: {
+      loading: "Laden...",
+      error: "Ein Fehler ist aufgetreten",
+      save: "Speichern",
+      cancel: "Abbrechen",
+      delete: "Löschen",
+      edit: "Bearbeiten",
+      search: "Suchen",
+      noResults: "Keine Ergebnisse gefunden"
     }
   },
   it: {
@@ -402,6 +442,198 @@ export const translations = {
       terms: "Termini di Servizio",
       guidelines: "Linee Guida Community",
       copyright: "Tutti i diritti riservati."
+    },
+    common: {
+      loading: "Caricamento...",
+      error: "Si è verificato un errore",
+      save: "Salva",
+      cancel: "Annulla",
+      delete: "Elimina",
+      edit: "Modifica",
+      search: "Cerca",
+      noResults: "Nessun risultato trovato"
+    }
+  },
+  pt: {
+    header: {
+      forCreators: "Para Criadores",
+      features: "Recursos",
+      pricing: "Preços",
+      support: "Suporte",
+      signIn: "Entrar",
+      getStarted: "Começar"
+    },
+    hero: {
+      title: "Crie, Compartilhe, Ganhe",
+      subtitle: "A Plataforma de Conteúdo Premium",
+      description: "Junte-se a milhares de criadores construindo sua comunidade e monetizando seu conteúdo na plataforma de criação mais avançada.",
+      joinAsCreator: "Junte-se como Criador",
+      exploreContent: "Explorar Conteúdo",
+      creators: "Criadores Ativos",
+      subscribers: "Assinantes Felizes",
+      earnings: "Ganhos Mensais"
+    },
+    creator: {
+      title: "Feito para Criadores",
+      subtitle: "Tudo o que você precisa para ter sucesso",
+      upload: {
+        title: "Upload de Conteúdo Fácil",
+        description: "Carregue vídeos, fotos e posts com nossa interface intuitiva de arrastar e soltar."
+      },
+      analytics: {
+        title: "Análises Avançadas",
+        description: "Acompanhe seu desempenho com insights detalhados e comportamento dos assinantes."
+      },
+      monetization: {
+        title: "Múltiplas Fontes de Renda",
+        description: "Assinaturas, gorjetas, conteúdo premium e mais formas de ganhar."
+      },
+      support: {
+        title: "Suporte ao Criador 24/7",
+        description: "Obtenha ajuda a qualquer momento com nossa equipe de suporte dedicada aos criadores."
+      }
+    },
+    subscriber: {
+      title: "Experiência Incrível do Assinante",
+      subtitle: "Descubra e aproveite conteúdo premium",
+      discovery: {
+        title: "Descoberta Inteligente",
+        description: "Encontre criadores que você ama com nosso motor de recomendação alimentado por IA."
+      },
+      quality: {
+        title: "Qualidade Premium",
+        description: "Aproveite conteúdo em alta definição com streaming rápido e confiável."
+      },
+      interaction: {
+        title: "Interação Direta",
+        description: "Envie mensagens para criadores, gorjetas e faça parte de comunidades exclusivas."
+      },
+      privacy: {
+        title: "Privacidade e Segurança",
+        description: "Seus dados são protegidos com segurança e controles de privacidade de nível empresarial."
+      }
+    },
+    footer: {
+      tagline: "O futuro da criação de conteúdo",
+      creators: "Criadores",
+      becomeCreator: "Tornar-se Criador",
+      creatorResources: "Recursos para Criadores",
+      helpCenter: "Central de Ajuda",
+      subscribers: "Assinantes",
+      browseCreators: "Explorar Criadores",
+      subscriptions: "Minhas Assinaturas",
+      account: "Configurações da Conta",
+      company: "Empresa",
+      about: "Sobre Nós",
+      careers: "Carreiras",
+      press: "Imprensa",
+      contact: "Contato",
+      legal: "Legal",
+      privacy: "Política de Privacidade",
+      terms: "Termos de Serviço",
+      guidelines: "Diretrizes da Comunidade",
+      copyright: "Todos os direitos reservados."
+    },
+    common: {
+      loading: "Carregando...",
+      error: "Ocorreu um erro",
+      save: "Salvar",
+      cancel: "Cancelar",
+      delete: "Excluir",
+      edit: "Editar",
+      search: "Pesquisar",
+      noResults: "Nenhum resultado encontrado"
+    }
+  },
+  nl: {
+    header: {
+      forCreators: "Voor Creators",
+      features: "Functies",
+      pricing: "Prijzen",
+      support: "Ondersteuning",
+      signIn: "Inloggen",
+      getStarted: "Aan de slag"
+    },
+    hero: {
+      title: "Creëer, Deel, Verdien",
+      subtitle: "Het Premium Content Platform",
+      description: "Sluit je aan bij duizenden creators die hun community opbouwen en hun content monetiseren op het meest geavanceerde creator platform.",
+      joinAsCreator: "Word Creator",
+      exploreContent: "Ontdek Content",
+      creators: "Actieve Creators",
+      subscribers: "Tevreden Abonnees",
+      earnings: "Maandelijkse Inkomsten"
+    },
+    creator: {
+      title: "Gebouwd voor Creators",
+      subtitle: "Alles wat je nodig hebt om te slagen",
+      upload: {
+        title: "Eenvoudig Content Uploaden",
+        description: "Upload video's, foto's en posts met onze intuïtieve drag-and-drop interface."
+      },
+      analytics: {
+        title: "Geavanceerde Analyses",
+        description: "Volg je prestaties met gedetailleerde inzichten en abonneegedrag."
+      },
+      monetization: {
+        title: "Meerdere Inkomstenbronnen",
+        description: "Abonnementen, fooien, premium content en meer manieren om te verdienen."
+      },
+      support: {
+        title: "24/7 Creator Ondersteuning",
+        description: "Krijg op elk moment hulp van ons toegewijde creator support team."
+      }
+    },
+    subscriber: {
+      title: "Geweldige Abonnee Ervaring",
+      subtitle: "Ontdek en geniet van premium content",
+      discovery: {
+        title: "Slimme Ontdekking",
+        description: "Vind creators waar je van houdt met onze AI-aangedreven aanbevelingsengine."
+      },
+      quality: {
+        title: "Premium Kwaliteit",
+        description: "Geniet van high-definition content met snelle, betrouwbare streaming."
+      },
+      interaction: {
+        title: "Directe Interactie",
+        description: "Stuur berichten naar creators, geef fooien en maak deel uit van exclusieve communities."
+      },
+      privacy: {
+        title: "Privacy & Beveiliging",
+        description: "Je gegevens worden beschermd met enterprise-grade beveiliging en privacy controles."
+      }
+    },
+    footer: {
+      tagline: "De toekomst van content creatie",
+      creators: "Creators",
+      becomeCreator: "Word Creator",
+      creatorResources: "Creator Bronnen",
+      helpCenter: "Helpcentrum",
+      subscribers: "Abonnees",
+      browseCreators: "Blader door Creators",
+      subscriptions: "Mijn Abonnementen",
+      account: "Account Instellingen",
+      company: "Bedrijf",
+      about: "Over Ons",
+      careers: "Carrières",
+      press: "Pers",
+      contact: "Contact",
+      legal: "Juridisch",
+      privacy: "Privacybeleid",
+      terms: "Servicevoorwaarden",
+      guidelines: "Community Richtlijnen",
+      copyright: "Alle rechten voorbehouden."
+    },
+    common: {
+      loading: "Laden...",
+      error: "Er is een fout opgetreden",
+      save: "Opslaan",
+      cancel: "Annuleren",
+      delete: "Verwijderen",
+      edit: "Bewerken",
+      search: "Zoeken",
+      noResults: "Geen resultaten gevonden"
     }
   }
 };
