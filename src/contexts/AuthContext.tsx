@@ -86,8 +86,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (suspension) {
         await supabase.auth.signOut();
-        const suspendedDate = new Date(suspension.suspended_at).toLocaleDateString('fr-FR');
-        toast.error(`Votre compte a été suspendu le ${suspendedDate}. Raison : ${suspension.reason}. Contactez le support pour plus d'informations.`);
+        // Stocker les détails pour affichage sur la page /suspended
+        sessionStorage.setItem('suspension_details', JSON.stringify(suspension));
+        window.location.href = '/suspended';
         return true;
       }
       return false;

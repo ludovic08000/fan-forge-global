@@ -42,6 +42,7 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const LegalNotice = lazy(() => import("./pages/LegalNotice"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
+const Suspended = lazy(() => import("./pages/Suspended"));
 
 // Composant de chargement pour le Suspense
 const PageLoader = () => (
@@ -100,6 +101,7 @@ const AppRoutes = () => {
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/suspended" element={<Suspended />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/search" element={<Search />} />
           <Route path="/lives" element={<LiveStreams />} />
