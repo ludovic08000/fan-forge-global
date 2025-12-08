@@ -34,12 +34,14 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog } from 'lucide-react';
+import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentRequestsManager from '@/components/admin/PaymentRequestsManager';
 import PlatformCommissions from '@/components/admin/PlatformCommissions';
 import WatermarkInvestigation from '@/components/admin/WatermarkInvestigation';
 import UserManagement from '@/components/admin/UserManagement';
+import AdminContentManager from '@/components/admin/AdminContentManager';
+import AdminLiveManager from '@/components/admin/AdminLiveManager';
 
 interface ContentReport {
   id: string;
@@ -384,6 +386,14 @@ const AdminDashboard = () => {
             <UserCog className="h-3 w-3" />
             Utilisateurs
           </TabsTrigger>
+          <TabsTrigger value="content" className="flex items-center gap-1">
+            <Image className="h-3 w-3" />
+            Contenus
+          </TabsTrigger>
+          <TabsTrigger value="lives" className="flex items-center gap-1">
+            <Radio className="h-3 w-3" />
+            Lives
+          </TabsTrigger>
           <TabsTrigger value="reports">Signalements</TabsTrigger>
           <TabsTrigger value="logs">Logs de connexion</TabsTrigger>
           <TabsTrigger value="payment-requests">Demandes de paiement</TabsTrigger>
@@ -398,6 +408,16 @@ const AdminDashboard = () => {
         {/* Onglet Gestion Utilisateurs */}
         <TabsContent value="users" className="space-y-4">
           <UserManagement />
+        </TabsContent>
+
+        {/* Onglet Contenus */}
+        <TabsContent value="content" className="space-y-4">
+          <AdminContentManager />
+        </TabsContent>
+
+        {/* Onglet Lives */}
+        <TabsContent value="lives" className="space-y-4">
+          <AdminLiveManager />
         </TabsContent>
 
         {/* Onglet Signalements */}
