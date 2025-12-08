@@ -48,6 +48,16 @@ const Login = () => {
       if (!error) {
         const { data: userData } = await supabase.auth.getUser();
         if (userData.user) {
+          // Check if user is suspended
+          const { data: isSuspended } = await supabase
+            .rpc('is_user_suspended', { _user_id: userData.user.id });
+          
+          if (isSuspended) {
+            await supabase.auth.signOut();
+            toast.error('Votre compte a été suspendu. Contactez le support pour plus d\'informations.');
+            return;
+          }
+
           const { data: creatorData } = await supabase
             .from('creators')
             .select('id')
