@@ -49,12 +49,17 @@ const Login = () => {
         const { data: userData } = await supabase.auth.getUser();
         if (userData.user) {
           // Check if user is suspended
-          const { data: isSuspended } = await supabase
-            .rpc('is_user_suspended', { _user_id: userData.user.id });
+          const { data: suspension } = await supabase
+            .from('user_suspensions')
+            .select('reason, suspended_at')
+            .eq('user_id', userData.user.id)
+            .eq('is_active', true)
+            .maybeSingle();
           
-          if (isSuspended) {
+          if (suspension) {
             await supabase.auth.signOut();
-            toast.error('Votre compte a été suspendu. Contactez le support pour plus d\'informations.');
+            const suspendedDate = new Date(suspension.suspended_at).toLocaleDateString('fr-FR');
+            toast.error(`Votre compte a été suspendu le ${suspendedDate}. Raison : ${suspension.reason}. Contactez le support pour plus d'informations.`);
             return;
           }
 

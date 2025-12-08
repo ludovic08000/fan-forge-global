@@ -77,12 +77,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const checkAndHandleSuspension = async (userId: string): Promise<boolean> => {
     try {
-      const { data: isSuspended } = await supabase
-        .rpc('is_user_suspended', { _user_id: userId });
+      const { data: suspension } = await supabase
+        .from('user_suspensions')
+        .select('reason, suspended_at')
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .maybeSingle();
       
-      if (isSuspended) {
+      if (suspension) {
         await supabase.auth.signOut();
-        toast.error('Votre compte a été suspendu. Contactez le support pour plus d\'informations.');
+        const suspendedDate = new Date(suspension.suspended_at).toLocaleDateString('fr-FR');
+        toast.error(`Votre compte a été suspendu le ${suspendedDate}. Raison : ${suspension.reason}. Contactez le support pour plus d'informations.`);
         return true;
       }
       return false;
