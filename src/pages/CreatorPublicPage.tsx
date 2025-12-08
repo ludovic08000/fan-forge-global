@@ -8,10 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Heart, Eye, Lock, Crown, Share2, CheckCircle2 } from 'lucide-react';
+import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, MessageCircle } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
-// import AgeVerificationGate, { requiresAgeVerification } from '@/components/AgeVerificationGate';
+import PrivateChat from '@/components/PrivateChat';
 
 const CreatorPublicPage = () => {
   const { username } = useParams<{ username: string }>();
@@ -26,6 +26,7 @@ const CreatorPublicPage = () => {
   const [showCheckout, setShowCheckout] = useState(false);
   const [preloadedSecret, setPreloadedSecret] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<any>(null);
+  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     const loadCreator = async () => {
@@ -285,6 +286,13 @@ const CreatorPublicPage = () => {
                   </Link>
                 )}
                 
+                {isSubscribed && (
+                  <Button variant="outline" onClick={() => setShowChat(true)}>
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Message privé
+                  </Button>
+                )}
+                
                 <Button variant="outline" onClick={handleShare}>
                   <Share2 className="h-4 w-4 mr-2" />
                   {copied ? 'Copié !' : 'Partager'}
@@ -454,6 +462,22 @@ const CreatorPublicPage = () => {
                 </div>
               </div>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Private Chat Dialog */}
+      <Dialog open={showChat} onOpenChange={setShowChat}>
+        <DialogContent className="max-w-lg max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Message privé</DialogTitle>
+          </DialogHeader>
+          {creator && (
+            <PrivateChat 
+              creatorId={creator.id}
+              creatorName={creator.stage_name || profile?.display_name || profile?.username}
+              creatorAvatar={profile?.avatar_url}
+            />
           )}
         </DialogContent>
       </Dialog>

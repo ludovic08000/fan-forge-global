@@ -3,27 +3,48 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePrivateMessages } from '@/hooks/usePrivateMessages';
 import { useAuth } from '@/contexts/AuthContext';
-import { Send, Upload, Euro, Lock, Play } from 'lucide-react';
+import { Send, Upload, Euro, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 
 interface PrivateChatProps {
   creatorId: string;
   creatorName: string;
   creatorAvatar?: string;
+  subscriberId?: string; // Pour quand le créateur ouvre le chat
 }
 
 const PrivateChat: React.FC<PrivateChatProps> = ({ 
   creatorId, 
   creatorName, 
-  creatorAvatar 
+  creatorAvatar,
+  subscriberId 
 }) => {
   const { user } = useAuth();
-  const { messages, isLoading, sendMessage, sendPaidContent, payForContent } = usePrivateMessages(creatorId);
+  
+  // Déterminer si l'utilisateur actuel est le créateur
+  const { data: userCreatorData } = useQuery({
+    queryKey: ['user-creator', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const isUserCreator = userCreatorData?.id === creatorId;
+  const targetId = isUserCreator ? subscriberId : creatorId;
+  
+  const { messages, isLoading, sendMessage, sendPaidContent, payForContent } = usePrivateMessages(targetId);
   const [newMessage, setNewMessage] = useState('');
   const [contentPrice, setContentPrice] = useState(10);
   const [showPriceInput, setShowPriceInput] = useState(false);
@@ -105,7 +126,7 @@ const PrivateChat: React.FC<PrivateChatProps> = ({
     }
   };
 
-  const isUserCreator = false; // Temporairement désactivé pour éviter les erreurs de type
+  // isUserCreator est maintenant calculé dynamiquement
 
   if (isLoading) {
     return (
