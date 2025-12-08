@@ -39,7 +39,7 @@ const CreatorPublicPage = () => {
       if (!username) return;
 
       try {
-        // Essayer d'abord de chercher par username
+        // Essayer d'abord de chercher par username via la vue publique
         let profileData = null;
         let profileError = null;
 
@@ -47,18 +47,18 @@ const CreatorPublicPage = () => {
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(username);
 
         if (isUUID) {
-          // Chercher par user_id
+          // Chercher par user_id via la vue publique
           const result = await supabase
-            .from('profiles')
+            .from('public_creator_profiles')
             .select('*')
             .eq('user_id', username)
             .single();
           profileData = result.data;
           profileError = result.error;
         } else {
-          // Chercher par username
+          // Chercher par username via la vue publique
           const result = await supabase
-            .from('profiles')
+            .from('public_creator_profiles')
             .select('*')
             .eq('username', username)
             .single();
@@ -69,9 +69,9 @@ const CreatorPublicPage = () => {
         if (profileError) throw profileError;
         setProfile(profileData);
 
-        // Récupérer les infos créateur
+        // Récupérer les infos créateur via la vue publique
         const { data: creatorData, error: creatorError } = await supabase
-          .from('creators')
+          .from('public_creators')
           .select('*')
           .eq('user_id', profileData.user_id)
           .single();

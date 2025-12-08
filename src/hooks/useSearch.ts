@@ -91,12 +91,12 @@ export const useSearch = () => {
     return results.slice(0, 5);
   }, [results]);
 
-  // Get popular categories avec cache long
+  // Get popular categories avec cache long - utilise la vue publique
   const { data: categories } = useQuery({
     queryKey: ['popular-categories'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('creators')
+        .from('public_creators')
         .select('category')
         .not('category', 'is', null)
         .neq('category', '')
@@ -122,13 +122,13 @@ export const useSearch = () => {
     gcTime: 10 * 60 * 1000, // Garde 10 minutes
   });
 
-  // Get featured creators avec cache long
+  // Get featured creators avec cache long - utilise la vue publique
   const { data: featuredCreators } = useQuery({
     queryKey: ['featured-creators'],
     queryFn: async () => {
-      // Get featured creators
+      // Get featured creators from public view
       const { data: creators, error: creatorsError } = await supabase
-        .from('creators')
+        .from('public_creators')
         .select('*')
         .eq('is_featured', true)
         .order('total_subscribers', { ascending: false })
@@ -137,10 +137,10 @@ export const useSearch = () => {
       if (creatorsError) throw creatorsError;
       if (!creators || creators.length === 0) return [];
 
-      // Get profiles for these creators
-      const userIds = creators.map(c => c.user_id);
+      // Get profiles for these creators from public view
+      const userIds = creators.map(c => c.user_id).filter(Boolean) as string[];
       const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
+        .from('public_creator_profiles')
         .select('user_id, display_name, username, avatar_url, is_verified')
         .in('user_id', userIds);
 
