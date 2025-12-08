@@ -1,20 +1,21 @@
 /**
- * Page Dashboard - Interface principale pour créateurs et abonnés
- * Affiche les statistiques, le contenu et les paramètres selon le rôle
- * Updated: 2025-12-04
+ * Page Dashboard - Interface simplifiée pour créateurs
+ * Design intuitif avec sections claires
  */
 
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { User, Crown, BarChart3, Heart, Eye, Euro, Settings, Plus, Video, Upload, Trash2, Share2, Copy, Banknote, Shield, Loader2, MessageCircle } from 'lucide-react';
+import { 
+  Crown, Heart, Eye, Euro, Settings, Plus, Video, Upload, 
+  Trash2, Share2, Copy, Banknote, Shield, Loader2, MessageCircle,
+  BarChart3, Users, ImageIcon, Radio, ChevronRight, ExternalLink
+} from 'lucide-react';
 import ContentUpload from '@/components/ContentUpload';
-import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
 import CreatorSettings from '@/components/CreatorSettings';
 import CreatorBoost from '@/components/CreatorBoost';
 import CreatorAnalyticsDashboard from '@/components/analytics/CreatorAnalyticsDashboard';
@@ -26,13 +27,18 @@ import { useContent } from '@/hooks/useContent';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/lib/analytics';
-import { useNavigate } from 'react-router-dom';
 import CreatorMessages from '@/components/CreatorMessages';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
-// Lazy load LiveStreamStudio to avoid blocking if livekit-client fails
 const LiveStreamStudio = lazy(() => import('@/components/LiveStreamStudio').then(m => ({ default: m.LiveStreamStudio })));
 
-// Fallback for LiveStreamStudio loading
 const LiveStreamFallback = () => (
   <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
     <Loader2 className="h-8 w-8 animate-spin mb-4" />
@@ -40,15 +46,16 @@ const LiveStreamFallback = () => (
   </div>
 );
 
-/**
- * Composant principal du Dashboard
- */
+type DashboardSection = 'overview' | 'content' | 'live' | 'messages' | 'analytics' | 'settings';
+
 const Dashboard = () => {
   const { user, userRole, loading } = useAuth();
   const { useMyContent } = useContent();
   const { trackPageView } = useAnalytics();
   const navigate = useNavigate();
   const { data: myContent, isLoading: contentLoading, refetch } = useMyContent();
+  
+  const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
   const [showUpload, setShowUpload] = useState(false);
   const [creatorStats, setCreatorStats] = useState({
     totalEarnings: 0,
@@ -57,30 +64,19 @@ const Dashboard = () => {
     totalLikes: 0
   });
   const [creatorProfile, setCreatorProfile] = useState<any>(null);
-  const [isCreatorLocal, setIsCreatorLocal] = useState<boolean | null>(null); // null = en cours de chargement
+  const [isCreatorLocal, setIsCreatorLocal] = useState<boolean | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [shareLink, setShareLink] = useState('');
   const [copied, setCopied] = useState(false);
-  const [stripeStatus, setStripeStatus] = useState<{
-    connected: boolean;
-    active: boolean;
-    charges_enabled: boolean;
-    payouts_enabled: boolean;
-  } | null>(null);
-  const [tabsValue, setTabsValue] = useState<string>((userRole === 'creator' || userRole === 'admin') ? 'my-content' : 'explore');
+  const [stripeConnected, setStripeConnected] = useState(false);
 
   const handleDeleteContent = async (contentId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce contenu ?')) return;
     
     try {
-      const { error } = await supabase
-        .from('content')
-        .delete()
-        .eq('id', contentId);
-      
+      const { error } = await supabase.from('content').delete().eq('id', contentId);
       if (error) throw error;
-      
-      toast.success('Contenu supprimé avec succès');
+      toast.success('Contenu supprimé');
       refetch();
     } catch (error) {
       console.error('Error deleting content:', error);
@@ -92,71 +88,59 @@ const Dashboard = () => {
     if (shareLink) {
       navigator.clipboard.writeText(shareLink);
       setCopied(true);
-      toast.success('Lien copié dans le presse-papier !');
+      toast.success('Lien copié !');
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  // Tracker la vue de page
   useEffect(() => {
     trackPageView('dashboard');
   }, [trackPageView]);
 
-  // Vérifier immédiatement si l'utilisateur est créateur (AVANT tout autre chargement)
   useEffect(() => {
     const checkIfCreator = async () => {
       if (!user) {
         setIsCreatorLocal(false);
         return;
       }
-
       try {
         const { data: creatorData } = await supabase
           .from('creators')
           .select('id')
           .eq('user_id', user.id)
           .maybeSingle();
-
         setIsCreatorLocal(!!creatorData);
       } catch (error) {
         console.error('Error checking creator status:', error);
         setIsCreatorLocal(false);
       }
     };
-
     checkIfCreator();
   }, [user]);
 
-  // Charger le profil utilisateur pour le lien de partage
   useEffect(() => {
     const loadUserProfile = async () => {
       if (!user) return;
-
       try {
         const { data: profileData } = await supabase
           .from('profiles')
           .select('username')
           .eq('user_id', user.id)
           .single();
-
         if (profileData?.username) {
           setUserProfile(profileData);
-          const link = `${window.location.origin}/${profileData.username}`;
-          setShareLink(link);
+          setShareLink(`${window.location.origin}/${profileData.username}`);
         }
       } catch (error) {
         console.error('Error loading profile:', error);
       }
     };
-
     loadUserProfile();
   }, [user]);
 
-  // Charger les stats détaillées du créateur (après avoir confirmé le statut)
   useEffect(() => {
     const loadCreatorStats = async () => {
       if (!user || isCreatorLocal !== true) return;
-
       try {
         const { data: creatorData } = await supabase
           .from('creators')
@@ -166,16 +150,8 @@ const Dashboard = () => {
 
         if (creatorData) {
           setCreatorProfile(creatorData);
+          setStripeConnected(creatorData.stripe_account_status === 'active' && creatorData.stripe_payouts_enabled);
           
-          // Mettre à jour le statut Stripe
-          setStripeStatus({
-            connected: creatorData.stripe_account_status === 'active',
-            active: creatorData.stripe_account_status === 'active',
-            charges_enabled: creatorData.stripe_charges_enabled || false,
-            payouts_enabled: creatorData.stripe_payouts_enabled || false,
-          });
-          
-          // Calculer les vues et likes totaux
           const totalViews = myContent?.reduce((sum, content) => sum + content.view_count, 0) || 0;
           const totalLikes = myContent?.reduce((sum, content) => sum + content.like_count, 0) || 0;
 
@@ -190,60 +166,42 @@ const Dashboard = () => {
         console.error('Error loading creator stats:', error);
       }
     };
-
     loadCreatorStats();
   }, [user, isCreatorLocal, myContent]);
 
-  // Gérer les redirections après paiement et Stripe Connect
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     
-    // Gérer le succès du boost
     if (urlParams.get('boost_success') === 'true') {
-      toast.success('Boost activé avec succès! Votre profil est maintenant en vedette.');
-      // Recharger les données du créateur
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-      // Nettoyer l'URL
+      toast.success('Boost activé !');
+      setTimeout(() => window.location.reload(), 2000);
       window.history.replaceState({}, document.title, window.location.pathname);
     }
     
     if (urlParams.get('boost_canceled') === 'true') {
       toast.error('Achat de boost annulé.');
-      // Nettoyer l'URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    // Gérer le retour d'onboarding Stripe Connect
     if (urlParams.get('stripe_connect') === 'success') {
-      toast.success('Retour de Stripe détecté — vérification du statut...');
+      toast.success('Vérification Stripe en cours...');
       supabase.functions.invoke('check-stripe-connect-status')
         .then(({ data, error }) => {
-          if (error) {
-            console.error('Erreur check-stripe-connect-status:', error);
-            toast.error("Impossible de vérifier le statut Stripe");
-          } else {
-            if (data?.payouts_enabled) {
-              toast.success('Stripe Connect activé — virements disponibles');
-            } else {
-              toast.info('Statut mis à jour — finalisez l\'onboarding si besoin');
-            }
+          if (!error && data?.payouts_enabled) {
+            toast.success('Stripe Connect activé !');
           }
         })
         .finally(() => {
-          // Nettoyer l'URL puis recharger pour rafraîchir toutes les vues
           window.history.replaceState({}, document.title, window.location.pathname);
           window.location.reload();
         });
     }
   }, []);
 
-  // Afficher le loader pendant le chargement de l'auth OU du statut créateur
   if (loading || isCreatorLocal === null) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
@@ -254,358 +212,368 @@ const Dashboard = () => {
 
   const isCreator = isCreatorLocal === true || userRole === 'creator' || userRole === 'admin';
 
-  // Rediriger les non-créateurs vers la page abonnements
   if (!isCreator) {
     return <Navigate to="/subscriptions" replace />;
   }
 
+  const menuItems = [
+    { id: 'overview' as DashboardSection, label: 'Aperçu', icon: BarChart3 },
+    { id: 'content' as DashboardSection, label: 'Mon contenu', icon: ImageIcon },
+    { id: 'live' as DashboardSection, label: 'Live', icon: Radio },
+    { id: 'messages' as DashboardSection, label: 'Messages', icon: MessageCircle },
+    { id: 'analytics' as DashboardSection, label: 'Statistiques', icon: BarChart3 },
+    { id: 'settings' as DashboardSection, label: 'Paramètres', icon: Settings },
+  ];
+
   return (
     <div className="min-h-screen bg-background pt-16">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-16 w-16">
+      <div className="container mx-auto px-4 py-6">
+        
+        {/* Header compact */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-12 w-12 border-2 border-primary">
               <AvatarImage src={user.user_metadata?.avatar_url} />
-              <AvatarFallback className="text-xl">
+              <AvatarFallback className="bg-primary text-primary-foreground font-bold">
                 {user.email?.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h1 className="text-3xl font-bold">
-                Tableau de bord
-              </h1>
-              <div className="flex items-center space-x-2 mt-1">
-                <Badge variant={isCreator ? "default" : "secondary"}>
-                  {isCreator ? (
-                    <>
-                      <Crown className="h-3 w-3 mr-1" />
-                      Créateur
-                    </>
-                  ) : (
-                    <>
-                      <User className="h-3 w-3 mr-1" />
-                      Abonné
-                    </>
-                  )}
-                </Badge>
-                <span className="text-muted-foreground">•</span>
-                <span className="text-muted-foreground">{user.email}</span>
-              </div>
+              <h1 className="text-xl font-bold">Mon espace créateur</h1>
+              <p className="text-sm text-muted-foreground">{user.email}</p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            {isCreator && shareLink && (
-              <Button
-                onClick={handleCopyLink}
-                variant="outline"
-                className="gap-2"
-              >
+          <div className="flex items-center gap-2">
+            {shareLink && (
+              <Button onClick={handleCopyLink} variant="outline" size="sm" className="gap-2">
                 {copied ? <Copy className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
-                {copied ? 'Copié !' : 'Partager mon profil'}
+                <span className="hidden sm:inline">{copied ? 'Copié !' : 'Partager'}</span>
               </Button>
             )}
-            {isCreator && (
-              <Button
-                onClick={() => setShowUpload(!showUpload)}
-                variant="premium"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Nouveau contenu
-              </Button>
-            )}
-            <Button 
-              variant="outline" 
-              size="icon"
-              onClick={() => navigate('/security')}
-              title="Sécurité"
-            >
-              <Shield className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon">
-              <Settings className="h-4 w-4" />
+            <Button onClick={() => setShowUpload(true)} variant="premium" size="sm" className="gap-2">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Nouveau</span>
             </Button>
           </div>
         </div>
 
-        {/* Creator Stats */}
-        {isCreator && (
-          <>
-            {/* Statut Stripe Connect */}
-            {stripeStatus && (
-              <Card className={`mb-4 ${
-                stripeStatus.active && stripeStatus.charges_enabled && stripeStatus.payouts_enabled
-                  ? 'border-green-500/50 bg-green-500/5'
-                  : 'border-orange-500/50 bg-orange-500/5'
-              }`}>
-                <CardContent className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3">
-                    {stripeStatus.active && stripeStatus.charges_enabled && stripeStatus.payouts_enabled ? (
-                      <>
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-500/20">
-                          <Banknote className="h-5 w-5 text-green-600" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-green-600">✅ Stripe Connect actif</p>
-                          <p className="text-xs text-muted-foreground">Vous pouvez recevoir des paiements</p>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-500/20">
-                          <Banknote className="h-5 w-5 text-orange-600" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-orange-600">⚠️ Stripe Connect inactif</p>
-                          <p className="text-xs text-muted-foreground">
-                            {!stripeStatus.connected 
-                              ? "Connectez votre compte pour recevoir des paiements"
-                              : "Complétez la configuration dans l'onglet Paramètres"}
-                          </p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setTabsValue('settings')}
-                  >
-                    Configurer
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <Card>
-              <CardContent className="flex items-center p-6">
-                <Euro className="h-8 w-8 text-green-500 mr-3" />
-                <div>
-                  <p className="text-2xl font-bold">
-                    {new Intl.NumberFormat('fr-FR', { 
-                      style: 'currency', 
-                      currency: 'EUR' 
-                    }).format(creatorStats.totalEarnings)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Revenus totaux</p>
+        {/* Alerte Stripe si non connecté */}
+        {!stripeConnected && (
+          <Card className="mb-6 border-orange-500/50 bg-orange-500/5">
+            <CardContent className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-500/20">
+                  <Banknote className="h-5 w-5 text-orange-600" />
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="flex items-center p-6">
-                <User className="h-8 w-8 text-blue-500 mr-3" />
                 <div>
-                  <p className="text-2xl font-bold">{creatorStats.totalSubscribers}</p>
-                  <p className="text-xs text-muted-foreground">Abonnés</p>
+                  <p className="font-medium text-orange-600">Configurez vos paiements</p>
+                  <p className="text-xs text-muted-foreground">Connectez Stripe pour recevoir vos revenus</p>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="flex items-center p-6">
-                <Eye className="h-8 w-8 text-purple-500 mr-3" />
-                <div>
-                  <p className="text-2xl font-bold">{creatorStats.totalViews}</p>
-                  <p className="text-xs text-muted-foreground">Vues totales</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="flex items-center p-6">
-                <Heart className="h-8 w-8 text-red-500 mr-3" />
-                <div>
-                  <p className="text-2xl font-bold">{creatorStats.totalLikes}</p>
-                  <p className="text-xs text-muted-foreground">Likes totaux</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setActiveSection('settings')}>
+                Configurer
+              </Button>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Upload Component */}
-        {isCreator && showUpload && (
-          <div className="mb-8">
+        {/* Navigation simplifiée */}
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+          {menuItems.map((item) => (
+            <Button
+              key={item.id}
+              variant={activeSection === item.id ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveSection(item.id)}
+              className="gap-2 whitespace-nowrap"
+            >
+              <item.icon className="h-4 w-4" />
+              {item.label}
+            </Button>
+          ))}
+        </div>
+
+        {/* Upload Dialog */}
+        <Dialog open={showUpload} onOpenChange={setShowUpload}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Ajouter du contenu</DialogTitle>
+              <DialogDescription>Partagez une nouvelle photo ou vidéo avec votre audience</DialogDescription>
+            </DialogHeader>
             <ContentUpload 
               onUploadComplete={() => {
                 setShowUpload(false);
                 refetch();
               }} 
             />
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
 
-        {/* Main Content */}
-        <Tabs value={tabsValue} onValueChange={setTabsValue} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-7">
-            {isCreator && <TabsTrigger value="my-content">Mon contenu</TabsTrigger>}
-            {isCreator && (
-              <TabsTrigger value="live" className="gap-1">
-                <Video className="h-4 w-4" />
-                Live
-              </TabsTrigger>
-            )}
-            {isCreator && (
-              <TabsTrigger value="messages" className="gap-1">
-                <MessageCircle className="h-4 w-4" />
-                Messages
-              </TabsTrigger>
-            )}
-            <TabsTrigger value="explore">Explorer</TabsTrigger>
-            {isCreator && (
-              <TabsTrigger value="payments" className="gap-1">
-                <Banknote className="h-4 w-4" />
-                Paiements
-              </TabsTrigger>
-            )}
-            {isCreator && <TabsTrigger value="settings">Paramètres</TabsTrigger>}
-            {isCreator && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
-          </TabsList>
+        {/* Section: Aperçu */}
+        {activeSection === 'overview' && (
+          <div className="space-y-6">
+            {/* Stats rapides */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Euro className="h-8 w-8 text-green-500" />
+                    <div>
+                      <p className="text-2xl font-bold text-green-600">
+                        {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(creatorStats.totalEarnings)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Revenus</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* My Content */}
-          {isCreator && (
-            <TabsContent value="my-content" className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-semibold">Mon contenu</h2>
-                <Badge variant="outline">
-                  {myContent?.length || 0} contenu{(myContent?.length || 0) > 1 ? 's' : ''}
-                </Badge>
-              </div>
+              <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Users className="h-8 w-8 text-blue-500" />
+                    <div>
+                      <p className="text-2xl font-bold text-blue-600">{creatorStats.totalSubscribers}</p>
+                      <p className="text-xs text-muted-foreground">Abonnés</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-              {contentLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : myContent && myContent.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {myContent.map((content) => (
-                    <Card key={content.id} className="overflow-hidden group relative">
-                      <div className="aspect-square bg-muted overflow-hidden">
+              <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Eye className="h-8 w-8 text-purple-500" />
+                    <div>
+                      <p className="text-2xl font-bold text-purple-600">{creatorStats.totalViews}</p>
+                      <p className="text-xs text-muted-foreground">Vues</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Heart className="h-8 w-8 text-red-500" />
+                    <div>
+                      <p className="text-2xl font-bold text-red-600">{creatorStats.totalLikes}</p>
+                      <p className="text-xs text-muted-foreground">Likes</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Actions rapides */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card 
+                className="cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => setShowUpload(true)}
+              >
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-primary/10">
+                    <Upload className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold">Ajouter du contenu</h3>
+                    <p className="text-sm text-muted-foreground">Photos ou vidéos</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                </CardContent>
+              </Card>
+
+              <Card 
+                className="cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => setActiveSection('live')}
+              >
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-red-500/10">
+                    <Radio className="h-6 w-6 text-red-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold">Lancer un Live</h3>
+                    <p className="text-sm text-muted-foreground">Streaming en direct</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                </CardContent>
+              </Card>
+
+              <Card 
+                className="cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={() => setActiveSection('messages')}
+              >
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-blue-500/10">
+                    <MessageCircle className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold">Messages</h3>
+                    <p className="text-sm text-muted-foreground">Discuter avec vos fans</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Derniers contenus */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-lg">Derniers contenus</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setActiveSection('content')}>
+                  Voir tout
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {contentLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : myContent && myContent.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {myContent.slice(0, 4).map((content) => (
+                      <div key={content.id} className="aspect-square rounded-lg overflow-hidden bg-muted relative group">
                         <img
                           src={content.thumbnail_url || content.file_url}
                           alt={content.title}
-                          className="w-full h-full object-cover hover:scale-105 transition-transform"
+                          className="w-full h-full object-cover"
                         />
-                      </div>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-medium line-clamp-1 flex-1">{content.title}</h3>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => handleDeleteContent(content.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="flex items-center justify-between mt-2 text-sm text-muted-foreground">
-                          <div className="flex items-center space-x-4">
-                            <div className="flex items-center space-x-1">
-                              <Eye className="h-3 w-3" />
-                              <span>{content.view_count}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Heart className="h-3 w-3" />
-                              <span>{content.like_count}</span>
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="text-white text-center text-xs">
+                            <div className="flex items-center gap-2 justify-center">
+                              <Eye className="h-3 w-3" /> {content.view_count}
+                              <Heart className="h-3 w-3 ml-2" /> {content.like_count}
                             </div>
                           </div>
-                          <Badge variant={content.is_premium ? "default" : "secondary"} className="text-xs">
-                            {content.is_premium ? 'Premium' : 'Gratuit'}
-                          </Badge>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-medium mb-2">Aucun contenu pour le moment</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Commencez à partager votre contenu avec votre audience
-                  </p>
-                  <Button onClick={() => setShowUpload(true)} variant="premium">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Ajouter du contenu
-                  </Button>
-                </div>
-              )}
-            </TabsContent>
-          )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>Aucun contenu</p>
+                    <Button variant="link" size="sm" onClick={() => setShowUpload(true)}>
+                      Ajouter votre premier contenu
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* Live Studio */}
-          {isCreator && (
-            <TabsContent value="live">
-              <Suspense fallback={<LiveStreamFallback />}>
-                <LiveStreamStudio />
-              </Suspense>
-            </TabsContent>
-          )}
+            {/* Demande de paiement rapide */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Banknote className="h-5 w-5" />
+                  Paiements
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PaymentRequest />
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-          {/* Messages */}
-          {isCreator && (
-            <TabsContent value="messages" className="space-y-6">
-              <CreatorMessages />
-            </TabsContent>
-          )}
-
-          {/* Explore */}
-          <TabsContent value="explore" className="space-y-6">
+        {/* Section: Mon contenu */}
+        {activeSection === 'content' && (
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold">Explorer le contenu</h2>
+              <h2 className="text-xl font-semibold">Mon contenu</h2>
+              <Badge variant="outline">{myContent?.length || 0} contenu{(myContent?.length || 0) > 1 ? 's' : ''}</Badge>
             </div>
-            <OptimizedContentGallery />
-          </TabsContent>
 
-          {/* Settings */}
-          {isCreator && (
-            <TabsContent value="settings" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Colonne gauche - Prix, Codes promo, Boost */}
-                <div className="space-y-6">
-                  {creatorProfile?.id && (
-                    <SubscriptionPricing creatorId={creatorProfile.id} />
-                  )}
-                  {creatorProfile?.id && (
-                    <ReferralCodesManager creatorId={creatorProfile.id} />
-                  )}
-                  <CreatorBoost
-                    currentBoostUntil={creatorProfile?.featured_until}
-                    onBoostUpdate={() => {
-                      setCreatorProfile(null);
-                      window.location.reload();
-                    }}
-                  />
-                  <StripeConnectSetup />
-                </div>
-                
-                {/* Colonne droite - Paramètres */}
-                <div>
-                  <CreatorSettings />
-                </div>
+            {contentLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin" />
               </div>
-            </TabsContent>
-          )}
+            ) : myContent && myContent.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {myContent.map((content) => (
+                  <Card key={content.id} className="overflow-hidden group">
+                    <div className="aspect-square bg-muted overflow-hidden relative">
+                      <img
+                        src={content.thumbnail_url || content.file_url}
+                        alt={content.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleDeleteContent(content.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <CardContent className="p-3">
+                      <h3 className="font-medium text-sm line-clamp-1">{content.title}</h3>
+                      <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{content.view_count}</span>
+                          <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{content.like_count}</span>
+                        </div>
+                        <Badge variant={content.is_premium ? "default" : "secondary"} className="text-[10px]">
+                          {content.is_premium ? 'Premium' : 'Gratuit'}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">Aucun contenu</h3>
+                <p className="text-muted-foreground mb-4">Commencez à partager avec votre audience</p>
+                <Button onClick={() => setShowUpload(true)} variant="premium">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Ajouter du contenu
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
 
-          {/* Payments */}
-          {isCreator && (
-            <TabsContent value="payments" className="space-y-6">
-              <PaymentRequest />
-            </TabsContent>
-          )}
+        {/* Section: Live */}
+        {activeSection === 'live' && (
+          <Suspense fallback={<LiveStreamFallback />}>
+            <LiveStreamStudio />
+          </Suspense>
+        )}
 
-          {/* Analytics */}
-          {isCreator && (
-            <TabsContent value="analytics" className="space-y-6">
-              <CreatorAnalyticsDashboard />
-            </TabsContent>
-          )}
-        </Tabs>
+        {/* Section: Messages */}
+        {activeSection === 'messages' && <CreatorMessages />}
+
+        {/* Section: Analytics */}
+        {activeSection === 'analytics' && <CreatorAnalyticsDashboard />}
+
+        {/* Section: Paramètres */}
+        {activeSection === 'settings' && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold">Paramètres</h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Colonne gauche */}
+              <div className="space-y-6">
+                {creatorProfile?.id && <SubscriptionPricing creatorId={creatorProfile.id} />}
+                {creatorProfile?.id && <ReferralCodesManager creatorId={creatorProfile.id} />}
+                <StripeConnectSetup />
+              </div>
+              
+              {/* Colonne droite */}
+              <div className="space-y-6">
+                <CreatorBoost
+                  currentBoostUntil={creatorProfile?.featured_until}
+                  onBoostUpdate={() => window.location.reload()}
+                />
+                <CreatorSettings />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
