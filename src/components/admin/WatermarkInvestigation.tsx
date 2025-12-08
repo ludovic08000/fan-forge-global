@@ -28,6 +28,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { 
   Search, 
   User, 
@@ -41,7 +51,8 @@ import {
   Save,
   History,
   UserX,
-  RefreshCw
+  RefreshCw,
+  Ban
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -86,6 +97,13 @@ interface Recidivist {
   last_leak: string;
 }
 
+interface SuspensionTarget {
+  userId: string;
+  username: string;
+  email: string;
+  leakId?: string;
+}
+
 const WatermarkInvestigation = () => {
   const { user } = useAuth();
   const [watermarkPattern, setWatermarkPattern] = useState('');
@@ -98,6 +116,10 @@ const WatermarkInvestigation = () => {
   const [leakHistory, setLeakHistory] = useState<ContentLeak[]>([]);
   const [recidivists, setRecidivists] = useState<Recidivist[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [suspensionReason, setSuspensionReason] = useState('');
+  const [suspensionTarget, setSuspensionTarget] = useState<SuspensionTarget | null>(null);
+  const [showSuspendDialog, setShowSuspendDialog] = useState(false);
+  const [suspending, setSuspending] = useState(false);
 
   /**
    * Charger l'historique des fuites et les récidivistes
@@ -236,6 +258,56 @@ const WatermarkInvestigation = () => {
   };
 
   /**
+   * Ouvrir le dialogue de suspension
+   */
+  const openSuspendDialog = (target: SuspensionTarget) => {
+    setSuspensionTarget(target);
+    setSuspensionReason('Fuite de contenu protégé');
+    setShowSuspendDialog(true);
+  };
+
+  /**
+   * Suspendre un utilisateur après confirmation
+   */
+  const confirmSuspension = async () => {
+    if (!suspensionTarget || !user?.id || !suspensionReason.trim()) {
+      toast.error('Veuillez fournir une raison pour la suspension');
+      return;
+    }
+
+    setSuspending(true);
+    try {
+      // Créer l'enregistrement de suspension
+      const { error: suspensionError } = await supabase
+        .from('user_suspensions')
+        .insert({
+          user_id: suspensionTarget.userId,
+          suspended_by: user.id,
+          reason: suspensionReason,
+          leak_id: suspensionTarget.leakId || null,
+        });
+
+      if (suspensionError) throw suspensionError;
+
+      // Si une fuite est associée, mettre à jour son statut
+      if (suspensionTarget.leakId) {
+        await updateLeakStatus(suspensionTarget.leakId, 'suspended', 'Compte suspendu');
+      }
+
+      toast.success(`Utilisateur ${suspensionTarget.username || suspensionTarget.email} suspendu`);
+      setShowSuspendDialog(false);
+      setSuspensionTarget(null);
+      setSuspensionReason('');
+      loadData();
+    } catch (error: any) {
+      console.error('Erreur suspension:', error);
+      toast.error('Erreur lors de la suspension');
+    } finally {
+      setSuspending(false);
+    }
+  };
+
+  /**
    * Réinitialiser le formulaire
    */
   const resetForm = () => {
@@ -265,6 +337,18 @@ const WatermarkInvestigation = () => {
    */
   const getUserLeakCount = (userId: string) => {
     return leakHistory.filter(leak => leak.user_id === userId).length;
+  };
+
+  /**
+   * Obtenir les infos d'un utilisateur depuis une fuite
+   */
+  const getLeakUserInfo = (leak: ContentLeak): SuspensionTarget => {
+    return {
+      userId: leak.user_id,
+      username: leak.short_id,
+      email: leak.user_id,
+      leakId: leak.id,
+    };
   };
 
   return (
@@ -598,8 +682,9 @@ const WatermarkInvestigation = () => {
                               <Button
                                 variant="destructive"
                                 size="sm"
-                                onClick={() => updateLeakStatus(leak.id, 'suspended', 'Compte suspendu')}
+                                onClick={() => openSuspendDialog(getLeakUserInfo(leak))}
                               >
+                                <Ban className="h-3 w-3 mr-1" />
                                 Suspendre
                               </Button>
                             </>
@@ -608,8 +693,9 @@ const WatermarkInvestigation = () => {
                             <Button
                               variant="destructive"
                               size="sm"
-                              onClick={() => updateLeakStatus(leak.id, 'suspended', 'Compte suspendu')}
+                              onClick={() => openSuspendDialog(getLeakUserInfo(leak))}
                             >
+                              <Ban className="h-3 w-3 mr-1" />
                               Suspendre
                             </Button>
                           )}
@@ -671,7 +757,16 @@ const WatermarkInvestigation = () => {
                         {new Date(recidivist.last_leak).toLocaleDateString('fr-FR')}
                       </TableCell>
                       <TableCell>
-                        <Button variant="destructive" size="sm">
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => openSuspendDialog({
+                            userId: recidivist.user_id,
+                            username: recidivist.username,
+                            email: recidivist.user_email,
+                          })}
+                        >
+                          <Ban className="h-3 w-3 mr-1" />
                           Suspendre
                         </Button>
                       </TableCell>
@@ -683,6 +778,47 @@ const WatermarkInvestigation = () => {
           </CardContent>
         </Card>
       </TabsContent>
+
+      {/* Dialogue de confirmation de suspension */}
+      <AlertDialog open={showSuspendDialog} onOpenChange={setShowSuspendDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Ban className="h-5 w-5 text-destructive" />
+              Confirmer la suspension
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p>
+                Vous êtes sur le point de suspendre le compte de{' '}
+                <strong>{suspensionTarget?.username || suspensionTarget?.email}</strong>.
+              </p>
+              <p className="text-destructive">
+                Cette action empêchera l'utilisateur d'accéder à la plateforme.
+              </p>
+              <div className="space-y-2 pt-2">
+                <Label htmlFor="suspensionReason">Raison de la suspension</Label>
+                <Textarea
+                  id="suspensionReason"
+                  placeholder="Indiquez la raison de la suspension..."
+                  value={suspensionReason}
+                  onChange={(e) => setSuspensionReason(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={suspending}>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmSuspension}
+              disabled={suspending || !suspensionReason.trim()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {suspending ? 'Suspension...' : 'Confirmer la suspension'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Tabs>
   );
 };
