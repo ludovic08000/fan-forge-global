@@ -25,6 +25,7 @@ export type Database = {
           file_url: string
           id: string
           is_premium: boolean | null
+          is_preview: boolean
           like_count: number | null
           price: number | null
           status: Database["public"]["Enums"]["content_status"] | null
@@ -44,6 +45,7 @@ export type Database = {
           file_url: string
           id?: string
           is_premium?: boolean | null
+          is_preview?: boolean
           like_count?: number | null
           price?: number | null
           status?: Database["public"]["Enums"]["content_status"] | null
@@ -63,6 +65,7 @@ export type Database = {
           file_url?: string
           id?: string
           is_premium?: boolean | null
+          is_preview?: boolean
           like_count?: number | null
           price?: number | null
           status?: Database["public"]["Enums"]["content_status"] | null
@@ -614,6 +617,7 @@ export type Database = {
           created_at: string | null
           creator_id: string
           description: string | null
+          enable_recording: boolean
           ended_at: string | null
           id: string
           is_premium: boolean | null
@@ -633,6 +637,7 @@ export type Database = {
           created_at?: string | null
           creator_id: string
           description?: string | null
+          enable_recording?: boolean
           ended_at?: string | null
           id?: string
           is_premium?: boolean | null
@@ -652,6 +657,7 @@ export type Database = {
           created_at?: string | null
           creator_id?: string
           description?: string | null
+          enable_recording?: boolean
           ended_at?: string | null
           id?: string
           is_premium?: boolean | null

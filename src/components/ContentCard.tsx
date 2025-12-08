@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ReportContentDialog } from '@/components/ReportContentDialog';
 import { ProtectedMedia } from '@/components/ProtectedMedia';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ContentCardProps {
   content: Content;
@@ -28,6 +29,29 @@ const ContentCard: React.FC<ContentCardProps> = ({
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  // Vérifier si l'utilisateur est abonné au créateur
+  useEffect(() => {
+    const checkSubscription = async () => {
+      if (!user || !content.creator_id) return;
+      
+      const { data } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('subscriber_id', user.id)
+        .eq('creator_id', content.creator_id)
+        .eq('status', 'active')
+        .maybeSingle();
+      
+      setIsSubscribed(!!data);
+    };
+    
+    checkSubscription();
+  }, [user, content.creator_id]);
+
+  // Déterminer si le contenu doit être flouté
+  const shouldBlur = content.is_premium && content.is_preview && !isSubscribed;
 
   const handleContentClick = () => {
     if (content.is_premium && !user) {
@@ -93,8 +117,18 @@ const ContentCard: React.FC<ContentCardProps> = ({
         watermarkText={content.is_premium ? creatorName : undefined}
       >
       <div onClick={handleContentClick}>
+        {/* Premium Overlay pour contenu preview flouté */}
+        {shouldBlur && (
+          <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10">
+            <div className="text-center text-white">
+              <Lock className="h-8 w-8 mx-auto mb-2" />
+              <p className="text-sm font-medium">Abonnez-vous pour voir</p>
+            </div>
+          </div>
+        )}
+
         {/* Premium Overlay */}
-        {content.is_premium && (
+        {content.is_premium && !content.is_preview && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10 opacity-0 group-hover:opacity-100 transition-opacity">
             <div className="text-center text-white">
               <Lock className="h-8 w-8 mx-auto mb-2" />
@@ -112,7 +146,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
             <img
               src={content.thumbnail_url || content.file_url}
               alt={content.title}
-              className="w-full h-full object-cover"
+              className={`w-full h-full object-cover ${shouldBlur ? 'blur-xl' : ''}`}
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="bg-black/70 rounded-full p-3">
@@ -124,7 +158,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
           <img
             src={content.thumbnail_url || content.file_url}
             alt={content.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${shouldBlur ? 'blur-xl' : ''}`}
           />
         )}
 
@@ -132,7 +166,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
         {content.is_premium && (
           <Badge className="absolute top-2 right-2 bg-primary/90 text-primary-foreground">
             <Lock className="h-3 w-3 mr-1" />
-            Premium
+            {content.is_preview ? 'Aperçu' : 'Premium'}
           </Badge>
         )}
 

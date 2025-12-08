@@ -6,6 +6,7 @@ export interface ContentUploadData {
   title: string;
   description?: string;
   isPremium: boolean;
+  isPreview?: boolean;
   price?: number;
   file: File;
 }
@@ -132,6 +133,7 @@ export const useContentUpload = () => {
           file_url: fileUrl,
           thumbnail_url: thumbnailUrl || fileUrl,
           is_premium: data.isPremium,
+          is_preview: data.isPreview || false,
           price: data.isPremium ? (data.price || 0) : 0,
           file_size: fileToUpload.size,
         })

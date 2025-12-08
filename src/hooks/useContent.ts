@@ -11,6 +11,7 @@ export interface Content {
   file_url: string;
   thumbnail_url: string | null;
   is_premium: boolean;
+  is_preview: boolean;
   price: number;
   status: 'draft' | 'published' | 'archived';
   view_count: number;

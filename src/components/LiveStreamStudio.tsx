@@ -31,6 +31,7 @@ export const LiveStreamStudio = () => {
   const [description, setDescription] = useState('');
   const [isFree, setIsFree] = useState(false); // Par défaut: abonnés seulement
   const [price, setPrice] = useState(0);
+  const [enableRecording, setEnableRecording] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [mediaError, setMediaError] = useState<string | null>(null);
@@ -205,6 +206,7 @@ export const LiveStreamStudio = () => {
         description,
         is_premium: !isFree, // true = abonnés seulement, false = gratuit pour tous
         price: !isFree ? price : 0,
+        enable_recording: enableRecording,
       });
 
       if (!stream) return;
@@ -535,6 +537,20 @@ export const LiveStreamStudio = () => {
                   />
                 </div>
               )}
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Enregistrer le live</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Le replay sera disponible après le live
+                  </p>
+                </div>
+                <Switch
+                  checked={enableRecording}
+                  onCheckedChange={setEnableRecording}
+                  disabled={isLive}
+                />
+              </div>
             </CardContent>
           </Card>
 

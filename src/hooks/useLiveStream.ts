@@ -24,6 +24,7 @@ export interface LiveStream {
   thumbnail_url: string;
   recording_url: string;
   stream_key: string;
+  enable_recording: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -73,6 +74,7 @@ export const useLiveStream = () => {
     is_premium?: boolean;
     price?: number;
     scheduled_at?: string;
+    enable_recording?: boolean;
   }) => {
     try {
       // Récupérer l'ID du créateur
@@ -99,6 +101,7 @@ export const useLiveStream = () => {
           scheduled_at: streamData.scheduled_at,
           stream_key: streamKey,
           status: 'scheduled',
+          enable_recording: streamData.enable_recording || false,
         })
         .select()
         .single();
