@@ -101,6 +101,31 @@ const Dashboard = () => {
     trackPageView('dashboard');
   }, [trackPageView]);
 
+  // Vérifier immédiatement si l'utilisateur est créateur (AVANT tout autre chargement)
+  useEffect(() => {
+    const checkIfCreator = async () => {
+      if (!user) {
+        setIsCreatorLocal(false);
+        return;
+      }
+
+      try {
+        const { data: creatorData } = await supabase
+          .from('creators')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        setIsCreatorLocal(!!creatorData);
+      } catch (error) {
+        console.error('Error checking creator status:', error);
+        setIsCreatorLocal(false);
+      }
+    };
+
+    checkIfCreator();
+  }, [user]);
+
   // Charger le profil utilisateur pour le lien de partage
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -126,12 +151,12 @@ const Dashboard = () => {
     loadUserProfile();
   }, [user]);
 
+  // Charger les stats détaillées du créateur (après avoir confirmé le statut)
   useEffect(() => {
     const loadCreatorStats = async () => {
-      if (!user) return;
+      if (!user || isCreatorLocal !== true) return;
 
       try {
-        // Récupérer les stats du créateur (si une ligne existe)
         const { data: creatorData } = await supabase
           .from('creators')
           .select('id, total_earnings, total_subscribers, total_content, featured_until, stripe_account_status, stripe_charges_enabled, stripe_payouts_enabled')
@@ -139,7 +164,6 @@ const Dashboard = () => {
           .maybeSingle();
 
         if (creatorData) {
-          setIsCreatorLocal(true);
           setCreatorProfile(creatorData);
           
           // Mettre à jour le statut Stripe
@@ -160,8 +184,6 @@ const Dashboard = () => {
             totalViews,
             totalLikes
           });
-        } else {
-          setIsCreatorLocal(false);
         }
       } catch (error) {
         console.error('Error loading creator stats:', error);
@@ -169,7 +191,7 @@ const Dashboard = () => {
     };
 
     loadCreatorStats();
-  }, [user, userRole, myContent]);
+  }, [user, isCreatorLocal, myContent]);
 
   // Gérer les redirections après paiement et Stripe Connect
   useEffect(() => {
