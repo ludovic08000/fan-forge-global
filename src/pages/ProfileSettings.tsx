@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Camera, Upload, Trash2, User, Calendar, MapPin, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import AccountDeletion from "@/components/settings/AccountDeletion";
 
 interface UserProfile {
   id: string;
@@ -518,6 +519,9 @@ const ProfileSettings = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Suppression de compte */}
+        <AccountDeletion />
       </div>
     </div>
   );

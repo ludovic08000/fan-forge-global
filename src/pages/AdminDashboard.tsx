@@ -34,11 +34,12 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint } from 'lucide-react';
+import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentRequestsManager from '@/components/admin/PaymentRequestsManager';
 import PlatformCommissions from '@/components/admin/PlatformCommissions';
 import WatermarkInvestigation from '@/components/admin/WatermarkInvestigation';
+import UserManagement from '@/components/admin/UserManagement';
 
 interface ContentReport {
   id: string;
@@ -98,11 +99,10 @@ const AdminDashboard = () => {
   const [paymentSearchTerm, setPaymentSearchTerm] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState<'weekly' | 'monthly' | 'quarterly'>('monthly');
 
-  // ⚠️ ATTENTION: Vérification du rôle admin DÉSACTIVÉE pour les tests
-  // À RÉACTIVER EN PRODUCTION!
-  // if (userRole !== 'admin') {
-  //   return <Navigate to="/" replace />;
-  // }
+  // Vérification du rôle admin
+  if (userRole !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
 
   /**
    * Charger les signalements
@@ -328,20 +328,10 @@ const AdminDashboard = () => {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      {/* ⚠️ Bannière d'avertissement pour les tests */}
-      <div className="mb-6 p-4 bg-orange-100 dark:bg-orange-900/20 border-2 border-orange-500 rounded-lg">
-        <div className="flex items-center gap-2 text-orange-800 dark:text-orange-200">
-          <AlertTriangle className="h-5 w-5" />
-          <p className="font-bold">
-            MODE TEST - Sécurité désactivée! Réactiver la vérification du rôle admin en production.
-          </p>
-        </div>
-      </div>
-
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Dashboard Administrateur</h1>
         <p className="text-muted-foreground">
-          Gestion des signalements et surveillance des connexions
+          Gestion complète des utilisateurs, signalements et paiements
         </p>
       </div>
 
@@ -392,8 +382,12 @@ const AdminDashboard = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="reports" className="space-y-4">
+      <Tabs defaultValue="users" className="space-y-4">
         <TabsList className="flex-wrap">
+          <TabsTrigger value="users" className="flex items-center gap-1">
+            <UserCog className="h-3 w-3" />
+            Utilisateurs
+          </TabsTrigger>
           <TabsTrigger value="reports">Signalements</TabsTrigger>
           <TabsTrigger value="logs">Logs de connexion</TabsTrigger>
           <TabsTrigger value="payment-requests">Demandes de paiement</TabsTrigger>
@@ -404,6 +398,11 @@ const AdminDashboard = () => {
             Investigation fuites
           </TabsTrigger>
         </TabsList>
+
+        {/* Onglet Gestion Utilisateurs */}
+        <TabsContent value="users" className="space-y-4">
+          <UserManagement />
+        </TabsContent>
 
         {/* Onglet Signalements */}
         <TabsContent value="reports" className="space-y-4">
