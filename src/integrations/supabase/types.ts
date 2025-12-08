@@ -1622,7 +1622,11 @@ export type Database = {
         }[]
       }
       calculate_creator_total_revenue: {
-        Args: { creator_uuid: string; end_date?: string; start_date?: string }
+        Args: {
+          creator_uuid: string
+          p_end_date?: string
+          p_start_date?: string
+        }
         Returns: number
       }
       calculate_live_revenue: {
