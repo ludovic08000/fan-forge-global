@@ -319,12 +319,12 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                   {isConnected ? (
                     <Badge variant="secondary" className="gap-1 bg-green-500/90">
                       <Wifi className="h-3 w-3" />
-                      LiveKit connecté
+                      Crub connecté
                     </Badge>
                   ) : isConnecting ? (
                     <Badge variant="secondary" className="gap-1 bg-yellow-500/90">
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      Connexion LiveKit...
+                      Connexion...
                     </Badge>
                   ) : null}
                 </div>
