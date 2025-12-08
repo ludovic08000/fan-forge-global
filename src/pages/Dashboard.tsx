@@ -56,7 +56,7 @@ const Dashboard = () => {
     totalLikes: 0
   });
   const [creatorProfile, setCreatorProfile] = useState<any>(null);
-  const [isCreatorLocal, setIsCreatorLocal] = useState(false);
+  const [isCreatorLocal, setIsCreatorLocal] = useState<boolean | null>(null); // null = en cours de chargement
   const [userProfile, setUserProfile] = useState<any>(null);
   const [shareLink, setShareLink] = useState('');
   const [copied, setCopied] = useState(false);
@@ -66,7 +66,7 @@ const Dashboard = () => {
     charges_enabled: boolean;
     payouts_enabled: boolean;
   } | null>(null);
-  const [tabsValue, setTabsValue] = useState<string>((userRole === 'creator' || userRole === 'admin' || isCreatorLocal) ? 'my-content' : 'explore');
+  const [tabsValue, setTabsValue] = useState<string>((userRole === 'creator' || userRole === 'admin') ? 'my-content' : 'explore');
 
   const handleDeleteContent = async (contentId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce contenu ?')) return;
@@ -216,7 +216,8 @@ const Dashboard = () => {
     }
   }, []);
 
-  if (loading) {
+  // Afficher le loader pendant le chargement de l'auth OU du statut créateur
+  if (loading || isCreatorLocal === null) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -228,10 +229,10 @@ const Dashboard = () => {
     return <Navigate to="/auth" replace />;
   }
 
-  const isCreator = isCreatorLocal || userRole === 'creator' || userRole === 'admin';
+  const isCreator = isCreatorLocal === true || userRole === 'creator' || userRole === 'admin';
 
   // Rediriger les non-créateurs vers la page abonnements
-  if (!loading && !isCreator) {
+  if (!isCreator) {
     return <Navigate to="/subscriptions" replace />;
   }
 
