@@ -13,7 +13,8 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Crown, Heart, Eye, Euro, Settings, Plus, Video, Upload, 
   Trash2, Share2, Copy, Banknote, Shield, Loader2, MessageCircle,
-  BarChart3, Users, ImageIcon, Radio, ChevronRight, ExternalLink
+  BarChart3, Users, ImageIcon, Radio, ChevronRight, ExternalLink,
+  Tag, Sparkles, CreditCard
 } from 'lucide-react';
 import ContentUpload from '@/components/ContentUpload';
 import CreatorSettings from '@/components/CreatorSettings';
@@ -46,7 +47,7 @@ const LiveStreamFallback = () => (
   </div>
 );
 
-type DashboardSection = 'overview' | 'content' | 'live' | 'messages' | 'analytics' | 'settings';
+type DashboardSection = 'overview' | 'content' | 'live' | 'messages' | 'analytics' | 'pricing' | 'settings';
 
 const Dashboard = () => {
   const { user, userRole, loading } = useAuth();
@@ -222,6 +223,7 @@ const Dashboard = () => {
     { id: 'live' as DashboardSection, label: 'Live', icon: Radio },
     { id: 'messages' as DashboardSection, label: 'Messages', icon: MessageCircle },
     { id: 'analytics' as DashboardSection, label: 'Statistiques', icon: BarChart3 },
+    { id: 'pricing' as DashboardSection, label: 'Tarification', icon: Tag },
     { id: 'settings' as DashboardSection, label: 'Paramètres', icon: Settings },
   ];
 
@@ -550,25 +552,105 @@ const Dashboard = () => {
         {/* Section: Analytics */}
         {activeSection === 'analytics' && <CreatorAnalyticsDashboard />}
 
-        {/* Section: Paramètres */}
-        {activeSection === 'settings' && (
+        {/* Section: Tarification */}
+        {activeSection === 'pricing' && (
           <div className="space-y-6">
-            <h2 className="text-xl font-semibold">Paramètres</h2>
+            <div>
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Tag className="h-5 w-5" />
+                Tarification & Monétisation
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Gérez vos prix, codes promo et boostez votre visibilité
+              </p>
+            </div>
+
+            {/* Info TVA */}
+            <Card className="border-blue-500/30 bg-blue-500/5">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <Euro className="h-5 w-5 text-blue-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-blue-600">Tarifs affichés TTC</p>
+                    <p className="text-xs text-muted-foreground">
+                      Tous les prix incluent la TVA (20%). Vous recevez 85% du montant HT après commission plateforme (15%).
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Colonne gauche */}
+              {/* Colonne gauche - Prix & Promos */}
               <div className="space-y-6">
                 {creatorProfile?.id && <SubscriptionPricing creatorId={creatorProfile.id} />}
                 {creatorProfile?.id && <ReferralCodesManager creatorId={creatorProfile.id} />}
-                <StripeConnectSetup />
               </div>
               
-              {/* Colonne droite */}
+              {/* Colonne droite - Boost */}
               <div className="space-y-6">
                 <CreatorBoost
                   currentBoostUntil={creatorProfile?.featured_until}
                   onBoostUpdate={() => window.location.reload()}
                 />
+                
+                {/* Résumé revenus */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      Résumé de vos gains
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Prix abonnement TTC</span>
+                      <span className="font-medium">
+                        {creatorProfile?.subscription_price 
+                          ? `${creatorProfile.subscription_price.toFixed(2)} €` 
+                          : 'Non défini'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Commission plateforme</span>
+                      <span className="font-medium text-orange-600">-15%</span>
+                    </div>
+                    <div className="border-t pt-3 flex justify-between items-center">
+                      <span className="font-medium">Vous recevez par abonné</span>
+                      <span className="font-bold text-green-600">
+                        {creatorProfile?.subscription_price 
+                          ? `${(creatorProfile.subscription_price * 0.85).toFixed(2)} €` 
+                          : '-'}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Section: Paramètres */}
+        {activeSection === 'settings' && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Paramètres du compte
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Configurez Stripe et vos informations de profil
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Colonne gauche - Stripe */}
+              <div className="space-y-6">
+                <StripeConnectSetup />
+              </div>
+              
+              {/* Colonne droite - Profil */}
+              <div className="space-y-6">
                 <CreatorSettings />
               </div>
             </div>
