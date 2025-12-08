@@ -61,7 +61,7 @@ const HeroSection = () => {
               </Button>
             ) : (
               <Button variant="hero" size="lg" asChild>
-                <Link to="/auth?tab=signup">Rejoindre Crub</Link>
+                <Link to="/signup">Rejoindre Crub</Link>
               </Button>
             )}
             <Button variant="outline" size="lg" asChild>
