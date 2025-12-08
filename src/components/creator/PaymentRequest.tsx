@@ -270,25 +270,36 @@ const PaymentRequest: React.FC = () => {
                         </Button>
                       </div>
 
-                      {/* Seuil minimum et montant manquant */}
+                      {/* Seuil minimum et barre de progression */}
                       <div className={`p-3 rounded-lg border ${canWithdraw ? 'bg-green-500/10 border-green-500/20' : 'bg-orange-500/10 border-orange-500/20'}`}>
-                        <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center justify-between text-sm mb-2">
                           <span className={canWithdraw ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}>
                             {canWithdraw ? (
-                              <>✅ Seuil minimum atteint ({formatCurrency(MIN_WITHDRAWAL)})</>
+                              <>✅ Seuil minimum atteint</>
                             ) : (
-                              <>⚠️ Seuil minimum de retrait : {formatCurrency(MIN_WITHDRAWAL)}</>
+                              <>⚠️ Seuil minimum de retrait</>
                             )}
                           </span>
-                          {!canWithdraw && (
-                            <span className="font-medium text-orange-600 dark:text-orange-400">
-                              Il vous manque {formatCurrency(amountMissing)}
-                            </span>
-                          )}
+                          <span className="font-medium text-foreground">
+                            {formatCurrency(currentAmount)} / {formatCurrency(MIN_WITHDRAWAL)}
+                          </span>
                         </div>
+                        
+                        {/* Barre de progression */}
+                        <div className="relative h-3 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className={`absolute left-0 top-0 h-full rounded-full transition-all duration-500 ${
+                              canWithdraw 
+                                ? 'bg-green-500' 
+                                : 'bg-gradient-to-r from-orange-400 to-orange-500'
+                            }`}
+                            style={{ width: `${Math.min(100, (currentAmount / MIN_WITHDRAWAL) * 100)}%` }}
+                          />
+                        </div>
+                        
                         {!canWithdraw && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Continuez à créer du contenu pour atteindre le seuil de retrait
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Il vous manque <span className="font-medium text-orange-600 dark:text-orange-400">{formatCurrency(amountMissing)}</span> pour atteindre le seuil de retrait
                           </p>
                         )}
                       </div>
