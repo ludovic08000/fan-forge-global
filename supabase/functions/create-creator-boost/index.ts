@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 // Available boost options with price IDs
-const BOOST_OPTIONS = {
+const BOOST_OPTIONS: Record<string, { price_id: string; duration_hours: number; name: string }> = {
   "30min": {
     price_id: "price_1S9QlTG4R6fTor2d573eKcGj",
     duration_hours: 0.5,
@@ -26,6 +26,11 @@ const BOOST_OPTIONS = {
   }
 };
 
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[CREATE-CREATOR-BOOST] ${step}${detailsStr}`);
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -39,8 +44,11 @@ serve(async (req) => {
   );
 
   try {
+    logStep("Function started");
+    
     // Parse request body
     const { boost_type } = await req.json();
+    logStep("Request parsed", { boost_type });
     
     if (!boost_type || !BOOST_OPTIONS[boost_type]) {
       throw new Error("Type de boost invalide");
@@ -52,6 +60,7 @@ serve(async (req) => {
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
     if (!user?.email) throw new Error("Utilisateur non authentifié");
+    logStep("User authenticated", { userId: user.id, email: user.email });
 
     // Check if user is a creator
     const { data: creator, error: creatorError } = await supabaseClient
@@ -63,6 +72,7 @@ serve(async (req) => {
     if (creatorError || !creator) {
       throw new Error("Vous devez être un créateur pour acheter un boost");
     }
+    logStep("Creator verified", { creatorId: creator.id });
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
@@ -74,14 +84,26 @@ serve(async (req) => {
     let customerId;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
+      logStep("Existing customer found", { customerId });
+    } else {
+      // Create new customer
+      const newCustomer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          user_id: user.id,
+          creator_id: creator.id
+        }
+      });
+      customerId = newCustomer.id;
+      logStep("New customer created", { customerId });
     }
 
     const boostOption = BOOST_OPTIONS[boost_type];
 
-    // Create a one-time payment session for the boost
+    // Create an embedded checkout session for the boost
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
+      ui_mode: "embedded",
       line_items: [
         {
           price: boostOption.price_id,
@@ -89,8 +111,7 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/dashboard?boost_success=true`,
-      cancel_url: `${req.headers.get("origin")}/dashboard?boost_canceled=true`,
+      return_url: `${req.headers.get("origin")}/dashboard?boost_success=true&session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
         boost_type,
         creator_id: creator.id,
@@ -99,8 +120,10 @@ serve(async (req) => {
       }
     });
 
+    logStep("Embedded checkout session created", { sessionId: session.id });
+
     return new Response(JSON.stringify({ 
-      url: session.url,
+      clientSecret: session.client_secret,
       boost_info: {
         type: boost_type,
         name: boostOption.name,
@@ -111,8 +134,9 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error("Error creating boost checkout session:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logStep("ERROR", { message: errorMessage });
+    return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
