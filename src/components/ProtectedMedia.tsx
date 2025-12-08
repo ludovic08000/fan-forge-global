@@ -1,18 +1,45 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { useContentProtection } from '@/hooks/useContentProtection';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedMediaProps {
   children: ReactNode;
   className?: string;
   watermarkText?: string;
   enableKeyboardProtection?: boolean;
+  /** Activer le watermark forensique avec ID utilisateur pour tracer les fuites */
+  enableForensicWatermark?: boolean;
+  /** Opacité du watermark forensique (0-1), défaut: 0.03 */
+  forensicOpacity?: number;
 }
+
+/**
+ * Génère un hash court à partir d'une chaîne (pour anonymiser partiellement l'ID)
+ */
+const generateShortHash = (str: string): string => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(36).toUpperCase().slice(0, 8);
+};
+
+/**
+ * Génère un pattern de watermark forensique unique basé sur l'utilisateur
+ */
+const generateForensicPattern = (userId: string, timestamp: number): string => {
+  const hash = generateShortHash(userId + timestamp.toString());
+  return `${hash}-${new Date(timestamp).toISOString().slice(0, 10)}`;
+};
 
 /**
  * Composant pour protéger les médias contre le téléchargement et la capture
  * Inclut:
  * - Overlay invisible bloquant les interactions directes
- * - Filigrane textuel optionnel
+ * - Filigrane textuel optionnel (nom du créateur)
+ * - Watermark forensique avec ID utilisateur pour tracer les fuites
  * - Protection contre le clic droit, drag-drop, sélection
  * - Styles CSS anti-capture
  */
@@ -20,21 +47,45 @@ export const ProtectedMedia = ({
   children, 
   className = '',
   watermarkText,
-  enableKeyboardProtection = false
+  enableKeyboardProtection = false,
+  enableForensicWatermark = false,
+  forensicOpacity = 0.03
 }: ProtectedMediaProps) => {
+  const { user } = useAuth();
+  
   // Activer la protection clavier si demandé
   useContentProtection(enableKeyboardProtection);
+
+  // Générer le watermark forensique unique pour cet utilisateur
+  const forensicData = useMemo(() => {
+    if (!enableForensicWatermark || !user) return null;
+    
+    const timestamp = Math.floor(Date.now() / (1000 * 60 * 60)); // Arrondi à l'heure
+    const pattern = generateForensicPattern(user.id, timestamp);
+    const shortId = user.id.slice(0, 8);
+    
+    return {
+      pattern,
+      shortId,
+      // Créer des positions pseudo-aléatoires basées sur l'ID utilisateur
+      positions: [
+        { top: '15%', left: '10%', rotation: -15 },
+        { top: '45%', left: '75%', rotation: 25 },
+        { top: '75%', left: '20%', rotation: -5 },
+        { top: '25%', left: '60%', rotation: 15 },
+        { top: '65%', left: '45%', rotation: -20 },
+        { top: '85%', left: '80%', rotation: 10 },
+      ]
+    };
+  }, [enableForensicWatermark, user]);
 
   return (
     <div 
       className={`relative protected-content ${className}`}
       style={{
-        // Empêcher la sélection
         userSelect: 'none',
         WebkitUserSelect: 'none',
-        // Empêcher le touch callout sur iOS
         WebkitTouchCallout: 'none',
-        // Empêcher le highlight sur tap mobile
         WebkitTapHighlightColor: 'transparent',
       }}
     >
@@ -59,19 +110,17 @@ export const ProtectedMedia = ({
         onContextMenu={(e) => e.preventDefault()}
         onDragStart={(e) => e.preventDefault()}
         onMouseDown={(e) => {
-          // Bloquer le clic droit et le clic du milieu
           if (e.button === 2 || e.button === 1) {
             e.preventDefault();
           }
         }}
         onTouchStart={(e) => {
-          // Bloquer le long press sur mobile (essayer de sauvegarder l'image)
           const target = e.target as HTMLElement;
           target.addEventListener('contextmenu', (ev) => ev.preventDefault(), { once: true });
         }}
       />
       
-      {/* Motif de protection invisible (rend les screenshots moins exploitables) */}
+      {/* Motif de protection invisible */}
       <div 
         className="absolute inset-0 pointer-events-none z-15"
         style={{
@@ -87,8 +136,85 @@ export const ProtectedMedia = ({
           mixBlendMode: 'overlay',
         }}
       />
+
+      {/* Watermark forensique avec ID utilisateur - Très subtil mais traçable */}
+      {forensicData && (
+        <div className="absolute inset-0 pointer-events-none z-25 overflow-hidden">
+          {/* Pattern de watermarks distribués */}
+          {forensicData.positions.map((pos, index) => (
+            <div
+              key={index}
+              className="absolute text-white font-mono select-none"
+              style={{
+                top: pos.top,
+                left: pos.left,
+                transform: `rotate(${pos.rotation}deg)`,
+                opacity: forensicOpacity,
+                fontSize: '10px',
+                letterSpacing: '0.5px',
+                textShadow: '0 0 1px rgba(0,0,0,0.5)',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {forensicData.pattern}
+            </div>
+          ))}
+          
+          {/* Watermark central plus visible */}
+          <div
+            className="absolute font-mono select-none"
+            style={{
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%) rotate(-30deg)',
+              opacity: forensicOpacity * 1.5,
+              fontSize: '14px',
+              color: 'white',
+              letterSpacing: '2px',
+              textShadow: '0 0 2px rgba(0,0,0,0.3)',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ID:{forensicData.shortId}
+          </div>
+
+          {/* Micro-watermarks dans les coins (quasi invisibles) */}
+          <div
+            className="absolute font-mono select-none"
+            style={{
+              bottom: '2px',
+              right: '4px',
+              opacity: forensicOpacity * 0.7,
+              fontSize: '6px',
+              color: 'white',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+            }}
+          >
+            {forensicData.pattern}
+          </div>
+          <div
+            className="absolute font-mono select-none"
+            style={{
+              top: '2px',
+              left: '4px',
+              opacity: forensicOpacity * 0.7,
+              fontSize: '6px',
+              color: 'white',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+            }}
+          >
+            {forensicData.shortId}
+          </div>
+        </div>
+      )}
       
-      {/* Filigrane textuel si fourni */}
+      {/* Filigrane textuel du créateur si fourni */}
       {watermarkText && (
         <div 
           className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 overflow-hidden"

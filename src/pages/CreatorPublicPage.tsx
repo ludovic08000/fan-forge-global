@@ -393,6 +393,8 @@ const CreatorPublicPage = () => {
                   key={item.id}
                   className={`overflow-hidden relative rounded-lg border bg-card ${isSubscribed ? 'cursor-pointer group' : ''}`}
                   watermarkText={isSubscribed ? (creator?.stage_name || profile?.username) : undefined}
+                  enableForensicWatermark={isSubscribed}
+                  forensicOpacity={0.04}
                 >
                   <div 
                     className="aspect-square bg-muted relative overflow-hidden"
