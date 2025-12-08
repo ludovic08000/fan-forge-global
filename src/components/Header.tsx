@@ -87,10 +87,10 @@ const Header: React.FC = () => {
           ) : (
             <div className="flex items-center space-x-2">
               <Button variant="ghost" asChild className="hover:text-primary">
-                <Link to="/auth?tab=signin">Connexion</Link>
+                <Link to="/login">Connexion</Link>
               </Button>
               <Button asChild className="bg-gradient-to-r from-primary to-primary-glow hover:scale-105 transition-transform shadow-lg shadow-primary/30">
-                <Link to="/auth?tab=signup">Inscription</Link>
+                <Link to="/signup">Inscription</Link>
               </Button>
             </div>
           )}
@@ -143,11 +143,18 @@ const Header: React.FC = () => {
               {!user ? (
                 <>
                   <Link 
-                    to="/auth" 
+                    to="/login" 
                     className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Connexion
+                  </Link>
+                  <Link 
+                    to="/signup" 
+                    className="block px-3 py-2 text-primary hover:text-primary/80 transition-colors font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Inscription
                   </Link>
                 </>
               ) : (
