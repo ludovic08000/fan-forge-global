@@ -7,12 +7,21 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+export interface ContentOffer {
+  content_id: string;
+  title: string;
+  price: number;
+  thumbnail_url?: string;
+}
+
 export interface ChatMessage {
   id: string;
   live_stream_id: string;
   user_id: string;
   username: string;
   message: string;
+  message_type: 'text' | 'offer';
+  content_offer?: ContentOffer | null;
   created_at: string;
 }
 
@@ -56,7 +65,11 @@ export const useLiveChat = (streamId: string) => {
 
       if (data && data.length > 0) {
         // Inverser l'ordre pour afficher du plus ancien au plus récent
-        const newMessages = data.reverse();
+        const newMessages: ChatMessage[] = data.reverse().map(msg => ({
+          ...msg,
+          message_type: (msg.message_type || 'text') as 'text' | 'offer',
+          content_offer: msg.content_offer as unknown as ContentOffer | null,
+        }));
         
         if (loadMore) {
           // Ajouter les nouveaux messages au début
@@ -82,7 +95,7 @@ export const useLiveChat = (streamId: string) => {
   }, [streamId]);
 
   /**
-   * Envoyer un message
+   * Envoyer un message texte
    */
   const sendMessage = async (message: string) => {
     if (!user || !message.trim()) return;
@@ -104,11 +117,45 @@ export const useLiveChat = (streamId: string) => {
           user_id: user.id,
           username,
           message: message.trim(),
+          message_type: 'text',
         });
 
       if (error) throw error;
     } catch (error) {
       console.error('Erreur envoi message:', error);
+    }
+  };
+
+  /**
+   * Envoyer une offre de contenu (créateurs uniquement)
+   */
+  const sendContentOffer = async (content: ContentOffer) => {
+    if (!user) return;
+
+    try {
+      // Récupérer le profil pour le username
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, display_name')
+        .eq('user_id', user.id)
+        .single();
+
+      const username = profile?.username || profile?.display_name || user.email || 'Créateur';
+
+      const { error } = await supabase
+        .from('live_stream_messages')
+        .insert([{
+          live_stream_id: streamId,
+          user_id: user.id,
+          username,
+          message: `🎁 Offre spéciale: ${content.title}`,
+          message_type: 'offer',
+          content_offer: JSON.parse(JSON.stringify(content)),
+        }]);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Erreur envoi offre:', error);
     }
   };
 
@@ -151,6 +198,7 @@ export const useLiveChat = (streamId: string) => {
     loading,
     hasMore,
     sendMessage,
+    sendContentOffer,
     loadMore: () => loadMessages(true, oldestMessageDate),
   };
 };

@@ -420,26 +420,32 @@ export type Database = {
       }
       live_stream_messages: {
         Row: {
+          content_offer: Json | null
           created_at: string | null
           id: string
           live_stream_id: string
           message: string
+          message_type: string
           user_id: string
           username: string
         }
         Insert: {
+          content_offer?: Json | null
           created_at?: string | null
           id?: string
           live_stream_id: string
           message: string
+          message_type?: string
           user_id: string
           username: string
         }
         Update: {
+          content_offer?: Json | null
           created_at?: string | null
           id?: string
           live_stream_id?: string
           message?: string
+          message_type?: string
           user_id?: string
           username?: string
         }
