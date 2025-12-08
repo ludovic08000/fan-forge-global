@@ -240,27 +240,61 @@ const PaymentRequest: React.FC = () => {
             <div className="space-y-4">
               <div className="space-y-4">
                 {/* Revenu net disponible */}
-                <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
-                  <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">Revenu net disponible</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {new Intl.NumberFormat('fr-FR', {
-                        style: 'currency',
-                        currency: creatorInfo.currency || 'EUR',
-                      }).format(revenueBreakdown?.total_after_commission || 0)}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Fréquence de paiement: {getFrequencyLabel(creatorInfo.payment_frequency)}
-                    </p>
-                  </div>
-                  <Button
-                    onClick={handleRequestPayment}
-                    disabled={loading || !revenueBreakdown || revenueBreakdown.total_after_commission <= 0 || !stripeConnected}
-                    size="lg"
-                  >
-                    {loading ? 'Traitement...' : 'Demander le paiement'}
-                  </Button>
-                </div>
+                {(() => {
+                  const MIN_WITHDRAWAL = 1;
+                  const currentAmount = revenueBreakdown?.total_after_commission || 0;
+                  const amountMissing = Math.max(0, MIN_WITHDRAWAL - currentAmount);
+                  const canWithdraw = currentAmount >= MIN_WITHDRAWAL;
+                  const currency = creatorInfo.currency || 'EUR';
+                  const formatCurrency = (amount: number) => 
+                    new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(amount);
+
+                  return (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
+                        <div className="flex-1">
+                          <p className="text-sm text-muted-foreground">Revenu net disponible</p>
+                          <p className={`text-2xl font-bold ${canWithdraw ? 'text-green-600' : 'text-muted-foreground'}`}>
+                            {formatCurrency(currentAmount)}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Fréquence de paiement: {getFrequencyLabel(creatorInfo.payment_frequency)}
+                          </p>
+                        </div>
+                        <Button
+                          onClick={handleRequestPayment}
+                          disabled={loading || !canWithdraw || !stripeConnected}
+                          size="lg"
+                        >
+                          {loading ? 'Traitement...' : 'Demander le paiement'}
+                        </Button>
+                      </div>
+
+                      {/* Seuil minimum et montant manquant */}
+                      <div className={`p-3 rounded-lg border ${canWithdraw ? 'bg-green-500/10 border-green-500/20' : 'bg-orange-500/10 border-orange-500/20'}`}>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className={canWithdraw ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}>
+                            {canWithdraw ? (
+                              <>✅ Seuil minimum atteint ({formatCurrency(MIN_WITHDRAWAL)})</>
+                            ) : (
+                              <>⚠️ Seuil minimum de retrait : {formatCurrency(MIN_WITHDRAWAL)}</>
+                            )}
+                          </span>
+                          {!canWithdraw && (
+                            <span className="font-medium text-orange-600 dark:text-orange-400">
+                              Il vous manque {formatCurrency(amountMissing)}
+                            </span>
+                          )}
+                        </div>
+                        {!canWithdraw && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Continuez à créer du contenu pour atteindre le seuil de retrait
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {stripeConnected && (
                   <div className="flex justify-end">
