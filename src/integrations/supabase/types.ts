@@ -621,6 +621,7 @@ export type Database = {
           ended_at: string | null
           id: string
           is_premium: boolean | null
+          last_heartbeat: string | null
           peak_viewer_count: number | null
           price: number | null
           recording_url: string | null
@@ -641,6 +642,7 @@ export type Database = {
           ended_at?: string | null
           id?: string
           is_premium?: boolean | null
+          last_heartbeat?: string | null
           peak_viewer_count?: number | null
           price?: number | null
           recording_url?: string | null
@@ -661,6 +663,7 @@ export type Database = {
           ended_at?: string | null
           id?: string
           is_premium?: boolean | null
+          last_heartbeat?: string | null
           peak_viewer_count?: number | null
           price?: number | null
           recording_url?: string | null

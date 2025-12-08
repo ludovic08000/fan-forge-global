@@ -25,6 +25,7 @@ export interface LiveStream {
   recording_url: string;
   stream_key: string;
   enable_recording: boolean;
+  last_heartbeat: string;
   created_at: string;
   updated_at: string;
 }
