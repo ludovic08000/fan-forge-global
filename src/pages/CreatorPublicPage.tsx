@@ -13,6 +13,8 @@ import { OptimizedImage } from '@/components/ui/optimized-image';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
 import PrivateChat from '@/components/PrivateChat';
 import SEOHead from '@/components/SEOHead';
+import { ProtectedMedia } from '@/components/ProtectedMedia';
+import { useContentProtection } from '@/hooks/useContentProtection';
 
 const CreatorPublicPage = () => {
   const { username } = useParams<{ username: string }>();
@@ -28,6 +30,9 @@ const CreatorPublicPage = () => {
   const [preloadedSecret, setPreloadedSecret] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<any>(null);
   const [showChat, setShowChat] = useState(false);
+
+  // Activer la protection anti-capture sur toute la page
+  useContentProtection(true);
 
   useEffect(() => {
     const loadCreator = async () => {
@@ -338,22 +343,24 @@ const CreatorPublicPage = () => {
             <h2 className="text-2xl font-bold mb-4">Contenu gratuit</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {freeContent.map((item) => (
-                <div 
-                  key={item.id} 
+                <ProtectedMedia
+                  key={item.id}
                   className="overflow-hidden group cursor-pointer rounded-lg border bg-card"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    console.log('Image clicked (free)', item.id);
-                    setSelectedImage(item);
-                  }}
+                  watermarkText={creator?.stage_name || profile?.username}
                 >
-                  <div className="aspect-square bg-muted relative overflow-hidden">
+                  <div 
+                    className="aspect-square bg-muted relative overflow-hidden"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedImage(item);
+                    }}
+                  >
                     <OptimizedImage
                       src={item.thumbnail_url || item.file_url}
                       alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform pointer-events-none"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 pointer-events-none">
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 pointer-events-none z-30">
                       <h3 className="text-white font-medium text-sm line-clamp-1">{item.title}</h3>
                       <div className="flex items-center gap-3 text-white/80 text-xs mt-1">
                         <span className="flex items-center gap-1">
@@ -367,7 +374,7 @@ const CreatorPublicPage = () => {
                       </div>
                     </div>
                   </div>
-                </div>
+                </ProtectedMedia>
               ))}
             </div>
           </div>
@@ -382,32 +389,34 @@ const CreatorPublicPage = () => {
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {premiumContent.map((item) => (
-                <div
-                  key={item.id} 
+                <ProtectedMedia
+                  key={item.id}
                   className={`overflow-hidden relative rounded-lg border bg-card ${isSubscribed ? 'cursor-pointer group' : ''}`}
-                  onClick={(e) => {
-                    if (isSubscribed) {
-                      e.stopPropagation();
-                      console.log('Image clicked (premium)', item.id);
-                      setSelectedImage(item);
-                    }
-                  }}
+                  watermarkText={isSubscribed ? (creator?.stage_name || profile?.username) : undefined}
                 >
-                  <div className="aspect-square bg-muted relative overflow-hidden">
+                  <div 
+                    className="aspect-square bg-muted relative overflow-hidden"
+                    onClick={(e) => {
+                      if (isSubscribed) {
+                        e.stopPropagation();
+                        setSelectedImage(item);
+                      }
+                    }}
+                  >
                     <OptimizedImage
                       src={item.thumbnail_url || item.file_url}
                       alt={item.title}
-                      className={`w-full h-full object-cover pointer-events-none ${!isSubscribed ? 'blur-lg' : 'group-hover:scale-105 transition-transform'}`}
+                      className={`w-full h-full object-cover ${!isSubscribed ? 'blur-lg' : 'group-hover:scale-105 transition-transform'}`}
                     />
                     {!isSubscribed && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/60 pointer-events-none">
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/60 pointer-events-none z-30">
                         <div className="text-center text-white">
                           <Lock className="h-8 w-8 mx-auto mb-2" />
                           <p className="text-sm font-medium">Contenu Premium</p>
                         </div>
                       </div>
                     )}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 pointer-events-none">
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 pointer-events-none z-30">
                       <h3 className="text-white font-medium text-sm line-clamp-1">{item.title}</h3>
                       {isSubscribed && (
                         <div className="flex items-center gap-3 text-white/80 text-xs mt-1">
@@ -423,7 +432,7 @@ const CreatorPublicPage = () => {
                       )}
                     </div>
                   </div>
-                </div>
+                </ProtectedMedia>
               ))}
             </div>
             

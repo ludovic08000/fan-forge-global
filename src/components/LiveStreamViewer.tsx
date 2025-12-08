@@ -21,6 +21,8 @@ import { useAnalytics } from '@/lib/analytics';
 import { LiveModerationPanel, MessageModeration } from '@/components/LiveModerationPanel';
 import { useLiveModeration } from '@/hooks/useLiveModeration';
 import { ContentOfferCard, ContentOfferSelector } from '@/components/LiveContentOffer';
+import { useContentProtection } from '@/hooks/useContentProtection';
+import { ProtectedMedia } from '@/components/ProtectedMedia';
 
 interface LiveStreamViewerProps {
   streamId: string;
@@ -35,6 +37,9 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   const { messages, sendMessage, sendContentOffer, hasMore, loadMore, loading: chatLoading } = useLiveChat(streamId);
   const { trackError } = useAnalytics();
   const { isUserBanned, settings } = useLiveModeration(streamId);
+  
+  // Activer la protection anti-capture sur le live
+  useContentProtection(true);
   
   // LiveKit viewer hook
   const { isConnected, isConnecting, error: liveKitError, connect, disconnect, setVideoRef } = useLiveKitViewer(streamId);
