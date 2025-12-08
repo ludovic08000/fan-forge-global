@@ -24,6 +24,7 @@ import PaymentRequest from '@/components/creator/PaymentRequest';
 import StripeConnectSetup from '@/components/creator/StripeConnectSetup';
 import SubscriptionPricing from '@/components/creator/SubscriptionPricing';
 import ReferralCodesManager from '@/components/creator/ReferralCodesManager';
+import CreatorInvoices from '@/components/creator/CreatorInvoices';
 import { useContent } from '@/hooks/useContent';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -579,6 +580,9 @@ const Dashboard = () => {
                 </div>
               </CardContent>
             </Card>
+            
+            {/* Factures */}
+            {creatorProfile?.id && <CreatorInvoices creatorId={creatorProfile.id} />}
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Colonne gauche - Prix & Promos */}

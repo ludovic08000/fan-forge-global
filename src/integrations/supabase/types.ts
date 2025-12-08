@@ -193,6 +193,108 @@ export type Database = {
           },
         ]
       }
+      creator_invoices: {
+        Row: {
+          created_at: string
+          creator_address: string | null
+          creator_country: string
+          creator_iban: string | null
+          creator_id: string
+          creator_name: string
+          creator_tax_id: string | null
+          currency: string
+          finalized_at: string | null
+          gross_amount: number
+          id: string
+          invoice_number: string
+          live_revenue: number
+          net_amount: number
+          paid_at: string | null
+          payment_request_id: string | null
+          period_end: string
+          period_start: string
+          platform_commission_amount: number
+          platform_commission_rate: number
+          private_content_revenue: number
+          status: string
+          subscription_revenue: number
+          tips_revenue: number
+          vat_amount: number
+          vat_rate: number
+        }
+        Insert: {
+          created_at?: string
+          creator_address?: string | null
+          creator_country?: string
+          creator_iban?: string | null
+          creator_id: string
+          creator_name: string
+          creator_tax_id?: string | null
+          currency?: string
+          finalized_at?: string | null
+          gross_amount?: number
+          id?: string
+          invoice_number: string
+          live_revenue?: number
+          net_amount?: number
+          paid_at?: string | null
+          payment_request_id?: string | null
+          period_end: string
+          period_start: string
+          platform_commission_amount?: number
+          platform_commission_rate?: number
+          private_content_revenue?: number
+          status?: string
+          subscription_revenue?: number
+          tips_revenue?: number
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Update: {
+          created_at?: string
+          creator_address?: string | null
+          creator_country?: string
+          creator_iban?: string | null
+          creator_id?: string
+          creator_name?: string
+          creator_tax_id?: string | null
+          currency?: string
+          finalized_at?: string | null
+          gross_amount?: number
+          id?: string
+          invoice_number?: string
+          live_revenue?: number
+          net_amount?: number
+          paid_at?: string | null
+          payment_request_id?: string | null
+          period_end?: string
+          period_start?: string
+          platform_commission_amount?: number
+          platform_commission_rate?: number
+          private_content_revenue?: number
+          status?: string
+          subscription_revenue?: number
+          tips_revenue?: number
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_invoices_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_invoices_payment_request_id_fkey"
+            columns: ["payment_request_id"]
+            isOneToOne: false
+            referencedRelation: "creator_payment_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creator_payment_requests: {
         Row: {
           amount: number
@@ -1257,6 +1359,7 @@ export type Database = {
       }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       cleanup_stale_live_streams: { Args: never; Returns: undefined }
+      generate_invoice_number: { Args: never; Returns: string }
       generate_stream_key: { Args: never; Returns: string }
       generate_unique_username: { Args: { base_text: string }; Returns: string }
       has_live_access: {
