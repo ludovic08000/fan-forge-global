@@ -299,7 +299,34 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
 
       if (insertError) throw insertError;
 
-      toast.success('Facture générée avec succès !');
+      // Créer l'objet facture pour le téléchargement automatique
+      const newInvoiceData: Invoice = {
+        id: crypto.randomUUID(),
+        invoice_number: invoiceNum,
+        period_start: new Date(newInvoice.periodStart).toISOString(),
+        period_end: new Date(newInvoice.periodEnd).toISOString(),
+        subscription_revenue: revenue.subscription_revenue,
+        tips_revenue: revenue.tips_revenue,
+        live_revenue: revenue.live_revenue,
+        private_content_revenue: revenue.private_content_revenue,
+        gross_amount: grossAmount,
+        platform_commission_amount: commissionAmount,
+        creator_country: newInvoice.country,
+        vat_rate: taxRate,
+        vat_amount: taxAmount,
+        net_amount: netAmount,
+        creator_name: creatorInfo?.stage_name || creatorInfo?.profile?.display_name || 'Créateur',
+        creator_address: null,
+        creator_tax_id: creatorInfo?.tax_id || null,
+        currency: currency,
+        status: 'finalized',
+        created_at: new Date().toISOString()
+      };
+
+      // Télécharger automatiquement le PDF
+      generatePDF(newInvoiceData);
+
+      toast.success('Facture générée et téléchargée !');
       setShowCreateDialog(false);
       loadInvoices();
     } catch (error: any) {
