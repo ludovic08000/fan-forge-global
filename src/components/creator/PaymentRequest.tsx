@@ -373,10 +373,10 @@ const PaymentRequest: React.FC = () => {
                 )}
               </div>
 
-              {(!creatorInfo.bank_iban || !creatorInfo.bank_bic) && (
+              {!creatorInfo.stripe_account_id && (
                 <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                   <p className="text-sm text-muted-foreground">
-                    💡 Avec Stripe Connect, vous n'avez plus besoin de renseigner votre IBAN. Les virements sont automatiques et sécurisés.
+                    💡 Connectez votre compte Stripe pour recevoir vos paiements automatiquement.
                   </p>
                 </div>
               )}

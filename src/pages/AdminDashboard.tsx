@@ -71,10 +71,10 @@ interface CreatorPayment {
   user_id: string;
   stage_name: string;
   email: string;
-  bank_account_holder: string;
-  bank_iban: string;
-  bank_bic: string;
-  bank_country: string;
+  stripe_account_id: string | null;
+  stripe_account_status: string | null;
+  stripe_charges_enabled: boolean;
+  stripe_payouts_enabled: boolean;
   payment_frequency: string;
   currency: string;
   weekly_revenue: number;
@@ -164,15 +164,14 @@ const AdminDashboard = () => {
           id,
           user_id,
           stage_name,
-          bank_account_holder,
-          bank_iban,
-          bank_bic,
-          bank_country,
+          stripe_account_id,
+          stripe_account_status,
+          stripe_charges_enabled,
+          stripe_payouts_enabled,
           payment_frequency,
           currency,
           total_subscribers
-        `)
-        .not('bank_iban', 'is', null);
+        `);
 
       if (error) throw error;
 
@@ -274,13 +273,12 @@ const AdminDashboard = () => {
    * Exporter les données de paiement en CSV
    */
   const exportPaymentsToCSV = () => {
-    const headers = ['Créateur', 'Email', 'IBAN', 'BIC', 'Pays', 'Fréquence', 'Devise', 'Revenu Semaine', 'Revenu Mois', 'Revenu Trimestre', 'Abonnés'];
+    const headers = ['Créateur', 'Email', 'Stripe ID', 'Statut Stripe', 'Fréquence', 'Devise', 'Revenu Semaine', 'Revenu Mois', 'Revenu Trimestre', 'Abonnés'];
     const rows = filteredPayments.map(p => [
       p.stage_name || 'N/A',
       p.email,
-      p.bank_iban || 'N/A',
-      p.bank_bic || 'N/A',
-      p.bank_country || 'N/A',
+      p.stripe_account_id || 'Non connecté',
+      p.stripe_account_status || 'N/A',
       p.payment_frequency,
       p.currency,
       p.weekly_revenue.toFixed(2),
@@ -307,7 +305,7 @@ const AdminDashboard = () => {
     return (
       payment.stage_name?.toLowerCase().includes(search) ||
       payment.email?.toLowerCase().includes(search) ||
-      payment.bank_iban?.toLowerCase().includes(search)
+      payment.stripe_account_id?.toLowerCase().includes(search)
     );
   });
 
@@ -542,13 +540,13 @@ const AdminDashboard = () => {
                 </Button>
               </CardTitle>
               <CardDescription>
-                IBAN et revenus des créateurs pour effectuer les paiements
+                Stripe Connect et revenus des créateurs (paiements automatiques)
               </CardDescription>
               <div className="flex items-center gap-4 mt-4">
                 <div className="flex items-center gap-2 flex-1">
                   <Search className="h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Rechercher par nom, email, IBAN..."
+                    placeholder="Rechercher par nom, email, Stripe ID..."
                     value={paymentSearchTerm}
                     onChange={(e) => setPaymentSearchTerm(e.target.value)}
                     className="max-w-sm"
@@ -575,9 +573,8 @@ const AdminDashboard = () => {
                   <TableRow>
                     <TableHead>Créateur</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>IBAN</TableHead>
-                    <TableHead>BIC</TableHead>
-                    <TableHead>Titulaire</TableHead>
+                    <TableHead>Stripe Connect</TableHead>
+                    <TableHead>Statut</TableHead>
                     <TableHead>Fréquence</TableHead>
                     <TableHead className="text-right">Revenu</TableHead>
                     <TableHead className="text-right">Abonnés</TableHead>
@@ -600,13 +597,20 @@ const AdminDashboard = () => {
                           {payment.email}
                         </TableCell>
                         <TableCell className="font-mono text-xs">
-                          {payment.bank_iban || '-'}
+                          {payment.stripe_account_id ? (
+                            <span className="text-green-500">✓ Connecté</span>
+                          ) : (
+                            <span className="text-muted-foreground">Non connecté</span>
+                          )}
                         </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {payment.bank_bic || '-'}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {payment.bank_account_holder || '-'}
+                        <TableCell>
+                          {payment.stripe_charges_enabled && payment.stripe_payouts_enabled ? (
+                            <Badge variant="default">Actif</Badge>
+                          ) : payment.stripe_account_id ? (
+                            <Badge variant="secondary">En attente</Badge>
+                          ) : (
+                            <Badge variant="outline">-</Badge>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge variant={
@@ -631,8 +635,8 @@ const AdminDashboard = () => {
                   })}
                   {filteredPayments.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                        Aucun créateur avec IBAN enregistré
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        Aucun créateur enregistré
                       </TableCell>
                     </TableRow>
                   )}
