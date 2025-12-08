@@ -21,6 +21,7 @@ import CreatorAnalyticsDashboard from '@/components/analytics/CreatorAnalyticsDa
 import PaymentRequest from '@/components/creator/PaymentRequest';
 import StripeConnectSetup from '@/components/creator/StripeConnectSetup';
 import SubscriptionPricing from '@/components/creator/SubscriptionPricing';
+import ReferralCodesManager from '@/components/creator/ReferralCodesManager';
 import { useContent } from '@/hooks/useContent';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -564,16 +565,18 @@ const Dashboard = () => {
           {/* Settings */}
           {isCreator && (
             <TabsContent value="settings" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Colonne gauche - Boost & Prix */}
-                <div className="lg:col-span-1 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Colonne gauche - Prix, Codes promo, Boost */}
+                <div className="space-y-6">
                   {creatorProfile?.id && (
                     <SubscriptionPricing creatorId={creatorProfile.id} />
+                  )}
+                  {creatorProfile?.id && (
+                    <ReferralCodesManager creatorId={creatorProfile.id} />
                   )}
                   <CreatorBoost
                     currentBoostUntil={creatorProfile?.featured_until}
                     onBoostUpdate={() => {
-                      // Recharger les données du créateur
                       setCreatorProfile(null);
                       window.location.reload();
                     }}
@@ -582,7 +585,7 @@ const Dashboard = () => {
                 </div>
                 
                 {/* Colonne droite - Paramètres */}
-                <div className="lg:col-span-2">
+                <div>
                   <CreatorSettings />
                 </div>
               </div>

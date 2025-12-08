@@ -46,15 +46,16 @@ const SubscriptionPricing: React.FC<SubscriptionPricingProps> = ({ creatorId }) 
   };
 
   const handleUpdatePrice = async () => {
-    if (!price || parseFloat(price) < 0) {
+    if (price === '' || parseFloat(price) < 0) {
       toast.error('Veuillez entrer un prix valide');
       return;
     }
 
     const priceValue = parseFloat(price);
     
-    if (priceValue < 2.99) {
-      toast.error('Le prix minimum est de 2,99 €');
+    // Prix gratuit (0) ou minimum 2.99€
+    if (priceValue !== 0 && priceValue < 2.99) {
+      toast.error('Le prix minimum est de 2,99 € (ou gratuit à 0 €)');
       return;
     }
 
@@ -189,13 +190,16 @@ const SubscriptionPricing: React.FC<SubscriptionPricingProps> = ({ creatorId }) 
                 id="price"
                 type="number"
                 step="0.01"
-                min="2.99"
+                min="0"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder="9.99"
+                placeholder="0 pour gratuit, ou min 2.99"
                 className="pl-8"
               />
             </div>
+            <p className="text-xs text-muted-foreground">
+              Mettez 0 pour un abonnement gratuit
+            </p>
           </div>
         </div>
 
