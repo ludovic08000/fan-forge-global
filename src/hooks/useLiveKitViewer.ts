@@ -41,11 +41,11 @@ export const useLiveKitViewer = (streamId: string) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   
   const roomRef = useRef<any>(null);
   const isConnectingRef = useRef(false);
+  const videoElementRef = useRef<HTMLVideoElement | null>(null);
 
   /**
    * Obtenir un token LiveKit depuis l'edge function
@@ -99,9 +99,21 @@ export const useLiveKitViewer = (streamId: string) => {
       ) => {
         console.log('[LiveKit Viewer] Track subscribed:', track.kind, 'from', participant.identity);
         
-        if (track.kind === Track.Kind.Video && videoElement) {
-          track.attach(videoElement);
-          console.log('[LiveKit Viewer] Video attached');
+        if (track.kind === Track.Kind.Video) {
+          // Utiliser la ref pour avoir toujours la valeur actuelle
+          if (videoElementRef.current) {
+            track.attach(videoElementRef.current);
+            console.log('[LiveKit Viewer] Video attached to element');
+          } else {
+            console.warn('[LiveKit Viewer] Video element not available yet, retrying...');
+            // Réessayer après un court délai
+            setTimeout(() => {
+              if (videoElementRef.current) {
+                track.attach(videoElementRef.current);
+                console.log('[LiveKit Viewer] Video attached after retry');
+              }
+            }, 100);
+          }
         } else if (track.kind === Track.Kind.Audio) {
           const audio = track.attach();
           audio.volume = 1;
@@ -161,7 +173,7 @@ export const useLiveKitViewer = (streamId: string) => {
       setIsConnecting(false);
       isConnectingRef.current = false;
     }
-  }, [streamId, isConnected, getToken, videoElement]);
+  }, [streamId, isConnected, getToken]);
 
   /**
    * Se déconnecter
@@ -187,7 +199,7 @@ export const useLiveKitViewer = (streamId: string) => {
    * Définir l'élément vidéo pour attacher le stream
    */
   const setVideoRef = useCallback((element: HTMLVideoElement | null) => {
-    setVideoElement(element);
+    videoElementRef.current = element;
   }, []);
 
   // Cleanup on unmount
