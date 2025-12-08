@@ -12,9 +12,9 @@ const PopularCreators = () => {
   const { data: creators, isLoading } = useQuery({
     queryKey: ['popular-creators'],
     queryFn: async () => {
-      // Récupérer les créateurs triés par nombre d'abonnés
+      // Récupérer les créateurs triés par nombre d'abonnés via la vue publique
       const { data: creatorsData, error: creatorsError } = await supabase
-        .from('creators')
+        .from('public_creators')
         .select('*')
         .order('total_subscribers', { ascending: false })
         .limit(12);
@@ -22,10 +22,10 @@ const PopularCreators = () => {
       if (creatorsError) throw creatorsError;
       if (!creatorsData || creatorsData.length === 0) return [];
 
-      // Récupérer les profils associés
-      const userIds = creatorsData.map(c => c.user_id);
+      // Récupérer les profils associés via la vue publique
+      const userIds = creatorsData.map(c => c.user_id).filter(Boolean) as string[];
       const { data: profilesData } = await supabase
-        .from('profiles')
+        .from('public_creator_profiles')
         .select('user_id, display_name, username, avatar_url, bio, is_verified')
         .in('user_id', userIds);
 
