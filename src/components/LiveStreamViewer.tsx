@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Users, Send, Circle, Heart, Lock, ChevronUp, Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { useLiveStream } from '@/hooks/useLiveStream';
-import { useLiveChat } from '@/hooks/useLiveChat';
+import { useLiveChat, ContentOffer } from '@/hooks/useLiveChat';
 import { useLiveKitViewer } from '@/hooks/useLiveKitViewer';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { useAnalytics } from '@/lib/analytics';
 import { LiveModerationPanel, MessageModeration } from '@/components/LiveModerationPanel';
 import { useLiveModeration } from '@/hooks/useLiveModeration';
+import { ContentOfferCard, ContentOfferSelector } from '@/components/LiveContentOffer';
 
 interface LiveStreamViewerProps {
   streamId: string;
@@ -31,7 +32,7 @@ interface LiveStreamViewerProps {
 export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   const { user } = useAuth();
   const { joinLiveStream, leaveLiveStream } = useLiveStream();
-  const { messages, sendMessage, hasMore, loadMore, loading: chatLoading } = useLiveChat(streamId);
+  const { messages, sendMessage, sendContentOffer, hasMore, loadMore, loading: chatLoading } = useLiveChat(streamId);
   const { trackError } = useAnalytics();
   const { isUserBanned, settings } = useLiveModeration(streamId);
   
@@ -378,10 +379,14 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col p-0">
-            {/* Panel de modération (créateurs uniquement) */}
+            {/* Panel de modération et offres (créateurs uniquement) */}
             {isCreator && (
-              <div className="px-4 pt-4">
+              <div className="px-4 pt-4 space-y-2">
                 <LiveModerationPanel liveStreamId={streamId} isCreator={isCreator} />
+                <ContentOfferSelector 
+                  creatorId={liveStream?.creator_id} 
+                  onSelectContent={(content) => sendContentOffer(content)}
+                />
               </div>
             )}
 
@@ -403,35 +408,40 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                 )}
                 {messages.map((msg) => (
                   <div key={msg.id} className="space-y-1">
-                    <div className="flex items-start gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-xs">
-                          {msg.username.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-semibold text-sm truncate">
-                            {msg.username}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(msg.created_at).toLocaleTimeString('fr-FR', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
+                    {/* Affichage différent pour les offres de contenu */}
+                    {msg.message_type === 'offer' && msg.content_offer ? (
+                      <ContentOfferCard offer={msg.content_offer} />
+                    ) : (
+                      <div className="flex items-start gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="text-xs">
+                            {msg.username.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-semibold text-sm truncate">
+                              {msg.username}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(msg.created_at).toLocaleTimeString('fr-FR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-sm break-words">{msg.message}</p>
                         </div>
-                        <p className="text-sm break-words">{msg.message}</p>
+                        {/* Boutons de modération (créateurs uniquement) */}
+                        <MessageModeration
+                          messageId={msg.id}
+                          userId={msg.user_id}
+                          username={msg.username}
+                          liveStreamId={streamId}
+                          isCreator={isCreator}
+                        />
                       </div>
-                      {/* Boutons de modération (créateurs uniquement) */}
-                      <MessageModeration
-                        messageId={msg.id}
-                        userId={msg.user_id}
-                        username={msg.username}
-                        liveStreamId={streamId}
-                        isCreator={isCreator}
-                      />
-                    </div>
+                    )}
                   </div>
                 ))}
                 <div ref={messagesEndRef} />
