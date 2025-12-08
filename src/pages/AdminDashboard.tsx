@@ -34,10 +34,11 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download } from 'lucide-react';
+import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentRequestsManager from '@/components/admin/PaymentRequestsManager';
 import PlatformCommissions from '@/components/admin/PlatformCommissions';
+import WatermarkInvestigation from '@/components/admin/WatermarkInvestigation';
 
 interface ContentReport {
   id: string;
@@ -394,12 +395,16 @@ const AdminDashboard = () => {
       </div>
 
       <Tabs defaultValue="reports" className="space-y-4">
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="reports">Signalements</TabsTrigger>
           <TabsTrigger value="logs">Logs de connexion</TabsTrigger>
           <TabsTrigger value="payment-requests">Demandes de paiement</TabsTrigger>
           <TabsTrigger value="commissions">Commissions</TabsTrigger>
           <TabsTrigger value="payments">Paiements créateurs</TabsTrigger>
+          <TabsTrigger value="watermark" className="flex items-center gap-1">
+            <Fingerprint className="h-3 w-3" />
+            Investigation fuites
+          </TabsTrigger>
         </TabsList>
 
         {/* Onglet Signalements */}
@@ -742,6 +747,11 @@ const AdminDashboard = () => {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Onglet Investigation Watermark */}
+        <TabsContent value="watermark">
+          <WatermarkInvestigation />
         </TabsContent>
       </Tabs>
     </div>
