@@ -70,19 +70,39 @@ const AdminLiveManager = () => {
   const loadLiveStreams = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Récupérer les lives sans JOIN pour éviter la récursion RLS
+      const { data: livesData, error: livesError } = await supabase
         .from('live_streams')
-        .select(`
-          *,
-          creator:creators!live_streams_creator_id_fkey (
-            stage_name,
-            user_id
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setLiveStreams(data || []);
+      if (livesError) throw livesError;
+
+      // Récupérer les créateurs via la vue publique (pas de RLS)
+      const creatorIds = [...new Set((livesData || []).map(l => l.creator_id))];
+      
+      let creatorsMap: Record<string, { stage_name: string | null; user_id: string }> = {};
+      
+      if (creatorIds.length > 0) {
+        const { data: creatorsData } = await supabase
+          .from('public_creators')
+          .select('id, stage_name, user_id')
+          .in('id', creatorIds);
+        
+        creatorsMap = (creatorsData || []).reduce((acc, c) => {
+          if (c.id) acc[c.id] = { stage_name: c.stage_name, user_id: c.user_id || '' };
+          return acc;
+        }, {} as Record<string, { stage_name: string | null; user_id: string }>);
+      }
+
+      // Combiner les données
+      const enrichedLives = (livesData || []).map(live => ({
+        ...live,
+        creator: creatorsMap[live.creator_id] || null
+      }));
+
+      setLiveStreams(enrichedLives);
     } catch (error) {
       console.error('Erreur chargement lives:', error);
       toast.error('Erreur lors du chargement des lives');
