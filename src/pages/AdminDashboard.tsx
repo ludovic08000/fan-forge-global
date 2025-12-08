@@ -178,10 +178,6 @@ const AdminDashboard = () => {
       // Pour chaque créateur, calculer les revenus
       const paymentsData = await Promise.all(
         (creators || []).map(async (creator: any) => {
-          // Récupérer l'email de l'utilisateur
-          const { data: authUsers } = await supabase.auth.admin.listUsers();
-          const user = authUsers?.users.find((u: any) => u.id === creator.user_id);
-
           // Calculer les revenus pour chaque période
           const [weeklyRev, monthlyRev, quarterlyRev] = await Promise.all([
             supabase.rpc('calculate_creator_total_revenue', {
@@ -203,7 +199,7 @@ const AdminDashboard = () => {
 
           return {
             ...creator,
-            email: user?.email || 'N/A',
+            email: creator.stage_name || 'N/A', // On utilise le stage_name au lieu de l'email
             weekly_revenue: weeklyRev.data || 0,
             monthly_revenue: monthlyRev.data || 0,
             quarterly_revenue: quarterlyRev.data || 0,
