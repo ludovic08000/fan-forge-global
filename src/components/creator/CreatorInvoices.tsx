@@ -359,6 +359,7 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(isUS ? 'Creator Platform' : 'Plateforme de créateurs', 150, 38);
+    doc.text('SIRET: 98515908600018', 150, 44);
     
     // Infos créateur
     doc.setFontSize(12);
