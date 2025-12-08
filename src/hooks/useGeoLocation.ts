@@ -73,8 +73,8 @@ export const useGeoLocation = () => {
   useEffect(() => {
     const detectLocation = async () => {
       try {
-        // Use ip-api.com (free, no API key required)
-        const response = await fetch('https://ip-api.com/json/?fields=status,country,countryCode,region,regionName,city,timezone');
+        // Use ipapi.co (supports HTTPS, free tier available)
+        const response = await fetch('https://ipapi.co/json/');
         
         if (!response.ok) {
           throw new Error('Failed to fetch location');
@@ -82,15 +82,15 @@ export const useGeoLocation = () => {
         
         const data = await response.json();
         
-        if (data.status === 'success') {
-          const countryCode = data.countryCode || 'FR';
+        if (!data.error) {
+          const countryCode = data.country_code || 'FR';
           const isEU = EU_COUNTRIES.includes(countryCode);
           const isUS = countryCode === 'US';
           
           const geoLocation: GeoLocationData = {
             countryCode,
-            countryName: data.country || 'France',
-            region: data.region || '',
+            countryName: data.country_name || 'France',
+            region: data.region_code || '',
             city: data.city || '',
             currency: COUNTRY_CURRENCY_MAP[countryCode] || 'EUR',
             timezone: data.timezone || 'Europe/Paris',
