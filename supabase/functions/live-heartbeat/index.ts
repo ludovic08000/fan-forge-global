@@ -61,6 +61,7 @@ serve(async (req) => {
         JSON.stringify({ success: true }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
 
     if (action === 'cleanup') {
       // Nettoyer les lives sans heartbeat depuis 2 minutes
