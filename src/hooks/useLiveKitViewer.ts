@@ -7,7 +7,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-const LIVEKIT_URL = 'wss://plaisir-ykn9lxey.livekit.cloud';
+// L'URL LiveKit sera récupérée dynamiquement depuis l'edge function
 
 // Cache du module LiveKit
 let liveKitModule: typeof import('livekit-client') | null = null;
@@ -62,7 +62,7 @@ export const useLiveKitViewer = (streamId: string) => {
     });
 
     if (error) throw error;
-    return data.token;
+    return { token: data.token, url: data.url };
   }, [streamId, user?.id]);
 
   /**
@@ -81,9 +81,9 @@ export const useLiveKitViewer = (streamId: string) => {
       const liveKit = await loadLiveKit();
       const { Room, RoomEvent, Track } = liveKit;
 
-      // Obtenir le token
-      const token = await getToken();
-      console.log('[LiveKit Viewer] Token obtained');
+      // Obtenir le token et l'URL
+      const { token, url: livekitUrl } = await getToken();
+      console.log('[LiveKit Viewer] Token obtained, URL:', livekitUrl);
 
       // Créer la room
       const room = new Room({
@@ -139,7 +139,7 @@ export const useLiveKitViewer = (streamId: string) => {
       });
 
       // Connecter
-      await room.connect(LIVEKIT_URL, token);
+      await room.connect(livekitUrl, token);
       roomRef.current = room;
 
       // Vérifier si le broadcaster est déjà présent
