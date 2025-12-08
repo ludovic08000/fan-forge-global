@@ -1757,8 +1757,6 @@ export type Database = {
               username: string
             }[]
           }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       content_status: "draft" | "published" | "archived"
