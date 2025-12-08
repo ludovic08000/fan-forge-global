@@ -72,12 +72,6 @@ const Header: React.FC = () => {
                     <span>Mes abonnements</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/admin" className="flex items-center text-orange-600">
-                    <Crown className="mr-2 h-4 w-4" />
-                    <span>Admin (TEST)</span>
-                  </Link>
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={signOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Se déconnecter</span>
@@ -179,13 +173,6 @@ const Header: React.FC = () => {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Mes abonnements
-                  </Link>
-                  <Link 
-                    to="/admin" 
-                    className="block px-3 py-2 text-orange-600 hover:text-orange-700 transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Admin (TEST)
                   </Link>
                   <button
                     onClick={() => {
