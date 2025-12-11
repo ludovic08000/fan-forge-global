@@ -3,11 +3,41 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-request-id',
 };
+
+// Domaines autorisés pour les requêtes
+const ALLOWED_ORIGINS = [
+  'lovableproject.com',
+  'lovable.app',
+  'localhost',
+  '127.0.0.1'
+];
 
 const logStep = (step: string, details?: any) => {
   console.log(`[GET-SIGNED-URL] ${step}`, details ? JSON.stringify(details) : '');
+};
+
+/**
+ * Vérifie si l'origine de la requête est autorisée
+ */
+const isOriginAllowed = (origin: string | null): boolean => {
+  if (!origin) return false;
+  try {
+    const url = new URL(origin);
+    return ALLOWED_ORIGINS.some(allowed => 
+      url.hostname === allowed || url.hostname.endsWith(`.${allowed}`)
+    );
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Génère un identifiant de requête unique pour le tracking
+ */
+const generateRequestId = (): string => {
+  return crypto.randomUUID().substring(0, 8);
 };
 
 serve(async (req) => {
@@ -16,8 +46,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const requestId = req.headers.get('x-request-id') || generateRequestId();
+  const origin = req.headers.get('origin') || req.headers.get('referer');
+
   try {
-    logStep('Starting signed URL generation');
+    logStep('Starting signed URL generation', { requestId, origin });
+
+    // Vérifier l'origine (non bloquant pour le moment, juste logging)
+    if (!isOriginAllowed(origin)) {
+      logStep('Warning: Request from unknown origin', { origin, requestId });
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -28,9 +66,9 @@ serve(async (req) => {
     // Client pour vérifier l'utilisateur
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      logStep('No auth header provided');
+      logStep('No auth header provided', { requestId });
       return new Response(
-        JSON.stringify({ error: 'Authorization required' }),
+        JSON.stringify({ error: 'Authorization required', requestId }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -41,16 +79,16 @@ serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) {
-      logStep('User authentication failed', userError);
+      logStep('User authentication failed', { error: userError, requestId });
       return new Response(
-        JSON.stringify({ error: 'Invalid user' }),
+        JSON.stringify({ error: 'Invalid user', requestId }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    logStep('User authenticated', { userId: user.id });
+    logStep('User authenticated', { userId: user.id, requestId });
 
-    const { filePath, bucket, contentId } = await req.json();
+    const { filePath, bucket, contentId, includeChecksum } = await req.json();
 
     if (!filePath || !bucket) {
       return new Response(
@@ -126,12 +164,26 @@ serve(async (req) => {
       );
     }
 
-    logStep('Signed URL generated successfully', { expiresIn });
+    logStep('Signed URL generated successfully', { expiresIn, requestId });
+
+    // Générer un checksum si demandé pour la vérification d'intégrité
+    let checksum: string | undefined;
+    if (includeChecksum) {
+      const data = `${filePath}:${user.id}:${bucket}`;
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data));
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      checksum = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+    }
 
     return new Response(
       JSON.stringify({ 
         signedUrl: signedUrlData.signedUrl,
-        expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString()
+        expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
+        requestId,
+        checksum,
+        issuedAt: new Date().toISOString(),
+        userId: user.id.substring(0, 8) + '...' // Truncated for logging
       }),
       { 
         status: 200, 
@@ -140,9 +192,9 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    logStep('Error', error);
+    logStep('Error', { error: error.message, requestId });
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message, requestId }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

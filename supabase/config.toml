@@ -87,3 +87,6 @@ verify_jwt = true
 
 [functions.cleanup-paused-creators]
 verify_jwt = false
+
+[functions.csrf-token]
+verify_jwt = true
