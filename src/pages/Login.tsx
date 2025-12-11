@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, ArrowLeft, Mail } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Mail, AlertTriangle, Shield } from 'lucide-react';
 import { authSchema } from '@/lib/validations';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
+import { useBruteForceProtection } from '@/hooks/useBruteForceProtection';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,6 +21,15 @@ const Login = () => {
   const [resetEmail, setResetEmail] = useState('');
   const { signIn, signInWithGoogle, signInWithFacebook, user } = useAuth();
   const { checkRateLimit } = useRateLimitServer();
+  const { 
+    blocked, 
+    reason, 
+    remainingAttempts, 
+    warning,
+    checkBeforeLogin, 
+    recordAttempt,
+    formatRemainingTime 
+  } = useBruteForceProtection();
   const navigate = useNavigate();
 
   const [signInForm, setSignInForm] = useState({
@@ -35,6 +46,13 @@ const Login = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Vérifier le blocage brute force
+    const canProceed = await checkBeforeLogin(signInForm.email);
+    if (!canProceed) {
+      toast.error(`Compte temporairement bloqué. Réessayez dans ${formatRemainingTime()}`);
+      return;
+    }
+    
     const isAllowed = await checkRateLimit('auth');
     if (!isAllowed) return;
 
@@ -45,38 +63,48 @@ const Login = () => {
       
       const { error } = await signIn(validatedData.email, validatedData.password);
       
-      if (!error) {
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData.user) {
-          // Check if user is suspended
-          const { data: suspension } = await supabase
-            .from('user_suspensions')
-            .select('reason, suspended_at')
-            .eq('user_id', userData.user.id)
-            .eq('is_active', true)
-            .maybeSingle();
-          
-          if (suspension) {
-            await supabase.auth.signOut();
-            sessionStorage.setItem('suspension_details', JSON.stringify(suspension));
-            navigate('/suspended');
-            return;
-          }
+      if (error) {
+        // Enregistrer l'échec
+        const result = await recordAttempt(validatedData.email, false, 'login');
+        if (result.warning) {
+          toast.warning(result.warning);
+        }
+        return;
+      }
+      
+      // Enregistrer le succès
+      await recordAttempt(validatedData.email, true, 'login');
+      
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user) {
+        // Check if user is suspended
+        const { data: suspension } = await supabase
+          .from('user_suspensions')
+          .select('reason, suspended_at')
+          .eq('user_id', userData.user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        if (suspension) {
+          await supabase.auth.signOut();
+          sessionStorage.setItem('suspension_details', JSON.stringify(suspension));
+          navigate('/suspended');
+          return;
+        }
 
-          const { data: creatorData } = await supabase
-            .from('creators')
-            .select('id')
-            .eq('user_id', userData.user.id)
-            .maybeSingle();
-          
-          if (creatorData) {
-            navigate('/dashboard');
-          } else {
-            navigate('/');
-          }
+        const { data: creatorData } = await supabase
+          .from('creators')
+          .select('id')
+          .eq('user_id', userData.user.id)
+          .maybeSingle();
+        
+        if (creatorData) {
+          navigate('/dashboard');
         } else {
           navigate('/');
         }
+      } else {
+        navigate('/');
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -150,6 +178,36 @@ const Login = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Alert brute force */}
+            {blocked && (
+              <Alert variant="destructive" className="mb-4">
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Compte temporairement bloqué</strong>
+                  <p className="text-sm mt-1">{reason}</p>
+                  <p className="text-sm">Réessayez dans {formatRemainingTime()}</p>
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {!blocked && warning && (
+              <Alert className="mb-4 border-yellow-500 bg-yellow-500/10">
+                <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                <AlertDescription className="text-yellow-500">
+                  {warning}
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {!blocked && remainingAttempts !== undefined && remainingAttempts <= 3 && remainingAttempts > 0 && (
+              <Alert className="mb-4 border-orange-500 bg-orange-500/10">
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                <AlertDescription className="text-orange-500">
+                  {remainingAttempts} tentative{remainingAttempts > 1 ? 's' : ''} restante{remainingAttempts > 1 ? 's' : ''} avant blocage
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-4 mb-6">
               <Button 
                 type="button"
@@ -277,9 +335,9 @@ const Login = () => {
                 <Button 
                   type="submit" 
                   className="w-full" 
-                  disabled={isLoading}
+                  disabled={isLoading || blocked}
                 >
-                  {isLoading ? 'Connexion...' : 'Se connecter'}
+                  {isLoading ? 'Connexion...' : blocked ? 'Compte bloqué' : 'Se connecter'}
                 </Button>
                 <div className="text-center">
                   <Button

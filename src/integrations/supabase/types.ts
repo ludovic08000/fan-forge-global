@@ -896,6 +896,36 @@ export type Database = {
           },
         ]
       }
+      login_attempts: {
+        Row: {
+          attempt_type: string
+          created_at: string | null
+          id: string
+          identifier: string
+          ip_address: string | null
+          success: boolean | null
+          user_agent: string | null
+        }
+        Insert: {
+          attempt_type?: string
+          created_at?: string | null
+          id?: string
+          identifier: string
+          ip_address?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+        }
+        Update: {
+          attempt_type?: string
+          created_at?: string | null
+          id?: string
+          identifier?: string
+          ip_address?: string | null
+          success?: boolean | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -1260,6 +1290,39 @@ export type Database = {
           },
         ]
       }
+      security_blocks: {
+        Row: {
+          block_type: string
+          blocked_at: string | null
+          created_by: string | null
+          expires_at: string
+          id: string
+          identifier: string
+          is_active: boolean | null
+          reason: string | null
+        }
+        Insert: {
+          block_type?: string
+          blocked_at?: string | null
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          identifier: string
+          is_active?: boolean | null
+          reason?: string | null
+        }
+        Update: {
+          block_type?: string
+          blocked_at?: string | null
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          identifier?: string
+          is_active?: boolean | null
+          reason?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           auto_renew: boolean | null
@@ -1609,6 +1672,15 @@ export type Database = {
       }
     }
     Functions: {
+      auto_block_if_needed: {
+        Args: {
+          block_duration?: unknown
+          check_identifier: string
+          check_ip?: string
+          max_attempts?: number
+        }
+        Returns: boolean
+      }
       calculate_creator_revenue_with_commission: {
         Args: { creator_uuid: string; end_date?: string; start_date?: string }
         Returns: {
@@ -1633,9 +1705,14 @@ export type Database = {
         Args: { _live_stream_id: string; _minute_number: number }
         Returns: undefined
       }
+      cleanup_old_login_attempts: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       cleanup_paused_creators: { Args: never; Returns: number }
       cleanup_stale_live_streams: { Args: never; Returns: undefined }
+      count_failed_attempts: {
+        Args: { check_identifier: string; time_window?: unknown }
+        Returns: number
+      }
       delete_creator_completely: {
         Args: { _creator_id: string }
         Returns: undefined
@@ -1701,6 +1778,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_blocked: { Args: { check_identifier: string }; Returns: boolean }
       is_creator_owner: {
         Args: { _creator_id: string; _user_id: string }
         Returns: boolean
