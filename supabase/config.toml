@@ -90,3 +90,6 @@ verify_jwt = false
 
 [functions.csrf-token]
 verify_jwt = true
+
+[functions.brute-force-check]
+verify_jwt = false
