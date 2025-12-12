@@ -79,28 +79,19 @@ const StripeConnectSetup: React.FC = () => {
 
 const handleOpenStripeDashboard = async () => {
   setLoading(true);
-  // Ouvre un onglet immédiatement pour éviter les bloqueurs de pop-up
-  const popup = window.open('about:blank', '_blank');
   try {
     const { data, error } = await supabase.functions.invoke('stripe-connect-login-link');
     if (error) throw error;
     if (data?.url) {
       setLastStripeUrl(data.url);
-      if (popup) {
-        popup.location.href = data.url;
-      } else {
-        // Fallback si le popup a été bloqué
-        window.location.href = data.url;
-      }
-      toast.success('Ouverture du tableau de bord Stripe');
+      // Redirection directe - évite les problèmes de blocage cross-origin
+      window.location.href = data.url;
     } else {
       throw new Error('Lien de connexion Stripe indisponible');
     }
   } catch (error: any) {
     console.error('Erreur ouverture Stripe:', error);
-    if (popup) popup.close();
-    toast.error(error.message || "Impossible d'ouvrir Stripe. Autorisez les pop-ups et réessayez.");
-  } finally {
+    toast.error(error.message || "Impossible d'ouvrir Stripe.");
     setLoading(false);
   }
 };
