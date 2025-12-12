@@ -52,17 +52,24 @@ export const useLiveKitViewer = (streamId: string) => {
    * Obtenir un token LiveKit depuis l'edge function
    */
   const getToken = useCallback(async () => {
-    const viewerId = user?.id || `viewer-${crypto.randomUUID()}`;
+    if (!user?.id) {
+      throw new Error('Authentification requise pour accéder au live');
+    }
     
     const { data, error } = await supabase.functions.invoke('livekit-token', {
       body: {
         roomName: `live-${streamId}`,
-        participantName: viewerId,
+        participantName: user.id,
         isPublisher: false,
+        streamId: streamId,
       },
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('[LiveKit Viewer] Token error:', error);
+      throw new Error(error.message || 'Accès refusé - abonnement ou paiement requis');
+    }
+    
     return { token: data.token, url: data.url };
   }, [streamId, user?.id]);
 

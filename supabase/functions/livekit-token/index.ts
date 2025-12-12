@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { AccessToken } from "npm:livekit-server-sdk@2.6.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,10 +17,39 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+
+    // Vérifier l'authentification
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.error('[LiveKit Token] No authorization header');
+      return new Response(
+        JSON.stringify({ error: 'Authorization required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: authError } = await supabaseClient.auth.getUser(token);
+    
+    if (authError || !userData.user) {
+      console.error('[LiveKit Token] Auth error:', authError?.message);
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const user = userData.user;
+    console.log('[LiveKit Token] User authenticated:', user.id);
+
     const body = await req.json();
     console.log('[LiveKit Token] Request body:', JSON.stringify(body));
     
-    const { roomName, participantName, isPublisher } = body;
+    const { roomName, participantName, isPublisher, streamId } = body;
 
     if (!roomName || !participantName) {
       console.error('[LiveKit Token] Missing required fields');
@@ -29,6 +59,63 @@ serve(async (req) => {
       );
     }
 
+    // Extraire le streamId depuis roomName si non fourni
+    const liveStreamId = streamId || roomName.replace('live-', '');
+
+    // Vérifier l'accès au live stream
+    if (!isPublisher) {
+      // Pour les viewers, vérifier has_live_access
+      const { data: hasAccess, error: accessError } = await supabaseClient
+        .rpc('has_live_access', {
+          _subscriber_id: user.id,
+          _live_stream_id: liveStreamId
+        });
+
+      if (accessError) {
+        console.error('[LiveKit Token] Access check error:', accessError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to verify access' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!hasAccess) {
+        console.error('[LiveKit Token] Access denied for user:', user.id, 'to stream:', liveStreamId);
+        return new Response(
+          JSON.stringify({ error: 'Access denied - subscription or payment required' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('[LiveKit Token] Access verified for viewer:', user.id);
+    } else {
+      // Pour les publishers, vérifier qu'ils sont le créateur du live
+      const { data: stream, error: streamError } = await supabaseClient
+        .from('live_streams')
+        .select('creator_id, creators!inner(user_id)')
+        .eq('id', liveStreamId)
+        .single();
+
+      if (streamError || !stream) {
+        console.error('[LiveKit Token] Stream not found:', liveStreamId);
+        return new Response(
+          JSON.stringify({ error: 'Live stream not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const creatorUserId = (stream.creators as any)?.user_id;
+      if (creatorUserId !== user.id) {
+        console.error('[LiveKit Token] User is not the creator:', user.id, 'vs', creatorUserId);
+        return new Response(
+          JSON.stringify({ error: 'Only the creator can broadcast' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('[LiveKit Token] Creator verified for broadcast:', user.id);
+    }
+
     const apiKey = Deno.env.get('LIVEKIT_API_KEY');
     const apiSecret = Deno.env.get('LIVEKIT_API_SECRET');
     const livekitUrl = Deno.env.get('LIVEKIT_URL');
@@ -36,9 +123,9 @@ serve(async (req) => {
     console.log('[LiveKit Token] Config check - apiKey:', !!apiKey, 'apiSecret:', !!apiSecret, 'url:', livekitUrl);
 
     if (!apiKey || !apiSecret || !livekitUrl) {
-      console.error('[LiveKit Token] Missing LiveKit configuration - apiKey:', !!apiKey, 'apiSecret:', !!apiSecret, 'url:', !!livekitUrl);
+      console.error('[LiveKit Token] Missing LiveKit configuration');
       return new Response(
-        JSON.stringify({ error: 'LiveKit configuration missing. Please configure LIVEKIT_API_KEY, LIVEKIT_API_SECRET, and LIVEKIT_URL secrets.' }),
+        JSON.stringify({ error: 'LiveKit configuration missing' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -46,21 +133,21 @@ serve(async (req) => {
     console.log('[LiveKit Token] Generating token for:', { roomName, participantName, isPublisher });
 
     // Create access token
-    const token = new AccessToken(apiKey, apiSecret, {
+    const accessToken = new AccessToken(apiKey, apiSecret, {
       identity: participantName,
-      ttl: 3600 * 6, // 6 hours
+      ttl: 3600 * 2, // 2 hours (reduced from 6 for security)
     });
 
     // Grant permissions based on role
-    token.addGrant({
+    accessToken.addGrant({
       room: roomName,
       roomJoin: true,
       canPublish: isPublisher === true,
       canSubscribe: true,
-      canPublishData: true,
+      canPublishData: isPublisher === true, // Only publishers can send data
     });
 
-    const jwt = await token.toJwt();
+    const jwt = await accessToken.toJwt();
 
     console.log('[LiveKit Token] Token generated successfully for room:', roomName, 'publisher:', isPublisher);
 
@@ -72,7 +159,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('[LiveKit Token] Error generating token:', error.message, error.stack);
+    console.error('[LiveKit Token] Error:', error.message, error.stack);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
