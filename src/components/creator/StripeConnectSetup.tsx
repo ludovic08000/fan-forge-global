@@ -82,16 +82,21 @@ const handleOpenStripeDashboard = async () => {
   try {
     const { data, error } = await supabase.functions.invoke('stripe-connect-login-link');
     if (error) throw error;
-    if (data?.url) {
-      setLastStripeUrl(data.url);
-      // Redirection directe - évite les problèmes de blocage cross-origin
-      window.location.href = data.url;
-    } else {
+    if (!data?.url) {
       throw new Error('Lien de connexion Stripe indisponible');
+    }
+
+    setLastStripeUrl(data.url);
+
+    // Ouvre Stripe dans un nouvel onglet pour éviter les blocages dans l’iframe de prévisualisation
+    const popup = window.open(data.url, '_blank', 'noopener');
+    if (!popup) {
+      toast.error("Impossible d'ouvrir Stripe. Autorisez les fenêtres pop-up puis réessayez, ou utilisez le lien de secours en dessous.");
     }
   } catch (error: any) {
     console.error('Erreur ouverture Stripe:', error);
     toast.error(error.message || "Impossible d'ouvrir Stripe.");
+  } finally {
     setLoading(false);
   }
 };
