@@ -93,3 +93,13 @@ verify_jwt = true
 
 [functions.brute-force-check]
 verify_jwt = false
+
+# Webhooks Stripe - DOIT être false car Stripe ne peut pas envoyer de JWT
+[functions.stripe-private-content-webhook]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.stripe-live-webhook]
+verify_jwt = false
