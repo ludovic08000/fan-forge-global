@@ -214,7 +214,8 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
     }
   };
 
-  const getTaxRate = (market: MarketType, countryOrState: string): number => {
+  // Fallback local tax rate (utilisé si Stripe Tax échoue)
+  const getFallbackTaxRate = (market: MarketType, countryOrState: string): number => {
     if (market === 'eu') {
       return EU_VAT_RATES[countryOrState]?.rate || 0.20;
     } else {
@@ -232,6 +233,51 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
 
   const getCurrency = (market: MarketType): string => {
     return market === 'eu' ? 'EUR' : 'USD';
+  };
+
+  // Calculer la TVA via Stripe Tax API
+  const calculateTaxWithStripe = async (amount: number, country: string, state: string | null, currency: string) => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error('Non authentifié');
+      }
+
+      const { data, error } = await supabase.functions.invoke('calculate-tax', {
+        body: {
+          amount,
+          country,
+          state,
+          currency: currency.toLowerCase()
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data?.success) {
+        return {
+          taxRate: data.taxRate,
+          taxAmount: data.taxAmount,
+          taxType: data.taxType,
+          jurisdiction: data.jurisdiction,
+          fromStripe: true
+        };
+      } else {
+        throw new Error(data?.error || 'Erreur Stripe Tax');
+      }
+    } catch (error) {
+      console.warn('Stripe Tax failed, using fallback:', error);
+      // Fallback aux taux locaux
+      const market = currency.toUpperCase() === 'USD' ? 'us' : 'eu';
+      const fallbackRate = getFallbackTaxRate(market, country);
+      return {
+        taxRate: fallbackRate,
+        taxAmount: amount * fallbackRate,
+        taxType: market === 'eu' ? 'TVA' : 'SALES_TAX',
+        jurisdiction: getLocationName(market, country),
+        fromStripe: false
+      };
+    }
   };
 
   const generateInvoice = async () => {
@@ -257,13 +303,23 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
         total_after_commission: 0
       };
 
-      const taxRate = getTaxRate(newInvoice.market, newInvoice.country);
       const grossAmount = revenue.total_before_commission;
       const commissionAmount = revenue.commission_amount;
       const netBeforeTax = grossAmount - commissionAmount;
-      const taxAmount = netBeforeTax * taxRate;
-      const netAmount = netBeforeTax - taxAmount;
       const currency = getCurrency(newInvoice.market);
+
+      // Utiliser Stripe Tax pour calculer la TVA correcte
+      const stateCode = newInvoice.market === 'us' ? newInvoice.country : null;
+      const countryCode = newInvoice.market === 'us' ? 'US' : newInvoice.country;
+      
+      const taxResult = await calculateTaxWithStripe(netBeforeTax, countryCode, stateCode, currency);
+      const taxRate = taxResult.taxRate;
+      const taxAmount = taxResult.taxAmount;
+      const netAmount = netBeforeTax - taxAmount;
+
+      if (taxResult.fromStripe) {
+        toast.info(`TVA calculée via Stripe Tax: ${(taxRate * 100).toFixed(2)}% (${taxResult.jurisdiction})`);
+      }
 
       const { data: invoiceNum, error: numError } = await supabase
         .rpc('generate_invoice_number');
@@ -696,7 +752,7 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
             <div className="bg-muted/50 p-4 rounded-lg">
               <p className="text-sm text-muted-foreground">
                 <strong>{newInvoice.market === 'eu' ? 'TVA' : 'Sales Tax'} applicable :</strong>{' '}
-                {(getTaxRate(newInvoice.market, newInvoice.country) * 100).toFixed(2)}%
+                Calculée automatiquement via Stripe Tax
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 {newInvoice.market === 'eu' 
@@ -706,6 +762,9 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 <strong>Devise :</strong> {getCurrency(newInvoice.market)}
+              </p>
+              <p className="text-xs text-green-600 mt-2">
+                ✓ Taux de taxe précis selon le pays/état grâce à Stripe Tax
               </p>
             </div>
 
