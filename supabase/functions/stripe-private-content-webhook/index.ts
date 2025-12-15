@@ -13,23 +13,35 @@ const logStep = (step: string, details?: any) => {
 };
 
 serve(async (req) => {
+  logStep("Request received", { method: req.method, url: req.url });
+
   if (req.method === "OPTIONS") {
+    logStep("Handling OPTIONS preflight");
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-  );
-
   try {
-    logStep("Webhook received");
+    logStep("Starting webhook processing");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    if (!stripeKey) {
+      logStep("ERROR: STRIPE_SECRET_KEY is not set");
+      throw new Error("STRIPE_SECRET_KEY is not set");
+    }
+    logStep("Stripe key found");
 
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
-    if (!webhookSecret) throw new Error("STRIPE_WEBHOOK_SECRET is not set");
+    if (!webhookSecret) {
+      logStep("ERROR: STRIPE_WEBHOOK_SECRET is not set");
+      throw new Error("STRIPE_WEBHOOK_SECRET is not set");
+    }
+    logStep("Webhook secret found");
+
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+    logStep("Supabase client created");
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
@@ -42,13 +54,16 @@ serve(async (req) => {
         status: 400,
       });
     }
+    logStep("Stripe signature found");
 
     const body = await req.text();
+    logStep("Request body received", { bodyLength: body.length });
+
     let event: Stripe.Event;
 
     try {
       event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-      logStep("Signature verified successfully");
+      logStep("Signature verified successfully", { eventType: event.type, eventId: event.id });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       logStep("ERROR: Signature verification failed", { error: errorMessage });
@@ -57,15 +72,14 @@ serve(async (req) => {
         status: 400,
       });
     }
-    
-    logStep("Event type", { type: event.type });
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
+      logStep("Processing checkout.session.completed", { sessionId: session.id, metadata: session.metadata });
       
       // Vérifier si c'est un paiement de contenu privé
       if (session.metadata?.content_type !== "private_content") {
-        logStep("Not a private content payment, skipping");
+        logStep("Not a private content payment, skipping", { contentType: session.metadata?.content_type });
         return new Response(JSON.stringify({ received: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 200,
@@ -90,6 +104,7 @@ serve(async (req) => {
         logStep("Error updating message", { error: updateError });
         throw updateError;
       }
+      logStep("Message marked as paid");
 
       // Mettre à jour le statut du paiement
       const { error: paymentUpdateError } = await supabaseAdmin
@@ -100,9 +115,13 @@ serve(async (req) => {
 
       if (paymentUpdateError) {
         logStep("Error updating payment record", { error: paymentUpdateError });
+      } else {
+        logStep("Payment record updated");
       }
 
       logStep("Private content payment processed successfully");
+    } else {
+      logStep("Event type not handled", { eventType: event.type });
     }
 
     return new Response(JSON.stringify({ received: true }), {
