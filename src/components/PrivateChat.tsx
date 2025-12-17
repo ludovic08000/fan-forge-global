@@ -6,10 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePrivateMessages } from '@/hooks/usePrivateMessages';
 import { useAuth } from '@/contexts/AuthContext';
-import { Send, Upload, Euro, Lock } from 'lucide-react';
+import { Send, Upload, Euro, Lock, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
+import { validatePrivateMessageFile } from '@/lib/fileValidation';
 
 interface PrivateChatProps {
   creatorId: string;
@@ -48,6 +49,7 @@ const PrivateChat: React.FC<PrivateChatProps> = ({
   const [newMessage, setNewMessage] = useState('');
   const [contentPrice, setContentPrice] = useState(10);
   const [showPriceInput, setShowPriceInput] = useState(false);
+  const [isValidatingFile, setIsValidatingFile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -74,23 +76,30 @@ const PrivateChat: React.FC<PrivateChatProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Vérifier le type de fichier
-    const isVideo = file.type.startsWith('video/');
-    const isImage = file.type.startsWith('image/');
-    
-    if (!isVideo && !isImage) {
-      toast.error('Seules les images et vidéos sont acceptées');
-      return;
-    }
-
-    if (file.size > 100 * 1024 * 1024) { // 100MB
-      toast.error('Le fichier est trop volumineux (max 100MB)');
-      return;
-    }
+    setIsValidatingFile(true);
 
     try {
+      // Validation sécurisée du fichier
+      const validationResult = await validatePrivateMessageFile(file);
+
+      if (!validationResult.isValid) {
+        toast.error(validationResult.error || 'Fichier non valide');
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        setIsValidatingFile(false);
+        return;
+      }
+
+      toast.success('Fichier validé', {
+        description: `Type: ${validationResult.detectedMimeType}`,
+        icon: <Shield className="h-4 w-4 text-green-500" />
+      });
+
+      const isVideo = file.type.startsWith('video/');
+
       // Upload du fichier vers Supabase Storage
-      const fileName = `${Date.now()}-${file.name}`;
+      const fileName = `${Date.now()}-${validationResult.sanitizedFilename || file.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('content')
         .upload(fileName, file);
@@ -115,6 +124,11 @@ const PrivateChat: React.FC<PrivateChatProps> = ({
     } catch (error) {
       console.error('Erreur lors de l\'upload:', error);
       toast.error('Erreur lors de l\'envoi du fichier');
+    } finally {
+      setIsValidatingFile(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -266,7 +280,7 @@ const PrivateChat: React.FC<PrivateChatProps> = ({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*,video/*"
+                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
                   onChange={handleFileUpload}
                   className="hidden"
                 />
@@ -280,9 +294,14 @@ const PrivateChat: React.FC<PrivateChatProps> = ({
                       setShowPriceInput(true);
                     }
                   }}
-                  disabled={sendPaidContent.isPending}
+                  disabled={sendPaidContent.isPending || isValidatingFile}
+                  title={isValidatingFile ? 'Validation en cours...' : 'Envoyer un contenu payant'}
                 >
-                  <Upload className="w-4 h-4" />
+                  {isValidatingFile ? (
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4" />
+                  )}
                 </Button>
               </>
             )}

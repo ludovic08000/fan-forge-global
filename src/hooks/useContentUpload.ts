@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { validateFile } from '@/lib/fileValidation';
 
 export interface ContentUploadData {
   title: string;
@@ -20,7 +21,14 @@ export const useContentUpload = () => {
       setUploading(true);
       setProgress(0);
 
+      // Double validation de sécurité côté hook
+      const validationResult = await validateFile(data.file);
+      if (!validationResult.isValid) {
+        throw new Error(validationResult.error || 'Fichier non valide');
+      }
+
       const fileExt = data.file.name.split('.').pop()?.toLowerCase();
+      const sanitizedName = validationResult.sanitizedFilename || data.file.name;
       const fileName = `${userId}/${Date.now()}-${Math.random().toString(36)}.${fileExt}`;
       
       // Déterminer le type de contenu
