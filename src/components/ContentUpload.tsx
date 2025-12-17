@@ -6,13 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Image, Video, X, Euro } from 'lucide-react';
+import { Upload, Image, Video, X, Euro, Shield, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useContentUpload } from '@/hooks/useContentUpload';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { contentUploadSchema } from '@/lib/validations';
+import { validateFile } from '@/lib/fileValidation';
 import { z } from 'zod';
 
 interface ContentUploadProps {
@@ -34,29 +35,48 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationStatus, setValidationStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Vérifier le type de fichier
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Type de fichier non supporté. Utilisez JPG, PNG, WebP ou MP4.');
-      return;
+    setIsValidating(true);
+    setValidationStatus('idle');
+
+    try {
+      // Validation sécurisée complète du fichier
+      const validationResult = await validateFile(file);
+
+      if (!validationResult.isValid) {
+        toast.error(validationResult.error || 'Fichier non valide');
+        setValidationStatus('error');
+        setIsValidating(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        return;
+      }
+
+      setSelectedFile(file);
+      setValidationStatus('success');
+
+      // Créer un aperçu
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+
+      toast.success('Fichier validé avec succès', {
+        description: `Type détecté: ${validationResult.detectedMimeType}`
+      });
+
+    } catch (error) {
+      console.error('Erreur de validation:', error);
+      toast.error('Erreur lors de la validation du fichier');
+      setValidationStatus('error');
+    } finally {
+      setIsValidating(false);
     }
-
-    // Vérifier la taille (max 50MB)
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error('Fichier trop volumineux. Taille maximum : 50MB.');
-      return;
-    }
-
-    setSelectedFile(file);
-
-    // Créer un aperçu
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,6 +159,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const removeFile = () => {
     setSelectedFile(null);
     setPreviewUrl('');
+    setValidationStatus('idle');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -159,19 +180,43 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* File Upload */}
           <div className="space-y-4">
-            <Label>Fichier média</Label>
+            <Label className="flex items-center gap-2">
+              Fichier média
+              {validationStatus === 'success' && (
+                <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+                  <Shield className="h-3 w-3" />
+                  Vérifié
+                </span>
+              )}
+            </Label>
             
-            {/* Info sur le filigrane */}
-            <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 mb-4">
+            {/* Info sur la sécurité et le filigrane */}
+            <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 mb-4 space-y-2">
+              <p className="text-sm text-primary flex items-center gap-2">
+                <Shield className="h-4 w-4 flex-shrink-0" />
+                <span>
+                  <strong>Validation sécurisée :</strong> Chaque fichier est analysé pour détecter les contenus malveillants (magic bytes, type MIME, extension).
+                </span>
+              </p>
               <p className="text-sm text-primary flex items-center gap-2">
                 <span className="text-lg">🛡️</span>
                 <span>
-                  <strong>Protection automatique :</strong> Un filigrane avec votre nom sera automatiquement ajouté aux images pour protéger votre contenu.
+                  <strong>Protection automatique :</strong> Un filigrane avec votre nom sera automatiquement ajouté aux images.
                 </span>
               </p>
             </div>
             
-            {!selectedFile ? (
+            {isValidating && (
+              <div className="border-2 border-dashed border-primary/50 rounded-lg p-8 text-center bg-primary/5">
+                <div className="animate-spin h-12 w-12 mx-auto mb-4 border-4 border-primary border-t-transparent rounded-full" />
+                <p className="text-lg font-medium mb-2">Validation du fichier en cours...</p>
+                <p className="text-sm text-muted-foreground">
+                  Vérification du type, de l'intégrité et de la sécurité
+                </p>
+              </div>
+            )}
+
+            {!selectedFile && !isValidating ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
                 className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
@@ -179,17 +224,20 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
                 <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-lg font-medium mb-2">Cliquez pour sélectionner un fichier</p>
                 <p className="text-sm text-muted-foreground">
-                  Images (JPG, PNG, WebP) ou Vidéos (MP4, WebM) - Max 50MB
+                  Images (JPG, PNG, WebP, GIF) ou Vidéos (MP4, WebM, MOV)
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Max 20MB pour images, 100MB pour vidéos
                 </p>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*,video/*"
+                  accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
                   onChange={handleFileSelect}
                   className="hidden"
                 />
               </div>
-            ) : (
+            ) : selectedFile && (
               <div className="relative">
                 <div className="border border-border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-4">
