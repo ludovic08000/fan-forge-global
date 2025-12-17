@@ -6,10 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Image, Video, X, Euro, Shield, AlertTriangle } from 'lucide-react';
+import { Upload, Image, Video, X, Euro, Shield, AlertTriangle, Bug } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useContentUpload } from '@/hooks/useContentUpload';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
+import { useVirusScan } from '@/hooks/useVirusScan';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { contentUploadSchema } from '@/lib/validations';
@@ -24,6 +25,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const { user } = useAuth();
   const { uploadContent, uploading, progress } = useContentUpload();
   const { checkRateLimit } = useRateLimitServer();
+  const { scanFile, scanning } = useVirusScan();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
@@ -37,6 +39,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isValidating, setIsValidating] = useState(false);
   const [validationStatus, setValidationStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [virusScanStatus, setVirusScanStatus] = useState<'idle' | 'scanning' | 'clean' | 'infected' | 'skipped'>('idle');
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -44,6 +47,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
 
     setIsValidating(true);
     setValidationStatus('idle');
+    setVirusScanStatus('idle');
 
     try {
       // Validation sécurisée complète du fichier
@@ -59,23 +63,49 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
         return;
       }
 
-      setSelectedFile(file);
       setValidationStatus('success');
+      setIsValidating(false);
+
+      // Scan antivirus avec MetaDefender
+      setVirusScanStatus('scanning');
+      toast.info('Scan antivirus en cours...', { duration: 10000 });
+      
+      const scanResult = await scanFile(file);
+      
+      if (!scanResult.isClean && !scanResult.skipped) {
+        toast.error('Fichier potentiellement dangereux détecté!', {
+          description: scanResult.threatFound || 'Ce fichier a été bloqué pour des raisons de sécurité'
+        });
+        setVirusScanStatus('infected');
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        return;
+      }
+
+      if (scanResult.skipped) {
+        setVirusScanStatus('skipped');
+        toast.warning('Scan antivirus ignoré', {
+          description: scanResult.message || 'Le fichier sera accepté mais non scanné'
+        });
+      } else {
+        setVirusScanStatus('clean');
+        toast.success('Fichier sécurisé!', {
+          description: 'Aucune menace détectée par l\'antivirus'
+        });
+      }
+
+      setSelectedFile(file);
 
       // Créer un aperçu
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
 
-      toast.success('Fichier validé avec succès', {
-        description: `Type détecté: ${validationResult.detectedMimeType}`
-      });
-
     } catch (error) {
       console.error('Erreur de validation:', error);
       toast.error('Erreur lors de la validation du fichier');
       setValidationStatus('error');
-    } finally {
-      setIsValidating(false);
+      setVirusScanStatus('idle');
     }
   };
 
@@ -160,6 +190,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
     setSelectedFile(null);
     setPreviewUrl('');
     setValidationStatus('idle');
+    setVirusScanStatus('idle');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -180,12 +211,24 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* File Upload */}
           <div className="space-y-4">
-            <Label className="flex items-center gap-2">
+            <Label className="flex items-center gap-2 flex-wrap">
               Fichier média
               {validationStatus === 'success' && (
                 <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
                   <Shield className="h-3 w-3" />
                   Vérifié
+                </span>
+              )}
+              {virusScanStatus === 'clean' && (
+                <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+                  <Bug className="h-3 w-3" />
+                  Sans virus
+                </span>
+              )}
+              {virusScanStatus === 'skipped' && (
+                <span className="inline-flex items-center gap-1 text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">
+                  <AlertTriangle className="h-3 w-3" />
+                  Scan ignoré
                 </span>
               )}
             </Label>
@@ -204,19 +247,30 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
                   <strong>Protection automatique :</strong> Un filigrane avec votre nom sera automatiquement ajouté aux images.
                 </span>
               </p>
+              <p className="text-sm text-primary flex items-center gap-2">
+                <Bug className="h-4 w-4 flex-shrink-0" />
+                <span>
+                  <strong>Scan antivirus :</strong> Chaque fichier est scanné via MetaDefender Cloud pour détecter les menaces.
+                </span>
+              </p>
             </div>
             
-            {isValidating && (
+            {(isValidating || virusScanStatus === 'scanning') && (
               <div className="border-2 border-dashed border-primary/50 rounded-lg p-8 text-center bg-primary/5">
                 <div className="animate-spin h-12 w-12 mx-auto mb-4 border-4 border-primary border-t-transparent rounded-full" />
-                <p className="text-lg font-medium mb-2">Validation du fichier en cours...</p>
+                <p className="text-lg font-medium mb-2">
+                  {isValidating ? 'Validation du fichier en cours...' : 'Scan antivirus en cours...'}
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  Vérification du type, de l'intégrité et de la sécurité
+                  {isValidating 
+                    ? 'Vérification du type, de l\'intégrité et de la sécurité'
+                    : 'Analyse du fichier pour détecter d\'éventuelles menaces'
+                  }
                 </p>
               </div>
             )}
 
-            {!selectedFile && !isValidating ? (
+            {!selectedFile && !isValidating && virusScanStatus !== 'scanning' ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
                 className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
@@ -367,11 +421,11 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
           {/* Submit Button */}
           <Button
             type="submit"
-            disabled={uploading || !selectedFile || !formData.title.trim()}
+            disabled={uploading || scanning || !selectedFile || !formData.title.trim() || virusScanStatus === 'infected'}
             className="w-full"
             variant="premium"
           >
-            {uploading ? 'Upload en cours...' : 'Publier le contenu'}
+            {uploading ? 'Upload en cours...' : scanning ? 'Scan en cours...' : 'Publier le contenu'}
           </Button>
         </form>
       </CardContent>

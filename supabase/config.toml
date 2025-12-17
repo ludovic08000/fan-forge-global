@@ -106,3 +106,6 @@ verify_jwt = false
 
 [functions.calculate-tax]
 verify_jwt = true
+
+[functions.scan-file-virus]
+verify_jwt = true
