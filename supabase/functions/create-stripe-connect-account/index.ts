@@ -7,36 +7,68 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[STRIPE-CONNECT] ${step}${detailsStr}`);
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    logStep("Fonction démarrée");
+    
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
     // Authentification
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      logStep("ERREUR: Pas d'en-tête Authorization");
+      throw new Error("Non authentifié - header manquant");
+    }
+    
     const token = authHeader.replace("Bearer ", "");
+    logStep("Token reçu", { tokenLength: token.length });
+    
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
     
-    if (authError || !user) {
-      throw new Error("Non authentifié");
+    if (authError) {
+      logStep("ERREUR Auth", { error: authError.message });
+      throw new Error(`Erreur d'authentification: ${authError.message}`);
     }
+    
+    if (!user) {
+      logStep("ERREUR: Utilisateur non trouvé");
+      throw new Error("Non authentifié - utilisateur non trouvé");
+    }
+    
+    logStep("Utilisateur authentifié", { userId: user.id, email: user.email });
 
     // Récupérer le créateur
+    logStep("Recherche profil créateur", { userId: user.id });
+    
     const { data: creator, error: creatorError } = await supabaseClient
       .from("creators")
       .select("*")
       .eq("user_id", user.id)
       .single();
 
-    if (creatorError || !creator) {
+    if (creatorError) {
+      logStep("ERREUR Créateur", { error: creatorError.message, code: creatorError.code });
+      throw new Error(`Profil créateur non trouvé: ${creatorError.message}`);
+    }
+    
+    if (!creator) {
+      logStep("ERREUR: Pas de créateur");
       throw new Error("Profil créateur non trouvé");
     }
+    
+    logStep("Créateur trouvé", { creatorId: creator.id, stripeAccountId: creator.stripe_account_id });
 
     // Vérifier si le créateur a déjà un compte Stripe Connect
     if (creator.stripe_account_id) {
