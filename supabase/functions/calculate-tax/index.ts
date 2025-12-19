@@ -56,8 +56,26 @@ serve(async (req) => {
     
     logStep("Parsed parameters", { amount, country, state, currency });
     
-    if (!amount || !country) {
+    // Valider les paramètres (amount peut être 0)
+    if (amount === undefined || amount === null || !country) {
       throw new Error(`Missing required parameters: amount=${amount}, country=${country}`);
+    }
+
+    // Si le montant est 0, retourner directement sans appeler Stripe
+    if (amount === 0) {
+      return new Response(JSON.stringify({
+        success: true,
+        taxAmount: 0,
+        taxRate: 0,
+        taxType: "VAT",
+        jurisdiction: country,
+        currency: currency.toUpperCase(),
+        amountBeforeTax: 0,
+        amountAfterTax: 0,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
     logStep("Calculating tax", { amount, country, state, currency });
