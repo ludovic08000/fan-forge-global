@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Download, Plus, Euro, Loader2, Printer, Calendar, DollarSign, MapPin } from 'lucide-react';
+import { FileText, Download, Plus, Euro, Loader2, Printer, Calendar, DollarSign, MapPin, RefreshCw, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -135,12 +135,15 @@ interface CreatorInvoicesProps {
 
 const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [stripeInvoices, setStripeInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingStripe, setLoadingStripe] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [creatorInfo, setCreatorInfo] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'local' | 'stripe'>('local');
   const invoiceRef = useRef<HTMLDivElement>(null);
   
   // Auto-detect location
@@ -214,7 +217,23 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
     }
   };
 
-  // Fallback local tax rate (utilisé si Stripe Tax échoue)
+  const loadStripeInvoices = async () => {
+    setLoadingStripe(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-creator-invoices', {
+        body: { limit: 50 }
+      });
+
+      if (error) throw error;
+      setStripeInvoices(data?.invoices || []);
+    } catch (error: any) {
+      console.error('Error loading Stripe invoices:', error);
+      toast.error('Erreur lors du chargement des factures Stripe');
+    } finally {
+      setLoadingStripe(false);
+    }
+  };
+
   const getFallbackTaxRate = (market: MarketType, countryOrState: string): number => {
     if (market === 'eu') {
       return EU_VAT_RATES[countryOrState]?.rate || 0.20;
@@ -578,25 +597,42 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
               Générez et téléchargez vos factures avec TVA/Taxes détaillées (EU & US)
             </CardDescription>
           </div>
-          <Button onClick={() => setShowCreateDialog(true)} variant="premium" size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Nouvelle facture
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowCreateDialog(true)} variant="premium" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvelle facture
+            </Button>
+          </div>
         </div>
+        
+        {/* Tabs pour switcher entre factures locales et Stripe */}
+        <Tabs value={activeTab} onValueChange={(v) => {
+          setActiveTab(v as 'local' | 'stripe');
+          if (v === 'stripe' && stripeInvoices.length === 0) {
+            loadStripeInvoices();
+          }
+        }} className="mt-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="local">Factures locales</TabsTrigger>
+            <TabsTrigger value="stripe">Factures Stripe</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </CardHeader>
 
       <CardContent>
-        {loading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        ) : invoices.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Aucune facture générée</p>
-            <p className="text-sm">Créez votre première facture pour vos revenus</p>
-          </div>
-        ) : (
+        {activeTab === 'local' ? (
+          // Factures locales
+          loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : invoices.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Aucune facture générée</p>
+              <p className="text-sm">Créez votre première facture pour vos revenus</p>
+            </div>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -657,6 +693,94 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
               ))}
             </TableBody>
           </Table>
+          )
+        ) : (
+          // Factures Stripe
+          loadingStripe ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : stripeInvoices.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Aucune facture Stripe</p>
+              <p className="text-sm">Les factures générées par Stripe apparaîtront ici</p>
+              <Button variant="outline" className="mt-4" onClick={loadStripeInvoices}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Actualiser
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-end">
+                <Button variant="outline" size="sm" onClick={loadStripeInvoices}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Actualiser
+                </Button>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>N° Facture</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Montant</TableHead>
+                    <TableHead>Taxes</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stripeInvoices.map((invoice: any) => (
+                    <TableRow key={invoice.id}>
+                      <TableCell className="font-mono text-sm">{invoice.number || invoice.id.slice(-8)}</TableCell>
+                      <TableCell className="text-sm">
+                        {invoice.customer_name || invoice.customer_email || 'Client'}
+                      </TableCell>
+                      <TableCell>{formatCurrency((invoice.total || 0) / 100, invoice.currency?.toUpperCase() || 'EUR')}</TableCell>
+                      <TableCell className="text-orange-600">
+                        {invoice.tax ? formatCurrency(invoice.tax / 100, invoice.currency?.toUpperCase() || 'EUR') : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {invoice.status === 'paid' ? (
+                          <Badge className="bg-green-500">Payée</Badge>
+                        ) : invoice.status === 'open' ? (
+                          <Badge variant="default">Ouverte</Badge>
+                        ) : (
+                          <Badge variant="secondary">{invoice.status}</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {invoice.created ? format(new Date(invoice.created * 1000), 'dd/MM/yyyy') : '-'}
+                      </TableCell>
+                      <TableCell className="text-right space-x-1">
+                        {invoice.invoice_pdf && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(invoice.invoice_pdf, '_blank')}
+                            title="Télécharger PDF"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {invoice.hosted_invoice_url && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(invoice.hosted_invoice_url, '_blank')}
+                            title="Voir sur Stripe"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )
         )}
       </CardContent>
 

@@ -94,7 +94,7 @@ serve(async (req) => {
       logStep("New Stripe customer created", { customerId });
     }
 
-    // Créer la session de checkout pour un paiement unique
+    // Créer la session de checkout pour un paiement unique avec Stripe Tax
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [
@@ -111,6 +111,19 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
+      // Activer Stripe Tax pour le calcul automatique des taxes
+      automatic_tax: { enabled: true },
+      // Générer une facture pour ce paiement
+      invoice_creation: {
+        enabled: true,
+        invoice_data: {
+          metadata: {
+            message_id: messageId,
+            creator_id: messageData.creator_id,
+            content_type: 'private_content',
+          },
+        },
+      },
       success_url: `${req.headers.get("origin")}/dashboard?payment_success=true`,
       cancel_url: `${req.headers.get("origin")}/creator/${messageData.creator_id}?payment_canceled=true`,
       metadata: {

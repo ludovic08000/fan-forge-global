@@ -145,7 +145,7 @@ serve(async (req) => {
       logStep("Using existing price ID", { priceId });
     }
 
-    // Créer la session de checkout en mode embedded
+    // Créer la session de checkout en mode embedded avec Stripe Tax
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [
@@ -157,6 +157,17 @@ serve(async (req) => {
       mode: "subscription",
       ui_mode: "embedded",
       return_url: `${req.headers.get("origin")}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      // Activer Stripe Tax pour le calcul automatique des taxes
+      automatic_tax: { enabled: true },
+      // Générer automatiquement des factures pour les abonnements
+      invoice_creation: {
+        enabled: true,
+        invoice_data: {
+          metadata: {
+            creator_id: creatorId,
+          },
+        },
+      },
       metadata: {
         creator_id: creatorId,
         user_id: user.id,

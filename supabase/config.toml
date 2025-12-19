@@ -109,3 +109,9 @@ verify_jwt = true
 
 [functions.scan-file-virus]
 verify_jwt = true
+
+[functions.get-creator-invoices]
+verify_jwt = true
+
+[functions.generate-creator-payout-invoice]
+verify_jwt = true
