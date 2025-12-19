@@ -40,11 +40,24 @@ serve(async (req) => {
     if (!user) throw new Error("User not authenticated");
     logStep("User authenticated", { userId: user.id });
 
-    // Récupérer les paramètres
-    const { amount, country, state, currency = "eur" } = await req.json();
+    // Récupérer les paramètres du body
+    let body: any = {};
+    try {
+      const text = await req.text();
+      logStep("Request body raw", { text: text.substring(0, 200) });
+      if (text) {
+        body = JSON.parse(text);
+      }
+    } catch (e) {
+      logStep("Failed to parse body", { error: String(e) });
+    }
+    
+    const { amount, country, state, currency = "eur" } = body;
+    
+    logStep("Parsed parameters", { amount, country, state, currency });
     
     if (!amount || !country) {
-      throw new Error("Missing required parameters: amount and country");
+      throw new Error(`Missing required parameters: amount=${amount}, country=${country}`);
     }
 
     logStep("Calculating tax", { amount, country, state, currency });
