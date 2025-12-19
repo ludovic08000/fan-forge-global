@@ -116,6 +116,18 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
+      // Activer Stripe Tax pour le calcul automatique des taxes
+      automatic_tax: { enabled: true },
+      // Générer une facture pour ce paiement
+      invoice_creation: {
+        enabled: true,
+        invoice_data: {
+          metadata: {
+            live_stream_id: liveStreamId,
+            creator_id: liveStream.creator_id,
+          },
+        },
+      },
       success_url: `${req.headers.get("origin")}/live/${liveStreamId}?payment_success=true`,
       cancel_url: `${req.headers.get("origin")}/live/${liveStreamId}?payment_canceled=true`,
       metadata: {
