@@ -254,49 +254,16 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
     return market === 'eu' ? 'EUR' : 'USD';
   };
 
-  // Calculer la TVA via Stripe Tax API
-  const calculateTaxWithStripe = async (amount: number, country: string, state: string | null, currency: string) => {
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.access_token) {
-        throw new Error('Non authentifié');
-      }
-
-      const { data, error } = await supabase.functions.invoke('calculate-tax', {
-        body: {
-          amount,
-          country,
-          state,
-          currency: currency.toLowerCase()
-        }
-      });
-
-      if (error) throw error;
-      
-      if (data?.success) {
-        return {
-          taxRate: data.taxRate,
-          taxAmount: data.taxAmount,
-          taxType: data.taxType,
-          jurisdiction: data.jurisdiction,
-          fromStripe: true
-        };
-      } else {
-        throw new Error(data?.error || 'Erreur Stripe Tax');
-      }
-    } catch (error) {
-      console.warn('Stripe Tax failed, using fallback:', error);
-      // Fallback aux taux locaux
-      const market = currency.toUpperCase() === 'USD' ? 'us' : 'eu';
-      const fallbackRate = getFallbackTaxRate(market, country);
-      return {
-        taxRate: fallbackRate,
-        taxAmount: amount * fallbackRate,
-        taxType: market === 'eu' ? 'TVA' : 'SALES_TAX',
-        jurisdiction: getLocationName(market, country),
-        fromStripe: false
-      };
-    }
+  // Calculer la TVA avec les taux locaux (EU/US)
+  const calculateTax = (amount: number, market: MarketType, countryOrState: string) => {
+    const taxRate = getFallbackTaxRate(market, countryOrState);
+    const taxAmount = amount * taxRate;
+    return {
+      taxRate,
+      taxAmount,
+      taxType: market === 'eu' ? 'TVA' : 'SALES_TAX',
+      jurisdiction: getLocationName(market, countryOrState)
+    };
   };
 
   const generateInvoice = async () => {
@@ -327,18 +294,11 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
       const netBeforeTax = grossAmount - commissionAmount;
       const currency = getCurrency(newInvoice.market);
 
-      // Utiliser Stripe Tax pour calculer la TVA correcte
-      const stateCode = newInvoice.market === 'us' ? newInvoice.country : null;
-      const countryCode = newInvoice.market === 'us' ? 'US' : newInvoice.country;
-      
-      const taxResult = await calculateTaxWithStripe(netBeforeTax, countryCode, stateCode, currency);
+      // Calculer la TVA avec les taux locaux
+      const taxResult = calculateTax(netBeforeTax, newInvoice.market, newInvoice.country);
       const taxRate = taxResult.taxRate;
       const taxAmount = taxResult.taxAmount;
       const netAmount = netBeforeTax - taxAmount;
-
-      if (taxResult.fromStripe) {
-        toast.info(`TVA calculée via Stripe Tax: ${(taxRate * 100).toFixed(2)}% (${taxResult.jurisdiction})`);
-      }
 
       const { data: invoiceNum, error: numError } = await supabase
         .rpc('generate_invoice_number');
