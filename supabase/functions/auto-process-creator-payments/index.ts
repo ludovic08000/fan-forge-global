@@ -25,10 +25,82 @@ serve(async (req) => {
   try {
     logStep("Starting automatic payment processing");
 
+    // ===== AUTHENTICATION CHECK =====
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      logStep("ERROR: Missing authorization header");
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "Authentication required" 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+
+    // Verify the user's JWT token
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError || !user) {
+      logStep("ERROR: Invalid authentication token", { error: authError?.message });
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "Invalid authentication token" 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+
+    logStep("User authenticated", { user_id: user.id });
+
+    // ===== ADMIN ROLE CHECK =====
+    const { data: isAdmin, error: roleError } = await supabaseAdmin
+      .rpc('is_admin', { _user_id: user.id });
+
+    if (roleError || !isAdmin) {
+      logStep("ERROR: User is not an admin", { user_id: user.id, error: roleError?.message });
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "Admin access required" 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
+    }
+
+    logStep("Admin access verified", { user_id: user.id });
+
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY not configured");
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
+    // ===== IDEMPOTENCY CHECK =====
+    // Check if there's already a payment request for this period
+    const now = new Date();
+    const periodEnd = now.toISOString();
+    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    const { data: existingRequests, error: existingError } = await supabaseAdmin
+      .from('creator_payment_requests')
+      .select('id, creator_id, status')
+      .gte('period_start', periodStart)
+      .lte('period_end', periodEnd)
+      .in('status', ['pending', 'processing', 'completed']);
+
+    if (existingError) {
+      logStep("Error checking existing requests", existingError);
+    }
+
+    const processedCreatorIds = new Set((existingRequests || []).map(r => r.creator_id));
+    if (processedCreatorIds.size > 0) {
+      logStep("Found existing payment requests for this period", { 
+        count: processedCreatorIds.size,
+        creator_ids: Array.from(processedCreatorIds)
+      });
+    }
 
     // Get all creators with Stripe Connect configured
     const { data: creators, error: creatorsError } = await supabaseAdmin
@@ -53,13 +125,21 @@ serve(async (req) => {
     }
 
     const results = [];
-    const now = new Date();
-    const periodEnd = now.toISOString();
-    // First day of current month
-    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
     for (const creator of creators) {
       try {
+        // ===== IDEMPOTENCY: Skip already processed creators =====
+        if (processedCreatorIds.has(creator.id)) {
+          logStep(`Skipping creator ${creator.id} - already has payment request for this period`);
+          results.push({ 
+            creator_id: creator.id, 
+            success: true, 
+            skipped: true, 
+            reason: 'already_processed'
+          });
+          continue;
+        }
+
         logStep(`Processing creator ${creator.id}`);
 
         // Calculate revenue with commission
@@ -101,7 +181,7 @@ serve(async (req) => {
             currency: creator.currency || 'EUR',
             period_start: periodStart,
             period_end: periodEnd,
-            status: 'pending',
+            status: 'processing',
             requested_at: now.toISOString()
           })
           .select()
@@ -115,9 +195,10 @@ serve(async (req) => {
 
         logStep(`Created payment request for ${creator.id}`, { request_id: paymentRequest.id, amount: amountAfterCommission });
 
-        // Process the payment via Stripe
+        // Process the payment via Stripe with idempotency key
         try {
           const amountInCents = Math.round(amountAfterCommission * 100);
+          const idempotencyKey = `auto-payment-${creator.id}-${periodStart}-${periodEnd}`;
           
           const transfer = await stripe.transfers.create({
             amount: amountInCents,
@@ -128,8 +209,11 @@ serve(async (req) => {
               payment_request_id: paymentRequest.id,
               creator_id: creator.id,
               period_start: periodStart,
-              period_end: periodEnd
+              period_end: periodEnd,
+              triggered_by: user.id
             }
+          }, {
+            idempotencyKey: idempotencyKey
           });
 
           logStep(`Stripe transfer created for ${creator.id}`, { transfer_id: transfer.id });
@@ -214,7 +298,8 @@ serve(async (req) => {
       total: creators.length,
       successful: successCount,
       skipped: skippedCount,
-      failed: failedCount 
+      failed: failedCount,
+      triggered_by: user.id
     });
 
     return new Response(JSON.stringify({ 
