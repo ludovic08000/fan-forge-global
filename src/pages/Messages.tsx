@@ -11,7 +11,7 @@ import { ChatView } from '@/components/messages/ChatView';
 import { useConversations, Conversation } from '@/hooks/useConversations';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
-import Header from '@/components/Header';
+
 import { cn } from '@/lib/utils';
 
 const Messages: React.FC = () => {
@@ -40,9 +40,7 @@ const Messages: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-      
+    <div className="min-h-screen flex flex-col bg-background pt-16">
       <main className="flex-1 flex overflow-hidden">
         <div className="container mx-auto flex h-[calc(100vh-4rem)] max-w-6xl">
           {/* Sidebar conversations */}
