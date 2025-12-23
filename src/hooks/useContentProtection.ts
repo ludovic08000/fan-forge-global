@@ -147,7 +147,21 @@ export const useContentProtection = (enabled: boolean = true) => {
             }
 
             // Détecter les overlays de capture (souvent en position fixed avec z-index élevé)
+            // IMPORTANT: Ignorer les éléments Stripe (iframe, overlays légitimes)
             if (tagName === 'div' || tagName === 'canvas') {
+              // Ignorer les éléments Stripe/Radix/Dialog légitimes
+              const isStripeElement = node.closest('[class*="Stripe"]') || 
+                                      node.closest('iframe[src*="stripe"]') ||
+                                      node.closest('[data-radix-portal]') ||
+                                      node.closest('[role="dialog"]') ||
+                                      className.includes('stripe') ||
+                                      className.includes('radix') ||
+                                      id.includes('stripe');
+              
+              if (isStripeElement) {
+                return; // Ignorer les éléments Stripe légitimes
+              }
+              
               const style = window.getComputedStyle(node);
               const zIndex = parseInt(style.zIndex) || 0;
               const position = style.position;
