@@ -3,6 +3,7 @@ import { X, Download, RotateCcw, Sun, Contrast, Droplets, Sparkles, Palette, Clo
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
+import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 interface Filter {
   id: string;
@@ -39,6 +40,9 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
   imageUrl,
   onSave,
 }) => {
+  // Utiliser l'URL signée pour accéder à l'image
+  const { signedUrl, loading: urlLoading } = useSignedUrl(imageUrl, { enabled: isOpen && !!imageUrl });
+  
   const [selectedFilter, setSelectedFilter] = useState<string>('normal');
   const [brightness, setBrightness] = useState<number>(100);
   const [contrast, setContrast] = useState<number>(100);
@@ -48,6 +52,9 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
   const [imageError, setImageError] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+
+  // L'URL effective à utiliser (signée ou originale)
+  const effectiveUrl = signedUrl || imageUrl;
 
   // Reset states when opening with new image
   React.useEffect(() => {
@@ -155,30 +162,33 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
 
       {/* Zone image principale */}
       <div className="flex-1 flex items-center justify-center p-4 overflow-hidden bg-black/50">
-        {!imageLoaded && !imageError && (
+        {(urlLoading || (!imageLoaded && !imageError)) && (
           <div className="text-white/70 flex flex-col items-center gap-2">
             <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             <span>Chargement...</span>
           </div>
         )}
-        {imageError && (
+        {imageError && !urlLoading && (
           <div className="text-red-400 flex flex-col items-center gap-2">
             <X className="w-12 h-12" />
             <span>Impossible de charger l'image</span>
+            <span className="text-xs text-white/50">Vérifiez que le fichier est accessible</span>
           </div>
         )}
-        <img
-          ref={imageRef}
-          src={imageUrl}
-          alt="Photo à éditer"
-          style={{
-            ...getFilterStyle(),
-            display: imageLoaded ? 'block' : 'none',
-          }}
-          className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-2xl"
-          onLoad={() => setImageLoaded(true)}
-          onError={() => setImageError(true)}
-        />
+        {effectiveUrl && (
+          <img
+            ref={imageRef}
+            src={effectiveUrl}
+            alt="Photo à éditer"
+            style={{
+              ...getFilterStyle(),
+              display: imageLoaded && !urlLoading ? 'block' : 'none',
+            }}
+            className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-2xl"
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
+          />
+        )}
         <canvas ref={canvasRef} className="hidden" />
       </div>
 
@@ -254,9 +264,9 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
               }`}
             >
               <div
-                className="w-16 h-16 rounded-lg overflow-hidden bg-cover bg-center"
+                className="w-16 h-16 rounded-lg overflow-hidden bg-cover bg-center bg-muted"
                 style={{
-                  backgroundImage: `url(${imageUrl})`,
+                  backgroundImage: effectiveUrl ? `url(${effectiveUrl})` : 'none',
                   ...filter.style,
                 }}
               />
