@@ -221,8 +221,8 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
         if (!isMounted) return;
         setCreatorData(fetchedCreatorData);
 
-        // Si le stream est gratuit, accès direct
-        if (!streamData.is_premium || streamData.price === 0 || streamData.price === null) {
+        // Si le stream est gratuit (is_premium = false), accès direct
+        if (!streamData.is_premium) {
           setHasAccess(true);
           setCheckingAccess(false);
           return;
