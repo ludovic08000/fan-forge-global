@@ -1730,40 +1730,6 @@ export type Database = {
           updated_at: string | null
           viewer_count: number | null
         }
-        Insert: {
-          created_at?: string | null
-          creator_id?: string | null
-          description?: string | null
-          ended_at?: string | null
-          id?: string | null
-          is_premium?: boolean | null
-          peak_viewer_count?: number | null
-          price?: number | null
-          scheduled_at?: string | null
-          started_at?: string | null
-          status?: string | null
-          thumbnail_url?: string | null
-          title?: string | null
-          updated_at?: string | null
-          viewer_count?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          creator_id?: string | null
-          description?: string | null
-          ended_at?: string | null
-          id?: string | null
-          is_premium?: boolean | null
-          peak_viewer_count?: number | null
-          price?: number | null
-          scheduled_at?: string | null
-          started_at?: string | null
-          status?: string | null
-          thumbnail_url?: string | null
-          title?: string | null
-          updated_at?: string | null
-          viewer_count?: number | null
-        }
         Relationships: [
           {
             foreignKeyName: "live_streams_creator_id_fkey"
