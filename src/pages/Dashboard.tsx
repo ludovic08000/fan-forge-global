@@ -59,6 +59,7 @@ const Dashboard = () => {
   
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
   const [showUpload, setShowUpload] = useState(false);
+  const [selectedContent, setSelectedContent] = useState<any>(null);
   const [creatorStats, setCreatorStats] = useState({
     totalEarnings: 0,
     totalSubscribers: 0,
@@ -436,7 +437,11 @@ const Dashboard = () => {
                 ) : myContent && myContent.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {myContent.slice(0, 4).map((content) => (
-                      <div key={content.id} className="aspect-square rounded-lg overflow-hidden bg-muted relative group">
+                      <div 
+                        key={content.id} 
+                        className="aspect-square rounded-lg overflow-hidden bg-muted relative group cursor-pointer"
+                        onClick={() => setSelectedContent(content)}
+                      >
                         <img
                           src={content.thumbnail_url || content.file_url}
                           alt={content.title}
@@ -496,7 +501,10 @@ const Dashboard = () => {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {myContent.map((content) => (
                   <Card key={content.id} className="overflow-hidden group">
-                    <div className="aspect-square bg-muted overflow-hidden relative">
+                    <div 
+                      className="aspect-square bg-muted overflow-hidden relative cursor-pointer"
+                      onClick={() => setSelectedContent(content)}
+                    >
                       <img
                         src={content.thumbnail_url || content.file_url}
                         alt={content.title}
@@ -506,7 +514,10 @@ const Dashboard = () => {
                         variant="destructive"
                         size="icon"
                         className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => handleDeleteContent(content.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteContent(content.id);
+                        }}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -660,6 +671,39 @@ const Dashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Lightbox plein écran */}
+        <Dialog open={!!selectedContent} onOpenChange={(open) => { if (!open) setSelectedContent(null); }}>
+          <DialogContent className="z-[1000] w-[95vw] max-w-none h-[90vh] p-0 overflow-hidden bg-black/95" aria-describedby="content-fullscreen-description">
+            <DialogHeader className="sr-only">
+              <DialogTitle>{selectedContent?.title || 'Contenu'}</DialogTitle>
+            </DialogHeader>
+            {selectedContent && (
+              <div className="relative w-full h-full flex items-center justify-center p-4">
+                {selectedContent.content_type === 'video' ? (
+                  <video
+                    src={selectedContent.file_url}
+                    controls
+                    className="max-w-full max-h-full"
+                    autoPlay
+                  />
+                ) : (
+                  <img
+                    src={selectedContent.file_url}
+                    alt={selectedContent.title}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                )}
+                <div id="content-fullscreen-description" className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">
+                  <h3 className="text-white text-xl font-bold mb-2">{selectedContent.title}</h3>
+                  {selectedContent.description && (
+                    <p className="text-white/80 text-sm">{selectedContent.description}</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
