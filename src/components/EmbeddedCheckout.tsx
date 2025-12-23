@@ -77,9 +77,9 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full min-h-[500px]">
       <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
-        <StripeEmbeddedCheckout />
+        <StripeEmbeddedCheckout className="w-full" />
       </EmbeddedCheckoutProvider>
     </div>
   );
