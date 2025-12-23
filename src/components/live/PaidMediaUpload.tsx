@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Image, Video, Loader2, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface PaidMediaUploadProps {
@@ -23,6 +24,7 @@ interface PaidMediaUploadProps {
 }
 
 export const PaidMediaUpload = ({ liveStreamId, creatorId, onMediaSent }: PaidMediaUploadProps) => {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [price, setPrice] = useState('');
@@ -63,23 +65,37 @@ export const PaidMediaUpload = ({ liveStreamId, creatorId, onMediaSent }: PaidMe
       return;
     }
 
+    if (!user) {
+      toast.error('Vous devez être connecté');
+      return;
+    }
+
     setUploading(true);
     try {
       const isVideo = selectedFile.type.startsWith('video/');
       const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${liveStreamId}/${Date.now()}.${fileExt}`;
+      // Utiliser l'ID utilisateur comme premier dossier (requis par la policy RLS)
+      // puis l'ID du live stream pour organiser
+      const fileName = `${user.id}/live-${liveStreamId}/${Date.now()}.${fileExt}`;
+
+      console.log('[PaidMediaUpload] Uploading file:', fileName);
 
       // Upload vers le bucket content
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('content')
         .upload(fileName, selectedFile);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('[PaidMediaUpload] Upload error:', uploadError);
+        throw uploadError;
+      }
 
-      // Obtenir l'URL signée
+      console.log('[PaidMediaUpload] Upload success:', uploadData);
+
+      // Obtenir l'URL signée (valide 7 jours)
       const { data: signedData } = await supabase.storage
         .from('content')
-        .createSignedUrl(fileName, 60 * 60 * 24); // 24h
+        .createSignedUrl(fileName, 60 * 60 * 24 * 7);
 
       if (!signedData?.signedUrl) throw new Error('Erreur création URL');
 
