@@ -64,12 +64,26 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
 
   /**
    * Écouter les changements de statut du live en temps réel via Supabase Realtime
-   * Mises à jour instantanées pour détecter activation/fin du stream
+   * + Polling de secours toutes les 5 secondes pour garantir la redirection
    */
   useEffect(() => {
     if (!streamId) return;
 
     let isRedirecting = false;
+
+    // Fonction pour vérifier le statut et rediriger si terminé
+    const checkAndRedirect = (status: string) => {
+      if (isRedirecting) return;
+      if (!isCreator && (status === 'ended' || status === 'cancelled')) {
+        isRedirecting = true;
+        console.log('[LiveStreamViewer] Live ended, redirecting viewer...');
+        toast.info('🔴 Le live est terminé ! Merci d\'avoir regardé.', {
+          duration: 5000,
+          description: 'Vous avez été redirigé vers votre espace.'
+        });
+        navigate('/subscriptions');
+      }
+    };
 
     // Subscription temps réel pour les changements de statut
     const channel = supabase
@@ -83,8 +97,6 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
           filter: `id=eq.${streamId}`
         },
         (payload) => {
-          if (isRedirecting) return;
-          
           console.log('[LiveStreamViewer] Realtime update:', payload.new);
           const newData = payload.new as any;
           
@@ -96,27 +108,49 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
             return prev ? { ...prev, status: newData.status, viewer_count: newData.viewer_count, started_at: newData.started_at } : prev;
           });
 
-          // Rediriger si terminé (sauf pour le créateur)
-          if (!isCreator && (newData.status === 'ended' || newData.status === 'cancelled')) {
-            isRedirecting = true;
-            console.log('[LiveStreamViewer] Live ended, redirecting viewer...');
-            toast.info('🔴 Le live est terminé ! Merci d\'avoir regardé.', {
-              duration: 5000,
-              description: 'Vous avez été redirigé vers votre espace.'
-            });
-            navigate('/subscriptions');
-          }
+          checkAndRedirect(newData.status);
         }
       )
       .subscribe((status) => {
         console.log('[LiveStreamViewer] Realtime subscription status:', status);
       });
 
+    // Polling de secours toutes les 5 secondes pour garantir la redirection
+    const pollInterval = setInterval(async () => {
+      if (isRedirecting) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('public_live_streams')
+          .select('status')
+          .eq('id', streamId)
+          .maybeSingle();
+
+        if (error) {
+          console.error('[LiveStreamViewer] Polling error:', error);
+          return;
+        }
+
+        if (data) {
+          console.log('[LiveStreamViewer] Poll check - status:', data.status);
+          checkAndRedirect(data.status);
+        } else {
+          // Le live n'existe plus dans la vue publique = probablement terminé
+          console.log('[LiveStreamViewer] Stream not found in public view, redirecting...');
+          checkAndRedirect('ended');
+        }
+      } catch (err) {
+        console.error('[LiveStreamViewer] Polling error:', err);
+      }
+    }, 5000);
+
     return () => {
-      console.log('[LiveStreamViewer] Cleaning up realtime subscription');
+      console.log('[LiveStreamViewer] Cleaning up realtime subscription and polling');
       supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
   }, [streamId, isCreator, navigate]);
+
 
   /**
    * Charger les infos du stream et vérifier l'accès avec gestion d'erreurs
