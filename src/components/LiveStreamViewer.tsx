@@ -77,10 +77,10 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
         
         setLiveStream(streamData);
 
-        // Charger les infos du créateur séparément
+        // Charger les infos du créateur séparément (sans jointure car c'est une vue)
         const { data: creatorData } = await supabase
           .from('public_creators')
-          .select('*, profile:user_id(display_name, avatar_url, username)')
+          .select('*')
           .eq('id', streamData.creator_id)
           .maybeSingle();
 
