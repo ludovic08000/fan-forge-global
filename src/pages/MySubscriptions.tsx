@@ -47,11 +47,65 @@ const MySubscriptions = () => {
   const { user, loading } = useAuth();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { liveStreams, loading: livesLoading, fetchLiveStreams } = useLiveStream();
+  const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
+  const [livesLoading, setLivesLoading] = useState(true);
   const [creatorInfos, setCreatorInfos] = useState<Record<string, CreatorInfo>>({});
   const [userSubscriptions, setUserSubscriptions] = useState<string[]>([]);
 
-  // Le hook useLiveStream charge et écoute les lives automatiquement en temps réel
+  // Charger les lives et écouter en temps réel directement ici
+  useEffect(() => {
+    const fetchLives = async () => {
+      setLivesLoading(true);
+      const { data, error } = await supabase
+        .from('public_live_streams')
+        .select('*')
+        .in('status', ['live', 'scheduled'])
+        .order('created_at', { ascending: false });
+      
+      if (!error && data) {
+        // Filtrer les lives fantômes
+        const validLives = data.filter(stream => {
+          if (stream.status !== 'live') return true;
+          if (!stream.started_at) return false;
+          const startedAt = new Date(stream.started_at);
+          const now = new Date();
+          const diffMinutes = (now.getTime() - startedAt.getTime()) / (1000 * 60);
+          if (diffMinutes > 5 && (!stream.viewer_count || stream.viewer_count === 0)) {
+            return false;
+          }
+          return true;
+        });
+        setLiveStreams(validLives as LiveStream[]);
+      }
+      setLivesLoading(false);
+    };
+
+    fetchLives();
+
+    // Écouter les changements en temps réel
+    const channel = supabase
+      .channel('mysubscriptions-lives-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'live_streams',
+        },
+        (payload) => {
+          console.log('[MySubscriptions] Realtime event:', payload.eventType);
+          // Recharger immédiatement
+          fetchLives();
+        }
+      )
+      .subscribe((status) => {
+        console.log('[MySubscriptions] Realtime status:', status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Charger les infos des créateurs pour les lives
   useEffect(() => {
