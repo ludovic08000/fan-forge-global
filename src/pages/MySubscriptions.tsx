@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Crown, Calendar, ExternalLink, Settings, Loader2, RefreshCw, Search, TrendingUp, Radio, Users, Lock, Play, Circle } from 'lucide-react';
+import { Crown, Calendar, ExternalLink, Settings, Loader2, RefreshCw, Search, TrendingUp, Radio, Users, Lock, Play, Circle, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -15,7 +15,8 @@ import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
 import SearchBar from '@/components/SearchBar';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useLiveStream, LiveStream } from '@/hooks/useLiveStream';
+import { LiveStream } from '@/hooks/useLiveStream';
+import { LiveTimer } from '@/components/live/LiveTimer';
 
 interface Subscription {
   id: string;
@@ -315,11 +316,14 @@ const MySubscriptions = () => {
                         </div>
                       )}
                       
-                      <div className="absolute top-2 left-2">
+                      <div className="absolute top-2 left-2 flex items-center gap-1 flex-wrap">
                         <Badge variant="destructive" className="gap-1 animate-pulse text-xs">
                           <Circle className="h-2 w-2 fill-current" />
                           LIVE
                         </Badge>
+                        {stream.started_at && (
+                          <LiveTimer startedAt={stream.started_at} compact />
+                        )}
                       </div>
 
                       <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-0.5 rounded text-xs flex items-center gap-1">
@@ -386,11 +390,14 @@ const MySubscriptions = () => {
                         }`}
                       />
                       
-                      <div className="absolute top-2 left-2">
+                      <div className="absolute top-2 left-2 flex flex-col gap-1">
                         <Badge variant="secondary" className="gap-1 text-xs">
                           <Calendar className="h-3 w-3" />
                           {stream.scheduled_at ? format(new Date(stream.scheduled_at), 'dd/MM HH:mm', { locale: fr }) : 'Bientôt'}
                         </Badge>
+                        {stream.scheduled_at && (
+                          <LiveTimer scheduledAt={stream.scheduled_at} compact />
+                        )}
                       </div>
                     </div>
 
