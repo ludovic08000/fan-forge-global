@@ -281,13 +281,13 @@ const MySubscriptions = () => {
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={creatorInfo?.avatar_url || ''} />
                           <AvatarFallback className="text-xs">
-                            {creatorInfo?.display_name?.charAt(0).toUpperCase() || 'C'}
+                            {(creatorInfo?.stage_name || creatorInfo?.display_name || 'C').charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-medium text-sm line-clamp-1">{stream.title}</h3>
                           <p className="text-xs text-muted-foreground">
-                            {creatorInfo?.display_name || 'Créateur'}
+                            {creatorInfo?.stage_name || creatorInfo?.display_name || 'Créateur'}
                           </p>
                         </div>
                       </div>
@@ -346,15 +346,15 @@ const MySubscriptions = () => {
                       <div className="flex items-center gap-2 mb-2">
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={creatorInfo?.avatar_url || ''} />
-                          <AvatarFallback className="text-xs">
-                            {creatorInfo?.display_name?.charAt(0).toUpperCase() || 'C'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-sm line-clamp-1">{stream.title}</h3>
-                          <p className="text-xs text-muted-foreground">
-                            {creatorInfo?.display_name || 'Créateur'}
-                            {isPremium && <span className="ml-1">• {stream.price}€</span>}
+                        <AvatarFallback className="text-xs">
+                          {(creatorInfo?.stage_name || creatorInfo?.display_name || 'C').charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-sm line-clamp-1">{stream.title}</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {creatorInfo?.stage_name || creatorInfo?.display_name || 'Créateur'}
+                          {isPremium && <span className="ml-1">• {stream.price}€</span>}
                           </p>
                         </div>
                       </div>
