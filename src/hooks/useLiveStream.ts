@@ -230,6 +230,7 @@ export const useLiveStream = () => {
 
   /**
    * Écouter les changements en temps réel sur les lives
+   * Détecte automatiquement les lives terminés pour les retirer de la liste
    */
   useEffect(() => {
     const channel = supabase
@@ -243,7 +244,37 @@ export const useLiveStream = () => {
         },
         (payload) => {
           console.log('Live stream changed:', payload);
-          fetchLiveStreams();
+          
+          // Si c'est une mise à jour, vérifier si le live est terminé
+          if (payload.eventType === 'UPDATE') {
+            const updatedStream = payload.new as LiveStream;
+            
+            // Si le status est passé à 'ended' ou 'cancelled', le retirer immédiatement de la liste
+            if (updatedStream.status === 'ended' || updatedStream.status === 'cancelled') {
+              console.log('Live stream ended/cancelled, removing from list:', updatedStream.id);
+              setLiveStreams(prev => prev.filter(s => s.id !== updatedStream.id));
+              return;
+            }
+            
+            // Sinon, mettre à jour le stream dans la liste
+            setLiveStreams(prev => prev.map(s => 
+              s.id === updatedStream.id ? { ...s, ...updatedStream } : s
+            ));
+          } else if (payload.eventType === 'INSERT') {
+            // Nouveau live, ajouter à la liste s'il est live ou scheduled
+            const newStream = payload.new as LiveStream;
+            if (newStream.status === 'live' || newStream.status === 'scheduled') {
+              setLiveStreams(prev => {
+                // Éviter les doublons
+                if (prev.some(s => s.id === newStream.id)) return prev;
+                return [newStream, ...prev];
+              });
+            }
+          } else if (payload.eventType === 'DELETE') {
+            // Live supprimé
+            const deletedId = (payload.old as any).id;
+            setLiveStreams(prev => prev.filter(s => s.id !== deletedId));
+          }
         }
       )
       .subscribe();
