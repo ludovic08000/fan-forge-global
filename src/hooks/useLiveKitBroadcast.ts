@@ -36,6 +36,16 @@ const loadLiveKitModule = async () => {
   return liveKitLoadPromise;
 };
 
+// Détecter Safari iOS
+const isSafariIOS = () => {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  const iOS = /iPad|iPhone|iPod/.test(ua);
+  const webkit = /WebKit/.test(ua);
+  const notChrome = !/CriOS/.test(ua);
+  return iOS && webkit && notChrome;
+};
+
 export const useLiveKitBroadcast = () => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -138,10 +148,13 @@ export const useLiveKitBroadcast = () => {
       console.log('[LiveKit Broadcast] Token obtained, connecting to room at:', livekitUrl);
 
 
-      // Créer et connecter la room
+      // Créer et connecter la room avec options Safari
       const room = new Room({
         adaptiveStream: true,
-        dynacast: true,
+        dynacast: !isSafariIOS(), // Désactiver dynacast sur Safari iOS
+        publishDefaults: {
+          simulcast: !isSafariIOS(), // Désactiver simulcast sur Safari iOS
+        },
       });
 
       // Écouter les événements

@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Users, Send, Circle, Heart, Lock, ChevronUp, Wifi, WifiOff, Loader2 } from 'lucide-react';
+import { Users, Send, Circle, Heart, Lock, ChevronUp, Wifi, WifiOff, Loader2, Volume2 } from 'lucide-react';
 import { useLiveStream } from '@/hooks/useLiveStream';
 import { useLiveChat, ContentOffer, PaidMedia } from '@/hooks/useLiveChat';
 import { useLiveKitViewer } from '@/hooks/useLiveKitViewer';
@@ -49,7 +49,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   useContentProtection(true);
   
   // LiveKit viewer hook
-  const { isConnected, isConnecting, error: liveKitError, connect, disconnect, setVideoRef } = useLiveKitViewer(streamId);
+  const { isConnected, isConnecting, error: liveKitError, connect, disconnect, setVideoRef, needsUserGesture, enableAudio } = useLiveKitViewer(streamId);
   
   const [newMessage, setNewMessage] = useState('');
   const [likes, setLikes] = useState(0);
@@ -430,6 +430,10 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                   ref={setVideoRef}
                   autoPlay
                   playsInline
+                  muted
+                  // @ts-ignore - webkit specific
+                  webkit-playsinline="true"
+                  x-webkit-airplay="allow"
                   className="w-full h-full object-cover"
                 />
                 
@@ -451,6 +455,18 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                     </Badge>
                   ) : null}
                 </div>
+
+                {/* Bouton activer audio Safari iOS */}
+                {needsUserGesture && (
+                  <Button
+                    size="lg"
+                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 gap-2 z-20"
+                    onClick={enableAudio}
+                  >
+                    <Volume2 className="h-5 w-5" />
+                    Activer le son
+                  </Button>
+                )}
 
                 {/* Bouton like flottant */}
                 <Button
