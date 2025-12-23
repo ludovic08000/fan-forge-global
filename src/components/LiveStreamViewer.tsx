@@ -101,7 +101,11 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
    * Charger les infos du stream et vérifier l'accès avec gestion d'erreurs
    */
   useEffect(() => {
+    let isMounted = true;
+    
     const checkAccess = async () => {
+      if (!isMounted) return;
+      
       try {
         // Charger les infos du stream via la vue publique (pas de RLS restrictives)
         const { data: streamData, error: streamError } = await supabase
@@ -110,6 +114,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
           .eq('id', streamId)
           .maybeSingle();
 
+        if (!isMounted) return;
         if (streamError) throw streamError;
         
         if (!streamData) {
@@ -127,6 +132,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
           .eq('id', streamData.creator_id)
           .maybeSingle();
 
+        if (!isMounted) return;
         setCreatorData(fetchedCreatorData);
         
         console.log('Creator check:', {
@@ -157,23 +163,30 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
             body: { liveStreamId: streamId },
           });
 
+          if (!isMounted) return;
           if (error) throw error;
           setHasAccess(data.hasAccess);
         } else {
           setHasAccess(false);
         }
       } catch (error) {
+        if (!isMounted) return;
         console.error('Error checking access:', error);
-        trackError(error as Error, { context: 'verify_live_access', streamId });
+        // Ne pas tracker l'erreur en boucle
         setHasAccess(false);
-        toast.error('Erreur lors de la vérification de l\'accès au live');
       } finally {
-        setCheckingAccess(false);
+        if (isMounted) {
+          setCheckingAccess(false);
+        }
       }
     };
 
     checkAccess();
-  }, [streamId, user, trackError]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [streamId, user?.id]);
 
   /**
    * Rejoindre le live si accès autorisé
