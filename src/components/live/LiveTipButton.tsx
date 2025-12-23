@@ -41,6 +41,10 @@ export const LiveTipButton = ({ liveStreamId, creatorId, creatorName }: LiveTipB
     }
 
     setLoading(true);
+    
+    // Toast immédiat pour feedback rapide
+    const loadingToast = toast.loading('Préparation du paiement...');
+    
     try {
       const { data, error } = await supabase.functions.invoke('create-live-tip', {
         body: {
@@ -51,16 +55,22 @@ export const LiveTipButton = ({ liveStreamId, creatorId, creatorName }: LiveTipB
         },
       });
 
+      toast.dismiss(loadingToast);
+
       if (error) throw error;
 
       if (data?.url) {
-        window.open(data.url, '_blank');
+        // Fermer le dialog immédiatement
         setOpen(false);
         setAmount('5');
         setMessage('');
-        toast.success('Redirection vers le paiement...');
+        
+        // Ouvrir Stripe dans un nouvel onglet
+        window.open(data.url, '_blank');
+        toast.success('Paiement ouvert dans un nouvel onglet');
       }
     } catch (error) {
+      toast.dismiss(loadingToast);
       console.error('Tip error:', error);
       toast.error('Erreur lors de l\'envoi du tip');
     } finally {
