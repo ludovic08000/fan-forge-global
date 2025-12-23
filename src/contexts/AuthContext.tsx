@@ -295,8 +295,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const signUp = async (email: string, password: string, firstName?: string, lastName?: string, username?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string) => {
     try {
-      // URL de redirection après inscription
-      const redirectUrl = `${window.location.origin}/`;
+      // URL de redirection après inscription - vers l'espace personnel
+      const redirectUrl = `${window.location.origin}/subscriptions`;
       
       // Appel à l'API Supabase pour créer le compte
       const { data, error } = await supabase.auth.signUp({
@@ -452,8 +452,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const signInWithGoogle = async () => {
     try {
-      // URL de redirection après authentification OAuth
-      const redirectUrl = `${window.location.origin}/dashboard`;
+      // URL de redirection après authentification OAuth - vers l'espace personnel
+      const redirectUrl = `${window.location.origin}/subscriptions`;
       
       // Appel à l'API Supabase pour connexion OAuth Google
       const { error } = await supabase.auth.signInWithOAuth({
@@ -480,8 +480,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const signInWithFacebook = async () => {
     try {
-      // URL de redirection après authentification OAuth
-      const redirectUrl = `${window.location.origin}/dashboard`;
+      // URL de redirection après authentification OAuth - vers l'espace personnel
+      const redirectUrl = `${window.location.origin}/subscriptions`;
       
       // Appel à l'API Supabase pour connexion OAuth Facebook
       const { error } = await supabase.auth.signInWithOAuth({

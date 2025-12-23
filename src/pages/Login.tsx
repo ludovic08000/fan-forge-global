@@ -98,10 +98,11 @@ const Login = () => {
         if (creatorData) {
           navigate('/dashboard');
         } else {
-          navigate('/');
+          // Abonnés -> espace personnel (mes abonnements)
+          navigate('/subscriptions');
         }
       } else {
-        navigate('/');
+        navigate('/subscriptions');
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
