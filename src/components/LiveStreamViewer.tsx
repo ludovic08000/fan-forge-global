@@ -60,18 +60,32 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   useEffect(() => {
     const checkAccess = async () => {
       try {
-        // Charger les infos du stream
+        // Charger les infos du stream via la vue publique (pas de RLS restrictives)
         const { data: streamData, error: streamError } = await supabase
-          .from('live_streams')
-          .select('*, creator:creator_id(*)')
+          .from('public_live_streams')
+          .select('*')
           .eq('id', streamId)
-          .single();
+          .maybeSingle();
 
         if (streamError) throw streamError;
+        
+        if (!streamData) {
+          toast.error('Live introuvable');
+          setCheckingAccess(false);
+          return;
+        }
+        
         setLiveStream(streamData);
 
+        // Charger les infos du créateur séparément
+        const { data: creatorData } = await supabase
+          .from('public_creators')
+          .select('*, profile:user_id(display_name, avatar_url, username)')
+          .eq('id', streamData.creator_id)
+          .maybeSingle();
+
         // Vérifier si l'utilisateur est le créateur
-        if (user && streamData.creator?.user_id === user.id) {
+        if (user && creatorData?.user_id === user.id) {
           setIsCreator(true);
           setHasAccess(true);
           setCheckingAccess(false);
@@ -85,7 +99,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
           return;
         }
 
-        // Vérifier l'accès via l'edge function
+        // Vérifier l'accès via l'edge function pour les lives premium
         if (user) {
           const { data, error } = await supabase.functions.invoke('verify-live-access', {
             body: { liveStreamId: streamId },
