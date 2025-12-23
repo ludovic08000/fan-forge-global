@@ -39,9 +39,9 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
         onClick={handleViewProfile}
         className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors border"
       >
-        <Avatar className="h-12 w-12">
-          <AvatarImage src={creator.avatar_url || ''} />
-          <AvatarFallback>{creatorInitials}</AvatarFallback>
+        <Avatar className="h-14 w-14 ring-2 ring-primary/10 flex-shrink-0 shadow-md">
+          <AvatarImage src={creator.avatar_url || ''} className="object-cover" />
+          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary-glow/20 font-semibold">{creatorInitials}</AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
           <div className="flex items-center space-x-2">
@@ -97,14 +97,14 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
     <Card className="group hover:shadow-[var(--shadow-card)] hover:border-primary/30 transition-all duration-300 overflow-hidden bg-card/50 backdrop-blur-sm">
       <CardContent className="p-6">
         <div className="flex items-start space-x-4">
-          <div className="relative">
-            <Avatar className="h-16 w-16 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all">
-              <AvatarImage src={creator.avatar_url || ''} />
-              <AvatarFallback className="text-xl bg-gradient-to-br from-primary/20 to-primary-glow/20">{creatorInitials}</AvatarFallback>
+          <div className="relative flex-shrink-0">
+            <Avatar className="h-20 w-20 ring-2 ring-primary/20 group-hover:ring-primary/50 group-hover:ring-4 transition-all duration-300 shadow-lg">
+              <AvatarImage src={creator.avatar_url || ''} className="object-cover" />
+              <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary/30 to-primary-glow/30 text-primary">{creatorInitials}</AvatarFallback>
             </Avatar>
             {creator.is_featured && (
-              <div className="absolute -top-1 -right-1 bg-gradient-to-r from-primary to-primary-glow rounded-full p-1">
-                <TrendingUp className="h-3 w-3 text-primary-foreground" />
+              <div className="absolute -top-1 -right-1 bg-gradient-to-r from-primary to-primary-glow rounded-full p-1.5 shadow-md animate-pulse">
+                <TrendingUp className="h-3.5 w-3.5 text-primary-foreground" />
               </div>
             )}
           </div>

@@ -373,9 +373,9 @@ const MySubscriptions = () => {
 
                     <CardContent className="p-3">
                       <div className="flex items-center gap-2 mb-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={creatorInfo?.avatar_url || ''} />
-                          <AvatarFallback className="text-xs">
+                        <Avatar className="h-10 w-10 ring-2 ring-primary/20 shadow-sm flex-shrink-0">
+                          <AvatarImage src={creatorInfo?.avatar_url || ''} className="object-cover" />
+                          <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-primary/20 to-primary-glow/20">
                             {(creatorInfo?.stage_name || creatorInfo?.display_name || 'C').charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
@@ -442,11 +442,11 @@ const MySubscriptions = () => {
 
                     <CardContent className="p-3">
                       <div className="flex items-center gap-2 mb-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={creatorInfo?.avatar_url || ''} />
-                        <AvatarFallback className="text-xs">
-                          {(creatorInfo?.stage_name || creatorInfo?.display_name || 'C').charAt(0).toUpperCase()}
-                        </AvatarFallback>
+                        <Avatar className="h-10 w-10 ring-2 ring-primary/20 shadow-sm flex-shrink-0">
+                          <AvatarImage src={creatorInfo?.avatar_url || ''} className="object-cover" />
+                          <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-primary/20 to-primary-glow/20">
+                            {(creatorInfo?.stage_name || creatorInfo?.display_name || 'C').charAt(0).toUpperCase()}
+                          </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-sm line-clamp-1">{stream.title}</h3>
@@ -484,11 +484,11 @@ const MySubscriptions = () => {
                   to={creator.profile?.username ? `/${creator.profile.username}` : '#'}
                   className="group"
                 >
-                  <Card className="overflow-hidden hover:shadow-lg transition-all hover:scale-[1.02] h-full">
-                    <CardContent className="p-4 flex flex-col items-center text-center">
-                      <Avatar className="h-16 w-16 mb-3 border-2 border-primary/20 group-hover:border-primary transition-colors">
-                        <AvatarImage src={creator.profile?.avatar_url || undefined} />
-                        <AvatarFallback className="text-lg bg-primary/10">
+                <Card className="overflow-hidden hover:shadow-xl transition-all hover:scale-[1.03] h-full border-primary/10 hover:border-primary/30">
+                    <CardContent className="p-5 flex flex-col items-center text-center">
+                      <Avatar className="h-20 w-20 mb-4 ring-2 ring-primary/20 group-hover:ring-primary/50 group-hover:ring-4 transition-all duration-300 shadow-lg">
+                        <AvatarImage src={creator.profile?.avatar_url || undefined} className="object-cover" />
+                        <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary/20 to-primary-glow/20 text-primary">
                           {(creator.stage_name || creator.profile?.display_name || 'C').charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
@@ -632,10 +632,10 @@ const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
       <Card className="overflow-hidden hover:shadow-lg transition-shadow">
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
-            <Link to={username ? `/${username}` : '#'}>
-              <Avatar className="h-16 w-16 border-2 border-primary/20">
-                <AvatarImage src={profile?.avatar_url || undefined} />
-                <AvatarFallback className="text-lg bg-primary/10">
+            <Link to={username ? `/${username}` : '#'} className="flex-shrink-0">
+              <Avatar className="h-18 w-18 ring-2 ring-primary/20 hover:ring-primary/50 hover:ring-4 transition-all duration-300 shadow-lg">
+                <AvatarImage src={profile?.avatar_url || undefined} className="object-cover" />
+                <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary/20 to-primary-glow/20 text-primary">
                   {displayName.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
