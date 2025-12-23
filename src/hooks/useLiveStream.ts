@@ -36,7 +36,7 @@ export interface LiveStream {
 export const useLiveStream = () => {
   const { user } = useAuth();
   const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   /**
    * Récupérer les lives en cours (utilise la vue publique pour que tous les utilisateurs voient les lives)
@@ -64,20 +64,9 @@ export const useLiveStream = () => {
       if (error) throw error;
       
       // Filtrer les lives fantômes côté client
-      // Un live est fantôme si:
-      // - status = 'live' ET pas de started_at récent (> 5 minutes sans activité visible)
-      const now = new Date();
-      const STALE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
-      
       const filteredData = (data || []).filter((stream: any) => {
-        if (stream.status !== 'live') return true; // Garder les scheduled
-        
-        // Si le live a un started_at, vérifier qu'il est raisonnable
-        // On utilise le champ started_at pour détecter les lives fantômes
+        if (stream.status !== 'live') return true;
         if (!stream.started_at) return false;
-        
-        // Pour les lives en cours, vérifier via le viewer_count et autres heuristiques
-        // Un live actif devrait avoir été mis à jour récemment
         return true;
       });
       
@@ -90,6 +79,77 @@ export const useLiveStream = () => {
       setLoading(false);
     }
   };
+
+  /**
+   * Charger automatiquement les lives au montage et écouter les changements temps réel
+   */
+  useEffect(() => {
+    // Charger les lives immédiatement
+    fetchLiveStreams();
+
+    // Écouter les changements en temps réel
+    const channel = supabase
+      .channel('useLiveStream-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'live_streams',
+        },
+        (payload) => {
+          console.log('[useLiveStream] Realtime event:', payload.eventType, payload.new);
+          
+          if (payload.eventType === 'UPDATE') {
+            const updatedStream = payload.new as LiveStream;
+            
+            // Si le status est passé à 'ended' ou 'cancelled', le retirer immédiatement
+            if (updatedStream.status === 'ended' || updatedStream.status === 'cancelled') {
+              console.log('[useLiveStream] Live ended, removing:', updatedStream.id);
+              setLiveStreams(prev => prev.filter(s => s.id !== updatedStream.id));
+              return;
+            }
+            
+            // Si le status passe à 'live', l'ajouter ou mettre à jour
+            if (updatedStream.status === 'live') {
+              setLiveStreams(prev => {
+                const exists = prev.find(s => s.id === updatedStream.id);
+                if (exists) {
+                  return prev.map(s => s.id === updatedStream.id ? { ...s, ...updatedStream } : s);
+                }
+                return [updatedStream, ...prev];
+              });
+              return;
+            }
+            
+            // Sinon, mettre à jour le stream
+            setLiveStreams(prev => prev.map(s => 
+              s.id === updatedStream.id ? { ...s, ...updatedStream } : s
+            ));
+          } else if (payload.eventType === 'INSERT') {
+            const newStream = payload.new as LiveStream;
+            if (newStream.status === 'live' || newStream.status === 'scheduled') {
+              console.log('[useLiveStream] New live inserted:', newStream.id);
+              setLiveStreams(prev => {
+                if (prev.some(s => s.id === newStream.id)) return prev;
+                return [newStream, ...prev];
+              });
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedId = (payload.old as any).id;
+            console.log('[useLiveStream] Live deleted:', deletedId);
+            setLiveStreams(prev => prev.filter(s => s.id !== deletedId));
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[useLiveStream] Subscription status:', status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   /**
    * Créer un nouveau live stream
@@ -248,61 +308,6 @@ export const useLiveStream = () => {
     }
   };
 
-  /**
-   * Écouter les changements en temps réel sur les lives
-   * Détecte automatiquement les lives terminés pour les retirer de la liste
-   */
-  useEffect(() => {
-    const channel = supabase
-      .channel('live_streams_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'live_streams',
-        },
-        (payload) => {
-          console.log('Live stream changed:', payload);
-          
-          // Si c'est une mise à jour, vérifier si le live est terminé
-          if (payload.eventType === 'UPDATE') {
-            const updatedStream = payload.new as LiveStream;
-            
-            // Si le status est passé à 'ended' ou 'cancelled', le retirer immédiatement de la liste
-            if (updatedStream.status === 'ended' || updatedStream.status === 'cancelled') {
-              console.log('Live stream ended/cancelled, removing from list:', updatedStream.id);
-              setLiveStreams(prev => prev.filter(s => s.id !== updatedStream.id));
-              return;
-            }
-            
-            // Sinon, mettre à jour le stream dans la liste
-            setLiveStreams(prev => prev.map(s => 
-              s.id === updatedStream.id ? { ...s, ...updatedStream } : s
-            ));
-          } else if (payload.eventType === 'INSERT') {
-            // Nouveau live, ajouter à la liste s'il est live ou scheduled
-            const newStream = payload.new as LiveStream;
-            if (newStream.status === 'live' || newStream.status === 'scheduled') {
-              setLiveStreams(prev => {
-                // Éviter les doublons
-                if (prev.some(s => s.id === newStream.id)) return prev;
-                return [newStream, ...prev];
-              });
-            }
-          } else if (payload.eventType === 'DELETE') {
-            // Live supprimé
-            const deletedId = (payload.old as any).id;
-            setLiveStreams(prev => prev.filter(s => s.id !== deletedId));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
 
   return {
     liveStreams,

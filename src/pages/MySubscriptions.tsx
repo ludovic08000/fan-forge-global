@@ -51,9 +51,7 @@ const MySubscriptions = () => {
   const [creatorInfos, setCreatorInfos] = useState<Record<string, CreatorInfo>>({});
   const [userSubscriptions, setUserSubscriptions] = useState<string[]>([]);
 
-  useEffect(() => {
-    fetchLiveStreams();
-  }, []);
+  // Le hook useLiveStream charge et écoute les lives automatiquement en temps réel
 
   // Charger les infos des créateurs pour les lives
   useEffect(() => {
