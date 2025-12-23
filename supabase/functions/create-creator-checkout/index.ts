@@ -146,6 +146,7 @@ serve(async (req) => {
     }
 
     // Créer la session de checkout en mode embedded avec Stripe Tax
+    // Note: invoice_creation n'est pas nécessaire pour mode "subscription" car les factures sont créées automatiquement
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [
@@ -159,13 +160,11 @@ serve(async (req) => {
       return_url: `${req.headers.get("origin")}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
       // Activer Stripe Tax pour le calcul automatique des taxes
       automatic_tax: { enabled: true },
-      // Générer automatiquement des factures pour les abonnements
-      invoice_creation: {
-        enabled: true,
-        invoice_data: {
-          metadata: {
-            creator_id: creatorId,
-          },
+      // Ajouter les métadonnées de l'abonnement (les factures sont auto-générées pour les subscriptions)
+      subscription_data: {
+        metadata: {
+          creator_id: creatorId,
+          user_id: user.id,
         },
       },
       metadata: {
