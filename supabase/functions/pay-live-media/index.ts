@@ -135,6 +135,9 @@ serve(async (req) => {
     // Créer la session de checkout
     const sessionConfig: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
+      customer_update: {
+        address: 'auto',
+      },
       line_items: [
         {
           price_data: {
