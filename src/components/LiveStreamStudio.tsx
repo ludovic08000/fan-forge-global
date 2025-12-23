@@ -82,42 +82,91 @@ export const LiveStreamStudio = () => {
   }, [currentStream]);
 
   /**
-   * Terminer le live automatiquement quand le créateur quitte la page (navigation ou fermeture)
+   * Heartbeat toutes les 30 secondes pour signaler que le créateur est connecté
    */
   useEffect(() => {
-    // Terminer le live quand le composant est démonté (changement de page)
+    if (!isLive || !currentStreamIdRef.current) return;
+
+    const sendHeartbeat = async () => {
+      try {
+        console.log('[Studio] Sending heartbeat for:', currentStreamIdRef.current);
+        await fetch('https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/live-heartbeat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            liveStreamId: currentStreamIdRef.current,
+            action: 'heartbeat'
+          }),
+        });
+      } catch (error) {
+        console.error('[Studio] Heartbeat error:', error);
+      }
+    };
+
+    // Envoyer immédiatement puis toutes les 30 secondes
+    sendHeartbeat();
+    const heartbeatInterval = setInterval(sendHeartbeat, 30000);
+
     return () => {
+      clearInterval(heartbeatInterval);
+    };
+  }, [isLive]);
+
+  /**
+   * Terminer le live automatiquement quand le créateur quitte la page
+   */
+  useEffect(() => {
+    const endLiveOnLeave = () => {
       if (currentStreamIdRef.current) {
-        console.log('[Studio] Component unmounting, ending live:', currentStreamIdRef.current);
-        
-        // Utiliser sendBeacon pour garantir l'envoi même lors de la navigation
-        const url = `https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/live-heartbeat`;
+        console.log('[Studio] Ending live on page leave:', currentStreamIdRef.current);
+        const url = 'https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/live-heartbeat';
         const body = JSON.stringify({
           liveStreamId: currentStreamIdRef.current,
           action: 'end'
         });
-        
         navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
       }
     };
-  }, []);
 
-  /**
-   * Confirmation avant fermeture de l'onglet/navigateur
-   */
-  useEffect(() => {
+    // Gérer la fermeture/navigation
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (currentStreamIdRef.current && isLive) {
+        endLiveOnLeave();
         e.preventDefault();
         e.returnValue = 'Votre live est en cours. Êtes-vous sûr de vouloir quitter?';
         return e.returnValue;
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    // Gérer quand l'onglet devient caché (mobile ou changement d'onglet)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && currentStreamIdRef.current && isLive) {
+        console.log('[Studio] Page hidden, sending beacon to end live');
+        endLiveOnLeave();
+      }
+    };
 
+    // Gérer pagehide (plus fiable que beforeunload sur mobile)
+    const handlePageHide = () => {
+      if (currentStreamIdRef.current) {
+        endLiveOnLeave();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+
+    // Cleanup à la destruction du composant
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+      
+      // Terminer le live si le composant est démonté
+      if (currentStreamIdRef.current) {
+        endLiveOnLeave();
+      }
     };
   }, [isLive]);
 

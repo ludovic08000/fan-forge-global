@@ -19,14 +19,14 @@ Deno.serve(async (req) => {
 
     console.log("[Cleanup] Starting cleanup of stale live streams...");
 
-    // Terminer les lives dont le heartbeat est > 5 minutes
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    // Terminer les lives dont le heartbeat est > 2 minutes (réduit de 5 à 2)
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
 
     const { data: staleLives, error: fetchError } = await supabase
       .from("live_streams")
       .select("id, title, creator_id, last_heartbeat")
       .eq("status", "live")
-      .or(`last_heartbeat.is.null,last_heartbeat.lt.${fiveMinutesAgo}`);
+      .or(`last_heartbeat.is.null,last_heartbeat.lt.${twoMinutesAgo}`);
 
     if (fetchError) {
       console.error("[Cleanup] Error fetching stale lives:", fetchError);
