@@ -14,15 +14,22 @@ import { NotificationBell } from '@/components/NotificationBell';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, signOut, userRole } = useAuth();
   const navigate = useNavigate();
+
+  // Déterminer la destination du logo selon le rôle
+  const getHomeDestination = () => {
+    if (!user) return "/";
+    if (userRole === 'creator' || userRole === 'admin') return "/dashboard";
+    return "/subscriptions";
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center">
           <Link 
-            to={user ? "/subscriptions" : "/"} 
+            to={getHomeDestination()} 
             className="font-bold text-xl bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent hover:scale-105 transition-transform"
           >
             Crub
