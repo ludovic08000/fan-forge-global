@@ -14,7 +14,7 @@ import {
   Crown, Heart, Eye, Euro, Settings, Plus, Video, Upload, 
   Trash2, Share2, Copy, Banknote, Shield, Loader2, MessageCircle,
   BarChart3, Users, ImageIcon, Radio, ChevronRight, ExternalLink,
-  Tag, Sparkles, CreditCard
+  Tag, Sparkles, CreditCard, Wand2
 } from 'lucide-react';
 import ContentUpload from '@/components/ContentUpload';
 import CreatorSettings from '@/components/CreatorSettings';
@@ -30,13 +30,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/lib/analytics';
 import CreatorMessages from '@/components/CreatorMessages';
+import ImageLightbox from '@/components/ImageLightbox';
+import PhotoEditor from '@/components/PhotoEditor';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 
 const LiveStreamStudio = lazy(() => import('@/components/LiveStreamStudio').then(m => ({ default: m.LiveStreamStudio })));
@@ -60,6 +61,8 @@ const Dashboard = () => {
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
   const [showUpload, setShowUpload] = useState(false);
   const [selectedContent, setSelectedContent] = useState<any>(null);
+  const [editingContent, setEditingContent] = useState<any>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number>(0);
   const [creatorStats, setCreatorStats] = useState({
     totalEarnings: 0,
     totalSubscribers: 0,
@@ -72,6 +75,28 @@ const Dashboard = () => {
   const [shareLink, setShareLink] = useState('');
   const [copied, setCopied] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
+
+  // Fonctions de navigation lightbox
+  const handleOpenLightbox = (content: any, index: number) => {
+    setSelectedContent(content);
+    setLightboxIndex(index);
+  };
+
+  const handlePreviousImage = () => {
+    if (myContent && lightboxIndex > 0) {
+      const newIndex = lightboxIndex - 1;
+      setLightboxIndex(newIndex);
+      setSelectedContent(myContent[newIndex]);
+    }
+  };
+
+  const handleNextImage = () => {
+    if (myContent && lightboxIndex < myContent.length - 1) {
+      const newIndex = lightboxIndex + 1;
+      setLightboxIndex(newIndex);
+      setSelectedContent(myContent[newIndex]);
+    }
+  };
 
   const handleDeleteContent = async (contentId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce contenu ?')) return;
@@ -436,11 +461,11 @@ const Dashboard = () => {
                   </div>
                 ) : myContent && myContent.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {myContent.slice(0, 4).map((content) => (
+                    {myContent.slice(0, 4).map((content, index) => (
                       <div 
                         key={content.id} 
                         className="aspect-square rounded-lg overflow-hidden bg-muted relative group cursor-pointer"
-                        onClick={() => setSelectedContent(content)}
+                        onClick={() => handleOpenLightbox(content, index)}
                       >
                         <img
                           src={content.thumbnail_url || content.file_url}
@@ -455,6 +480,19 @@ const Dashboard = () => {
                             </div>
                           </div>
                         </div>
+                        {content.content_type === 'image' && (
+                          <Button
+                            variant="secondary"
+                            size="icon"
+                            className="absolute top-2 left-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingContent(content);
+                            }}
+                          >
+                            <Wand2 className="h-3 w-3 text-primary" />
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -499,28 +537,43 @@ const Dashboard = () => {
               </div>
             ) : myContent && myContent.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {myContent.map((content) => (
+                {myContent.map((content, index) => (
                   <Card key={content.id} className="overflow-hidden group">
                     <div 
                       className="aspect-square bg-muted overflow-hidden relative cursor-pointer"
-                      onClick={() => setSelectedContent(content)}
+                      onClick={() => handleOpenLightbox(content, index)}
                     >
                       <img
                         src={content.thumbnail_url || content.file_url}
                         alt={content.title}
                         className="w-full h-full object-cover"
                       />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteContent(content.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="absolute top-2 right-2 flex gap-1">
+                        {content.content_type === 'image' && (
+                          <Button
+                            variant="secondary"
+                            size="icon"
+                            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingContent(content);
+                            }}
+                          >
+                            <Wand2 className="h-4 w-4 text-primary" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteContent(content.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                     <CardContent className="p-3">
                       <h3 className="font-medium text-sm line-clamp-1">{content.title}</h3>
@@ -673,38 +726,48 @@ const Dashboard = () => {
         )}
 
         {/* Lightbox plein écran */}
-        <Dialog open={!!selectedContent} onOpenChange={(open) => { if (!open) setSelectedContent(null); }}>
-          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-transparent border-none shadow-none [&>button]:hidden" aria-describedby="content-fullscreen-description">
-            <DialogHeader className="sr-only">
-              <DialogTitle>{selectedContent?.title || 'Contenu'}</DialogTitle>
-            </DialogHeader>
-            {selectedContent && (
-              <div className="flex flex-col items-center justify-center" onClick={() => setSelectedContent(null)}>
-                {selectedContent.content_type === 'video' ? (
-                  <video
-                    src={selectedContent.file_url}
-                    controls
-                    className="max-w-[90vw] max-h-[85vh] rounded-lg"
-                    autoPlay
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                ) : (
-                  <img
-                    src={selectedContent.file_url}
-                    alt={selectedContent.title}
-                    className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg"
-                  />
-                )}
-                <div id="content-fullscreen-description" className="mt-4 text-center">
-                  <h3 className="text-white text-lg font-bold">{selectedContent.title}</h3>
-                  {selectedContent.description && (
-                    <p className="text-white/70 text-sm mt-1">{selectedContent.description}</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        {selectedContent && selectedContent.content_type === 'image' && (
+          <ImageLightbox
+            isOpen={!!selectedContent}
+            onClose={() => setSelectedContent(null)}
+            imageUrl={selectedContent.file_url}
+            title={selectedContent.title}
+            description={selectedContent.description}
+            hasPrevious={lightboxIndex > 0}
+            hasNext={myContent ? lightboxIndex < myContent.length - 1 : false}
+            onPrevious={handlePreviousImage}
+            onNext={handleNextImage}
+          />
+        )}
+
+        {/* Lecteur vidéo plein écran */}
+        {selectedContent && selectedContent.content_type === 'video' && (
+          <div 
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-sm"
+            onClick={() => setSelectedContent(null)}
+          >
+            <button
+              onClick={() => setSelectedContent(null)}
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            >
+              <span className="text-white text-2xl">×</span>
+            </button>
+            <video
+              src={selectedContent.file_url}
+              controls
+              autoPlay
+              className="max-w-[95vw] max-h-[90vh] rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+
+        {/* Éditeur de photos */}
+        <PhotoEditor
+          isOpen={!!editingContent}
+          onClose={() => setEditingContent(null)}
+          imageUrl={editingContent?.file_url || ''}
+        />
       </div>
     </div>
   );
