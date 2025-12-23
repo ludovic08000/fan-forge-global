@@ -49,7 +49,7 @@ export const LiveStreamStudio = () => {
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const { messages, sendMessage } = useLiveChat(currentStream?.id || '');
+  const { messages, sendMessage, sendPaidMedia } = useLiveChat(currentStream?.id || '');
   const [chatMessage, setChatMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [creatorId, setCreatorId] = useState<string | null>(null);
@@ -844,7 +844,7 @@ export const LiveStreamStudio = () => {
                           liveStreamId={currentStream.id}
                           creatorId={creatorId}
                           onMediaSent={(mediaData) => {
-                            sendMessage(`[Contenu payant: ${mediaData.price}€]`);
+                            sendPaidMedia(mediaData);
                           }}
                         />
                       )}
