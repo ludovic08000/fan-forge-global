@@ -151,7 +151,8 @@ const MySubscriptions = () => {
 
   // Vérifier si l'utilisateur a accès à un live premium
   const hasAccess = (stream: LiveStream) => {
-    if (!stream.is_premium) return true;
+    // Live gratuit = accessible à tous (is_premium false OU prix = 0)
+    if (!stream.is_premium || stream.price === 0 || stream.price === null) return true;
     if (!user) return false;
     return userSubscriptions.includes(stream.creator_id);
   };

@@ -78,8 +78,8 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
           return;
         }
 
-        // Si le stream n'est pas premium, accès direct
-        if (!streamData.is_premium) {
+        // Si le stream est gratuit (is_premium false OU prix = 0), accès direct
+        if (!streamData.is_premium || streamData.price === 0 || streamData.price === null) {
           setHasAccess(true);
           setCheckingAccess(false);
           return;
