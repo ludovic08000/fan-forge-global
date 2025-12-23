@@ -30,6 +30,8 @@ import { PaidMediaUpload } from '@/components/live/PaidMediaUpload';
 import { PaidMediaMessage } from '@/components/live/PaidMediaMessage';
 import { LiveTipButton } from '@/components/live/LiveTipButton';
 import { TipMessage } from '@/components/live/TipMessage';
+import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface LiveStreamViewerProps {
   streamId: string;
@@ -59,6 +61,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   const [liveStream, setLiveStream] = useState<any>(null);
   const [isCreator, setIsCreator] = useState(false);
   const [lastMessageTime, setLastMessageTime] = useState(0);
+  const [showCheckout, setShowCheckout] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
@@ -459,7 +462,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                   <div className="space-y-2">
                     {creatorData && (
                       <Button 
-                        onClick={() => navigate(`/creator/${creatorData.user_id}`)} 
+                        onClick={() => setShowCheckout(true)} 
                         className="w-full"
                       >
                         S'abonner au créateur
@@ -483,6 +486,30 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
             </div>
           </div>
         </div>
+        
+        {/* Checkout Dialog */}
+        <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="checkout-live-description">
+            <DialogHeader>
+              <DialogTitle>
+                S'abonner à {creatorData?.stage_name || 'ce créateur'}
+              </DialogTitle>
+              <p id="checkout-live-description" className="text-sm text-muted-foreground">
+                Complétez votre paiement pour accéder à ce live et tout le contenu premium
+              </p>
+            </DialogHeader>
+            {creatorData && (
+              <EmbeddedCheckout 
+                creatorId={liveStream.creator_id} 
+                onClose={() => {
+                  setShowCheckout(false);
+                  // Recharger la page pour vérifier l'accès après paiement
+                  window.location.reload();
+                }} 
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
