@@ -43,7 +43,7 @@ export const useConversations = () => {
   const { playNotificationSound } = useChatNotificationSound();
   const initialLoadDoneRef = useRef(false);
 
-  // Récupérer toutes les conversations
+  // Récupérer toutes les conversations avec requêtes optimisées
   const { data: conversations, isLoading: loadingConversations } = useQuery({
     queryKey: ['conversations', user?.id],
     queryFn: async () => {
@@ -59,11 +59,12 @@ export const useConversations = () => {
       const isCreator = !!creatorData;
       const creatorId = creatorData?.id;
 
-      // Récupérer tous les messages privés pour cet utilisateur
+      // Récupérer uniquement le dernier message par conversation avec une requête optimisée
       let query = supabase
         .from('private_messages')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('id, creator_id, subscriber_id, content, message_type, created_at')
+        .order('created_at', { ascending: false })
+        .limit(100); // Limiter pour la performance
 
       if (isCreator && creatorId) {
         query = query.eq('creator_id', creatorId);
@@ -72,16 +73,17 @@ export const useConversations = () => {
       }
 
       const { data: messages, error } = await query;
-
       if (error) throw error;
 
-      // Grouper par conversation (par participant unique)
+      // Grouper par participant (garder seulement le dernier message)
       const conversationMap = new Map<string, any>();
+      const participantIds: string[] = [];
 
       for (const msg of messages || []) {
         const participantId = isCreator ? msg.subscriber_id : msg.creator_id;
         
         if (!conversationMap.has(participantId)) {
+          participantIds.push(participantId);
           conversationMap.set(participantId, {
             participant_id: participantId,
             last_message: msg.content || (msg.message_type === 'image' ? '📷 Photo' : '🎬 Vidéo'),
@@ -92,63 +94,67 @@ export const useConversations = () => {
         }
       }
 
-      // Récupérer les infos des participants
-      const participantIds = Array.from(conversationMap.keys());
-      const conversationsData: Conversation[] = [];
+      if (participantIds.length === 0) return [];
 
-      for (const participantId of participantIds) {
-        const convData = conversationMap.get(participantId);
-        
-        if (isCreator) {
-          // Le participant est un subscriber (user_id dans profiles)
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('display_name, avatar_url, username')
-            .eq('user_id', participantId)
-            .maybeSingle();
+      // Requête batch pour tous les participants en une seule fois
+      let participantsData: Map<string, any> = new Map();
 
-          conversationsData.push({
-            id: participantId,
-            participant_id: participantId,
-            participant_name: profile?.display_name || profile?.username || 'Utilisateur',
-            participant_avatar: profile?.avatar_url,
+      if (isCreator) {
+        // Les participants sont des subscribers - fetch tous les profiles en une requête
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, avatar_url, username')
+          .in('user_id', participantIds);
+
+        profiles?.forEach(p => {
+          participantsData.set(p.user_id, {
+            name: p.display_name || p.username || 'Utilisateur',
+            avatar: p.avatar_url,
             is_creator: false,
-            ...convData,
           });
-        } else {
-          // Le participant est un créateur
-          const { data: creator } = await supabase
-            .from('creators')
-            .select('stage_name, user_id')
-            .eq('id', participantId)
-            .maybeSingle();
+        });
+      } else {
+        // Les participants sont des créateurs - fetch avec join en une requête
+        const { data: creators } = await supabase
+          .from('creators')
+          .select('id, stage_name, user_id, profiles!creators_user_id_fkey(avatar_url)')
+          .in('id', participantIds);
 
-          if (creator) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('avatar_url')
-              .eq('user_id', creator.user_id)
-              .maybeSingle();
-
-            conversationsData.push({
-              id: participantId,
-              participant_id: participantId,
-              participant_name: creator.stage_name || 'Créateur',
-              participant_stage_name: creator.stage_name,
-              participant_avatar: profile?.avatar_url,
-              is_creator: true,
-              ...convData,
-            });
-          }
-        }
+        creators?.forEach(c => {
+          const profile = c.profiles as any;
+          participantsData.set(c.id, {
+            name: c.stage_name || 'Créateur',
+            stage_name: c.stage_name,
+            avatar: profile?.avatar_url,
+            is_creator: true,
+          });
+        });
       }
 
-      // Trier par date du dernier message
-      return conversationsData.sort((a, b) => 
-        new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime()
-      );
+      // Construire le tableau final
+      const conversationsData: Conversation[] = participantIds
+        .map(participantId => {
+          const convData = conversationMap.get(participantId);
+          const participant = participantsData.get(participantId);
+          
+          if (!participant) return null;
+
+          return {
+            id: participantId,
+            participant_id: participantId,
+            participant_name: participant.name,
+            participant_stage_name: participant.stage_name,
+            participant_avatar: participant.avatar,
+            is_creator: participant.is_creator,
+            ...convData,
+          };
+        })
+        .filter(Boolean) as Conversation[];
+
+      return conversationsData;
     },
     enabled: !!user,
+    staleTime: 30000, // Cache 30 secondes
   });
 
   // Écouter les nouveaux messages en temps réel
