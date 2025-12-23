@@ -91,10 +91,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
           // Mettre à jour le state du liveStream avec le nouveau statut
           setLiveStream((prev: any) => prev ? { ...prev, status: data.status, viewer_count: data.viewer_count, started_at: data.started_at } : prev);
 
-          // Si le stream vient de passer en live, afficher une notification
-          if (data.status === 'live') {
-            toast.success('Le live est maintenant actif !');
-          }
+          // Le statut change silencieusement - pas de notification intrusive
         }
 
         // Rediriger si terminé (sauf pour le créateur)
