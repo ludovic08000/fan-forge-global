@@ -42,11 +42,11 @@ const Header: React.FC = () => {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 ring-2 ring-primary/20 hover:ring-primary/50 transition-all">
+                  <Avatar className="h-10 w-10">
                     <AvatarImage src={user.user_metadata?.avatar_url} alt={user.email} />
-                    <AvatarFallback>
-                      {user.email?.charAt(0).toUpperCase()}
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground font-semibold text-sm">
+                      {user.email?.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
