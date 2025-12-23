@@ -50,36 +50,69 @@ export const useLiveKitViewer = (streamId: string) => {
 
   /**
    * Obtenir un token LiveKit depuis l'edge function
+   * Avec retry et refresh de session pour iOS
    */
-  const getToken = useCallback(async () => {
+  const getToken = useCallback(async (retryCount = 0): Promise<{ token: string; url: string }> => {
     if (!user?.id) {
       throw new Error('Authentification requise pour accéder au live');
     }
 
+    console.log('[LiveKit Viewer] Getting token, retry:', retryCount);
+
     // Récupérer la session pour avoir le token d'authentification
-    const { data: sessionData } = await supabase.auth.getSession();
+    let { data: sessionData } = await supabase.auth.getSession();
+    
+    // Sur iOS, parfois la session est stale, on force un refresh
+    if (!sessionData?.session?.access_token) {
+      console.log('[LiveKit Viewer] No session, trying to refresh...');
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('[LiveKit Viewer] Refresh error:', refreshError);
+        throw new Error('Session expirée, veuillez vous reconnecter');
+      }
+      sessionData = refreshData;
+    }
+    
     if (!sessionData?.session?.access_token) {
       throw new Error('Session expirée, veuillez vous reconnecter');
     }
     
-    const { data, error } = await supabase.functions.invoke('livekit-token', {
-      body: {
-        roomName: `live-${streamId}`,
-        participantName: user.id,
-        isPublisher: false,
-        streamId: streamId,
-      },
-      headers: {
-        Authorization: `Bearer ${sessionData.session.access_token}`,
-      },
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke('livekit-token', {
+        body: {
+          roomName: `live-${streamId}`,
+          participantName: user.id,
+          isPublisher: false,
+          streamId: streamId,
+        },
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
 
-    if (error) {
-      console.error('[LiveKit Viewer] Token error:', error);
-      throw new Error(error.message || 'Accès refusé - abonnement ou paiement requis');
+      if (error) {
+        console.error('[LiveKit Viewer] Token error:', error);
+        
+        // Si erreur d'auth et pas encore retry, refresh et retry
+        if (retryCount < 2 && (error.message?.includes('Auth') || error.message?.includes('session'))) {
+          console.log('[LiveKit Viewer] Auth error, refreshing session and retrying...');
+          await supabase.auth.refreshSession();
+          return getToken(retryCount + 1);
+        }
+        
+        throw new Error(error.message || 'Accès refusé - abonnement ou paiement requis');
+      }
+      
+      return { token: data.token, url: data.url };
+    } catch (err: any) {
+      // Retry une fois sur erreur réseau (fréquent sur mobile)
+      if (retryCount < 2 && (err?.message?.includes('network') || err?.message?.includes('fetch'))) {
+        console.log('[LiveKit Viewer] Network error, retrying...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return getToken(retryCount + 1);
+      }
+      throw err;
     }
-    
-    return { token: data.token, url: data.url };
   }, [streamId, user?.id]);
 
   /**
