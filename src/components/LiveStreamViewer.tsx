@@ -26,6 +26,7 @@ import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { EmojiPicker } from '@/components/live/EmojiPicker';
 import { PaidMediaUpload } from '@/components/live/PaidMediaUpload';
 import { PaidMediaMessage } from '@/components/live/PaidMediaMessage';
+import { LiveTipButton } from '@/components/live/LiveTipButton';
 
 interface LiveStreamViewerProps {
   streamId: string;
@@ -514,6 +515,15 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
               <div className="flex items-center gap-2">
                 {/* Emoji picker - pour tous */}
                 <EmojiPicker onEmojiSelect={(emoji) => setNewMessage(prev => prev + emoji)} />
+                
+                {/* Bouton tip - pour tous les utilisateurs (sauf le créateur) */}
+                {!isCreator && creatorData?.is_accepting_tips && (
+                  <LiveTipButton
+                    liveStreamId={streamId}
+                    creatorId={liveStream?.creator_id}
+                    creatorName={creatorData?.stage_name}
+                  />
+                )}
                 
                 {/* Bouton média payant - SEULEMENT créateur */}
                 {isCreator && (
