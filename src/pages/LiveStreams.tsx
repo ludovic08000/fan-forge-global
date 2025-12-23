@@ -33,8 +33,34 @@ const LiveStreams = () => {
   const [creatorInfos, setCreatorInfos] = useState<Record<string, CreatorInfo>>({});
   const [userSubscriptions, setUserSubscriptions] = useState<string[]>([]);
 
+  // Charger les lives et mettre en place le temps réel
   useEffect(() => {
     fetchLiveStreams();
+
+    // Écouter les changements en temps réel sur la table live_streams
+    const channel = supabase
+      .channel('live-streams-realtime-page')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'live_streams',
+        },
+        (payload) => {
+          console.log('[LiveStreams Page] Real-time update:', payload.eventType, payload);
+          // Recharger la liste complète pour avoir les données à jour
+          fetchLiveStreams();
+        }
+      )
+      .subscribe((status) => {
+        console.log('[LiveStreams Page] Realtime subscription status:', status);
+      });
+
+    return () => {
+      console.log('[LiveStreams Page] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Charger les infos des créateurs et les abonnements de l'utilisateur
