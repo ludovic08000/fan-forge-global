@@ -40,13 +40,13 @@ serve(async (req) => {
     // Vérifier si le live existe et est premium
     const { data: liveStream, error: liveError } = await supabaseClient
       .from('live_streams')
-      .select('*, creator:creator_id(id, user_id, subscription_price)')
+      .select('*, creator:creator_id(id, user_id, subscription_price, stripe_account_id)')
       .eq('id', liveStreamId)
       .single();
 
     if (liveError || !liveStream) throw new Error("Live stream not found");
     if (!liveStream.is_premium) throw new Error("This live stream is free");
-    logStep("Live stream found", { streamId: liveStreamId, price: liveStream.price });
+    logStep("Live stream found", { streamId: liveStreamId, price: liveStream.price, hasStripeConnect: !!liveStream.creator?.stripe_account_id });
 
     // Vérifier si l'utilisateur a déjà payé
     const { data: existingPayment } = await supabaseClient
@@ -99,7 +99,8 @@ serve(async (req) => {
 
     const amountInCents = Math.round(liveStream.price * 100);
     
-    const session = await stripe.checkout.sessions.create({
+    // Préparer les paramètres de la session
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [
@@ -134,7 +135,23 @@ serve(async (req) => {
         live_stream_id: liveStreamId,
         subscriber_id: user.id,
       },
-    });
+    };
+
+    // Si le créateur a Stripe Connect, ajouter le transfer avec 15% commission
+    if (liveStream.creator?.stripe_account_id) {
+      sessionParams.payment_intent_data = {
+        transfer_data: {
+          destination: liveStream.creator.stripe_account_id,
+        },
+        application_fee_amount: Math.round(amountInCents * 0.15),
+      };
+      logStep("Stripe Connect transfer configured", { 
+        destination: liveStream.creator.stripe_account_id,
+        fee: Math.round(amountInCents * 0.15)
+      });
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     // Créer l'entrée de paiement en attente
     await supabaseClient

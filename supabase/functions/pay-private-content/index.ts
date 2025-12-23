@@ -43,12 +43,12 @@ serve(async (req) => {
     if (!messageId) throw new Error("Message ID is required");
     logStep("Message ID received", { messageId });
 
-    // Récupérer les informations du message
+    // Récupérer les informations du message avec le compte Stripe Connect du créateur
     const { data: messageData, error: messageError } = await supabaseClient
       .from('private_messages')
       .select(`
         *,
-        creator:creators!creator_id(stage_name, user_id)
+        creator:creators!creator_id(stage_name, user_id, stripe_account_id)
       `)
       .eq('id', messageId)
       .single();
@@ -94,8 +94,10 @@ serve(async (req) => {
       logStep("New Stripe customer created", { customerId });
     }
 
-    // Créer la session de checkout pour un paiement unique avec Stripe Tax
-    const session = await stripe.checkout.sessions.create({
+    const amountInCents = Math.round(messageData.price * 100);
+
+    // Préparer les paramètres de la session
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       line_items: [
         {
@@ -105,7 +107,7 @@ serve(async (req) => {
               name: `Contenu privé de ${messageData.creator.stage_name}`,
               description: `Déblocage de contenu privé`,
             },
-            unit_amount: Math.round(messageData.price * 100), // Convertir en centimes
+            unit_amount: amountInCents,
           },
           quantity: 1,
         },
@@ -131,7 +133,23 @@ serve(async (req) => {
         user_id: user.id,
         content_type: 'private_content',
       },
-    });
+    };
+
+    // Si le créateur a Stripe Connect, ajouter le transfer avec 15% commission
+    if (messageData.creator?.stripe_account_id) {
+      sessionParams.payment_intent_data = {
+        transfer_data: {
+          destination: messageData.creator.stripe_account_id,
+        },
+        application_fee_amount: Math.round(amountInCents * 0.15),
+      };
+      logStep("Stripe Connect transfer configured", { 
+        destination: messageData.creator.stripe_account_id,
+        fee: Math.round(amountInCents * 0.15)
+      });
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
 
