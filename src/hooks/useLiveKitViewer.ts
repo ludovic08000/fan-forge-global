@@ -36,17 +36,29 @@ const loadLiveKit = async () => {
   return liveKitLoadPromise;
 };
 
+// Détecter Safari iOS
+const isSafariIOS = () => {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  const iOS = /iPad|iPhone|iPod/.test(ua);
+  const webkit = /WebKit/.test(ua);
+  const notChrome = !/CriOS/.test(ua);
+  return iOS && webkit && notChrome;
+};
+
 export const useLiveKitViewer = (streamId: string) => {
   const { user } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needsUserGesture, setNeedsUserGesture] = useState(false);
   
   const roomRef = useRef<any>(null);
   const isConnectingRef = useRef(false);
   const isConnectedRef = useRef(false);
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const tracksToAttachRef = useRef<any[]>([]);
 
   /**
    * Obtenir un token LiveKit depuis l'edge function
@@ -135,10 +147,14 @@ export const useLiveKitViewer = (streamId: string) => {
       const { token, url: livekitUrl } = await getToken();
       console.log('[LiveKit Viewer] Token obtained, URL:', livekitUrl);
 
-      // Créer la room
+      // Créer la room avec options Safari
       const room = new Room({
         adaptiveStream: true,
         dynacast: true,
+        // Options spécifiques pour Safari iOS
+        publishDefaults: {
+          simulcast: !isSafariIOS(), // Désactiver simulcast sur Safari iOS
+        },
       });
 
       // Handler pour attacher les tracks
@@ -147,12 +163,19 @@ export const useLiveKitViewer = (streamId: string) => {
         publication: any,
         participant: any
       ) => {
-        console.log('[LiveKit Viewer] Track subscribed:', track.kind, 'from', participant.identity);
+        console.log('[LiveKit Viewer] Track subscribed:', track.kind, 'from', participant.identity, 'Safari iOS:', isSafariIOS());
         
         if (track.kind === Track.Kind.Video) {
           // Utiliser la ref pour avoir toujours la valeur actuelle
           if (videoElementRef.current) {
             track.attach(videoElementRef.current);
+            // Safari iOS nécessite parfois un play() explicite
+            if (isSafariIOS()) {
+              videoElementRef.current.play().catch(e => {
+                console.log('[LiveKit Viewer] Safari video play failed, needs user gesture:', e);
+                setNeedsUserGesture(true);
+              });
+            }
             console.log('[LiveKit Viewer] Video attached to element');
           } else {
             console.warn('[LiveKit Viewer] Video element not available yet, retrying...');
@@ -160,16 +183,26 @@ export const useLiveKitViewer = (streamId: string) => {
             setTimeout(() => {
               if (videoElementRef.current) {
                 track.attach(videoElementRef.current);
+                if (isSafariIOS()) {
+                  videoElementRef.current.play().catch(() => setNeedsUserGesture(true));
+                }
                 console.log('[LiveKit Viewer] Video attached after retry');
               }
             }, 100);
           }
         } else if (track.kind === Track.Kind.Audio) {
-          const audio = track.attach();
-          audio.volume = 1;
-          document.body.appendChild(audio);
-          audioElementRef.current = audio;
-          console.log('[LiveKit Viewer] Audio attached');
+          // Sur Safari iOS, stocker le track audio pour le jouer après un user gesture
+          if (isSafariIOS()) {
+            console.log('[LiveKit Viewer] Safari iOS: storing audio track for user gesture');
+            tracksToAttachRef.current.push(track);
+            setNeedsUserGesture(true);
+          } else {
+            const audio = track.attach();
+            audio.volume = 1;
+            document.body.appendChild(audio);
+            audioElementRef.current = audio;
+            console.log('[LiveKit Viewer] Audio attached');
+          }
         }
       };
 
@@ -254,6 +287,35 @@ export const useLiveKitViewer = (streamId: string) => {
    */
   const setVideoRef = useCallback((element: HTMLVideoElement | null) => {
     videoElementRef.current = element;
+    // Safari iOS: configurer l'élément vidéo
+    if (element && isSafariIOS()) {
+      element.setAttribute('playsinline', 'true');
+      element.setAttribute('webkit-playsinline', 'true');
+      element.muted = true;
+    }
+  }, []);
+
+  /**
+   * Activer l'audio après un user gesture (requis sur Safari iOS)
+   */
+  const enableAudio = useCallback(() => {
+    console.log('[LiveKit Viewer] Enabling audio after user gesture');
+    
+    // Jouer la vidéo si nécessaire
+    if (videoElementRef.current) {
+      videoElementRef.current.play().catch(console.error);
+    }
+    
+    // Attacher les tracks audio en attente
+    tracksToAttachRef.current.forEach(track => {
+      const audio = track.attach();
+      audio.volume = 1;
+      document.body.appendChild(audio);
+      audioElementRef.current = audio;
+      console.log('[LiveKit Viewer] Audio attached after user gesture');
+    });
+    tracksToAttachRef.current = [];
+    setNeedsUserGesture(false);
   }, []);
 
   // Cleanup on unmount
@@ -272,8 +334,10 @@ export const useLiveKitViewer = (streamId: string) => {
     isConnected,
     isConnecting,
     error,
+    needsUserGesture,
     connect,
     disconnect,
     setVideoRef,
+    enableAudio,
   };
 };
