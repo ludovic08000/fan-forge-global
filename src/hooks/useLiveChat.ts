@@ -118,6 +118,31 @@ export const useLiveChat = (streamId: string) => {
   }, [streamId]);
 
   /**
+   * Récupérer le nom d'affichage de l'utilisateur (stage_name pour les créateurs)
+   */
+  const getUserDisplayName = async (userId: string): Promise<string> => {
+    // D'abord vérifier si c'est un créateur avec un stage_name
+    const { data: creator } = await supabase
+      .from('creators')
+      .select('stage_name')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (creator?.stage_name) {
+      return creator.stage_name;
+    }
+
+    // Sinon, utiliser le profil
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('username, display_name')
+      .eq('user_id', userId)
+      .single();
+
+    return profile?.username || profile?.display_name || 'Anonyme';
+  };
+
+  /**
    * Envoyer un message texte
    */
   const sendMessage = async (message: string) => {
@@ -129,18 +154,7 @@ export const useLiveChat = (streamId: string) => {
     console.log('sendMessage: envoi du message', { streamId, userId: user.id, message: message.trim() });
 
     try {
-      // Récupérer le profil pour le username
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('username, display_name')
-        .eq('user_id', user.id)
-        .single();
-
-      if (profileError) {
-        console.error('Erreur récupération profil:', profileError);
-      }
-
-      const username = profile?.username || profile?.display_name || user.email || 'Anonyme';
+      const username = await getUserDisplayName(user.id);
       console.log('sendMessage: username résolu:', username);
 
       const { data, error } = await supabase
@@ -174,14 +188,7 @@ export const useLiveChat = (streamId: string) => {
     if (!user) return;
 
     try {
-      // Récupérer le profil pour le username
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('username, display_name')
-        .eq('user_id', user.id)
-        .single();
-
-      const username = profile?.username || profile?.display_name || user.email || 'Créateur';
+      const username = await getUserDisplayName(user.id);
 
       const { error } = await supabase
         .from('live_stream_messages')
@@ -208,14 +215,7 @@ export const useLiveChat = (streamId: string) => {
     if (!user) return;
 
     try {
-      // Récupérer le profil pour le username
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('username, display_name')
-        .eq('user_id', user.id)
-        .single();
-
-      const username = profile?.username || profile?.display_name || user.email || 'Créateur';
+      const username = await getUserDisplayName(user.id);
 
       const { error } = await supabase
         .from('live_stream_messages')
