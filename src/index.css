@@ -4,7 +4,11 @@
 
 /* Premium Content Platform Design System */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* =====================================================
+   PREMIUM TYPOGRAPHY IMPORTS
+   ===================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
 /* =====================================================
    PROTECTION ANTI-TÉLÉCHARGEMENT DES MÉDIAS
@@ -120,11 +124,21 @@ body.screenshot-extension-detected .protected-content::after {
     --gradient-primary: linear-gradient(135deg, hsl(225 70% 55%), hsl(48 96% 68%));
     --gradient-secondary: linear-gradient(135deg, hsl(210 40% 96%), hsl(210 40% 98%));
     --gradient-hero: linear-gradient(135deg, hsl(225 70% 55%) 0%, hsl(230 75% 60%) 40%, hsl(48 96% 68%) 100%);
+    --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+    --gradient-mesh: radial-gradient(at 40% 20%, hsl(225 70% 55% / 0.3) 0px, transparent 50%),
+                     radial-gradient(at 80% 0%, hsl(48 96% 68% / 0.2) 0px, transparent 50%),
+                     radial-gradient(at 0% 50%, hsl(280 100% 70% / 0.2) 0px, transparent 50%);
+    
+    /* Neumorphism shadows */
+    --shadow-neumorphic: 8px 8px 16px hsl(0 0% 85%), -8px -8px 16px hsl(0 0% 100%);
+    --shadow-neumorphic-inset: inset 4px 4px 8px hsl(0 0% 85%), inset -4px -4px 8px hsl(0 0% 100%);
     
     /* Premium shadows */
     --shadow-premium: 0 25px 50px -12px hsl(225 70% 55% / 0.4);
     --shadow-card: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.06);
     --shadow-glow: 0 0 40px hsl(225 70% 55% / 0.4);
+    --shadow-float: 0 20px 40px -15px hsl(0 0% 0% / 0.15);
+    --shadow-neon: 0 0 20px hsl(225 70% 55% / 0.5), 0 0 40px hsl(225 70% 55% / 0.3), 0 0 60px hsl(225 70% 55% / 0.1);
 
     --radius: 1rem;
 
@@ -170,10 +184,22 @@ body.screenshot-extension-detected .protected-content::after {
     --input: 225 9% 15%;
     --ring: 280 100% 70%;
 
+    /* Dark mode gradients */
+    --gradient-glass: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    --gradient-mesh: radial-gradient(at 40% 20%, hsl(225 70% 60% / 0.2) 0px, transparent 50%),
+                     radial-gradient(at 80% 0%, hsl(48 96% 68% / 0.15) 0px, transparent 50%),
+                     radial-gradient(at 0% 50%, hsl(280 100% 70% / 0.15) 0px, transparent 50%);
+
+    /* Neumorphism shadows for dark mode */
+    --shadow-neumorphic: 8px 8px 16px hsl(220 15% 4%), -8px -8px 16px hsl(220 15% 12%);
+    --shadow-neumorphic-inset: inset 4px 4px 8px hsl(220 15% 4%), inset -4px -4px 8px hsl(220 15% 12%);
+
     /* Premium shadows for dark mode */
     --shadow-premium: 0 25px 50px -12px hsl(225 70% 60% / 0.5);
     --shadow-card: 0 10px 30px -10px hsl(0 0% 0% / 0.5);
     --shadow-glow: 0 0 60px hsl(225 70% 60% / 0.5);
+    --shadow-float: 0 20px 40px -15px hsl(0 0% 0% / 0.4);
+    --shadow-neon: 0 0 20px hsl(225 70% 60% / 0.6), 0 0 40px hsl(225 70% 60% / 0.4), 0 0 60px hsl(225 70% 60% / 0.2);
 
     --sidebar-background: 220 15% 8%;
     --sidebar-foreground: 0 0% 95%;
@@ -261,5 +287,409 @@ body.screenshot-extension-detected .protected-content::after {
 
   .protected-content::-moz-selection {
     background: transparent;
+  }
+}
+
+/* =====================================================
+   PREMIUM UTILITY CLASSES
+   ===================================================== */
+
+@layer utilities {
+  /* Glassmorphism Effect */
+  .glass {
+    @apply backdrop-blur-xl bg-white/10 border border-white/20;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  }
+
+  .glass-dark {
+    @apply backdrop-blur-xl bg-black/20 border border-white/10;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+  }
+
+  .glass-card {
+    @apply backdrop-blur-md bg-card/80 border border-border/50;
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Neumorphism Effect */
+  .neumorphic {
+    box-shadow: var(--shadow-neumorphic);
+    @apply bg-background rounded-2xl;
+  }
+
+  .neumorphic-inset {
+    box-shadow: var(--shadow-neumorphic-inset);
+    @apply bg-background rounded-2xl;
+  }
+
+  /* Premium Glow Effects */
+  .glow-primary {
+    box-shadow: var(--shadow-neon);
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 20px hsl(var(--accent) / 0.5), 0 0 40px hsl(var(--accent) / 0.3);
+  }
+
+  .glow-hover:hover {
+    box-shadow: var(--shadow-neon);
+    transition: box-shadow 0.3s ease;
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-primary);
+  }
+
+  .gradient-text-hero {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-hero);
+  }
+
+  /* Animated Gradient Background */
+  .gradient-animated {
+    background: linear-gradient(-45deg, 
+      hsl(var(--primary)), 
+      hsl(var(--primary-glow)), 
+      hsl(var(--accent)), 
+      hsl(280 100% 70%)
+    );
+    background-size: 400% 400%;
+    animation: gradient-shift 15s ease infinite;
+  }
+
+  /* Mesh Gradient Background */
+  .mesh-gradient {
+    background: var(--gradient-mesh);
+  }
+
+  /* Floating Animation */
+  .float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  /* Pulse Glow Animation */
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  /* Shimmer Effect */
+  .shimmer {
+    @apply relative overflow-hidden;
+  }
+
+  .shimmer::after {
+    content: '';
+    @apply absolute inset-0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--primary) / 0.1),
+      transparent
+    );
+    animation: shimmer-slide 2s infinite;
+  }
+
+  /* Premium Border */
+  .border-gradient {
+    border: 2px solid transparent;
+    background: linear-gradient(hsl(var(--background)), hsl(var(--background))) padding-box,
+                var(--gradient-primary) border-box;
+  }
+
+  /* Hover Lift Effect */
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-float);
+  }
+
+  /* Magnetic Button Effect */
+  .magnetic {
+    @apply transition-transform duration-200 ease-out;
+  }
+
+  /* Parallax Support */
+  .parallax {
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+
+  /* Text Shadow Premium */
+  .text-shadow-premium {
+    text-shadow: 0 4px 30px hsl(var(--primary) / 0.3);
+  }
+
+  /* Premium Card Styles */
+  .card-premium {
+    @apply glass-card rounded-2xl p-6;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-premium:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-premium);
+  }
+
+  /* Noise Texture Overlay */
+  .noise-overlay::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none opacity-[0.03];
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+
+  /* Spotlight Effect */
+  .spotlight {
+    @apply relative overflow-hidden;
+  }
+
+  .spotlight::before {
+    content: '';
+    @apply absolute w-[200%] h-[200%] pointer-events-none;
+    background: radial-gradient(
+      circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      hsl(var(--primary) / 0.15) 0%,
+      transparent 50%
+    );
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* =====================================================
+   PREMIUM ANIMATIONS
+   ===================================================== */
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 40px hsl(var(--primary) / 0.6), 0 0 60px hsl(var(--primary) / 0.3);
+  }
+}
+
+@keyframes shimmer-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes reveal-up {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes reveal-scale {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes blur-in {
+  0% {
+    opacity: 0;
+    filter: blur(10px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes rotate-gradient {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Animation Classes */
+@layer utilities {
+  .animate-reveal-up {
+    animation: reveal-up 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .animate-reveal-scale {
+    animation: reveal-scale 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .animate-blur-in {
+    animation: blur-in 0.5s ease-out forwards;
+  }
+
+  .animate-bounce-subtle {
+    animation: bounce-subtle 2s ease-in-out infinite;
+  }
+
+  /* Staggered Animation Delays */
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+  .stagger-6 { animation-delay: 0.6s; }
+
+  /* Scroll-triggered animations (use with Intersection Observer) */
+  .scroll-reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .scroll-reveal.revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =====================================================
+   MICRO-INTERACTIONS
+   ===================================================== */
+
+@layer utilities {
+  /* Button Press Effect */
+  .press-effect {
+    @apply transition-transform duration-100;
+  }
+
+  .press-effect:active {
+    transform: scale(0.97);
+  }
+
+  /* Link Underline Animation */
+  .link-underline {
+    @apply relative;
+  }
+
+  .link-underline::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-full h-0.5 bg-primary origin-left;
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+
+  .link-underline:hover::after {
+    transform: scaleX(1);
+  }
+
+  /* Icon Rotate on Hover */
+  .icon-rotate:hover svg {
+    transform: rotate(15deg);
+    transition: transform 0.3s ease;
+  }
+
+  /* Card Tilt Effect (subtle 3D) */
+  .card-tilt {
+    @apply transition-transform duration-300;
+    transform-style: preserve-3d;
+  }
+
+  .card-tilt:hover {
+    transform: perspective(1000px) rotateX(2deg) rotateY(-2deg);
+  }
+
+  /* Ripple Effect Container */
+  .ripple-container {
+    @apply relative overflow-hidden;
+  }
+
+  /* Scale on Focus */
+  .focus-scale:focus-visible {
+    @apply scale-105 outline-none ring-2 ring-primary ring-offset-2;
+  }
+}
+
+/* =====================================================
+   PREMIUM TYPOGRAPHY CLASSES
+   ===================================================== */
+
+@layer utilities {
+  .font-display {
+    font-family: 'Playfair Display', serif;
+  }
+
+  .font-heading {
+    font-family: 'Poppins', sans-serif;
+  }
+
+  .font-mono-alt {
+    font-family: 'Space Grotesk', monospace;
+  }
+
+  /* Premium Title Styles */
+  .title-xl {
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight;
+    line-height: 1.1;
+  }
+
+  .title-lg {
+    @apply text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight;
+    line-height: 1.15;
+  }
+
+  .title-md {
+    @apply text-2xl md:text-3xl font-semibold tracking-tight;
+    line-height: 1.2;
+  }
+
+  /* Elegant Text Styles */
+  .text-elegant {
+    @apply font-display italic text-lg md:text-xl;
+    letter-spacing: 0.02em;
+  }
+
+  .text-premium {
+    @apply font-heading font-medium;
+    letter-spacing: -0.01em;
   }
 }
