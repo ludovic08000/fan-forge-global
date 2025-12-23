@@ -8,7 +8,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Menu, X, User, LogOut, Settings, Crown } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, Crown, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { NotificationBell } from '@/components/NotificationBell';
 
@@ -88,6 +88,12 @@ const Header: React.FC = () => {
                   <Link to="/profile" className="flex items-center">
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Mon profil</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/messages" className="flex items-center">
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    <span>Messages</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
