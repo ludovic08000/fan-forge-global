@@ -12,12 +12,26 @@ interface EmbeddedCheckoutProps {
 }
 
 export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: EmbeddedCheckoutProps) => {
-  const [clientSecret, setClientSecret] = useState<string>(preloadedSecret || '');
+  const [clientSecret, setClientSecret] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+
+  // Décoder le clientSecret si nécessaire (URL encoded)
+  const decodeSecret = (secret: string): string => {
+    try {
+      // Si le secret contient des caractères encodés, le décoder
+      if (secret.includes('%')) {
+        return decodeURIComponent(secret);
+      }
+      return secret;
+    } catch {
+      return secret;
+    }
+  };
 
   useEffect(() => {
     // Si déjà préchargé, pas besoin de refetch
     if (preloadedSecret) {
-      setClientSecret(preloadedSecret);
+      setClientSecret(decodeSecret(preloadedSecret));
       return;
     }
 
@@ -32,16 +46,27 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
 
         if (error) throw error;
         if (data.clientSecret) {
-          setClientSecret(data.clientSecret);
+          setClientSecret(decodeSecret(data.clientSecret));
+        } else {
+          throw new Error('Aucun clientSecret reçu');
         }
-      } catch (error: any) {
-        console.error('Checkout error:', error);
-        onClose();
+      } catch (err: any) {
+        console.error('Checkout error:', err);
+        setError(err.message || 'Erreur lors du chargement du paiement');
       }
     };
 
     fetchClientSecret();
-  }, [creatorId, onClose, preloadedSecret]);
+  }, [creatorId, preloadedSecret]);
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <p className="text-destructive mb-4">{error}</p>
+        <button onClick={onClose} className="text-primary underline">Fermer</button>
+      </div>
+    );
+  }
 
   if (!clientSecret) {
     return (
