@@ -674,24 +674,25 @@ const Dashboard = () => {
 
         {/* Lightbox plein écran */}
         <Dialog open={!!selectedContent} onOpenChange={(open) => { if (!open) setSelectedContent(null); }}>
-          <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto h-auto p-2 bg-black border-none" aria-describedby="content-fullscreen-description">
+          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-transparent border-none shadow-none [&>button]:hidden" aria-describedby="content-fullscreen-description">
             <DialogHeader className="sr-only">
               <DialogTitle>{selectedContent?.title || 'Contenu'}</DialogTitle>
             </DialogHeader>
             {selectedContent && (
-              <div className="flex flex-col items-center justify-center">
+              <div className="flex flex-col items-center justify-center" onClick={() => setSelectedContent(null)}>
                 {selectedContent.content_type === 'video' ? (
                   <video
                     src={selectedContent.file_url}
                     controls
-                    className="max-w-full max-h-[80vh] rounded-lg"
+                    className="max-w-[90vw] max-h-[85vh] rounded-lg"
                     autoPlay
+                    onClick={(e) => e.stopPropagation()}
                   />
                 ) : (
                   <img
                     src={selectedContent.file_url}
                     alt={selectedContent.title}
-                    className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                    className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg"
                   />
                 )}
                 <div id="content-fullscreen-description" className="mt-4 text-center">
