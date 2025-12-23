@@ -44,8 +44,23 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
   const [contrast, setContrast] = useState<number>(100);
   const [saturation, setSaturation] = useState<number>(100);
   const [blur, setBlur] = useState<number>(0);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+
+  // Reset states when opening with new image
+  React.useEffect(() => {
+    if (isOpen) {
+      setImageLoaded(false);
+      setImageError(false);
+      setSelectedFilter('normal');
+      setBrightness(100);
+      setContrast(100);
+      setSaturation(100);
+      setBlur(0);
+    }
+  }, [isOpen, imageUrl]);
 
   const getFilterStyle = useCallback((): React.CSSProperties => {
     const baseFilter = FILTERS.find(f => f.id === selectedFilter)?.style.filter || '';
@@ -139,14 +154,30 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
       </div>
 
       {/* Zone image principale */}
-      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
+      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden bg-black/50">
+        {!imageLoaded && !imageError && (
+          <div className="text-white/70 flex flex-col items-center gap-2">
+            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <span>Chargement...</span>
+          </div>
+        )}
+        {imageError && (
+          <div className="text-red-400 flex flex-col items-center gap-2">
+            <X className="w-12 h-12" />
+            <span>Impossible de charger l'image</span>
+          </div>
+        )}
         <img
           ref={imageRef}
           src={imageUrl}
           alt="Photo à éditer"
-          style={getFilterStyle()}
+          style={{
+            ...getFilterStyle(),
+            display: imageLoaded ? 'block' : 'none',
+          }}
           className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-2xl"
-          crossOrigin="anonymous"
+          onLoad={() => setImageLoaded(true)}
+          onError={() => setImageError(true)}
         />
         <canvas ref={canvasRef} className="hidden" />
       </div>
