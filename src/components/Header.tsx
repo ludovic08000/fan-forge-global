@@ -21,7 +21,10 @@ const Header: React.FC = () => {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center">
-          <Link to="/" className="font-bold text-xl bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent hover:scale-105 transition-transform">
+          <Link 
+            to={user ? "/subscriptions" : "/"} 
+            className="font-bold text-xl bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent hover:scale-105 transition-transform"
+          >
             Crub
           </Link>
         </div>
