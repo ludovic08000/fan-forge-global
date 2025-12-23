@@ -22,7 +22,7 @@ import { useContent } from '@/hooks/useContent';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ContentCard from '@/components/ContentCard';
-import PrivateChat from '@/components/PrivateChat';
+import ModernPrivateChat from '@/components/ModernPrivateChat';
 import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
 // import AgeVerificationGate, { requiresAgeVerification } from '@/components/AgeVerificationGate';
 
@@ -492,7 +492,7 @@ const CreatorProfile: React.FC = () => {
         {/* Chat privé pour les abonnés */}
         {user && isSubscribed && showChat && creator && (
           <div className="mt-8">
-            <PrivateChat
+            <ModernPrivateChat
               creatorId={creator.id}
               creatorName={creator.stage_name || 'Créateur'}
               creatorAvatar="/placeholder.svg"
