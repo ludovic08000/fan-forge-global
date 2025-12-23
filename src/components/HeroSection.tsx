@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Play, Shield, Users, Lock, Sparkles, Zap } from "lucide-react";
+import { Shield, Users, Lock, Sparkles, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -64,12 +64,6 @@ const HeroSection = () => {
                 <Link to="/signup">Rejoindre Crub</Link>
               </Button>
             )}
-            <Button variant="outline" size="lg" asChild>
-              <Link to="/search">
-                <Play className="h-4 w-4 mr-2" />
-                Découvrir les créateurs
-              </Link>
-            </Button>
           </div>
         </div>
 
@@ -158,7 +152,7 @@ const HeroSection = () => {
               Crub s'impose comme une plateforme nouvelle génération, idéale pour développer sa visibilité, consolider sa communauté et partager du contenu exclusif dans un environnement élégant et sécurisé.
             </p>
             <Button variant="hero" size="lg" asChild>
-              <Link to="/auth?tab=signup">Commencer maintenant</Link>
+              <Link to="/signup">Commencer maintenant</Link>
             </Button>
           </div>
         </div>
