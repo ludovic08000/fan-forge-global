@@ -111,8 +111,8 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
       }
     };
 
-    // Vérifier toutes les 2 secondes pour une réactivité maximale
-    const interval = setInterval(checkStreamStatus, 2000);
+    // Vérifier chaque seconde pour une réactivité maximale
+    const interval = setInterval(checkStreamStatus, 1000);
     
     // Vérifier immédiatement au montage
     checkStreamStatus();
