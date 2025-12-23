@@ -506,6 +506,7 @@ export const LiveStreamStudio = () => {
 
   /**
    * Basculer entre caméra avant/arrière (mobile uniquement)
+   * IMPORTANT: Il faut aussi republier le track sur LiveKit pour les viewers
    */
   const switchCamera = async () => {
     if (!isMobile || isSwitchingCamera) return;
@@ -521,7 +522,11 @@ export const LiveStreamStudio = () => {
       
       // Obtenir un nouveau stream avec la nouvelle caméra
       const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { exact: newFacingMode } },
+        video: { 
+          facingMode: { exact: newFacingMode },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
         audio: false, // On garde l'audio existant
       });
       
@@ -535,9 +540,36 @@ export const LiveStreamStudio = () => {
         }
         streamRef.current.addTrack(newVideoTrack);
         
-        // Mettre à jour le srcObject
+        // Mettre à jour le srcObject local
         if (videoRef.current) {
           videoRef.current.srcObject = streamRef.current;
+          // Forcer la lecture sur iOS
+          await videoRef.current.play().catch(() => {});
+        }
+        
+        // IMPORTANT: Republier le nouveau track vidéo sur LiveKit si on est en live
+        if (isLive && currentStream?.id) {
+          try {
+            // Charger LiveKit de manière lazy
+            const liveKit = await import('livekit-client');
+            
+            // Accéder à la room via le hook - on doit stocker la room dans une ref
+            // Pour l'instant, on va recréer la publication du track
+            // La solution propre serait d'exposer la room depuis useLiveKitBroadcast
+            
+            // Workaround: Arrêter et redémarrer le broadcast avec le nouveau stream
+            console.log('[Studio] Republishing video track to LiveKit...');
+            await stopBroadcast();
+            
+            // Court délai pour laisser LiveKit se nettoyer
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            await startBroadcast(currentStream.id, streamRef.current);
+            console.log('[Studio] Video track republished successfully');
+          } catch (liveKitError) {
+            console.error('[Studio] Error republishing video track:', liveKitError);
+            toast.error('Erreur de synchronisation vidéo avec les viewers');
+          }
         }
         
         setFacingMode(newFacingMode);
