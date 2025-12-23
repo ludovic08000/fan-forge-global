@@ -7,7 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Crown, Calendar, ExternalLink, Settings, Loader2, RefreshCw, Search, TrendingUp } from 'lucide-react';
+import { Crown, Calendar, ExternalLink, Settings, Loader2, RefreshCw, Search, TrendingUp, Radio, Users, Lock, Play, Circle } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
 import SearchBar from '@/components/SearchBar';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLiveStream, LiveStream } from '@/hooks/useLiveStream';
 
 interface Subscription {
   id: string;
@@ -35,10 +36,60 @@ interface Subscription {
   };
 }
 
+interface CreatorInfo {
+  id: string;
+  stage_name: string | null;
+  avatar_url: string | null;
+  display_name: string | null;
+}
+
 const MySubscriptions = () => {
   const { user, loading } = useAuth();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { liveStreams, loading: livesLoading, fetchLiveStreams } = useLiveStream();
+  const [creatorInfos, setCreatorInfos] = useState<Record<string, CreatorInfo>>({});
+  const [userSubscriptions, setUserSubscriptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetchLiveStreams();
+  }, []);
+
+  // Charger les infos des créateurs pour les lives
+  useEffect(() => {
+    const loadCreatorInfos = async () => {
+      if (liveStreams.length === 0) return;
+      
+      const creatorIds = [...new Set(liveStreams.map(s => s.creator_id))];
+      
+      const { data: creators } = await supabase
+        .from('public_creators')
+        .select('id, stage_name, user_id')
+        .in('id', creatorIds);
+
+      if (creators) {
+        const userIds = creators.map(c => c.user_id).filter(Boolean);
+        const { data: profiles } = await supabase
+          .from('public_creator_profiles')
+          .select('user_id, avatar_url, display_name')
+          .in('user_id', userIds);
+
+        const infos: Record<string, CreatorInfo> = {};
+        creators.forEach(creator => {
+          const profile = profiles?.find(p => p.user_id === creator.user_id);
+          infos[creator.id!] = {
+            id: creator.id!,
+            stage_name: creator.stage_name,
+            avatar_url: profile?.avatar_url || null,
+            display_name: profile?.display_name || creator.stage_name || 'Créateur',
+          };
+        });
+        setCreatorInfos(infos);
+      }
+    };
+
+    loadCreatorInfos();
+  }, [liveStreams]);
 
   useEffect(() => {
     const loadSubscriptions = async () => {
@@ -86,6 +137,8 @@ const MySubscriptions = () => {
         );
 
         setSubscriptions(subscriptionsWithProfiles);
+        // Stocker les IDs des créateurs auxquels l'utilisateur est abonné
+        setUserSubscriptions(subscriptionsWithProfiles.filter(s => s.status === 'active').map(s => s.creator.id));
       } catch (error) {
         console.error('Error loading subscriptions:', error);
       } finally {
@@ -95,6 +148,17 @@ const MySubscriptions = () => {
 
     loadSubscriptions();
   }, [user]);
+
+  // Vérifier si l'utilisateur a accès à un live premium
+  const hasAccess = (stream: LiveStream) => {
+    if (!stream.is_premium) return true;
+    if (!user) return false;
+    return userSubscriptions.includes(stream.creator_id);
+  };
+
+  // Filtrer les lives en cours
+  const liveNow = liveStreams.filter((s) => s.status === 'live');
+  const upcomingLives = liveStreams.filter((s) => s.status === 'scheduled').slice(0, 3);
 
   if (loading) {
     return (
@@ -155,6 +219,151 @@ const MySubscriptions = () => {
           </div>
         </div>
 
+        {/* Section Lives en direct */}
+        {(liveNow.length > 0 || upcomingLives.length > 0) && (
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Radio className="h-6 w-6 text-red-500" />
+                <h2 className="text-2xl font-bold">Lives</h2>
+                {liveNow.length > 0 && (
+                  <Badge variant="destructive" className="animate-pulse">
+                    {liveNow.length} en direct
+                  </Badge>
+                )}
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/lives">Voir tous les lives</Link>
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Lives en cours */}
+              {liveNow.map((stream) => {
+                const creatorInfo = creatorInfos[stream.creator_id];
+                const canAccess = hasAccess(stream);
+                const isPremium = stream.is_premium;
+
+                return (
+                  <Card key={stream.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="relative aspect-video bg-black">
+                      <img
+                        src={stream.thumbnail_url || '/placeholder.svg'}
+                        alt={stream.title}
+                        className={`w-full h-full object-cover ${
+                          isPremium && !canAccess ? 'blur-lg scale-105' : ''
+                        }`}
+                      />
+                      
+                      {isPremium && !canAccess && (
+                        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
+                          <Lock className="h-6 w-6 text-white mb-1" />
+                          <span className="text-white text-sm font-medium">Premium - {stream.price}€</span>
+                        </div>
+                      )}
+                      
+                      <div className="absolute top-2 left-2">
+                        <Badge variant="destructive" className="gap-1 animate-pulse text-xs">
+                          <Circle className="h-2 w-2 fill-current" />
+                          LIVE
+                        </Badge>
+                      </div>
+
+                      <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-0.5 rounded text-xs flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        <span>{stream.viewer_count || 0}</span>
+                      </div>
+                    </div>
+
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={creatorInfo?.avatar_url || ''} />
+                          <AvatarFallback className="text-xs">
+                            {creatorInfo?.display_name?.charAt(0).toUpperCase() || 'C'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-sm line-clamp-1">{stream.title}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {creatorInfo?.display_name || 'Créateur'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        className="w-full" 
+                        size="sm"
+                        variant={canAccess || !isPremium ? 'default' : 'secondary'}
+                        asChild
+                      >
+                        <Link to={`/live/${stream.id}`}>
+                          {isPremium && !canAccess ? (
+                            <>
+                              <Lock className="h-3 w-3 mr-1" />
+                              S'abonner
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-3 w-3 mr-1" />
+                              Regarder
+                            </>
+                          )}
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+
+              {/* Lives à venir */}
+              {upcomingLives.map((stream) => {
+                const creatorInfo = creatorInfos[stream.creator_id];
+                const isPremium = stream.is_premium;
+                const canAccess = hasAccess(stream);
+
+                return (
+                  <Card key={stream.id} className="overflow-hidden hover:shadow-lg transition-shadow opacity-90">
+                    <div className="relative aspect-video bg-muted">
+                      <img
+                        src={stream.thumbnail_url || '/placeholder.svg'}
+                        alt={stream.title}
+                        className={`w-full h-full object-cover ${
+                          isPremium && !canAccess ? 'blur-md' : ''
+                        }`}
+                      />
+                      
+                      <div className="absolute top-2 left-2">
+                        <Badge variant="secondary" className="gap-1 text-xs">
+                          <Calendar className="h-3 w-3" />
+                          {stream.scheduled_at ? format(new Date(stream.scheduled_at), 'dd/MM HH:mm', { locale: fr }) : 'Bientôt'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={creatorInfo?.avatar_url || ''} />
+                          <AvatarFallback className="text-xs">
+                            {creatorInfo?.display_name?.charAt(0).toUpperCase() || 'C'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-sm line-clamp-1">{stream.title}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {creatorInfo?.display_name || 'Créateur'}
+                            {isPremium && <span className="ml-1">• {stream.price}€</span>}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {/* Active Creators Section */}
         <div className="mb-12">
           <div className="flex items-center gap-2 mb-6">
