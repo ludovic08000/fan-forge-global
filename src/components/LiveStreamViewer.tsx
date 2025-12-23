@@ -99,6 +99,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
 
   /**
    * Charger les infos du stream et vérifier l'accès avec gestion d'erreurs
+   * Optimisé pour donner l'accès immédiat au créateur
    */
   useEffect(() => {
     let isMounted = true;
@@ -107,12 +108,14 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
       if (!isMounted) return;
       
       try {
-        // Charger les infos du stream via la vue publique (pas de RLS restrictives)
-        const { data: streamData, error: streamError } = await supabase
+        // Charger stream + créateur en parallèle pour plus de rapidité
+        const streamPromise = supabase
           .from('public_live_streams')
           .select('*')
           .eq('id', streamId)
           .maybeSingle();
+
+        const { data: streamData, error: streamError } = await streamPromise;
 
         if (!isMounted) return;
         if (streamError) throw streamError;
@@ -125,32 +128,45 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
         
         setLiveStream(streamData);
 
-        // Charger les infos du créateur séparément (sans jointure car c'est une vue)
-        const { data: fetchedCreatorData } = await supabase
+        // Charger le créateur en parallèle avec la vérification d'accès si nécessaire
+        const creatorPromise = supabase
           .from('public_creators')
           .select('*')
           .eq('id', streamData.creator_id)
           .maybeSingle();
 
-        if (!isMounted) return;
-        setCreatorData(fetchedCreatorData);
-        
-        console.log('Creator check:', {
-          userId: user?.id,
-          creatorUserId: fetchedCreatorData?.user_id,
-          isMatch: user?.id === fetchedCreatorData?.user_id
-        });
-
-        // Vérifier si l'utilisateur est le créateur
-        if (user && fetchedCreatorData?.user_id === user.id) {
-          console.log('User is creator - setting isCreator to true');
-          setIsCreator(true);
-          setHasAccess(true);
-          setCheckingAccess(false);
-          return;
+        // Vérification rapide: si user_id correspond au creator_id via la table creators
+        // On peut checker directement si l'utilisateur est le créateur
+        if (user) {
+          const { data: creatorCheck } = await supabase
+            .from('creators')
+            .select('user_id')
+            .eq('id', streamData.creator_id)
+            .maybeSingle();
+          
+          if (!isMounted) return;
+          
+          if (creatorCheck?.user_id === user.id) {
+            // L'utilisateur est le créateur - accès immédiat
+            setIsCreator(true);
+            setHasAccess(true);
+            
+            // Charger les données du créateur en arrière-plan
+            creatorPromise.then(({ data }) => {
+              if (isMounted) setCreatorData(data);
+            });
+            
+            setCheckingAccess(false);
+            return;
+          }
         }
 
-        // Si le stream est gratuit (is_premium false OU prix = 0), accès direct
+        // Pour les non-créateurs, charger les infos créateur
+        const { data: fetchedCreatorData } = await creatorPromise;
+        if (!isMounted) return;
+        setCreatorData(fetchedCreatorData);
+
+        // Si le stream est gratuit, accès direct
         if (!streamData.is_premium || streamData.price === 0 || streamData.price === null) {
           setHasAccess(true);
           setCheckingAccess(false);
@@ -172,7 +188,6 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
       } catch (error) {
         if (!isMounted) return;
         console.error('Error checking access:', error);
-        // Ne pas tracker l'erreur en boucle
         setHasAccess(false);
       } finally {
         if (isMounted) {
