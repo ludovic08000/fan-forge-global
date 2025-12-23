@@ -39,13 +39,15 @@ export const useLiveStream = () => {
   const [loading, setLoading] = useState(false);
 
   /**
-   * Récupérer les lives en cours
+   * Récupérer les lives en cours (utilise la vue publique pour que tous les utilisateurs voient les lives)
    */
   const fetchLiveStreams = async (status?: string) => {
     try {
       setLoading(true);
+      
+      // Utiliser la vue publique pour récupérer tous les lives visibles
       let query = supabase
-        .from('live_streams')
+        .from('public_live_streams')
         .select('*')
         .order('created_at', { ascending: false });
 
