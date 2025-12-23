@@ -36,7 +36,7 @@ export const LiveStreamStudio = () => {
   const [isLive, setIsLive] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [isFree, setIsFree] = useState(false); // Par défaut: abonnés seulement
+  const [isPremium, setIsPremium] = useState(true); // Par défaut: abonnés seulement
   const [price, setPrice] = useState(0);
   const [enableRecording, setEnableRecording] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
@@ -367,8 +367,8 @@ export const LiveStreamStudio = () => {
       const { data: stream } = await createLiveStream({
         title,
         description,
-        is_premium: !isFree, // true = abonnés seulement, false = gratuit pour tous
-        price: !isFree ? price : 0,
+        is_premium: isPremium,
+        price: isPremium ? price : 0,
         enable_recording: enableRecording,
       });
 
@@ -694,8 +694,8 @@ export const LiveStreamStudio = () => {
                   className="text-lg"
                 />
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Live gratuit pour tous</span>
-                  <Switch checked={isFree} onCheckedChange={setIsFree} />
+                  <span className="text-sm">🔒 Réservé aux abonnés</span>
+                  <Switch checked={isPremium} onCheckedChange={setIsPremium} />
                 </div>
                 <Button 
                   onClick={handleStartLive} 
@@ -1032,19 +1032,19 @@ export const LiveStreamStudio = () => {
 
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label>Live gratuit</Label>
+                  <Label>🔒 Réservé aux abonnés</Label>
                   <p className="text-sm text-muted-foreground">
-                    Par défaut, seuls vos abonnés peuvent voir le live
+                    {isPremium ? 'Seuls vos abonnés peuvent voir ce live' : 'Tout le monde peut voir ce live'}
                   </p>
                 </div>
                 <Switch
-                  checked={isFree}
-                  onCheckedChange={setIsFree}
+                  checked={isPremium}
+                  onCheckedChange={setIsPremium}
                   disabled={isLive}
                 />
               </div>
 
-              {!isFree && (
+              {isPremium && (
                 <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
                   <p className="text-sm text-muted-foreground">
                     Ce live sera réservé à vos abonnés. 
