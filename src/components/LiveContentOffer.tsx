@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ShoppingBag, Euro, Gift, Image } from 'lucide-react';
+import { ShoppingBag, Euro, Gift, Image, Video } from 'lucide-react';
 import { ContentOffer } from '@/hooks/useLiveChat';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -104,12 +104,14 @@ export const ContentOfferSelector = ({ onSelectContent, creatorId }: ContentOffe
     const fetchContents = async () => {
       setLoading(true);
       try {
+        // Filtrer seulement les photos et vidéos (pas d'autres types de contenu)
         const { data, error } = await supabase
           .from('content')
-          .select('id, title, price, thumbnail_url, is_premium')
+          .select('id, title, price, thumbnail_url, is_premium, content_type')
           .eq('creator_id', creatorId)
           .eq('status', 'published')
           .eq('is_premium', true)
+          .in('content_type', ['image', 'video']) // Seulement photos et vidéos
           .order('created_at', { ascending: false })
           .limit(20);
 
@@ -176,7 +178,11 @@ export const ContentOfferSelector = ({ onSelectContent, creatorId }: ContentOffe
                         />
                       ) : (
                         <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
-                          <Image className="h-5 w-5 text-muted-foreground" />
+                          {content.content_type === 'video' ? (
+                            <Video className="h-5 w-5 text-muted-foreground" />
+                          ) : (
+                            <Image className="h-5 w-5 text-muted-foreground" />
+                          )}
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
@@ -186,7 +192,9 @@ export const ContentOfferSelector = ({ onSelectContent, creatorId }: ContentOffe
                           <span className="text-sm font-semibold">{content.price?.toFixed(2) || '0.00'}</span>
                         </div>
                       </div>
-                      <Badge variant="secondary">Premium</Badge>
+                      <Badge variant="secondary">
+                        {content.content_type === 'video' ? 'Vidéo' : 'Photo'}
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>
