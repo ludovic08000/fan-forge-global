@@ -1758,6 +1758,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      auto_cleanup_stale_lives: { Args: never; Returns: undefined }
       calculate_creator_revenue_with_commission: {
         Args: { creator_uuid: string; end_date?: string; start_date?: string }
         Returns: {
