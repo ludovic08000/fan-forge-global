@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, MessageCircle } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
-import PrivateChat from '@/components/PrivateChat';
+import ModernPrivateChat from '@/components/ModernPrivateChat';
 import SEOHead from '@/components/SEOHead';
 import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { useContentProtection } from '@/hooks/useContentProtection';
@@ -520,14 +520,14 @@ const CreatorPublicPage = () => {
 
       {/* Private Chat Dialog */}
       <Dialog open={showChat} onOpenChange={setShowChat}>
-        <DialogContent className="max-w-lg max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Message privé</DialogTitle>
+        <DialogContent className="max-w-lg max-h-[85vh] p-0 overflow-hidden">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Message privé avec {creator?.stage_name || profile?.display_name}</DialogTitle>
           </DialogHeader>
           {creator && (
-            <PrivateChat 
+            <ModernPrivateChat 
               creatorId={creator.id}
-              creatorName={creator.stage_name || profile?.display_name || profile?.username}
+              creatorName={creator.stage_name || profile?.display_name || profile?.username || 'Créateur'}
               creatorAvatar={profile?.avatar_url}
             />
           )}

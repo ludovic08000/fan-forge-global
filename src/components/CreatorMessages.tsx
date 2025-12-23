@@ -7,7 +7,7 @@ import { MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import PrivateChat from './PrivateChat';
+import ModernPrivateChat from './ModernPrivateChat';
 
 interface Conversation {
   subscriber_id: string;
@@ -118,7 +118,7 @@ const CreatorMessages: React.FC = () => {
             Conversation avec {selectedConversation.subscriber_name}
           </span>
         </div>
-        <PrivateChat
+        <ModernPrivateChat
           creatorId={creatorData.id}
           creatorName={selectedConversation.subscriber_name}
           creatorAvatar={selectedConversation.subscriber_avatar || undefined}
