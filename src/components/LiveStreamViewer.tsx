@@ -386,45 +386,103 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   if (!hasAccess && liveStream?.is_premium) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <Card className="max-w-md mx-auto">
-          <CardContent className="p-8 text-center space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <Lock className="h-8 w-8 text-primary" />
+        <div className="max-w-4xl mx-auto">
+          {/* Aperçu flou du live */}
+          <div className="relative aspect-video rounded-xl overflow-hidden mb-6">
+            {/* Fond animé simulant un live */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-primary/10 animate-pulse" />
+            
+            {/* Thumbnail floue si disponible */}
+            {liveStream.thumbnail_url ? (
+              <img 
+                src={liveStream.thumbnail_url} 
+                alt="Aperçu"
+                className="absolute inset-0 w-full h-full object-cover blur-xl scale-110"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-muted to-primary/20" />
+            )}
+            
+            {/* Overlay avec effet de profondeur */}
+            <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" />
+            
+            {/* Badge EN DIRECT */}
+            <div className="absolute top-4 left-4">
+              <Badge variant="destructive" className="gap-1 animate-pulse">
+                <Circle className="h-2 w-2 fill-current" />
+                EN DIRECT
+              </Badge>
             </div>
-            <div>
-              <h2 className="text-2xl font-bold mb-2">{liveStream.title}</h2>
-              <p className="text-muted-foreground mb-4">
-                Ce live est réservé aux abonnés
-              </p>
-              
-              {liveStream.price > 0 && (
-                <div className="p-4 bg-muted rounded-lg mb-4">
-                  <p className="text-sm text-muted-foreground mb-1">Ou accès unique :</p>
-                  <p className="text-2xl font-bold">
-                    {new Intl.NumberFormat('fr-FR', {
-                      style: 'currency',
-                      currency: 'EUR'
-                    }).format(liveStream.price)}
-                  </p>
-                </div>
-              )}
+            
+            {/* Nombre de viewers */}
+            <div className="absolute top-4 right-4">
+              <Badge variant="secondary" className="gap-1">
+                <Users className="h-3 w-3" />
+                {liveStream.viewer_count || 0} spectateurs
+              </Badge>
             </div>
-            <div className="space-y-2">
-              {liveStream.price > 0 && (
-                <Button onClick={handlePayForAccess} className="w-full" variant="premium">
-                  Acheter l'accès
-                </Button>
-              )}
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => window.history.back()}
-              >
-                Retour
-              </Button>
+            
+            {/* Contenu central */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Card className="w-full max-w-md mx-4 border-primary/20 shadow-2xl animate-scale-in">
+                <CardContent className="p-8 text-center space-y-4">
+                  <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center animate-pulse">
+                    <Lock className="h-8 w-8 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">{liveStream.title}</h2>
+                    <p className="text-muted-foreground mb-4">
+                      Ce live est réservé aux abonnés
+                    </p>
+                    
+                    {creatorData && (
+                      <div className="flex items-center justify-center gap-2 mb-4">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback>{creatorData.stage_name?.[0] || 'C'}</AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">{creatorData.stage_name || 'Créateur'}</span>
+                      </div>
+                    )}
+                    
+                    {liveStream.price > 0 && (
+                      <div className="p-4 bg-muted rounded-lg mb-4">
+                        <p className="text-sm text-muted-foreground mb-1">Ou accès unique :</p>
+                        <p className="text-2xl font-bold">
+                          {new Intl.NumberFormat('fr-FR', {
+                            style: 'currency',
+                            currency: 'EUR'
+                          }).format(liveStream.price)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    {creatorData && (
+                      <Button 
+                        onClick={() => navigate(`/creator/${creatorData.user_id}`)} 
+                        className="w-full"
+                      >
+                        S'abonner au créateur
+                      </Button>
+                    )}
+                    {liveStream.price > 0 && (
+                      <Button onClick={handlePayForAccess} className="w-full" variant="premium">
+                        Acheter l'accès unique
+                      </Button>
+                    )}
+                    <Button 
+                      variant="ghost" 
+                      className="w-full"
+                      onClick={() => window.history.back()}
+                    >
+                      Retour
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
