@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Users, Send, Circle, Heart, Lock, ChevronUp, Wifi, WifiOff, Loader2, Volume2 } from 'lucide-react';
+import { Users, Send, Circle, Heart, Lock, ChevronUp, Wifi, WifiOff, Loader2, Volume2, Clock } from 'lucide-react';
+import { LiveTimer } from '@/components/live/LiveTimer';
 import { useLiveStream } from '@/hooks/useLiveStream';
 import { useLiveChat, ContentOffer, PaidMedia } from '@/hooks/useLiveChat';
 import { useLiveKitViewer } from '@/hooks/useLiveKitViewer';
@@ -99,8 +100,11 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
           if (!isCreator && (newData.status === 'ended' || newData.status === 'cancelled')) {
             isRedirecting = true;
             console.log('[LiveStreamViewer] Live ended, redirecting viewer...');
-            toast.info('Le live est terminé');
-            navigate('/dashboard');
+            toast.info('🔴 Le live est terminé ! Merci d\'avoir regardé.', {
+              duration: 5000,
+              description: 'Vous avez été redirigé vers votre espace.'
+            });
+            navigate('/subscriptions');
           }
         }
       )
@@ -436,16 +440,19 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                   className="w-full h-full object-cover"
                 />
                 
-                {/* Badge EN DIRECT + Status LiveKit */}
-                <div className="absolute top-4 left-4 flex items-center gap-2">
+                {/* Badge EN DIRECT + Timer + Status LiveKit */}
+                <div className="absolute top-4 left-4 flex items-center gap-2 flex-wrap">
                   <Badge variant="destructive" className="gap-1 animate-pulse">
                     <Circle className="h-2 w-2 fill-current" />
                     EN DIRECT
                   </Badge>
+                  {liveStream?.started_at && (
+                    <LiveTimer startedAt={liveStream.started_at} compact />
+                  )}
                   {isConnected ? (
                     <Badge variant="secondary" className="gap-1 bg-green-500/90">
                       <Wifi className="h-3 w-3" />
-                      Crub connecté
+                      Connecté
                     </Badge>
                   ) : isConnecting ? (
                     <Badge variant="secondary" className="gap-1 bg-yellow-500/90">

@@ -11,7 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera, Send, Shield, MessageCircle, ImageIcon } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera, Send, Shield, MessageCircle, ImageIcon, Clock } from 'lucide-react';
+import { LiveTimer } from '@/components/live/LiveTimer';
 import { EmojiPicker } from '@/components/live/EmojiPicker';
 import { PaidMediaUpload } from '@/components/live/PaidMediaUpload';
 import { TipMessage } from '@/components/live/TipMessage';
@@ -841,12 +842,17 @@ export const LiveStreamStudio = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Studio Live</CardTitle>
-              {isLive && (
-                <Badge variant="destructive" className="gap-1 animate-pulse">
-                  <Circle className="h-2 w-2 fill-current" />
-                  EN DIRECT
-                </Badge>
-              )}
+              <div className="flex items-center gap-2">
+                {isLive && currentStream?.started_at && (
+                  <LiveTimer startedAt={currentStream.started_at} />
+                )}
+                {isLive && (
+                  <Badge variant="destructive" className="gap-1 animate-pulse">
+                    <Circle className="h-2 w-2 fill-current" />
+                    EN DIRECT
+                  </Badge>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
