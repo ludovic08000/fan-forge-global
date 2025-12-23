@@ -17,6 +17,7 @@ interface PaidMediaMessageProps {
   thumbnailUrl?: string;
   isPaid?: boolean;
   creatorName: string;
+  isLiveMedia?: boolean; // Nouveau: pour distinguer les médias de live
 }
 
 export const PaidMediaMessage = ({
@@ -26,6 +27,7 @@ export const PaidMediaMessage = ({
   thumbnailUrl,
   isPaid = false,
   creatorName,
+  isLiveMedia = true, // Par défaut c'est un média de live
 }: PaidMediaMessageProps) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -40,8 +42,10 @@ export const PaidMediaMessage = ({
 
     setLoading(true);
     try {
-      // Appeler l'edge function pour créer le checkout
-      const { data, error } = await supabase.functions.invoke('pay-private-content', {
+      // Utiliser la bonne edge function selon le type de média
+      const functionName = isLiveMedia ? 'pay-live-media' : 'pay-private-content';
+      
+      const { data, error } = await supabase.functions.invoke(functionName, {
         body: { 
           messageId: mediaId,
           returnUrl: window.location.href,
