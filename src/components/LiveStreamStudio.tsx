@@ -748,6 +748,9 @@ export const LiveStreamStudio = () => {
                     
                     {/* Zone de saisie avec boutons médias */}
                     <div className="flex gap-2 mt-2 items-center">
+                      {/* Emoji picker pour mobile */}
+                      <EmojiPicker onEmojiSelect={(emoji) => setChatMessage(prev => prev + emoji)} />
+                      
                       {/* Bouton média payant pour mobile */}
                       {creatorId && (
                         <PaidMediaUpload
