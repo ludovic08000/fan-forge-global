@@ -53,17 +53,20 @@ const MySubscriptions = () => {
   const [creatorInfos, setCreatorInfos] = useState<Record<string, CreatorInfo>>({});
   const [userSubscriptions, setUserSubscriptions] = useState<string[]>([]);
 
-  // Charger les lives et écouter en temps réel directement ici
+  // Charger les lives et écouter en temps réel + polling de secours
   useEffect(() => {
+    let isMounted = true;
+
     const fetchLives = async () => {
-      setLivesLoading(true);
+      if (!isMounted) return;
+      
       const { data, error } = await supabase
         .from('public_live_streams')
         .select('*')
         .in('status', ['live', 'scheduled'])
         .order('created_at', { ascending: false });
       
-      if (!error && data) {
+      if (!error && data && isMounted) {
         // Filtrer les lives fantômes
         const validLives = data.filter(stream => {
           if (stream.status !== 'live') return true;
@@ -77,15 +80,17 @@ const MySubscriptions = () => {
           return true;
         });
         setLiveStreams(validLives as LiveStream[]);
+        setLivesLoading(false);
       }
-      setLivesLoading(false);
     };
 
+    // Charger immédiatement
+    setLivesLoading(true);
     fetchLives();
 
     // Écouter les changements en temps réel
     const channel = supabase
-      .channel('mysubscriptions-lives-realtime')
+      .channel('mysubscriptions-lives-realtime-v3')
       .on(
         'postgres_changes',
         {
@@ -95,7 +100,6 @@ const MySubscriptions = () => {
         },
         (payload) => {
           console.log('[MySubscriptions] Realtime event:', payload.eventType);
-          // Recharger immédiatement
           fetchLives();
         }
       )
@@ -103,8 +107,16 @@ const MySubscriptions = () => {
         console.log('[MySubscriptions] Realtime status:', status);
       });
 
+    // Polling de secours toutes les 3 secondes pour garantir les mises à jour
+    const pollInterval = setInterval(() => {
+      console.log('[MySubscriptions] Polling for live updates...');
+      fetchLives();
+    }, 3000);
+
     return () => {
+      isMounted = false;
       supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
   }, []);
 
