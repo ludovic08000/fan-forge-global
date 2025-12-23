@@ -23,6 +23,8 @@ export const NotificationBell = () => {
     // Navigate based on notification type
     if (notification.type === 'live_started' && notification.data?.live_stream_id) {
       navigate(`/watch-live/${notification.data.live_stream_id}`);
+    } else if (notification.type === 'new_message') {
+      navigate('/messages');
     }
   };
 
