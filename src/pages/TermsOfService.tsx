@@ -198,19 +198,67 @@ const TermsOfService = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">11. Protection du contenu</h2>
+            <h2 className="text-2xl font-semibold mb-4">11. Protection du contenu et Technologies de sécurité</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              CreatorHub met en place des mesures de protection du contenu :
+              CreatorHub déploie un arsenal complet de technologies de protection pour sécuriser le contenu des créateurs et les données des utilisateurs :
             </p>
+            
+            <h3 className="text-xl font-semibold mt-6 mb-3">11.1 Protection anti-capture et anti-copie</h3>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Filigrane (watermark) invisible sur les contenus</li>
-              <li>Traçabilité des téléchargements et captures</li>
-              <li>Système de signalement des fuites</li>
-              <li>Suspension des comptes en cas de partage non autorisé</li>
+              <li><strong>Blocage des raccourcis clavier</strong> : Interception des combinaisons PrintScreen, Ctrl+S, Ctrl+P, Ctrl+Shift+S</li>
+              <li><strong>Protection du menu contextuel</strong> : Désactivation du clic droit sur les médias protégés</li>
+              <li><strong>Anti-glisser-déposer</strong> : Prévention du drag-and-drop sur les images et vidéos</li>
+              <li><strong>Overlay invisible</strong> : Couche de protection empêchant l'interaction directe avec les médias</li>
+              <li><strong>Désactivation de la sélection</strong> : Impossibilité de sélectionner ou copier les contenus protégés</li>
             </ul>
-            <p className="text-muted-foreground leading-relaxed mt-4">
-              <strong>Tout partage non autorisé de contenu entraînera la suspension immédiate du compte 
-              et pourra faire l'objet de poursuites judiciaires.</strong>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">11.2 Filigranes et traçabilité</h3>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li><strong>Filigrane forensique invisible</strong> : Watermark unique encodant l'identifiant utilisateur et l'horodatage, imperceptible à l'œil nu mais détectable par analyse</li>
+              <li><strong>Identifiant court unique</strong> : Hash cryptographique permettant d'identifier la source de toute fuite</li>
+              <li><strong>Filigrane visible optionnel</strong> : Possibilité d'afficher un watermark textuel sur les contenus sensibles</li>
+              <li><strong>Multi-positionnement</strong> : Filigranes placés à différents endroits avec opacités variables pour résister aux tentatives de suppression</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">11.3 Analyse antivirus et sécurité des fichiers</h3>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li><strong>Scan antivirus automatique</strong> : Tous les fichiers uploadés sont analysés via l'API MetaDefender avant publication</li>
+              <li><strong>Détection multi-moteurs</strong> : Analyse par plusieurs moteurs antivirus simultanés pour une protection optimale</li>
+              <li><strong>Blocage des fichiers infectés</strong> : Les fichiers contenant des menaces sont automatiquement rejetés</li>
+              <li><strong>Validation des types de fichiers</strong> : Vérification stricte des formats autorisés (images, vidéos) et rejet des fichiers suspects</li>
+              <li><strong>Limite de taille</strong> : Contrôle des tailles de fichiers pour prévenir les abus (max 140 Mo par fichier scanné)</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">11.4 Protection des comptes et authentification</h3>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li><strong>Protection anti brute-force</strong> : Blocage automatique après plusieurs tentatives de connexion échouées (5 tentatives max, blocage de 30 minutes)</li>
+              <li><strong>Détection par IP</strong> : Surveillance des tentatives suspectes par adresse IP</li>
+              <li><strong>Jetons CSRF</strong> : Protection contre les attaques Cross-Site Request Forgery avec jetons à durée limitée</li>
+              <li><strong>Authentification à deux facteurs (2FA)</strong> : Option de sécurité renforcée via application d'authentification</li>
+              <li><strong>Sessions sécurisées</strong> : Gestion des sessions avec expiration automatique</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">11.5 Sécurité des données et URLs</h3>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li><strong>URLs signées temporaires</strong> : Les liens vers les médias expirent après un délai défini</li>
+              <li><strong>Chiffrement des données</strong> : Transmission sécurisée via HTTPS/TLS</li>
+              <li><strong>Row Level Security (RLS)</strong> : Politiques de sécurité au niveau de la base de données limitant l'accès aux données autorisées</li>
+              <li><strong>Rate limiting</strong> : Limitation du nombre de requêtes pour prévenir les attaques par déni de service</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold mt-6 mb-3">11.6 Détection et réponse aux fuites</h3>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li><strong>Système de signalement</strong> : Interface dédiée pour reporter les fuites de contenu</li>
+              <li><strong>Décodage des watermarks</strong> : Capacité d'identifier l'utilisateur source via le filigrane forensique</li>
+              <li><strong>Suspension automatique</strong> : Les utilisateurs identifiés comme source de fuites sont immédiatement suspendus</li>
+              <li><strong>Suivi des récidivistes</strong> : Base de données des utilisateurs ayant commis plusieurs infractions</li>
+              <li><strong>Actions légales</strong> : Conservation des preuves pour d'éventuelles poursuites judiciaires</li>
+            </ul>
+
+            <p className="text-muted-foreground leading-relaxed mt-6 bg-destructive/10 border border-destructive/30 rounded-lg p-4">
+              <strong>⚠️ AVERTISSEMENT :</strong> Tout partage non autorisé de contenu entraînera la suspension immédiate du compte. 
+              Grâce à notre système de filigrane forensique, nous sommes en mesure d'identifier la source de toute fuite et de prendre 
+              les mesures légales appropriées, y compris des poursuites judiciaires.
             </p>
           </section>
 
