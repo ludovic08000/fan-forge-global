@@ -53,12 +53,50 @@ const MySubscriptions = () => {
   const [creatorInfos, setCreatorInfos] = useState<Record<string, CreatorInfo>>({});
   const [userSubscriptions, setUserSubscriptions] = useState<string[]>([]);
 
+  /**
+   * Filtrer les lives fantômes (heartbeat > 2 minutes)
+   */
+  const filterGhostLives = (streams: any[]): LiveStream[] => {
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    
+    return streams.filter((stream: any) => {
+      if (stream.status !== 'live') return true;
+      if (!stream.started_at) return false;
+      
+      // Exclure si heartbeat trop vieux
+      if (stream.last_heartbeat) {
+        const lastHeartbeat = new Date(stream.last_heartbeat);
+        if (lastHeartbeat < twoMinutesAgo) {
+          return false;
+        }
+      }
+      return true;
+    }) as LiveStream[];
+  };
+
+  /**
+   * Nettoyer les lives fantômes en background
+   */
+  const cleanupGhostLives = async () => {
+    try {
+      await fetch('https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/cleanup-stale-lives', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      console.error('[MySubscriptions] Cleanup error:', error);
+    }
+  };
+
   // Charger les lives et écouter en temps réel + polling de secours
   useEffect(() => {
     let isMounted = true;
 
     const fetchLives = async () => {
       if (!isMounted) return;
+      
+      // Lancer cleanup en background (ne bloque pas)
+      cleanupGhostLives();
       
       const { data, error } = await supabase
         .from('public_live_streams')
@@ -67,19 +105,9 @@ const MySubscriptions = () => {
         .order('created_at', { ascending: false });
       
       if (!error && data && isMounted) {
-        // Filtrer les lives fantômes
-        const validLives = data.filter(stream => {
-          if (stream.status !== 'live') return true;
-          if (!stream.started_at) return false;
-          const startedAt = new Date(stream.started_at);
-          const now = new Date();
-          const diffMinutes = (now.getTime() - startedAt.getTime()) / (1000 * 60);
-          if (diffMinutes > 5 && (!stream.viewer_count || stream.viewer_count === 0)) {
-            return false;
-          }
-          return true;
-        });
-        setLiveStreams(validLives as LiveStream[]);
+        // Filtrer les lives fantômes immédiatement côté client
+        const validLives = filterGhostLives(data);
+        setLiveStreams(validLives);
         setLivesLoading(false);
       }
     };
@@ -90,7 +118,7 @@ const MySubscriptions = () => {
 
     // Écouter les changements en temps réel
     const channel = supabase
-      .channel('mysubscriptions-lives-realtime-v3')
+      .channel('mysubscriptions-lives-realtime-v4')
       .on(
         'postgres_changes',
         {
@@ -107,9 +135,8 @@ const MySubscriptions = () => {
         console.log('[MySubscriptions] Realtime status:', status);
       });
 
-    // Polling de secours toutes les 3 secondes pour garantir les mises à jour
+    // Polling de secours toutes les 3 secondes
     const pollInterval = setInterval(() => {
-      console.log('[MySubscriptions] Polling for live updates...');
       fetchLives();
     }, 3000);
 
