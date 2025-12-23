@@ -386,7 +386,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                 {isConnecting && !isConnected && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10">
                     <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                    <p className="text-white">Connexion au stream LiveKit...</p>
+                    <p className="text-white">Connexion au stream...</p>
                   </div>
                 )}
                 
@@ -397,7 +397,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                         <Wifi className="h-12 w-12 text-amber-400 mx-auto mb-4" />
                         <h3 className="text-white font-semibold mb-2">Mode aperçu limité</h3>
                         <p className="text-white/80 text-sm mb-4">
-                          La diffusion vidéo LiveKit n'est pas disponible dans l'environnement d'aperçu. 
+                          La diffusion vidéo n'est pas disponible dans l'environnement d'aperçu. 
                           Pour tester la réception vidéo, publiez l'application.
                         </p>
                         <Button onClick={connect} variant="secondary" size="sm">
