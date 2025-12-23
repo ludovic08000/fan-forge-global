@@ -50,11 +50,21 @@ export const useLiveKitBroadcast = () => {
    */
   const getToken = useCallback(async (streamId: string, isPublisher: boolean) => {
     console.log('[LiveKit Broadcast] Getting token for stream:', streamId);
+    
+    // Récupérer la session pour avoir le token d'authentification
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.access_token) {
+      throw new Error('Session expirée, veuillez vous reconnecter');
+    }
+    
     const { data, error } = await supabase.functions.invoke('livekit-token', {
       body: {
         roomName: `live-${streamId}`,
         participantName: `broadcaster-${streamId}`,
         isPublisher,
+      },
+      headers: {
+        Authorization: `Bearer ${sessionData.session.access_token}`,
       },
     });
 

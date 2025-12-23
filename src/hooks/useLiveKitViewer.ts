@@ -55,6 +55,12 @@ export const useLiveKitViewer = (streamId: string) => {
     if (!user?.id) {
       throw new Error('Authentification requise pour accéder au live');
     }
+
+    // Récupérer la session pour avoir le token d'authentification
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.access_token) {
+      throw new Error('Session expirée, veuillez vous reconnecter');
+    }
     
     const { data, error } = await supabase.functions.invoke('livekit-token', {
       body: {
@@ -62,6 +68,9 @@ export const useLiveKitViewer = (streamId: string) => {
         participantName: user.id,
         isPublisher: false,
         streamId: streamId,
+      },
+      headers: {
+        Authorization: `Bearer ${sessionData.session.access_token}`,
       },
     });
 
