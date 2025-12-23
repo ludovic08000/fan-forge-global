@@ -183,7 +183,7 @@ const LiveStreams = () => {
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold line-clamp-2 mb-1">{stream.title}</h3>
               <p className="text-sm text-muted-foreground mb-2">
-                {creatorInfo?.display_name || creatorInfo?.stage_name || 'Créateur'}
+                {creatorInfo?.stage_name || creatorInfo?.display_name || 'Créateur'}
               </p>
               
               {stream.description && !isPremium && (
