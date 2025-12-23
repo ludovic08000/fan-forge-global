@@ -173,128 +173,128 @@ export const LiveStreamStudio = () => {
   /**
    * Initialiser les dispositifs média avec fallbacks mobile améliorés
    */
-  useEffect(() => {
-    const initializeMedia = async () => {
-      try {
-        setMediaError(null);
-        
-        // Vérifier si l'API mediaDevices est disponible
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error('Votre navigateur ne supporte pas l\'accès à la caméra');
-        }
+  const initializeMedia = async () => {
+    try {
+      setMediaError(null);
+      setIsMediaReady(false);
+      
+      // Vérifier si l'API mediaDevices est disponible
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Votre navigateur ne supporte pas l\'accès à la caméra');
+      }
 
-        // Détecter si mobile
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        
-        // Sur iOS, demander les permissions une à une peut être plus fiable
-        if (isIOS) {
-          try {
-            // D'abord vérifier les permissions
-            const permissions = await navigator.mediaDevices.enumerateDevices();
-            const hasVideoInput = permissions.some(d => d.kind === 'videoinput');
-            const hasAudioInput = permissions.some(d => d.kind === 'audioinput');
-            
-            if (!hasVideoInput) {
-              throw new Error('Aucune caméra détectée. Vérifiez les permissions dans Réglages > Safari');
-            }
-            if (!hasAudioInput) {
-              console.warn('Aucun microphone détecté');
-            }
-          } catch (enumError) {
-            console.warn('Impossible d\'énumérer les périphériques:', enumError);
+      // Détecter si mobile
+      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      
+      // Sur iOS, demander les permissions une à une peut être plus fiable
+      if (isIOS) {
+        try {
+          // D'abord vérifier les permissions
+          const permissions = await navigator.mediaDevices.enumerateDevices();
+          const hasVideoInput = permissions.some(d => d.kind === 'videoinput');
+          const hasAudioInput = permissions.some(d => d.kind === 'audioinput');
+          
+          if (!hasVideoInput) {
+            throw new Error('Aucune caméra détectée. Vérifiez les permissions dans Réglages > Safari');
+          }
+          if (!hasAudioInput) {
+            console.warn('Aucun microphone détecté');
+          }
+        } catch (enumError) {
+          console.warn('Impossible d\'énumérer les périphériques:', enumError);
+        }
+      }
+      
+      // Contraintes optimisées pour mobile
+      const constraints: MediaStreamConstraints = {
+        video: isMobileDevice ? {
+          facingMode: { ideal: 'user' },
+          width: { min: 640, ideal: 1280, max: 1920 },
+          height: { min: 480, ideal: 720, max: 1080 },
+          aspectRatio: { ideal: 16/9 },
+        } : {
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: { ideal: 44100 },
+        },
+      };
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          // Sur iOS, déclencher la lecture après l'assignation
+          if (isIOS) {
+            await videoRef.current.play().catch(() => {});
           }
         }
+        setIsMediaReady(true);
+      } catch (constraintError) {
+        console.warn('Contraintes avancées échouées, essai simplifié:', constraintError);
         
-        // Contraintes optimisées pour mobile
-        const constraints: MediaStreamConstraints = {
-          video: isMobile ? {
-            facingMode: { ideal: 'user' },
-            width: { min: 640, ideal: 1280, max: 1920 },
-            height: { min: 480, ideal: 720, max: 1080 },
-            aspectRatio: { ideal: 16/9 },
-          } : {
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            sampleRate: { ideal: 44100 },
-          },
-        };
-
+        // Fallback 1: contraintes minimales
         try {
-          const stream = await navigator.mediaDevices.getUserMedia(constraints);
-          streamRef.current = stream;
+          const simpleStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user' },
+            audio: true,
+          });
+          
+          streamRef.current = simpleStream;
           if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            // Sur iOS, déclencher la lecture après l'assignation
-            if (isIOS) {
-              await videoRef.current.play().catch(() => {});
-            }
+            videoRef.current.srcObject = simpleStream;
+            if (isIOS) await videoRef.current.play().catch(() => {});
           }
           setIsMediaReady(true);
-        } catch (constraintError) {
-          console.warn('Contraintes avancées échouées, essai simplifié:', constraintError);
+        } catch (simpleError) {
+          console.warn('Contraintes simples échouées, essai basique:', simpleError);
           
-          // Fallback 1: contraintes minimales
-          try {
-            const simpleStream = await navigator.mediaDevices.getUserMedia({
-              video: { facingMode: 'user' },
-              audio: true,
-            });
-            
-            streamRef.current = simpleStream;
-            if (videoRef.current) {
-              videoRef.current.srcObject = simpleStream;
-              if (isIOS) await videoRef.current.play().catch(() => {});
-            }
-            setIsMediaReady(true);
-            toast.warning('Mode compatibilité activé');
-          } catch (simpleError) {
-            console.warn('Contraintes simples échouées, essai basique:', simpleError);
-            
-            // Fallback 2: le plus basique possible
-            const basicStream = await navigator.mediaDevices.getUserMedia({
-              video: true,
-              audio: true,
-            });
-            
-            streamRef.current = basicStream;
-            if (videoRef.current) {
-              videoRef.current.srcObject = basicStream;
-              if (isIOS) await videoRef.current.play().catch(() => {});
-            }
-            setIsMediaReady(true);
-            toast.warning('Qualité vidéo réduite pour compatibilité');
+          // Fallback 2: le plus basique possible
+          const basicStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+          });
+          
+          streamRef.current = basicStream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = basicStream;
+            if (isIOS) await videoRef.current.play().catch(() => {});
           }
+          setIsMediaReady(true);
         }
-      } catch (error: any) {
-        console.error('Erreur accès média:', error);
-        
-        let errorMessage = 'Erreur inconnue';
-        
-        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-          errorMessage = 'Permission refusée. Autorisez l\'accès à la caméra dans les paramètres de votre navigateur.';
-        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-          errorMessage = 'Aucune caméra ou microphone trouvé sur cet appareil.';
-        } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-          errorMessage = 'La caméra est peut-être utilisée par une autre application.';
-        } else if (error.name === 'OverconstrainedError') {
-          errorMessage = 'Votre caméra ne supporte pas les paramètres demandés.';
-        } else if (error.name === 'TypeError') {
-          errorMessage = 'Erreur de configuration. Rechargez la page.';
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-        
-        setMediaError(errorMessage);
-        toast.error('Impossible d\'accéder à la caméra ou au microphone');
       }
-    };
+    } catch (error: any) {
+      console.error('Erreur accès média:', error);
+      
+      let errorMessage = 'Erreur inconnue';
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage = 'Permission refusée. Autorisez l\'accès à la caméra dans les paramètres de votre navigateur.';
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage = 'Aucune caméra ou microphone trouvé sur cet appareil.';
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage = 'La caméra est peut-être utilisée par une autre application.';
+      } else if (error.name === 'OverconstrainedError') {
+        errorMessage = 'Votre caméra ne supporte pas les paramètres demandés.';
+      } else if (error.name === 'TypeError') {
+        errorMessage = 'Erreur de configuration. Rechargez la page.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setMediaError(errorMessage);
+      toast.error('Impossible d\'accéder à la caméra ou au microphone');
+    }
+  };
 
+  // Initialiser les médias au montage
+  useEffect(() => {
     initializeMedia();
 
     // Gérer le changement d'orientation sur mobile
@@ -408,7 +408,7 @@ export const LiveStreamStudio = () => {
   };
 
   /**
-   * Arrêter le live avec cleanup complet
+   * Arrêter le live avec cleanup complet et réinitialisation de la caméra
    */
   const handleStopLive = async () => {
     if (!currentStream) return;
@@ -416,7 +416,7 @@ export const LiveStreamStudio = () => {
     try {
       // Arrêter la diffusion LiveKit
       await stopBroadcast();
-      console.log('[Studio] LiveKit broadcast stopped');
+      console.log('[Studio] Broadcast stopped');
       
       await endLiveStream(currentStream.id);
       setIsLive(false);
@@ -433,6 +433,12 @@ export const LiveStreamStudio = () => {
           track.stop();
           console.log('Track stopped on end:', track.kind);
         });
+        streamRef.current = null;
+      }
+
+      // Nettoyer la vidéo
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
       }
 
       toast.success('Live terminé');
@@ -441,6 +447,13 @@ export const LiveStreamStudio = () => {
       setCurrentStream(null);
       setTitle('');
       setDescription('');
+
+      // Réinitialiser la caméra automatiquement après un court délai
+      setTimeout(() => {
+        console.log('[Studio] Reinitializing camera after live end');
+        initializeMedia();
+      }, 500);
+      
     } catch (error) {
       console.error('Erreur arrêt live:', error);
       toast.error('Erreur lors de l\'arrêt du live');
