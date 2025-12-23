@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ interface LiveStreamViewerProps {
  */
 export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { joinLiveStream, leaveLiveStream } = useLiveStream();
   const { messages, sendMessage, sendContentOffer, sendPaidMedia, hasMore, loadMore, loading: chatLoading } = useLiveChat(streamId);
   const { trackError } = useAnalytics();
@@ -58,6 +60,42 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   const [lastMessageTime, setLastMessageTime] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Écouter les changements de statut du live pour rediriger si terminé
+   */
+  useEffect(() => {
+    if (!streamId || isCreator) return; // Ne pas rediriger le créateur
+
+    const channel = supabase
+      .channel(`live-status-${streamId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'live_streams',
+          filter: `id=eq.${streamId}`,
+        },
+        (payload) => {
+          const newStatus = (payload.new as any).status;
+          console.log('[LiveStreamViewer] Live status changed:', newStatus);
+          
+          if (newStatus === 'ended' || newStatus === 'cancelled') {
+            toast.info('Le live est terminé');
+            // Rediriger vers le dashboard après un court délai
+            setTimeout(() => {
+              navigate('/dashboard');
+            }, 1500);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [streamId, isCreator, navigate]);
 
   /**
    * Charger les infos du stream et vérifier l'accès avec gestion d'erreurs
