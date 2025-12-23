@@ -62,56 +62,55 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   /**
-   * Écouter les changements de statut du live en temps réel
-   * Polling rapide pour détecter activation/fin du stream
+   * Écouter les changements de statut du live en temps réel via Supabase Realtime
+   * Mises à jour instantanées pour détecter activation/fin du stream
    */
   useEffect(() => {
     if (!streamId) return;
 
     let isRedirecting = false;
 
-    const checkStreamStatus = async () => {
-      if (isRedirecting) return;
-      
-      try {
-        const { data } = await supabase
-          .from('public_live_streams')
-          .select('status, viewer_count, started_at')
-          .eq('id', streamId)
-          .maybeSingle();
+    // Subscription temps réel pour les changements de statut
+    const channel = supabase
+      .channel(`live-stream-status-${streamId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'live_streams',
+          filter: `id=eq.${streamId}`
+        },
+        (payload) => {
+          if (isRedirecting) return;
+          
+          console.log('[LiveStreamViewer] Realtime update:', payload.new);
+          const newData = payload.new as any;
+          
+          // Mettre à jour le state du liveStream avec le nouveau statut
+          setLiveStream((prev: any) => {
+            if (prev?.status !== newData.status) {
+              console.log('[LiveStreamViewer] Status changed:', prev?.status, '->', newData.status);
+            }
+            return prev ? { ...prev, status: newData.status, viewer_count: newData.viewer_count, started_at: newData.started_at } : prev;
+          });
 
-        console.log('[LiveStreamViewer] Polling status:', data?.status, 'isCreator:', isCreator);
-
-        if (!data) return;
-
-        // Mettre à jour le state du liveStream avec le nouveau statut
-        setLiveStream((prev: any) => {
-          if (prev?.status !== data.status) {
-            console.log('[LiveStreamViewer] Status changed:', prev?.status, '->', data.status);
+          // Rediriger si terminé (sauf pour le créateur)
+          if (!isCreator && (newData.status === 'ended' || newData.status === 'cancelled')) {
+            isRedirecting = true;
+            console.log('[LiveStreamViewer] Live ended, redirecting viewer...');
+            toast.info('Le live est terminé');
+            navigate('/dashboard');
           }
-          return prev ? { ...prev, status: data.status, viewer_count: data.viewer_count, started_at: data.started_at } : prev;
-        });
-
-        // Rediriger si terminé (sauf pour le créateur)
-        if (!isCreator && (data.status === 'ended' || data.status === 'cancelled')) {
-          isRedirecting = true;
-          console.log('[LiveStreamViewer] Live ended, redirecting viewer to dashboard...');
-          toast.info('Le live est terminé');
-          navigate('/dashboard');
         }
-      } catch (error) {
-        console.error('Error checking stream status:', error);
-      }
-    };
-
-    // Vérifier chaque seconde pour une réactivité maximale
-    const interval = setInterval(checkStreamStatus, 1000);
-    
-    // Vérifier immédiatement au montage
-    checkStreamStatus();
+      )
+      .subscribe((status) => {
+        console.log('[LiveStreamViewer] Realtime subscription status:', status);
+      });
 
     return () => {
-      clearInterval(interval);
+      console.log('[LiveStreamViewer] Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
     };
   }, [streamId, isCreator, navigate]);
 
