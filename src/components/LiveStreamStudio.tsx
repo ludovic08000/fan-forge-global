@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, WifiOff, Loader2 } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera } from 'lucide-react';
 import { useLiveStream } from '@/hooks/useLiveStream';
 import { useLiveChat } from '@/hooks/useLiveChat';
 import { useLiveKitBroadcast } from '@/hooks/useLiveKitBroadcast';
@@ -36,6 +36,9 @@ export const LiveStreamStudio = () => {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [isMediaReady, setIsMediaReady] = useState(false);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   // Mode test désactivé - la caméra est obligatoire
   
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -396,6 +399,53 @@ export const LiveStreamStudio = () => {
     }
   };
 
+  /**
+   * Basculer entre caméra avant/arrière (mobile uniquement)
+   */
+  const switchCamera = async () => {
+    if (!isMobile || isSwitchingCamera) return;
+    
+    setIsSwitchingCamera(true);
+    const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
+    
+    try {
+      // Arrêter les tracks vidéo existants
+      if (streamRef.current) {
+        streamRef.current.getVideoTracks().forEach(track => track.stop());
+      }
+      
+      // Obtenir un nouveau stream avec la nouvelle caméra
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { exact: newFacingMode } },
+        audio: false, // On garde l'audio existant
+      });
+      
+      const newVideoTrack = newStream.getVideoTracks()[0];
+      
+      if (streamRef.current && newVideoTrack) {
+        // Remplacer le track vidéo dans le stream existant
+        const oldVideoTrack = streamRef.current.getVideoTracks()[0];
+        if (oldVideoTrack) {
+          streamRef.current.removeTrack(oldVideoTrack);
+        }
+        streamRef.current.addTrack(newVideoTrack);
+        
+        // Mettre à jour le srcObject
+        if (videoRef.current) {
+          videoRef.current.srcObject = streamRef.current;
+        }
+        
+        setFacingMode(newFacingMode);
+        toast.success(newFacingMode === 'user' ? 'Caméra avant' : 'Caméra arrière');
+      }
+    } catch (error) {
+      console.error('Erreur changement caméra:', error);
+      toast.error('Impossible de changer de caméra');
+    } finally {
+      setIsSwitchingCamera(false);
+    }
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="grid gap-6 md:grid-cols-2">
@@ -500,6 +550,22 @@ export const LiveStreamStudio = () => {
               >
                 {isAudioEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
               </Button>
+              {/* Bouton switch caméra - visible uniquement sur mobile */}
+              {isMobile && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={switchCamera}
+                  disabled={!isMediaReady || isSwitchingCamera}
+                  title={facingMode === 'user' ? 'Passer à la caméra arrière' : 'Passer à la caméra avant'}
+                >
+                  {isSwitchingCamera ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <SwitchCamera className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
             </div>
 
             {/* Boutons contrôle live */}
