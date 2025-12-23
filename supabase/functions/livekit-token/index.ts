@@ -17,6 +17,12 @@ serve(async (req) => {
   }
 
   try {
+    // Utiliser le service role pour pouvoir accéder aux données du live stream
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
@@ -64,8 +70,8 @@ serve(async (req) => {
 
     // Vérifier l'accès au live stream
     if (!isPublisher) {
-      // Pour les viewers, vérifier has_live_access
-      const { data: hasAccess, error: accessError } = await supabaseClient
+      // Pour les viewers, vérifier has_live_access avec le service role
+      const { data: hasAccess, error: accessError } = await supabaseAdmin
         .rpc('has_live_access', {
           _subscriber_id: user.id,
           _live_stream_id: liveStreamId
@@ -89,8 +95,8 @@ serve(async (req) => {
 
       console.log('[LiveKit Token] Access verified for viewer:', user.id);
     } else {
-      // Pour les publishers, vérifier qu'ils sont le créateur du live
-      const { data: stream, error: streamError } = await supabaseClient
+      // Pour les publishers, vérifier qu'ils sont le créateur du live avec le service role
+      const { data: stream, error: streamError } = await supabaseAdmin
         .from('live_streams')
         .select('creator_id, creators!inner(user_id)')
         .eq('id', liveStreamId)
