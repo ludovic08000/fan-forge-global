@@ -15,6 +15,9 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Sora', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['Playfair Display', 'Georgia', 'serif'],
+        heading: ['Poppins', 'Inter', 'sans-serif'],
+        mono: ['Space Grotesk', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -66,6 +69,16 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        "2xl": "1.5rem",
+        "3xl": "2rem",
+      },
+      boxShadow: {
+        'premium': 'var(--shadow-premium)',
+        'glow': 'var(--shadow-glow)',
+        'neon': 'var(--shadow-neon)',
+        'float': 'var(--shadow-float)',
+        'neumorphic': 'var(--shadow-neumorphic)',
+        'neumorphic-inset': 'var(--shadow-neumorphic-inset)',
       },
       keyframes: {
         "accordion-down": {
@@ -100,6 +113,42 @@ export default {
           "0%, 100%": { opacity: "0.5" },
           "50%": { opacity: "1" }
         },
+        "spin-slow": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" }
+        },
+        "pulse-soft": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.7" }
+        },
+        "bounce-gentle": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" }
+        },
+        "slide-in-left": {
+          "0%": { transform: "translateX(-100%)", opacity: "0" },
+          "100%": { transform: "translateX(0)", opacity: "1" }
+        },
+        "slide-in-right": {
+          "0%": { transform: "translateX(100%)", opacity: "0" },
+          "100%": { transform: "translateX(0)", opacity: "1" }
+        },
+        "slide-in-up": {
+          "0%": { transform: "translateY(100%)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" }
+        },
+        "flip": {
+          "0%": { transform: "perspective(400px) rotateY(0)" },
+          "100%": { transform: "perspective(400px) rotateY(360deg)" }
+        },
+        "wiggle": {
+          "0%, 100%": { transform: "rotate(-3deg)" },
+          "50%": { transform: "rotate(3deg)" }
+        },
+        "morph": {
+          "0%, 100%": { borderRadius: "60% 40% 30% 70% / 60% 30% 70% 40%" },
+          "50%": { borderRadius: "30% 60% 70% 40% / 50% 60% 30% 60%" }
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -110,10 +159,29 @@ export default {
         "shimmer": "shimmer 3s linear infinite",
         "float": "float 6s ease-in-out infinite",
         "glow": "glow 2s ease-in-out infinite",
+        "spin-slow": "spin-slow 8s linear infinite",
+        "pulse-soft": "pulse-soft 3s ease-in-out infinite",
+        "bounce-gentle": "bounce-gentle 2s ease-in-out infinite",
+        "slide-in-left": "slide-in-left 0.5s ease-out",
+        "slide-in-right": "slide-in-right 0.5s ease-out",
+        "slide-in-up": "slide-in-up 0.5s ease-out",
+        "flip": "flip 1s ease-in-out",
+        "wiggle": "wiggle 0.5s ease-in-out",
+        "morph": "morph 8s ease-in-out infinite",
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "shimmer-gradient": "linear-gradient(90deg, transparent, hsl(225 70% 55% / 0.2), transparent)",
+        "gradient-conic": "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+        "mesh": "var(--gradient-mesh)",
+      },
+      transitionTimingFunction: {
+        "bounce-in": "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+        "smooth": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "premium": "cubic-bezier(0.22, 1, 0.36, 1)",
+      },
+      backdropBlur: {
+        xs: "2px",
       },
     },
   },
