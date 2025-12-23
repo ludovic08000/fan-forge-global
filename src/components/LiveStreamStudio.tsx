@@ -746,8 +746,8 @@ export const LiveStreamStudio = () => {
                       </div>
                     </ScrollArea>
                     
-                    {/* Zone de saisie avec boutons médias */}
-                    <div className="flex gap-2 mt-2 items-center">
+                    {/* Zone de saisie avec boutons médias - optimisée mobile */}
+                    <div className="flex gap-2 mt-3 items-center">
                       {/* Emoji picker pour mobile */}
                       <EmojiPicker onEmojiSelect={(emoji) => setChatMessage(prev => prev + emoji)} />
                       
@@ -763,8 +763,8 @@ export const LiveStreamStudio = () => {
                       <Input
                         value={chatMessage}
                         onChange={(e) => setChatMessage(e.target.value)}
-                        placeholder="Message..."
-                        className="flex-1"
+                        placeholder="Écrire un message..."
+                        className="flex-1 h-11 text-base"
                         onKeyPress={(e) => {
                           if (e.key === 'Enter' && chatMessage.trim()) {
                             sendMessage(chatMessage);
@@ -774,6 +774,7 @@ export const LiveStreamStudio = () => {
                       />
                       <Button
                         size="icon"
+                        className="h-11 w-11 shrink-0"
                         onClick={() => {
                           if (chatMessage.trim()) {
                             sendMessage(chatMessage);
@@ -782,7 +783,7 @@ export const LiveStreamStudio = () => {
                         }}
                         disabled={!chatMessage.trim()}
                       >
-                        <Send className="h-4 w-4" />
+                        <Send className="h-5 w-5" />
                       </Button>
                     </div>
                   </CardContent>

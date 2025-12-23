@@ -39,22 +39,30 @@ export const EmojiPicker = ({ onEmojiSelect }: EmojiPickerProps) => {
     food: '🍕',
   };
 
+  // Détecter mobile
+  const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button type="button" size="icon" variant="ghost" className="shrink-0">
+        <Button type="button" size="icon" variant="ghost" className="shrink-0 h-10 w-10">
           <Smile className="h-5 w-5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-2" side="top" align="start">
+      <PopoverContent 
+        className={`p-2 ${isMobile ? 'w-[90vw] max-w-[320px]' : 'w-80'}`} 
+        side="top" 
+        align="start"
+        sideOffset={8}
+      >
         {/* Tabs de catégories */}
-        <div className="flex gap-1 mb-2 border-b pb-2">
+        <div className="flex gap-1 mb-2 border-b pb-2 overflow-x-auto">
           {Object.keys(EMOJI_CATEGORIES).map((category) => (
             <Button
               key={category}
               variant={activeCategory === category ? 'secondary' : 'ghost'}
               size="sm"
-              className="h-8 w-8 p-0"
+              className={`p-0 shrink-0 ${isMobile ? 'h-10 w-10 text-xl' : 'h-8 w-8 text-base'}`}
               onClick={() => setActiveCategory(category as keyof typeof EMOJI_CATEGORIES)}
             >
               {categoryLabels[category as keyof typeof EMOJI_CATEGORIES]}
@@ -62,14 +70,14 @@ export const EmojiPicker = ({ onEmojiSelect }: EmojiPickerProps) => {
           ))}
         </div>
         
-        {/* Grille d'émojis */}
-        <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto">
+        {/* Grille d'émojis - plus grande sur mobile */}
+        <div className={`grid gap-1 overflow-y-auto ${isMobile ? 'grid-cols-6 max-h-60' : 'grid-cols-8 max-h-48'}`}>
           {EMOJI_CATEGORIES[activeCategory].map((emoji, index) => (
             <Button
               key={`${emoji}-${index}`}
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 text-lg hover:bg-muted"
+              className={`p-0 hover:bg-muted ${isMobile ? 'h-11 w-11 text-2xl' : 'h-8 w-8 text-lg'}`}
               onClick={() => handleEmojiSelect(emoji)}
             >
               {emoji}
