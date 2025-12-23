@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Users, Send, Circle, Heart, Lock, ChevronUp, Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { useLiveStream } from '@/hooks/useLiveStream';
-import { useLiveChat, ContentOffer } from '@/hooks/useLiveChat';
+import { useLiveChat, ContentOffer, PaidMedia } from '@/hooks/useLiveChat';
 import { useLiveKitViewer } from '@/hooks/useLiveKitViewer';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +23,9 @@ import { useLiveModeration } from '@/hooks/useLiveModeration';
 import { ContentOfferCard, ContentOfferSelector } from '@/components/LiveContentOffer';
 import { useContentProtection } from '@/hooks/useContentProtection';
 import { ProtectedMedia } from '@/components/ProtectedMedia';
+import { EmojiPicker } from '@/components/live/EmojiPicker';
+import { PaidMediaUpload } from '@/components/live/PaidMediaUpload';
+import { PaidMediaMessage } from '@/components/live/PaidMediaMessage';
 
 interface LiveStreamViewerProps {
   streamId: string;
@@ -34,10 +37,10 @@ interface LiveStreamViewerProps {
 export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   const { user } = useAuth();
   const { joinLiveStream, leaveLiveStream } = useLiveStream();
-  const { messages, sendMessage, sendContentOffer, hasMore, loadMore, loading: chatLoading } = useLiveChat(streamId);
+  const { messages, sendMessage, sendContentOffer, sendPaidMedia, hasMore, loadMore, loading: chatLoading } = useLiveChat(streamId);
   const { trackError } = useAnalytics();
   const { isUserBanned, settings } = useLiveModeration(streamId);
-  
+  const [creatorData, setCreatorData] = useState<any>(null);
   // Activer la protection anti-capture sur le live
   useContentProtection(true);
   
@@ -78,14 +81,16 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
         setLiveStream(streamData);
 
         // Charger les infos du créateur séparément (sans jointure car c'est une vue)
-        const { data: creatorData } = await supabase
+        const { data: fetchedCreatorData } = await supabase
           .from('public_creators')
           .select('*')
           .eq('id', streamData.creator_id)
           .maybeSingle();
 
+        setCreatorData(fetchedCreatorData);
+
         // Vérifier si l'utilisateur est le créateur
-        if (user && creatorData?.user_id === user.id) {
+        if (user && fetchedCreatorData?.user_id === user.id) {
           setIsCreator(true);
           setHasAccess(true);
           setCheckingAccess(false);
@@ -402,10 +407,17 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
             {isCreator && (
               <div className="px-4 pt-4 space-y-2">
                 <LiveModerationPanel liveStreamId={streamId} isCreator={isCreator} />
-                <ContentOfferSelector 
-                  creatorId={liveStream?.creator_id} 
-                  onSelectContent={(content) => sendContentOffer(content)}
-                />
+                <div className="flex gap-2 flex-wrap">
+                  <ContentOfferSelector 
+                    creatorId={liveStream?.creator_id} 
+                    onSelectContent={(content) => sendContentOffer(content)}
+                  />
+                  <PaidMediaUpload
+                    liveStreamId={streamId}
+                    creatorId={liveStream?.creator_id}
+                    onMediaSent={(media) => sendPaidMedia(media)}
+                  />
+                </div>
               </div>
             )}
 
@@ -427,8 +439,37 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                 )}
                 {messages.map((msg) => (
                   <div key={msg.id} className="space-y-1">
-                    {/* Affichage différent pour les offres de contenu */}
-                    {msg.message_type === 'offer' && msg.content_offer ? (
+                    {/* Affichage pour les médias payants */}
+                    {msg.message_type === 'paid_media' && msg.content_offer ? (
+                      <div className="flex items-start gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="text-xs">
+                            {msg.username.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2 mb-1">
+                            <span className="font-semibold text-sm truncate">
+                              {msg.username}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(msg.created_at).toLocaleTimeString('fr-FR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                          <PaidMediaMessage
+                            mediaId={msg.id}
+                            type={(msg.content_offer as any)?.media_type || 'image'}
+                            price={msg.content_offer.price}
+                            thumbnailUrl={msg.content_offer.thumbnail_url}
+                            creatorName={msg.username}
+                          />
+                        </div>
+                      </div>
+                    ) : msg.message_type === 'offer' && msg.content_offer ? (
+                      /* Affichage pour les offres de contenu */
                       <ContentOfferCard offer={msg.content_offer} />
                     ) : (
                       <div className="flex items-start gap-2">
@@ -467,9 +508,12 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
               </div>
             </ScrollArea>
 
-            {/* Input message */}
+            {/* Input message avec emoji picker */}
             <div className="p-4 border-t">
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
+                <EmojiPicker 
+                  onEmojiSelect={(emoji) => setNewMessage(prev => prev + emoji)} 
+                />
                 <Input
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
@@ -478,6 +522,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                   }}
                   placeholder={user ? 'Envoyer un message...' : 'Connectez-vous pour participer'}
                   disabled={!user}
+                  className="flex-1"
                 />
                 <Button
                   size="icon"

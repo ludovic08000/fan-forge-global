@@ -16,14 +16,22 @@ export interface ContentOffer {
   thumbnail_url?: string;
 }
 
+export interface PaidMedia {
+  type: 'image' | 'video';
+  url: string;
+  thumbnail_url?: string;
+  price: number;
+}
+
 export interface ChatMessage {
   id: string;
   live_stream_id: string;
   user_id: string;
   username: string;
   message: string;
-  message_type: 'text' | 'offer';
+  message_type: 'text' | 'offer' | 'paid_media';
   content_offer?: ContentOffer | null;
+  paid_media?: PaidMedia | null;
   created_at: string;
 }
 
@@ -178,6 +186,48 @@ export const useLiveChat = (streamId: string) => {
       if (error) throw error;
     } catch (error) {
       console.error('Erreur envoi offre:', error);
+      toast.error('Erreur lors de l\'envoi de l\'offre');
+    }
+  };
+
+  /**
+   * Envoyer un média payant (créateurs uniquement)
+   */
+  const sendPaidMedia = async (media: PaidMedia) => {
+    if (!user) return;
+
+    try {
+      // Récupérer le profil pour le username
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username, display_name')
+        .eq('user_id', user.id)
+        .single();
+
+      const username = profile?.username || profile?.display_name || user.email || 'Créateur';
+
+      const { error } = await supabase
+        .from('live_stream_messages')
+        .insert([{
+          live_stream_id: streamId,
+          user_id: user.id,
+          username,
+          message: media.type === 'video' ? '🎬 Vidéo exclusive' : '📷 Photo exclusive',
+          message_type: 'paid_media',
+          content_offer: JSON.parse(JSON.stringify({
+            content_id: `media_${Date.now()}`,
+            title: media.type === 'video' ? 'Vidéo exclusive' : 'Photo exclusive',
+            price: media.price,
+            thumbnail_url: media.thumbnail_url,
+            media_url: media.url,
+            media_type: media.type,
+          })),
+        }]);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Erreur envoi média:', error);
+      toast.error('Erreur lors de l\'envoi du média');
     }
   };
 
@@ -235,6 +285,7 @@ export const useLiveChat = (streamId: string) => {
     hasMore,
     sendMessage,
     sendContentOffer,
+    sendPaidMedia,
     loadMore: () => loadMessages(true, oldestMessageDate),
   };
 };
