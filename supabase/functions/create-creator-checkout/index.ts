@@ -160,6 +160,10 @@ serve(async (req) => {
       return_url: `${req.headers.get("origin")}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
       // Activer Stripe Tax pour le calcul automatique des taxes
       automatic_tax: { enabled: true },
+      // Sauvegarder l'adresse de facturation pour les taxes automatiques
+      customer_update: {
+        address: 'auto',
+      },
       // Ajouter les métadonnées de l'abonnement (les factures sont auto-générées pour les subscriptions)
       subscription_data: {
         metadata: {
