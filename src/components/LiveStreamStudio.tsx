@@ -75,6 +75,8 @@ export const LiveStreamStudio = () => {
 
   // Référence pour stocker l'ID du stream actuel pour le cleanup
   const currentStreamIdRef = useRef<string | null>(null);
+  // Ref pour savoir si on est vraiment en train de démount vs changement de deps
+  const isUnmountingRef = useRef(false);
 
   // Mettre à jour la référence quand currentStream change
   useEffect(() => {
@@ -120,7 +122,7 @@ export const LiveStreamStudio = () => {
    */
   useEffect(() => {
     const endLiveOnLeave = () => {
-      if (currentStreamIdRef.current) {
+      if (currentStreamIdRef.current && isLive) {
         console.log('[Studio] Ending live on page leave:', currentStreamIdRef.current);
         const url = 'https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/live-heartbeat';
         const body = JSON.stringify({
@@ -158,17 +160,33 @@ export const LiveStreamStudio = () => {
     // trop souvent (permissions caméra, notifications, app switcher, etc.)
     // Le heartbeat manquant (après 5min) terminera le live si vraiment abandonné
 
-    // Cleanup à la destruction du composant
+    // Cleanup - NE PAS terminer le live ici car ce cleanup s'exécute
+    // aussi quand isLive change (pas seulement au unmount)
+    // On se fie aux event handlers beforeunload et pagehide
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('pagehide', handlePageHide);
-      
-      // Terminer le live si le composant est démonté
-      if (currentStreamIdRef.current) {
-        endLiveOnLeave();
-      }
     };
   }, [isLive]);
+
+  /**
+   * Cleanup final au démontage du composant uniquement
+   */
+  useEffect(() => {
+    return () => {
+      isUnmountingRef.current = true;
+      // Terminer le live seulement si on démonte vraiment le composant
+      if (currentStreamIdRef.current) {
+        console.log('[Studio] Component unmounting, ending live:', currentStreamIdRef.current);
+        const url = 'https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/live-heartbeat';
+        const body = JSON.stringify({
+          liveStreamId: currentStreamIdRef.current,
+          action: 'end'
+        });
+        navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+      }
+    };
+  }, []); // Deps vide = seulement au mount/unmount
 
   /**
    * Initialiser les dispositifs média avec fallbacks mobile améliorés
