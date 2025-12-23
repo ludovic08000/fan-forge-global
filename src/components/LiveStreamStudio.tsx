@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera, Send, Shield } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera, Send, Shield, MessageCircle, ImageIcon } from 'lucide-react';
 import { EmojiPicker } from '@/components/live/EmojiPicker';
 import { PaidMediaUpload } from '@/components/live/PaidMediaUpload';
 import { TipMessage } from '@/components/live/TipMessage';
@@ -717,12 +717,29 @@ export const LiveStreamStudio = () => {
                   Arrêter le live
                 </Button>
                 
-                {/* Chat mobile simplifié */}
-                <Card className="max-h-[250px]">
-                  <CardContent className="p-3">
-                    <ScrollArea className="h-[140px]">
-                      <div className="space-y-1">
-                        {messages.slice(-10).map((msg) => (
+                {/* Chat mobile moderne */}
+                <div className="flex flex-col bg-background/95 backdrop-blur-sm rounded-2xl border border-border/50 shadow-lg overflow-hidden">
+                  {/* Header du chat */}
+                  <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary/10 to-primary/5 border-b border-border/30">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      <span className="text-sm font-medium text-foreground">Chat en direct</span>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      {messages.length} msg
+                    </Badge>
+                  </div>
+                  
+                  {/* Zone des messages */}
+                  <ScrollArea className="h-[180px] px-3 py-2">
+                    <div className="space-y-2">
+                      {messages.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-[150px] text-muted-foreground">
+                          <MessageCircle className="h-8 w-8 mb-2 opacity-50" />
+                          <p className="text-sm">Aucun message pour l'instant</p>
+                        </div>
+                      ) : (
+                        messages.slice(-15).map((msg) => (
                           msg.message_type === 'tip' && msg.tip_data ? (
                             <TipMessage
                               key={msg.id}
@@ -732,26 +749,45 @@ export const LiveStreamStudio = () => {
                               message={msg.tip_data.message}
                             />
                           ) : msg.message_type === 'paid_media' && msg.content_offer ? (
-                            <div key={msg.id} className="text-sm p-2 bg-primary/10 rounded">
-                              <span className="font-semibold text-primary">📸 Média envoyé: </span>
-                              <span>{msg.content_offer.price}€</span>
+                            <div 
+                              key={msg.id} 
+                              className="flex items-center gap-2 p-3 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-xl border border-amber-500/30"
+                            >
+                              <div className="w-8 h-8 rounded-full bg-amber-500/30 flex items-center justify-center">
+                                <ImageIcon className="h-4 w-4 text-amber-600" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-xs font-medium text-amber-600">Média payant envoyé</p>
+                                <p className="text-sm font-bold text-foreground">{msg.content_offer.price}€</p>
+                              </div>
                             </div>
                           ) : (
-                            <div key={msg.id} className="text-sm">
-                              <span className="font-semibold text-primary">{msg.username}: </span>
-                              <span>{msg.message}</span>
+                            <div 
+                              key={msg.id} 
+                              className="group flex items-start gap-2 p-2 rounded-xl hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shrink-0">
+                                <span className="text-xs font-bold text-primary-foreground">
+                                  {msg.username.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-primary truncate">{msg.username}</p>
+                                <p className="text-sm text-foreground break-words leading-snug">{msg.message}</p>
+                              </div>
                             </div>
                           )
-                        ))}
-                      </div>
-                    </ScrollArea>
-                    
-                    {/* Zone de saisie avec boutons médias - optimisée mobile */}
-                    <div className="flex gap-2 mt-3 items-center">
-                      {/* Emoji picker pour mobile */}
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                  
+                  {/* Barre d'actions et saisie */}
+                  <div className="p-3 border-t border-border/30 bg-muted/30">
+                    {/* Boutons d'action */}
+                    <div className="flex items-center gap-1 mb-3">
                       <EmojiPicker onEmojiSelect={(emoji) => setChatMessage(prev => prev + emoji)} />
                       
-                      {/* Bouton média payant pour mobile */}
                       {creatorId && (
                         <PaidMediaUpload
                           liveStreamId={currentStream?.id || ''}
@@ -759,22 +795,27 @@ export const LiveStreamStudio = () => {
                           onMediaSent={(media) => sendPaidMedia(media)}
                         />
                       )}
-                      
-                      <Input
-                        value={chatMessage}
-                        onChange={(e) => setChatMessage(e.target.value)}
-                        placeholder="Écrire un message..."
-                        className="flex-1 h-11 text-base"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter' && chatMessage.trim()) {
-                            sendMessage(chatMessage);
-                            setChatMessage('');
-                          }
-                        }}
-                      />
+                    </div>
+                    
+                    {/* Zone de saisie */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 relative">
+                        <Input
+                          value={chatMessage}
+                          onChange={(e) => setChatMessage(e.target.value)}
+                          placeholder="Écrire un message..."
+                          className="h-12 pl-4 pr-4 text-base rounded-full bg-background border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && chatMessage.trim()) {
+                              sendMessage(chatMessage);
+                              setChatMessage('');
+                            }
+                          }}
+                        />
+                      </div>
                       <Button
                         size="icon"
-                        className="h-11 w-11 shrink-0"
+                        className="h-12 w-12 rounded-full shrink-0 shadow-md transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
                         onClick={() => {
                           if (chatMessage.trim()) {
                             sendMessage(chatMessage);
@@ -786,8 +827,8 @@ export const LiveStreamStudio = () => {
                         <Send className="h-5 w-5" />
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </>
             )}
           </div>
