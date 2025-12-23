@@ -718,9 +718,9 @@ export const LiveStreamStudio = () => {
                 </Button>
                 
                 {/* Chat mobile simplifié */}
-                <Card className="max-h-[200px]">
+                <Card className="max-h-[250px]">
                   <CardContent className="p-3">
-                    <ScrollArea className="h-[120px]">
+                    <ScrollArea className="h-[140px]">
                       <div className="space-y-1">
                         {messages.slice(-10).map((msg) => (
                           msg.message_type === 'tip' && msg.tip_data ? (
@@ -731,6 +731,11 @@ export const LiveStreamStudio = () => {
                               currency={msg.tip_data.currency}
                               message={msg.tip_data.message}
                             />
+                          ) : msg.message_type === 'paid_media' && msg.content_offer ? (
+                            <div key={msg.id} className="text-sm p-2 bg-primary/10 rounded">
+                              <span className="font-semibold text-primary">📸 Média envoyé: </span>
+                              <span>{msg.content_offer.price}€</span>
+                            </div>
                           ) : (
                             <div key={msg.id} className="text-sm">
                               <span className="font-semibold text-primary">{msg.username}: </span>
@@ -740,7 +745,18 @@ export const LiveStreamStudio = () => {
                         ))}
                       </div>
                     </ScrollArea>
-                    <div className="flex gap-2 mt-2">
+                    
+                    {/* Zone de saisie avec boutons médias */}
+                    <div className="flex gap-2 mt-2 items-center">
+                      {/* Bouton média payant pour mobile */}
+                      {creatorId && (
+                        <PaidMediaUpload
+                          liveStreamId={currentStream?.id || ''}
+                          creatorId={creatorId}
+                          onMediaSent={(media) => sendPaidMedia(media)}
+                        />
+                      )}
+                      
                       <Input
                         value={chatMessage}
                         onChange={(e) => setChatMessage(e.target.value)}
