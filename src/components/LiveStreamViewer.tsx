@@ -88,9 +88,16 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
           .maybeSingle();
 
         setCreatorData(fetchedCreatorData);
+        
+        console.log('Creator check:', {
+          userId: user?.id,
+          creatorUserId: fetchedCreatorData?.user_id,
+          isMatch: user?.id === fetchedCreatorData?.user_id
+        });
 
         // Vérifier si l'utilisateur est le créateur
         if (user && fetchedCreatorData?.user_id === user.id) {
+          console.log('User is creator - setting isCreator to true');
           setIsCreator(true);
           setHasAccess(true);
           setCheckingAccess(false);
