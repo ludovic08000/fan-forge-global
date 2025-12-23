@@ -47,33 +47,65 @@ export const useLiveKitBroadcast = () => {
 
   /**
    * Obtenir un token LiveKit depuis l'edge function
+   * Avec retry et refresh de session pour iOS
    */
-  const getToken = useCallback(async (streamId: string, isPublisher: boolean) => {
-    console.log('[LiveKit Broadcast] Getting token for stream:', streamId);
+  const getToken = useCallback(async (streamId: string, isPublisher: boolean, retryCount = 0): Promise<{ token: string; url: string }> => {
+    console.log('[LiveKit Broadcast] Getting token for stream:', streamId, 'retry:', retryCount);
     
     // Récupérer la session pour avoir le token d'authentification
-    const { data: sessionData } = await supabase.auth.getSession();
+    let { data: sessionData } = await supabase.auth.getSession();
+    
+    // Sur iOS, parfois la session est stale, on force un refresh
+    if (!sessionData?.session?.access_token) {
+      console.log('[LiveKit Broadcast] No session, trying to refresh...');
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('[LiveKit Broadcast] Refresh error:', refreshError);
+        throw new Error('Session expirée, veuillez vous reconnecter');
+      }
+      sessionData = refreshData;
+    }
+    
     if (!sessionData?.session?.access_token) {
       throw new Error('Session expirée, veuillez vous reconnecter');
     }
     
-    const { data, error } = await supabase.functions.invoke('livekit-token', {
-      body: {
-        roomName: `live-${streamId}`,
-        participantName: `broadcaster-${streamId}`,
-        isPublisher,
-      },
-      headers: {
-        Authorization: `Bearer ${sessionData.session.access_token}`,
-      },
-    });
+    try {
+      const { data, error } = await supabase.functions.invoke('livekit-token', {
+        body: {
+          roomName: `live-${streamId}`,
+          participantName: `broadcaster-${streamId}`,
+          isPublisher,
+        },
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
 
-    if (error) {
-      console.error('[LiveKit Broadcast] Token error:', error);
-      throw error;
+      if (error) {
+        console.error('[LiveKit Broadcast] Token error:', error);
+        
+        // Si erreur d'auth et pas encore retry, refresh et retry
+        if (retryCount < 2 && (error.message?.includes('Auth') || error.message?.includes('session'))) {
+          console.log('[LiveKit Broadcast] Auth error, refreshing session and retrying...');
+          await supabase.auth.refreshSession();
+          return getToken(streamId, isPublisher, retryCount + 1);
+        }
+        
+        throw error;
+      }
+      
+      console.log('[LiveKit Broadcast] Token received, URL:', data.url);
+      return { token: data.token, url: data.url };
+    } catch (err: any) {
+      // Retry une fois sur erreur réseau (fréquent sur mobile)
+      if (retryCount < 2 && (err?.message?.includes('network') || err?.message?.includes('fetch'))) {
+        console.log('[LiveKit Broadcast] Network error, retrying...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return getToken(streamId, isPublisher, retryCount + 1);
+      }
+      throw err;
     }
-    console.log('[LiveKit Broadcast] Token received, URL:', data.url);
-    return { token: data.token, url: data.url };
   }, []);
 
   /**

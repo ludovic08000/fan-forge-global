@@ -534,7 +534,209 @@ export const LiveStreamStudio = () => {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className={`${isMobile ? 'min-h-screen pb-4' : 'container mx-auto py-8 px-4'}`}>
+      {/* Layout mobile optimisé */}
+      {isMobile ? (
+        <div className="flex flex-col h-full">
+          {/* Header mobile */}
+          <div className="flex items-center justify-between p-3 bg-background/95 backdrop-blur-sm sticky top-0 z-10">
+            <h1 className="text-lg font-bold">Studio Live</h1>
+            {isLive && (
+              <Badge variant="destructive" className="gap-1 animate-pulse">
+                <Circle className="h-2 w-2 fill-current" />
+                EN DIRECT
+              </Badge>
+            )}
+          </div>
+
+          {/* Vidéo plein écran mobile */}
+          <div className="relative flex-1 bg-black min-h-[50vh]">
+            <video
+              ref={videoRef}
+              autoPlay
+              muted
+              playsInline
+              webkit-playsinline="true"
+              className="w-full h-full object-cover"
+            />
+            
+            {/* Loading state */}
+            {!isMediaReady && !mediaError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black">
+                <div className="text-white text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                  <p className="text-sm">Initialisation de la caméra...</p>
+                </div>
+              </div>
+            )}
+            
+            {/* Erreur média */}
+            {mediaError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/90 p-4">
+                <div className="text-center">
+                  <VideoOff className="h-12 w-12 mx-auto mb-3 text-destructive" />
+                  <p className="text-sm text-white mb-2">{mediaError}</p>
+                  <Button size="sm" onClick={() => window.location.reload()}>
+                    Réessayer
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {/* Overlay infos live */}
+            {isLive && (
+              <div className="absolute top-3 right-3 flex flex-col gap-2">
+                <div className="bg-black/70 text-white px-3 py-1 rounded-full flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <span>{connectedViewers}</span>
+                </div>
+                {isLiveKitConnecting ? (
+                  <div className="bg-yellow-500/90 text-white px-3 py-1 rounded-full flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                ) : isStreaming ? (
+                  <div className="bg-green-500/90 text-white px-3 py-1 rounded-full flex items-center gap-2">
+                    <Wifi className="h-4 w-4" />
+                  </div>
+                ) : null}
+              </div>
+            )}
+            
+            {/* LiveKit Error */}
+            {liveKitError && isLive && (
+              <div className="absolute bottom-16 left-2 right-2 bg-amber-500/90 text-white px-3 py-2 rounded-lg text-xs text-center">
+                <p>Mode aperçu - Publiez l'app pour tester</p>
+              </div>
+            )}
+            
+            {/* Contrôles sur la vidéo */}
+            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-3 px-4">
+              <Button
+                variant={isVideoEnabled ? 'secondary' : 'destructive'}
+                size="icon"
+                className="h-12 w-12 rounded-full"
+                onClick={toggleVideo}
+                disabled={!isMediaReady}
+              >
+                {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+              </Button>
+              <Button
+                variant={isAudioEnabled ? 'secondary' : 'destructive'}
+                size="icon"
+                className="h-12 w-12 rounded-full"
+                onClick={toggleAudio}
+                disabled={!isMediaReady}
+              >
+                {isAudioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-12 w-12 rounded-full"
+                onClick={switchCamera}
+                disabled={!isMediaReady || isSwitchingCamera}
+              >
+                {isSwitchingCamera ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <SwitchCamera className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Configuration et boutons mobile */}
+          <div className="p-4 space-y-4 bg-background">
+            {!isLive ? (
+              <>
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Titre du live *"
+                  className="text-lg"
+                />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Live gratuit pour tous</span>
+                  <Switch checked={isFree} onCheckedChange={setIsFree} />
+                </div>
+                <Button 
+                  onClick={handleStartLive} 
+                  className="w-full h-14 text-lg" 
+                  size="lg"
+                  disabled={!isMediaReady || !!mediaError || !title.trim()}
+                >
+                  <Video className="h-5 w-5 mr-2" />
+                  Démarrer le live
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  onClick={handleStopLive}
+                  variant="destructive"
+                  className="w-full h-14 text-lg"
+                  size="lg"
+                >
+                  Arrêter le live
+                </Button>
+                
+                {/* Chat mobile simplifié */}
+                <Card className="max-h-[200px]">
+                  <CardContent className="p-3">
+                    <ScrollArea className="h-[120px]">
+                      <div className="space-y-1">
+                        {messages.slice(-10).map((msg) => (
+                          msg.message_type === 'tip' && msg.tip_data ? (
+                            <TipMessage
+                              key={msg.id}
+                              senderName={msg.username}
+                              amount={msg.tip_data.amount}
+                              currency={msg.tip_data.currency}
+                              message={msg.tip_data.message}
+                            />
+                          ) : (
+                            <div key={msg.id} className="text-sm">
+                              <span className="font-semibold text-primary">{msg.username}: </span>
+                              <span>{msg.message}</span>
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    </ScrollArea>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        value={chatMessage}
+                        onChange={(e) => setChatMessage(e.target.value)}
+                        placeholder="Message..."
+                        className="flex-1"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && chatMessage.trim()) {
+                            sendMessage(chatMessage);
+                            setChatMessage('');
+                          }
+                        }}
+                      />
+                      <Button
+                        size="icon"
+                        onClick={() => {
+                          if (chatMessage.trim()) {
+                            sendMessage(chatMessage);
+                            setChatMessage('');
+                          }
+                        }}
+                        disabled={!chatMessage.trim()}
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </div>
+        </div>
+      ) : (
+      /* Layout desktop original */
       <div className="grid gap-6 md:grid-cols-2">
         {/* Prévisualisation vidéo */}
         <Card>
@@ -876,6 +1078,7 @@ export const LiveStreamStudio = () => {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };
