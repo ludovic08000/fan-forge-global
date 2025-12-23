@@ -498,7 +498,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                 Complétez votre paiement pour accéder à ce live et tout le contenu premium
               </p>
             </DialogHeader>
-            {creatorData && (
+            {showCheckout && liveStream?.creator_id && (
               <EmbeddedCheckout 
                 creatorId={liveStream.creator_id} 
                 onClose={() => {
