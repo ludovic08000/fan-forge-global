@@ -5,16 +5,25 @@ import { toast } from 'sonner';
 
 export type UserRole = 'admin' | 'creator' | 'subscriber';
 
+export interface UserProfile {
+  avatar_url: string | null;
+  display_name: string | null;
+  username: string | null;
+  stage_name?: string | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   userRole: UserRole | null;
+  userProfile: UserProfile | null;
   loading: boolean;
   signUp: (email: string, password: string, firstName?: string, lastName?: string, username?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signInWithFacebook: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,7 +44,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  /**
+   * Charge le profil utilisateur depuis la base de données
+   */
+  const loadUserProfile = async (userId: string) => {
+    try {
+      // Charger le profil de base
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('avatar_url, display_name, username')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      // Si c'est un créateur, charger aussi le stage_name
+      const { data: creator } = await supabase
+        .from('creators')
+        .select('stage_name')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      setUserProfile({
+        avatar_url: profile?.avatar_url || null,
+        display_name: profile?.display_name || null,
+        username: profile?.username || null,
+        stage_name: creator?.stage_name || null,
+      });
+    } catch (error) {
+      console.error('Erreur lors du chargement du profil:', error);
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (user) {
+      await loadUserProfile(user.id);
+    }
+  };
 
   /**
    * Enregistrer une connexion dans les logs
@@ -116,10 +162,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (isSuspended) return;
             
             loadUserRole(session.user.id);
+            loadUserProfile(session.user.id);
             processIntendedRole(session.user.id);
           }, 0);
         } else {
           setUserRole(null);
+          setUserProfile(null);
         }
         
         // Notifications utilisateur et logging
@@ -132,6 +180,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else if (event === 'SIGNED_OUT') {
           toast.success('Déconnexion réussie!');
           setUserRole(null);
+          setUserProfile(null);
         }
       }
     );
@@ -142,9 +191,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(session?.user ?? null);
       setLoading(false);
       
-      // Charger le rôle si l'utilisateur est déjà connecté
+      // Charger le rôle et le profil si l'utilisateur est déjà connecté
       if (session?.user) {
         loadUserRole(session.user.id);
+        loadUserProfile(session.user.id);
       }
     });
 
@@ -521,12 +571,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     session,
     userRole,
+    userProfile,
     loading,
     signUp,
     signIn,
     signInWithGoogle,
     signInWithFacebook,
     signOut,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

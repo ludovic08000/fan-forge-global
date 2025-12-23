@@ -14,7 +14,7 @@ import { NotificationBell } from '@/components/NotificationBell';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, signOut, userRole } = useAuth();
+  const { user, signOut, userRole, userProfile } = useAuth();
   const navigate = useNavigate();
 
   // Déterminer la destination du logo selon le rôle
@@ -22,6 +22,25 @@ const Header: React.FC = () => {
     if (!user) return "/";
     if (userRole === 'creator' || userRole === 'admin') return "/dashboard";
     return "/subscriptions";
+  };
+
+  // Obtenir l'avatar à afficher (priorité: profil DB > metadata > fallback)
+  const getAvatarUrl = () => {
+    return userProfile?.avatar_url || user?.user_metadata?.avatar_url || null;
+  };
+
+  // Obtenir le nom à afficher
+  const getDisplayName = () => {
+    return userProfile?.stage_name || userProfile?.display_name || userProfile?.username || user?.email;
+  };
+
+  // Obtenir les initiales pour le fallback
+  const getInitials = () => {
+    const name = userProfile?.stage_name || userProfile?.display_name || userProfile?.username;
+    if (name) {
+      return name.substring(0, 2).toUpperCase();
+    }
+    return user?.email?.substring(0, 2).toUpperCase() || '??';
   };
 
   return (
@@ -44,9 +63,9 @@ const Header: React.FC = () => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 ring-2 ring-primary/20 hover:ring-primary/50 transition-all">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={user.user_metadata?.avatar_url} alt={user.email} />
+                    <AvatarImage src={getAvatarUrl() || undefined} alt={getDisplayName() || 'Avatar'} />
                     <AvatarFallback className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground font-semibold text-sm">
-                      {user.email?.substring(0, 2).toUpperCase()}
+                      {getInitials()}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
