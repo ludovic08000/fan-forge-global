@@ -62,13 +62,14 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
   /**
-   * Écouter les changements de statut du live pour rediriger si terminé
-   * Utilise un polling car Realtime a des restrictions RLS sur live_streams
+   * Écouter les changements de statut du live en temps réel
+   * Polling rapide pour détecter activation/fin du stream
    */
   useEffect(() => {
-    if (!streamId || isCreator) return; // Ne pas rediriger le créateur
+    if (!streamId) return;
 
     let isRedirecting = false;
+    let previousStatus = liveStream?.status;
 
     const checkStreamStatus = async () => {
       if (isRedirecting) return;
@@ -76,11 +77,28 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
       try {
         const { data } = await supabase
           .from('public_live_streams')
-          .select('status')
+          .select('status, viewer_count, started_at')
           .eq('id', streamId)
           .maybeSingle();
 
-        if (data && (data.status === 'ended' || data.status === 'cancelled')) {
+        if (!data) return;
+
+        // Mettre à jour le statut du stream en temps réel
+        if (data.status !== previousStatus) {
+          console.log('[LiveStreamViewer] Status changed:', previousStatus, '->', data.status);
+          previousStatus = data.status;
+          
+          // Mettre à jour le state du liveStream avec le nouveau statut
+          setLiveStream((prev: any) => prev ? { ...prev, status: data.status, viewer_count: data.viewer_count, started_at: data.started_at } : prev);
+
+          // Si le stream vient de passer en live, afficher une notification
+          if (data.status === 'live') {
+            toast.success('Le live est maintenant actif !');
+          }
+        }
+
+        // Rediriger si terminé (sauf pour le créateur)
+        if (!isCreator && (data.status === 'ended' || data.status === 'cancelled')) {
           isRedirecting = true;
           console.log('[LiveStreamViewer] Live ended, redirecting...');
           toast.info('Le live est terminé');
@@ -93,8 +111,8 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
       }
     };
 
-    // Vérifier toutes les 3 secondes
-    const interval = setInterval(checkStreamStatus, 3000);
+    // Vérifier toutes les 2 secondes pour une réactivité maximale
+    const interval = setInterval(checkStreamStatus, 2000);
     
     // Vérifier immédiatement au montage
     checkStreamStatus();
@@ -102,7 +120,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
     return () => {
       clearInterval(interval);
     };
-  }, [streamId, isCreator, navigate]);
+  }, [streamId, isCreator, navigate, liveStream?.status]);
 
   /**
    * Charger les infos du stream et vérifier l'accès avec gestion d'erreurs
