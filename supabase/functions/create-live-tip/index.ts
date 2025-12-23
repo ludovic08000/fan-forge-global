@@ -113,12 +113,12 @@ serve(async (req) => {
         transfer_data: {
           destination: creator.stripe_account_id,
         },
-        // 10% commission plateforme
-        application_fee_amount: Math.round(amountInCents * 0.1),
+        // 15% commission plateforme sur les tips
+        application_fee_amount: Math.round(amountInCents * 0.15),
       };
       logStep("Stripe Connect transfer configured", { 
         destination: creator.stripe_account_id,
-        fee: Math.round(amountInCents * 0.1)
+        fee: Math.round(amountInCents * 0.15)
       });
     }
 
