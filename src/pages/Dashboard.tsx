@@ -674,30 +674,30 @@ const Dashboard = () => {
 
         {/* Lightbox plein écran */}
         <Dialog open={!!selectedContent} onOpenChange={(open) => { if (!open) setSelectedContent(null); }}>
-          <DialogContent className="z-[1000] w-[95vw] max-w-none h-[90vh] p-0 overflow-hidden bg-black/95" aria-describedby="content-fullscreen-description">
+          <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto h-auto p-2 bg-black border-none" aria-describedby="content-fullscreen-description">
             <DialogHeader className="sr-only">
               <DialogTitle>{selectedContent?.title || 'Contenu'}</DialogTitle>
             </DialogHeader>
             {selectedContent && (
-              <div className="relative w-full h-full flex items-center justify-center p-4">
+              <div className="flex flex-col items-center justify-center">
                 {selectedContent.content_type === 'video' ? (
                   <video
                     src={selectedContent.file_url}
                     controls
-                    className="max-w-full max-h-full"
+                    className="max-w-full max-h-[80vh] rounded-lg"
                     autoPlay
                   />
                 ) : (
                   <img
                     src={selectedContent.file_url}
                     alt={selectedContent.title}
-                    className="max-w-full max-h-full object-contain"
+                    className="max-w-full max-h-[80vh] object-contain rounded-lg"
                   />
                 )}
-                <div id="content-fullscreen-description" className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">
-                  <h3 className="text-white text-xl font-bold mb-2">{selectedContent.title}</h3>
+                <div id="content-fullscreen-description" className="mt-4 text-center">
+                  <h3 className="text-white text-lg font-bold">{selectedContent.title}</h3>
                   {selectedContent.description && (
-                    <p className="text-white/80 text-sm">{selectedContent.description}</p>
+                    <p className="text-white/70 text-sm mt-1">{selectedContent.description}</p>
                   )}
                 </div>
               </div>
