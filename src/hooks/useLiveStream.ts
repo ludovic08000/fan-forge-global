@@ -82,14 +82,17 @@ export const useLiveStream = () => {
 
   /**
    * Charger automatiquement les lives au montage et écouter les changements temps réel
+   * NOTE: On écoute la table live_streams mais on recharge via la vue publique
+   * pour garantir l'accès aux données même sans authentification
    */
   useEffect(() => {
     // Charger les lives immédiatement
     fetchLiveStreams();
 
-    // Écouter les changements en temps réel
+    // Écouter les changements en temps réel sur la table live_streams
+    // Quand un événement arrive, on recharge la liste complète via la vue publique
     const channel = supabase
-      .channel('useLiveStream-realtime')
+      .channel('useLiveStream-realtime-v2')
       .on(
         'postgres_changes',
         {
@@ -98,48 +101,10 @@ export const useLiveStream = () => {
           table: 'live_streams',
         },
         (payload) => {
-          console.log('[useLiveStream] Realtime event:', payload.eventType, payload.new);
+          console.log('[useLiveStream] Realtime event received:', payload.eventType);
           
-          if (payload.eventType === 'UPDATE') {
-            const updatedStream = payload.new as LiveStream;
-            
-            // Si le status est passé à 'ended' ou 'cancelled', le retirer immédiatement
-            if (updatedStream.status === 'ended' || updatedStream.status === 'cancelled') {
-              console.log('[useLiveStream] Live ended, removing:', updatedStream.id);
-              setLiveStreams(prev => prev.filter(s => s.id !== updatedStream.id));
-              return;
-            }
-            
-            // Si le status passe à 'live', l'ajouter ou mettre à jour
-            if (updatedStream.status === 'live') {
-              setLiveStreams(prev => {
-                const exists = prev.find(s => s.id === updatedStream.id);
-                if (exists) {
-                  return prev.map(s => s.id === updatedStream.id ? { ...s, ...updatedStream } : s);
-                }
-                return [updatedStream, ...prev];
-              });
-              return;
-            }
-            
-            // Sinon, mettre à jour le stream
-            setLiveStreams(prev => prev.map(s => 
-              s.id === updatedStream.id ? { ...s, ...updatedStream } : s
-            ));
-          } else if (payload.eventType === 'INSERT') {
-            const newStream = payload.new as LiveStream;
-            if (newStream.status === 'live' || newStream.status === 'scheduled') {
-              console.log('[useLiveStream] New live inserted:', newStream.id);
-              setLiveStreams(prev => {
-                if (prev.some(s => s.id === newStream.id)) return prev;
-                return [newStream, ...prev];
-              });
-            }
-          } else if (payload.eventType === 'DELETE') {
-            const deletedId = (payload.old as any).id;
-            console.log('[useLiveStream] Live deleted:', deletedId);
-            setLiveStreams(prev => prev.filter(s => s.id !== deletedId));
-          }
+          // Recharger la liste complète via la vue publique pour garantir les données
+          fetchLiveStreams();
         }
       )
       .subscribe((status) => {
@@ -147,6 +112,7 @@ export const useLiveStream = () => {
       });
 
     return () => {
+      console.log('[useLiveStream] Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, []);
