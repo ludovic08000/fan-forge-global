@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChatNotificationSound } from '@/hooks/useChatNotificationSound';
+import { toast } from 'sonner';
 
 export interface ContentOffer {
   content_id: string;
@@ -101,19 +102,29 @@ export const useLiveChat = (streamId: string) => {
    * Envoyer un message texte
    */
   const sendMessage = async (message: string) => {
-    if (!user || !message.trim()) return;
+    if (!user || !message.trim()) {
+      console.log('sendMessage: user ou message vide', { user: !!user, message: message.trim() });
+      return;
+    }
+
+    console.log('sendMessage: envoi du message', { streamId, userId: user.id, message: message.trim() });
 
     try {
       // Récupérer le profil pour le username
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('username, display_name')
         .eq('user_id', user.id)
         .single();
 
-      const username = profile?.username || profile?.display_name || user.email || 'Anonyme';
+      if (profileError) {
+        console.error('Erreur récupération profil:', profileError);
+      }
 
-      const { error } = await supabase
+      const username = profile?.username || profile?.display_name || user.email || 'Anonyme';
+      console.log('sendMessage: username résolu:', username);
+
+      const { data, error } = await supabase
         .from('live_stream_messages')
         .insert({
           live_stream_id: streamId,
@@ -121,11 +132,19 @@ export const useLiveChat = (streamId: string) => {
           username,
           message: message.trim(),
           message_type: 'text',
-        });
+        })
+        .select();
 
-      if (error) throw error;
-    } catch (error) {
+      console.log('sendMessage: résultat insert', { data, error });
+
+      if (error) {
+        console.error('Erreur RLS ou insert:', error);
+        toast.error('Erreur envoi: ' + error.message);
+        throw error;
+      }
+    } catch (error: any) {
       console.error('Erreur envoi message:', error);
+      toast.error('Erreur: ' + (error?.message || 'Impossible d\'envoyer le message'));
     }
   };
 
