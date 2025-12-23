@@ -466,6 +466,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                           price={msg.content_offer.price}
                           thumbnailUrl={msg.content_offer.thumbnail_url}
                           creatorName={msg.username}
+                          isLiveMedia={true}
                         />
                       </div>
                     ) : msg.message_type === 'tip' && msg.tip_data ? (
