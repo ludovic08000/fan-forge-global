@@ -8,11 +8,9 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Menu, X, User, LogOut, Settings, Crown, Circle } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, Crown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import SearchBar from '@/components/SearchBar';
 import { NotificationBell } from '@/components/NotificationBell';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -22,24 +20,14 @@ const Header: React.FC = () => {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center">
           <Link to="/" className="font-bold text-xl bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent hover:scale-105 transition-transform">
             Crub
           </Link>
-          
-          {/* Search Bar - Hidden on mobile */}
-          <div className="hidden md:block flex-1 max-w-lg">
-            <SearchBar />
-          </div>
         </div>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
-          <Link to="/lives" className="text-sm font-medium hover:text-primary transition-colors flex items-center gap-1 group">
-            <Circle className="h-3 w-3 fill-destructive text-destructive animate-pulse group-hover:scale-110 transition-transform" />
-            <span className="group-hover:text-primary transition-colors">Lives</span>
-          </Link>
-          <ThemeToggle />
           {user && <NotificationBell />}
           {user ? (
             <DropdownMenu>
@@ -108,16 +96,6 @@ const Header: React.FC = () => {
       {isMenuOpen && (
         <div className="md:hidden border-t bg-background">
           <div className="container mx-auto px-4 py-4">
-            {/* Mobile Search Bar */}
-            <div className="mb-4">
-              <SearchBar />
-            </div>
-            
-            {/* Mobile Theme Toggle */}
-            <div className="mb-4 px-3">
-              <ThemeToggle />
-            </div>
-            
             <div className="space-y-2">
               <Link 
                 to="/" 
@@ -125,14 +103,6 @@ const Header: React.FC = () => {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Accueil
-              </Link>
-              <Link 
-                to="/lives" 
-                className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <Circle className="h-3 w-3 fill-destructive text-destructive animate-pulse" />
-                Lives
               </Link>
               {!user ? (
                 <>
