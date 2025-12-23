@@ -3,9 +3,10 @@
  * Permet d'envoyer et recevoir des messages en temps réel
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useChatNotificationSound } from '@/hooks/useChatNotificationSound';
 
 export interface ContentOffer {
   content_id: string;
@@ -33,10 +34,12 @@ const MAX_MESSAGES_IN_MEMORY = 200;
  */
 export const useLiveChat = (streamId: string) => {
   const { user } = useAuth();
+  const { playNotificationSound } = useChatNotificationSound();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [oldestMessageDate, setOldestMessageDate] = useState<string | null>(null);
+  const initialLoadDoneRef = useRef(false);
 
   /**
    * Charger les messages avec pagination
@@ -166,7 +169,13 @@ export const useLiveChat = (streamId: string) => {
     // Ne pas s'abonner si pas de streamId
     if (!streamId) return;
     
-    loadMessages();
+    // Réinitialiser le flag au changement de stream
+    initialLoadDoneRef.current = false;
+    
+    loadMessages().then(() => {
+      // Marquer le chargement initial comme terminé
+      initialLoadDoneRef.current = true;
+    });
 
     const channel = supabase
       .channel(`live_chat_${streamId}`)
@@ -179,11 +188,19 @@ export const useLiveChat = (streamId: string) => {
           filter: `live_stream_id=eq.${streamId}`,
         },
         (payload) => {
+          const newMessage = payload.new as ChatMessage;
+          
           setMessages((prev) => {
-            const updated = [...prev, payload.new as ChatMessage];
+            const updated = [...prev, newMessage];
             // Garder seulement les derniers messages pour éviter surcharge mémoire
             return updated.slice(-MAX_MESSAGES_IN_MEMORY);
           });
+          
+          // Jouer le son de notification seulement après le chargement initial
+          // et si le message n'est pas de l'utilisateur actuel
+          if (initialLoadDoneRef.current && newMessage.user_id !== user?.id) {
+            playNotificationSound();
+          }
         }
       )
       .subscribe();
@@ -191,7 +208,7 @@ export const useLiveChat = (streamId: string) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [streamId, loadMessages]);
+  }, [streamId, loadMessages, user?.id, playNotificationSound]);
 
   return {
     messages,
