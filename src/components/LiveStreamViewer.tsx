@@ -401,173 +401,154 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
           </Card>
         </div>
 
-        {/* Chat en direct - Design moderne */}
-        <Card className="flex flex-col h-[600px] overflow-hidden">
-          <CardHeader className="pb-2 border-b bg-gradient-to-r from-primary/5 to-transparent">
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                <span>Chat en direct</span>
-              </div>
-              <Badge variant="secondary" className="font-mono">{messages.length}</Badge>
-            </CardTitle>
-            {/* Debug: afficher si créateur */}
-            {isCreator && (
-              <p className="text-xs text-green-500 font-medium">✓ Mode créateur actif</p>
-            )}
-          </CardHeader>
+        {/* Chat en direct */}
+        <Card className="flex flex-col h-[600px] overflow-hidden border-2">
+          {/* Header du chat */}
+          <div className="px-4 py-3 border-b bg-card flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+              <span className="font-semibold">Chat en direct</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">{messages.length} messages</Badge>
+              {isCreator && (
+                <Badge className="bg-primary text-primary-foreground">Créateur</Badge>
+              )}
+            </div>
+          </div>
           
-          <CardContent className="flex-1 flex flex-col p-0 min-h-0">
-            {/* Panel créateur avec boutons visibles */}
-            {isCreator && (
-              <div className="px-3 py-2 bg-primary/5 border-b space-y-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <LiveModerationPanel liveStreamId={streamId} isCreator={isCreator} />
-                  <ContentOfferSelector 
-                    creatorId={liveStream?.creator_id} 
-                    onSelectContent={(content) => sendContentOffer(content)}
-                  />
+          {/* Zone des messages */}
+          <ScrollArea className="flex-1" ref={chatScrollRef}>
+            <div className="p-3 space-y-1">
+              {hasMore && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={loadMore}
+                  disabled={chatLoading}
+                  className="w-full text-xs mb-2"
+                >
+                  <ChevronUp className="h-3 w-3 mr-1" />
+                  {chatLoading ? 'Chargement...' : 'Charger plus'}
+                </Button>
+              )}
+              
+              {messages.length === 0 ? (
+                <p className="text-center text-muted-foreground text-sm py-8">
+                  Aucun message. Soyez le premier !
+                </p>
+              ) : (
+                messages.map((msg) => (
+                  <div key={msg.id} className="py-1">
+                    {msg.message_type === 'paid_media' && msg.content_offer ? (
+                      <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className="text-xs bg-amber-500 text-white">
+                              {msg.username.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="font-bold text-sm text-amber-600">{msg.username}</span>
+                          <Badge variant="secondary" className="text-[10px]">Créateur</Badge>
+                          <span className="text-[10px] text-muted-foreground ml-auto">
+                            {new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <PaidMediaMessage
+                          mediaId={msg.id}
+                          type={(msg.content_offer as any)?.media_type || 'image'}
+                          price={msg.content_offer.price}
+                          thumbnailUrl={msg.content_offer.thumbnail_url}
+                          creatorName={msg.username}
+                        />
+                      </div>
+                    ) : msg.message_type === 'offer' && msg.content_offer ? (
+                      <ContentOfferCard offer={msg.content_offer} />
+                    ) : (
+                      <div className="flex items-start gap-2 hover:bg-muted/30 rounded px-1 py-0.5 group">
+                        <Avatar className="h-6 w-6 mt-0.5">
+                          <AvatarFallback className="text-[10px]">
+                            {msg.username.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-semibold text-sm mr-2">{msg.username}</span>
+                          <span className="text-sm break-words">{msg.message}</span>
+                        </div>
+                        {isCreator && (
+                          <MessageModeration
+                            messageId={msg.id}
+                            userId={msg.user_id}
+                            username={msg.username}
+                            liveStreamId={streamId}
+                            isCreator={isCreator}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+
+          {/* Barre de modération créateur */}
+          {isCreator && (
+            <div className="px-3 py-2 border-t bg-primary/5 flex items-center gap-2 flex-wrap">
+              <LiveModerationPanel liveStreamId={streamId} isCreator={isCreator} />
+              <ContentOfferSelector 
+                creatorId={liveStream?.creator_id} 
+                onSelectContent={(content) => sendContentOffer(content)}
+              />
+            </div>
+          )}
+
+          {/* Zone de saisie - IDENTIQUE pour tous */}
+          <div className="p-3 border-t bg-muted/20">
+            {!user ? (
+              <p className="text-center text-sm text-muted-foreground py-1">
+                Connectez-vous pour chatter
+              </p>
+            ) : (
+              <div className="flex items-center gap-2">
+                {/* Emoji picker - pour tous */}
+                <EmojiPicker onEmojiSelect={(emoji) => setNewMessage(prev => prev + emoji)} />
+                
+                {/* Bouton média payant - SEULEMENT créateur */}
+                {isCreator && (
                   <PaidMediaUpload
                     liveStreamId={streamId}
                     creatorId={liveStream?.creator_id}
                     onMediaSent={(media) => sendPaidMedia(media)}
                   />
-                </div>
+                )}
+                
+                {/* Champ de texte */}
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  placeholder="Écrire un message..."
+                  className="flex-1"
+                />
+                
+                {/* Bouton envoyer */}
+                <Button
+                  size="icon"
+                  onClick={handleSendMessage}
+                  disabled={!newMessage.trim()}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
               </div>
             )}
-
-            {/* Messages */}
-            <ScrollArea className="flex-1 min-h-0" ref={chatScrollRef}>
-              <div className="p-3 space-y-2">
-                {hasMore && (
-                  <div className="flex justify-center py-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={loadMore}
-                      disabled={chatLoading}
-                      className="text-xs"
-                    >
-                      <ChevronUp className="h-3 w-3 mr-1" />
-                      {chatLoading ? 'Chargement...' : 'Messages précédents'}
-                    </Button>
-                  </div>
-                )}
-                
-                {messages.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p className="text-sm">Aucun message pour l'instant</p>
-                    <p className="text-xs mt-1">Soyez le premier à écrire !</p>
-                  </div>
-                )}
-                
-                {messages.map((msg) => (
-                  <div key={msg.id} className="group animate-in slide-in-from-bottom-2 duration-200">
-                    {msg.message_type === 'paid_media' && msg.content_offer ? (
-                      <div className="flex items-start gap-2 p-2 rounded-lg bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20">
-                        <Avatar className="h-7 w-7 ring-2 ring-amber-500/50">
-                          <AvatarFallback className="text-xs bg-amber-500/20 text-amber-600">
-                            {msg.username.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold text-sm text-amber-600">{msg.username}</span>
-                            <Badge variant="secondary" className="text-[10px] px-1 py-0">Créateur</Badge>
-                            <span className="text-[10px] text-muted-foreground ml-auto">
-                              {new Date(msg.created_at).toLocaleTimeString('fr-FR', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          </div>
-                          <PaidMediaMessage
-                            mediaId={msg.id}
-                            type={(msg.content_offer as any)?.media_type || 'image'}
-                            price={msg.content_offer.price}
-                            thumbnailUrl={msg.content_offer.thumbnail_url}
-                            creatorName={msg.username}
-                          />
-                        </div>
-                      </div>
-                    ) : msg.message_type === 'offer' && msg.content_offer ? (
-                      <ContentOfferCard offer={msg.content_offer} />
-                    ) : (
-                      <div className="flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                        <Avatar className="h-7 w-7">
-                          <AvatarFallback className="text-xs">
-                            {msg.username.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-baseline gap-2">
-                            <span className="font-medium text-sm">{msg.username}</span>
-                            <span className="text-[10px] text-muted-foreground">
-                              {new Date(msg.created_at).toLocaleTimeString('fr-FR', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                            </span>
-                          </div>
-                          <p className="text-sm break-words leading-relaxed">{msg.message}</p>
-                        </div>
-                        <MessageModeration
-                          messageId={msg.id}
-                          userId={msg.user_id}
-                          username={msg.username}
-                          liveStreamId={streamId}
-                          isCreator={isCreator}
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
-
-            {/* Zone de saisie moderne */}
-            <div className="p-3 border-t bg-muted/30">
-              {!user ? (
-                <div className="text-center py-2">
-                  <p className="text-sm text-muted-foreground">Connectez-vous pour participer au chat</p>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  {/* Bouton emoji */}
-                  <EmojiPicker 
-                    onEmojiSelect={(emoji) => setNewMessage(prev => prev + emoji)} 
-                  />
-                  
-                  {/* Input message */}
-                  <div className="flex-1 relative">
-                    <Input
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                      }}
-                      placeholder="Votre message..."
-                      className="pr-10 bg-background/50 border-muted-foreground/20 focus:border-primary"
-                    />
-                  </div>
-                  
-                  {/* Bouton envoyer */}
-                  <Button
-                    size="icon"
-                    onClick={handleSendMessage}
-                    disabled={!newMessage.trim()}
-                    className="shrink-0 rounded-full h-9 w-9"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          </CardContent>
+          </div>
         </Card>
       </div>
     </div>
