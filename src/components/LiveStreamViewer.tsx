@@ -381,18 +381,22 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
 
               <div className="p-4 space-y-4">
                 <div>
-                  <h1 className="text-2xl font-bold mb-2">Titre du live</h1>
-                  <p className="text-muted-foreground">Description du live stream...</p>
+                  <h1 className="text-2xl font-bold mb-2">{liveStream?.title || 'Live en cours'}</h1>
+                  <p className="text-muted-foreground">{liveStream?.description || ''}</p>
                 </div>
 
                 <div className="flex items-center gap-3">
                   <Avatar>
                     <AvatarImage src="" />
-                    <AvatarFallback>CR</AvatarFallback>
+                    <AvatarFallback>
+                      {creatorData?.stage_name?.substring(0, 2).toUpperCase() || 'CR'}
+                    </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold">Nom du créateur</p>
-                    <p className="text-sm text-muted-foreground">1.2K abonnés</p>
+                    <p className="font-semibold">{creatorData?.stage_name || 'Créateur'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {creatorData?.total_subscribers || 0} abonnés
+                    </p>
                   </div>
                   <Button variant="default" className="ml-auto">
                     S'abonner
