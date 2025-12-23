@@ -118,3 +118,6 @@ verify_jwt = true
 
 [functions.save-edited-image]
 verify_jwt = true
+
+[functions.cleanup-stale-lives]
+verify_jwt = false
