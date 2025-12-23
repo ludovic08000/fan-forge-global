@@ -63,37 +63,44 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
 
   /**
    * Écouter les changements de statut du live pour rediriger si terminé
+   * Utilise un polling car Realtime a des restrictions RLS sur live_streams
    */
   useEffect(() => {
     if (!streamId || isCreator) return; // Ne pas rediriger le créateur
 
-    const channel = supabase
-      .channel(`live-status-${streamId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'live_streams',
-          filter: `id=eq.${streamId}`,
-        },
-        (payload) => {
-          const newStatus = (payload.new as any).status;
-          console.log('[LiveStreamViewer] Live status changed:', newStatus);
-          
-          if (newStatus === 'ended' || newStatus === 'cancelled') {
-            toast.info('Le live est terminé');
-            // Rediriger vers le dashboard après un court délai
-            setTimeout(() => {
-              navigate('/dashboard');
-            }, 1500);
-          }
+    let isRedirecting = false;
+
+    const checkStreamStatus = async () => {
+      if (isRedirecting) return;
+      
+      try {
+        const { data } = await supabase
+          .from('public_live_streams')
+          .select('status')
+          .eq('id', streamId)
+          .maybeSingle();
+
+        if (data && (data.status === 'ended' || data.status === 'cancelled')) {
+          isRedirecting = true;
+          console.log('[LiveStreamViewer] Live ended, redirecting...');
+          toast.info('Le live est terminé');
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 1500);
         }
-      )
-      .subscribe();
+      } catch (error) {
+        console.error('Error checking stream status:', error);
+      }
+    };
+
+    // Vérifier toutes les 3 secondes
+    const interval = setInterval(checkStreamStatus, 3000);
+    
+    // Vérifier immédiatement au montage
+    checkStreamStatus();
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, [streamId, isCreator, navigate]);
 
