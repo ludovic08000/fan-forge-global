@@ -71,7 +71,7 @@ export const LiveStreamStudio = () => {
   }, []);
   
   // LiveKit broadcast hook
-  const { isStreaming, isConnecting: isLiveKitConnecting, connectedViewers, error: liveKitError, startBroadcast, stopBroadcast } = useLiveKitBroadcast();
+  const { isStreaming, isConnecting: isLiveKitConnecting, connectedViewers, error: liveKitError, startBroadcast, stopBroadcast, replaceVideoTrack } = useLiveKitBroadcast();
 
   // Référence pour stocker l'ID du stream actuel pour le cleanup
   const currentStreamIdRef = useRef<string | null>(null);
@@ -506,7 +506,7 @@ export const LiveStreamStudio = () => {
 
   /**
    * Basculer entre caméra avant/arrière (mobile uniquement)
-   * IMPORTANT: Il faut aussi republier le track sur LiveKit pour les viewers
+   * Utilise replaceVideoTrack pour un switch fluide sans déconnexion
    */
   const switchCamera = async () => {
     if (!isMobile || isSwitchingCamera) return;
@@ -547,28 +547,15 @@ export const LiveStreamStudio = () => {
           await videoRef.current.play().catch(() => {});
         }
         
-        // IMPORTANT: Republier le nouveau track vidéo sur LiveKit si on est en live
-        if (isLive && currentStream?.id) {
-          try {
-            // Charger LiveKit de manière lazy
-            const liveKit = await import('livekit-client');
-            
-            // Accéder à la room via le hook - on doit stocker la room dans une ref
-            // Pour l'instant, on va recréer la publication du track
-            // La solution propre serait d'exposer la room depuis useLiveKitBroadcast
-            
-            // Workaround: Arrêter et redémarrer le broadcast avec le nouveau stream
-            console.log('[Studio] Republishing video track to LiveKit...');
-            await stopBroadcast();
-            
-            // Court délai pour laisser LiveKit se nettoyer
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
-            await startBroadcast(currentStream.id, streamRef.current);
-            console.log('[Studio] Video track republished successfully');
-          } catch (liveKitError) {
-            console.error('[Studio] Error republishing video track:', liveKitError);
-            toast.error('Erreur de synchronisation vidéo avec les viewers');
+        // Republier le nouveau track vidéo sur LiveKit si on est en live
+        if (isLive && isStreaming) {
+          console.log('[Studio] Replacing video track on LiveKit...');
+          const success = await replaceVideoTrack(newVideoTrack);
+          if (success) {
+            console.log('[Studio] Video track replaced successfully');
+          } else {
+            console.error('[Studio] Failed to replace video track');
+            toast.error('Erreur de synchronisation vidéo');
           }
         }
         
