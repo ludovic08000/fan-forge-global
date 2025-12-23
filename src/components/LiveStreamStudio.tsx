@@ -114,6 +114,9 @@ export const LiveStreamStudio = () => {
 
   /**
    * Terminer le live automatiquement quand le créateur quitte la page
+   * IMPORTANT: Sur mobile (surtout iOS), on NE termine PAS le live sur visibilitychange
+   * car ça se déclenche trop souvent (permissions, notifications, etc.)
+   * On utilise seulement pagehide et beforeunload
    */
   useEffect(() => {
     const endLiveOnLeave = () => {
@@ -138,29 +141,26 @@ export const LiveStreamStudio = () => {
       }
     };
 
-    // Gérer quand l'onglet devient caché (mobile ou changement d'onglet)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && currentStreamIdRef.current && isLive) {
-        console.log('[Studio] Page hidden, sending beacon to end live');
-        endLiveOnLeave();
-      }
-    };
-
     // Gérer pagehide (plus fiable que beforeunload sur mobile)
-    const handlePageHide = () => {
-      if (currentStreamIdRef.current) {
+    // IMPORTANT: Ne se déclenche que quand l'utilisateur quitte vraiment la page
+    const handlePageHide = (e: PageTransitionEvent) => {
+      // persisted = true signifie que la page va dans le bfcache (pas une vraie fermeture)
+      if (!e.persisted && currentStreamIdRef.current && isLive) {
+        console.log('[Studio] Page hide (real navigation), ending live');
         endLiveOnLeave();
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('pagehide', handlePageHide);
+
+    // NOTE: On ne gère PAS visibilitychange sur mobile car il se déclenche
+    // trop souvent (permissions caméra, notifications, app switcher, etc.)
+    // Le heartbeat manquant (après 5min) terminera le live si vraiment abandonné
 
     // Cleanup à la destruction du composant
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pagehide', handlePageHide);
       
       // Terminer le live si le composant est démonté
