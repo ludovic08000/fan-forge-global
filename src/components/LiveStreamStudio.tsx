@@ -11,11 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera, Send } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera, Send, Shield } from 'lucide-react';
 import { EmojiPicker } from '@/components/live/EmojiPicker';
 import { PaidMediaUpload } from '@/components/live/PaidMediaUpload';
 import { TipMessage } from '@/components/live/TipMessage';
+import { LiveModerationPanel, MessageModeration } from '@/components/LiveModerationPanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLiveStream } from '@/hooks/useLiveStream';
 import { useLiveChat } from '@/hooks/useLiveChat';
 import { useLiveKitBroadcast } from '@/hooks/useLiveKitBroadcast';
@@ -710,76 +712,104 @@ export const LiveStreamStudio = () => {
             </CardContent>
           </Card>
 
-          {/* Chat en direct */}
-          {isLive && (
-            <Card className="flex flex-col h-[400px]">
+          {/* Chat et Modération */}
+          {isLive && currentStream && (
+            <Card className="flex flex-col h-[450px]">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Chat en direct</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-1 flex flex-col min-h-0">
-                <ScrollArea className="flex-1 pr-4">
-                  <div className="space-y-2">
-                    {messages.map((msg) => (
-                      msg.message_type === 'tip' && msg.tip_data ? (
-                        <TipMessage
-                          key={msg.id}
-                          senderName={msg.username}
-                          amount={msg.tip_data.amount}
-                          currency={msg.tip_data.currency}
-                          message={msg.tip_data.message}
-                        />
-                      ) : (
-                        <div key={msg.id} className="text-sm py-1 px-2 rounded hover:bg-muted/50">
-                          <span className="font-semibold text-primary">{msg.username}: </span>
-                          <span className="text-foreground">{msg.message}</span>
-                        </div>
-                      )
-                    ))}
-                  </div>
-                </ScrollArea>
+                <Tabs defaultValue="chat" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="chat">Chat</TabsTrigger>
+                    <TabsTrigger value="moderation" className="gap-1">
+                      <Shield className="h-4 w-4" />
+                      Modération
+                    </TabsTrigger>
+                  </TabsList>
 
-                {/* Input chat avec emojis et média payant */}
-                <div className="mt-3 pt-3 border-t space-y-2">
-                  <div className="flex gap-2">
-                    <EmojiPicker onEmojiSelect={(emoji) => setChatMessage(prev => prev + emoji)} />
-                    <Input
-                      value={chatMessage}
-                      onChange={(e) => setChatMessage(e.target.value)}
-                      placeholder="Envoyer un message..."
-                      className="flex-1"
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' && chatMessage.trim()) {
-                          sendMessage(chatMessage);
-                          setChatMessage('');
-                        }
-                      }}
-                    />
-                    <Button
-                      size="icon"
-                      onClick={() => {
-                        if (chatMessage.trim()) {
-                          sendMessage(chatMessage);
-                          setChatMessage('');
-                        }
-                      }}
-                      disabled={!chatMessage.trim()}
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  
-                  {/* Bouton média payant pour le créateur */}
-                  {creatorId && currentStream && (
-                    <PaidMediaUpload
+                  <TabsContent value="chat" className="mt-4 flex flex-col h-[340px]">
+                    <ScrollArea className="flex-1 pr-4">
+                      <div className="space-y-2">
+                        {messages.map((msg) => (
+                          msg.message_type === 'tip' && msg.tip_data ? (
+                            <TipMessage
+                              key={msg.id}
+                              senderName={msg.username}
+                              amount={msg.tip_data.amount}
+                              currency={msg.tip_data.currency}
+                              message={msg.tip_data.message}
+                            />
+                          ) : (
+                            <div key={msg.id} className="group flex items-center justify-between text-sm py-1 px-2 rounded hover:bg-muted/50">
+                              <div className="flex-1 min-w-0">
+                                <span className="font-semibold text-primary">{msg.username}: </span>
+                                <span className="text-foreground">{msg.message}</span>
+                              </div>
+                              {/* Bouton modération sur chaque message */}
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <MessageModeration
+                                  messageId={msg.id}
+                                  userId={msg.user_id}
+                                  username={msg.username}
+                                  liveStreamId={currentStream.id}
+                                  isCreator={true}
+                                />
+                              </div>
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    </ScrollArea>
+
+                    {/* Input chat avec emojis et média payant */}
+                    <div className="mt-3 pt-3 border-t space-y-2">
+                      <div className="flex gap-2">
+                        <EmojiPicker onEmojiSelect={(emoji) => setChatMessage(prev => prev + emoji)} />
+                        <Input
+                          value={chatMessage}
+                          onChange={(e) => setChatMessage(e.target.value)}
+                          placeholder="Envoyer un message..."
+                          className="flex-1"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && chatMessage.trim()) {
+                              sendMessage(chatMessage);
+                              setChatMessage('');
+                            }
+                          }}
+                        />
+                        <Button
+                          size="icon"
+                          onClick={() => {
+                            if (chatMessage.trim()) {
+                              sendMessage(chatMessage);
+                              setChatMessage('');
+                            }
+                          }}
+                          disabled={!chatMessage.trim()}
+                        >
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      {/* Bouton média payant pour le créateur */}
+                      {creatorId && (
+                        <PaidMediaUpload
+                          liveStreamId={currentStream.id}
+                          creatorId={creatorId}
+                          onMediaSent={(mediaData) => {
+                            sendMessage(`[Contenu payant: ${mediaData.price}€]`);
+                          }}
+                        />
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="moderation" className="mt-4">
+                    <LiveModerationPanel
                       liveStreamId={currentStream.id}
-                      creatorId={creatorId}
-                      onMediaSent={(mediaData) => {
-                        sendMessage(`[Contenu payant: ${mediaData.price}€]`);
-                      }}
+                      isCreator={true}
                     />
-                  )}
-                </div>
-              </CardContent>
+                  </TabsContent>
+                </Tabs>
+              </CardHeader>
             </Card>
           )}
         </div>
