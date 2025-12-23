@@ -471,11 +471,14 @@ const CreatorPublicPage = () => {
 
       {/* Checkout Embedded Dialog */}
       <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="checkout-description">
           <DialogHeader>
             <DialogTitle>
               Abonnement à {creator?.stage_name || 'ce créateur'}
             </DialogTitle>
+            <p id="checkout-description" className="text-sm text-muted-foreground">
+              Complétez votre paiement pour accéder au contenu premium
+            </p>
           </DialogHeader>
           {creator && <EmbeddedCheckout creatorId={creator.id} onClose={() => setShowCheckout(false)} preloadedSecret={preloadedSecret} />}
         </DialogContent>
