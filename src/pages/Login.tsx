@@ -37,11 +37,8 @@ const Login = () => {
     password: ''
   });
 
-  useEffect(() => {
-    if (user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
+  // Ne pas rediriger automatiquement ici, laisser handleSignIn gérer la redirection
+  // pour éviter un flash de la page d'accueil
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

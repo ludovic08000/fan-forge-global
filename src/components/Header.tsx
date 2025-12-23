@@ -60,7 +60,10 @@ const Header: React.FC = () => {
                     <span>Mes abonnements</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={signOut}>
+                <DropdownMenuItem onClick={async () => {
+                  await signOut();
+                  navigate('/');
+                }}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Se déconnecter</span>
                 </DropdownMenuItem>
@@ -145,8 +148,9 @@ const Header: React.FC = () => {
                     Mes abonnements
                   </Link>
                   <button
-                    onClick={() => {
-                      signOut();
+                    onClick={async () => {
+                      await signOut();
+                      navigate('/');
                       setIsMenuOpen(false);
                     }}
                     className="block w-full text-left px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
