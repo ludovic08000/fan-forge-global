@@ -18,6 +18,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { useContentProtection } from "@/hooks/useContentProtection";
+import CookieConsent from "@/components/CookieConsent";
 
 
 // Lazy loading des pages pour améliorer les performances
@@ -170,6 +171,7 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <AppRoutes />
+              <CookieConsent />
             </BrowserRouter>
           </TooltipProvider>
         </TranslationProvider>
