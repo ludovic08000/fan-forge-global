@@ -601,7 +601,7 @@ export const LiveStreamStudio = () => {
               {liveKitError && isLive && (
                 <div className="absolute bottom-4 left-4 right-4 bg-amber-500/90 text-white px-3 py-2 rounded-lg text-xs text-center">
                   <p className="font-medium">Mode aperçu - Diffusion limitée</p>
-                  <p className="opacity-80">La diffusion LiveKit n'est pas disponible dans l'aperçu. Publiez l'app pour tester.</p>
+                  <p className="opacity-80">La diffusion n'est pas disponible dans l'aperçu. Publiez l'app pour tester.</p>
                 </div>
               )}
             </div>
