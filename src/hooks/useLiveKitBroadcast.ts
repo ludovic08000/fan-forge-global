@@ -233,6 +233,43 @@ export const useLiveKitBroadcast = () => {
   }, [isConnecting, isStreaming, getToken]);
 
   /**
+   * Remplacer le track vidéo sans déconnecter (pour switch caméra)
+   */
+  const replaceVideoTrack = useCallback(async (newVideoTrack: MediaStreamTrack) => {
+    if (!roomRef.current) {
+      console.warn('[LiveKit Broadcast] No room to replace track');
+      return false;
+    }
+
+    try {
+      console.log('[LiveKit Broadcast] Replacing video track...');
+      const localParticipant = roomRef.current.localParticipant;
+      
+      // Trouver la publication vidéo existante
+      const publications = Array.from(localParticipant.trackPublications.values()) as any[];
+      const videoPublication = publications.find((pub) => pub.track?.kind === 'video');
+      
+      if (videoPublication?.track) {
+        // Unpublish l'ancien track
+        await localParticipant.unpublishTrack(videoPublication.track);
+        console.log('[LiveKit Broadcast] Old video track unpublished');
+      }
+      
+      // Publier le nouveau track
+      await localParticipant.publishTrack(newVideoTrack, {
+        name: 'camera',
+        simulcast: false, // Désactiver simulcast pour le switch caméra mobile
+      });
+      console.log('[LiveKit Broadcast] New video track published');
+      
+      return true;
+    } catch (err) {
+      console.error('[LiveKit Broadcast] Error replacing video track:', err);
+      return false;
+    }
+  }, []);
+
+  /**
    * Arrêter la diffusion
    */
   const stopBroadcast = useCallback(async () => {
@@ -264,5 +301,6 @@ export const useLiveKitBroadcast = () => {
     error,
     startBroadcast,
     stopBroadcast,
+    replaceVideoTrack,
   };
 };
