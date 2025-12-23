@@ -767,6 +767,8 @@ const Dashboard = () => {
           isOpen={!!editingContent}
           onClose={() => setEditingContent(null)}
           imageUrl={editingContent?.file_url || ''}
+          contentId={editingContent?.id}
+          onServerSave={() => refetch()}
         />
       </div>
     </div>

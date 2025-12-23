@@ -1,9 +1,10 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { X, Download, RotateCcw, Sun, Contrast, Droplets, Sparkles, Palette, CloudFog, Flame, Snowflake, Moon, Heart } from 'lucide-react';
+import { X, Download, RotateCcw, Sun, Contrast, Droplets, Sparkles, Palette, CloudFog, Flame, Snowflake, Moon, Heart, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Filter {
   id: string;
@@ -16,7 +17,9 @@ interface PhotoEditorProps {
   isOpen: boolean;
   onClose: () => void;
   imageUrl: string;
+  contentId?: string; // ID du contenu pour la sauvegarde serveur
   onSave?: (editedImageUrl: string) => void;
+  onServerSave?: () => void; // Callback après sauvegarde serveur
 }
 
 const FILTERS: Filter[] = [
@@ -38,7 +41,9 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
   isOpen,
   onClose,
   imageUrl,
+  contentId,
   onSave,
+  onServerSave,
 }) => {
   // Utiliser l'URL signée pour accéder à l'image
   const { signedUrl, loading: urlLoading } = useSignedUrl(imageUrl, { enabled: isOpen && !!imageUrl });
@@ -50,6 +55,7 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
   const [blur, setBlur] = useState<number>(0);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
 
@@ -66,6 +72,7 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
       setContrast(100);
       setSaturation(100);
       setBlur(0);
+      setIsSaving(false);
     }
   }, [isOpen, imageUrl]);
 
@@ -130,6 +137,61 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
     onClose();
   };
 
+  // Sauvegarder sur le serveur
+  const handleServerSave = async () => {
+    if (!imageRef.current || !canvasRef.current || !contentId) {
+      toast.error('Impossible de sauvegarder: données manquantes');
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const img = imageRef.current;
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+
+    ctx.filter = getFilterStyle().filter || 'none';
+    ctx.drawImage(img, 0, 0);
+
+    const dataUrl = canvas.toDataURL('image/png');
+    
+    setIsSaving(true);
+
+    try {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) {
+        throw new Error('Non authentifié');
+      }
+
+      const { data, error } = await supabase.functions.invoke('save-edited-image', {
+        body: { 
+          imageData: dataUrl,
+          contentId: contentId
+        },
+        headers: {
+          Authorization: `Bearer ${session.data.session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success('Photo sauvegardée sur le serveur!');
+        onServerSave?.();
+        onClose();
+      } else {
+        throw new Error(data?.error || 'Erreur inconnue');
+      }
+    } catch (error: any) {
+      console.error('Error saving to server:', error);
+      toast.error(`Erreur: ${error.message || 'Impossible de sauvegarder'}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -152,7 +214,27 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
             <Download className="w-4 h-4 mr-1" />
             Télécharger
           </Button>
-          {onSave && (
+          {contentId && (
+            <Button 
+              size="sm" 
+              onClick={handleServerSave} 
+              disabled={isSaving || !imageLoaded}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  Sauvegarde...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-1" />
+                  Sauvegarder
+                </>
+              )}
+            </Button>
+          )}
+          {onSave && !contentId && (
             <Button size="sm" onClick={handleSave} className="bg-primary hover:bg-primary/90">
               Sauvegarder
             </Button>
