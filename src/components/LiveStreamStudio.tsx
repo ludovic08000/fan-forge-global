@@ -11,7 +11,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera, Send } from 'lucide-react';
+import { EmojiPicker } from '@/components/live/EmojiPicker';
+import { PaidMediaUpload } from '@/components/live/PaidMediaUpload';
+import { TipMessage } from '@/components/live/TipMessage';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLiveStream } from '@/hooks/useLiveStream';
 import { useLiveChat } from '@/hooks/useLiveChat';
 import { useLiveKitBroadcast } from '@/hooks/useLiveKitBroadcast';
@@ -44,6 +48,25 @@ export const LiveStreamStudio = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { messages, sendMessage } = useLiveChat(currentStream?.id || '');
+  const [chatMessage, setChatMessage] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [creatorId, setCreatorId] = useState<string | null>(null);
+
+  // Récupérer l'ID du créateur
+  useEffect(() => {
+    const fetchCreatorId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: creator } = await supabase
+          .from('creators')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+        if (creator) setCreatorId(creator.id);
+      }
+    };
+    fetchCreatorId();
+  }, []);
   
   // LiveKit broadcast hook
   const { isStreaming, isConnecting: isLiveKitConnecting, connectedViewers, error: liveKitError, startBroadcast, stopBroadcast } = useLiveKitBroadcast();
@@ -689,28 +712,73 @@ export const LiveStreamStudio = () => {
 
           {/* Chat en direct */}
           {isLive && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Chat en direct</CardTitle>
+            <Card className="flex flex-col h-[400px]">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Chat en direct</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="h-64 overflow-y-auto space-y-2 mb-4">
-                  {messages.map((msg) => (
-                    <div key={msg.id} className="text-sm">
-                      <span className="font-semibold">{msg.username}: </span>
-                      <span>{msg.message}</span>
-                    </div>
-                  ))}
+              <CardContent className="flex-1 flex flex-col min-h-0">
+                <ScrollArea className="flex-1 pr-4">
+                  <div className="space-y-2">
+                    {messages.map((msg) => (
+                      msg.message_type === 'tip' && msg.tip_data ? (
+                        <TipMessage
+                          key={msg.id}
+                          senderName={msg.username}
+                          amount={msg.tip_data.amount}
+                          currency={msg.tip_data.currency}
+                          message={msg.tip_data.message}
+                        />
+                      ) : (
+                        <div key={msg.id} className="text-sm py-1 px-2 rounded hover:bg-muted/50">
+                          <span className="font-semibold text-primary">{msg.username}: </span>
+                          <span className="text-foreground">{msg.message}</span>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                </ScrollArea>
+
+                {/* Input chat avec emojis et média payant */}
+                <div className="mt-3 pt-3 border-t space-y-2">
+                  <div className="flex gap-2">
+                    <EmojiPicker onEmojiSelect={(emoji) => setChatMessage(prev => prev + emoji)} />
+                    <Input
+                      value={chatMessage}
+                      onChange={(e) => setChatMessage(e.target.value)}
+                      placeholder="Envoyer un message..."
+                      className="flex-1"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && chatMessage.trim()) {
+                          sendMessage(chatMessage);
+                          setChatMessage('');
+                        }
+                      }}
+                    />
+                    <Button
+                      size="icon"
+                      onClick={() => {
+                        if (chatMessage.trim()) {
+                          sendMessage(chatMessage);
+                          setChatMessage('');
+                        }
+                      }}
+                      disabled={!chatMessage.trim()}
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  {/* Bouton média payant pour le créateur */}
+                  {creatorId && currentStream && (
+                    <PaidMediaUpload
+                      liveStreamId={currentStream.id}
+                      creatorId={creatorId}
+                      onMediaSent={(mediaData) => {
+                        sendMessage(`[Contenu payant: ${mediaData.price}€]`);
+                      }}
+                    />
+                  )}
                 </div>
-                <Input
-                  placeholder="Envoyer un message..."
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      sendMessage(e.currentTarget.value);
-                      e.currentTarget.value = '';
-                    }
-                  }}
-                />
               </CardContent>
             </Card>
           )}
