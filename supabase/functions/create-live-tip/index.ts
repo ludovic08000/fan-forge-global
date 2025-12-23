@@ -17,6 +17,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
     logStep("Function started");
 
@@ -28,19 +30,27 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
 
-    // Authentifier l'utilisateur
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+
+    // Récupérer l'auth header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
-
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !userData.user) throw new Error("User not authenticated");
 
-    const user = userData.user;
-    logStep("User authenticated", { userId: user.id });
+    // PARALLÉLISER: Auth + Parse body en même temps
+    const [authResult, body] = await Promise.all([
+      supabaseClient.auth.getUser(token),
+      req.json()
+    ]);
 
-    // Récupérer les données de la requête
-    const { liveStreamId, creatorId, amount, message } = await req.json();
+    if (authResult.error || !authResult.data.user) {
+      throw new Error("User not authenticated");
+    }
+
+    const user = authResult.data.user;
+    const { liveStreamId, creatorId, amount, message } = body;
+
+    logStep("Auth + body parsed", { userId: user.id, elapsed: Date.now() - startTime });
 
     if (!liveStreamId || !creatorId || !amount) {
       throw new Error("Missing required fields: liveStreamId, creatorId, amount");
@@ -50,35 +60,29 @@ serve(async (req) => {
       throw new Error("Minimum tip amount is 1€");
     }
 
-    logStep("Tip request", { liveStreamId, creatorId, amount, message });
+    // PARALLÉLISER: Récupérer créateur + Vérifier client Stripe en même temps
+    const [creatorResult, customersResult] = await Promise.all([
+      supabaseClient
+        .from('creators')
+        .select('stripe_account_id, stage_name, user_id')
+        .eq('id', creatorId)
+        .single(),
+      stripe.customers.list({ email: user.email!, limit: 1 })
+    ]);
 
-    // Récupérer les infos du créateur pour Stripe Connect
-    const { data: creator, error: creatorError } = await supabaseClient
-      .from('creators')
-      .select('stripe_account_id, stage_name, user_id')
-      .eq('id', creatorId)
-      .single();
-
-    if (creatorError || !creator) {
+    if (creatorResult.error || !creatorResult.data) {
       throw new Error("Creator not found");
     }
 
-    logStep("Creator found", { creatorId, stageName: creator.stage_name });
+    const creator = creatorResult.data;
+    const customerId = customersResult.data.length > 0 ? customersResult.data[0].id : undefined;
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    logStep("Creator + customer fetched", { elapsed: Date.now() - startTime });
 
-    // Vérifier si l'utilisateur est déjà client Stripe
-    const customers = await stripe.customers.list({ email: user.email!, limit: 1 });
-    let customerId: string | undefined;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-    }
-
-    // Créer une session de paiement
+    // Créer la session de paiement
     const amountInCents = Math.round(amount * 100);
     const origin = req.headers.get("origin") || "https://lovable.dev";
 
-    // Paramètres de la session
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email!,
@@ -113,35 +117,41 @@ serve(async (req) => {
         transfer_data: {
           destination: creator.stripe_account_id,
         },
-        // 15% commission plateforme sur les tips
         application_fee_amount: Math.round(amountInCents * 0.15),
       };
-      logStep("Stripe Connect transfer configured", { 
-        destination: creator.stripe_account_id,
-        fee: Math.round(amountInCents * 0.15)
-      });
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
-    logStep("Checkout session created", { sessionId: session.id });
+    logStep("Checkout session created", { sessionId: session.id, elapsed: Date.now() - startTime });
 
-    // Enregistrer le tip en pending
-    const { error: tipError } = await supabaseClient
-      .from('tips')
-      .insert({
-        creator_id: creatorId,
-        sender_id: user.id,
-        amount: amount,
-        currency: 'EUR',
-        message: message || null,
-        stripe_payment_intent_id: session.payment_intent as string,
-      });
+    // BACKGROUND TASK: Enregistrer le tip en pending (ne bloque pas la réponse)
+    const saveTipTask = async () => {
+      try {
+        const { error: tipError } = await supabaseClient
+          .from('tips')
+          .insert({
+            creator_id: creatorId,
+            sender_id: user.id,
+            amount: amount,
+            currency: 'EUR',
+            message: message || null,
+            stripe_payment_intent_id: session.payment_intent as string,
+          });
 
-    if (tipError) {
-      logStep("Error saving tip", { error: tipError });
-    } else {
-      logStep("Tip saved to database");
-    }
+        if (tipError) {
+          logStep("Background: Error saving tip", { error: tipError });
+        } else {
+          logStep("Background: Tip saved to database");
+        }
+      } catch (err) {
+        logStep("Background: Exception saving tip", { error: String(err) });
+      }
+    };
+
+    // Lancer en background sans attendre
+    EdgeRuntime.waitUntil(saveTipTask());
+
+    logStep("Response sent", { totalTime: Date.now() - startTime });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -150,7 +160,7 @@ serve(async (req) => {
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
+    logStep("ERROR", { message: errorMessage, elapsed: Date.now() - startTime });
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
