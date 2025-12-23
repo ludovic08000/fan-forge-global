@@ -27,6 +27,7 @@ import { EmojiPicker } from '@/components/live/EmojiPicker';
 import { PaidMediaUpload } from '@/components/live/PaidMediaUpload';
 import { PaidMediaMessage } from '@/components/live/PaidMediaMessage';
 import { LiveTipButton } from '@/components/live/LiveTipButton';
+import { TipMessage } from '@/components/live/TipMessage';
 
 interface LiveStreamViewerProps {
   streamId: string;
@@ -463,6 +464,14 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                           creatorName={msg.username}
                         />
                       </div>
+                    ) : msg.message_type === 'tip' && msg.tip_data ? (
+                      /* Affichage animé pour les tips */
+                      <TipMessage
+                        senderName={msg.tip_data.sender_name}
+                        amount={msg.tip_data.amount}
+                        message={msg.tip_data.message}
+                        currency={msg.tip_data.currency}
+                      />
                     ) : msg.message_type === 'offer' && msg.content_offer ? (
                       <ContentOfferCard offer={msg.content_offer} />
                     ) : (

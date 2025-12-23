@@ -23,15 +23,26 @@ export interface PaidMedia {
   price: number;
 }
 
+export interface TipData {
+  id: string;
+  sender_id: string;
+  sender_name: string;
+  amount: number;
+  currency: string;
+  message?: string;
+  created_at: string;
+}
+
 export interface ChatMessage {
   id: string;
   live_stream_id: string;
   user_id: string;
   username: string;
   message: string;
-  message_type: 'text' | 'offer' | 'paid_media';
+  message_type: 'text' | 'offer' | 'paid_media' | 'tip';
   content_offer?: ContentOffer | null;
   paid_media?: PaidMedia | null;
+  tip_data?: TipData | null;
   created_at: string;
 }
 
@@ -232,7 +243,7 @@ export const useLiveChat = (streamId: string) => {
   };
 
   /**
-   * Écouter les nouveaux messages en temps réel
+   * Écouter les nouveaux messages et tips en temps réel
    */
   useEffect(() => {
     // Ne pas s'abonner si pas de streamId
@@ -246,7 +257,8 @@ export const useLiveChat = (streamId: string) => {
       initialLoadDoneRef.current = true;
     });
 
-    const channel = supabase
+    // Canal pour les messages du chat
+    const chatChannel = supabase
       .channel(`live_chat_${streamId}`)
       .on(
         'postgres_changes',
@@ -274,8 +286,65 @@ export const useLiveChat = (streamId: string) => {
       )
       .subscribe();
 
+    // Canal pour les tips en temps réel - écouter tous les tips
+    const tipChannel = supabase
+      .channel(`live_tips_${streamId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'tips',
+        },
+        async (payload) => {
+          const tip = payload.new as any;
+          console.log('Nouveau tip reçu:', tip);
+          
+          // Récupérer le nom de l'expéditeur
+          const { data: senderProfile } = await supabase
+            .from('profiles')
+            .select('username, display_name')
+            .eq('user_id', tip.sender_id)
+            .single();
+          
+          const senderName = senderProfile?.username || senderProfile?.display_name || 'Anonyme';
+          
+          // Créer un message de tip
+          const tipMessage: ChatMessage = {
+            id: `tip_${tip.id}`,
+            live_stream_id: streamId,
+            user_id: tip.sender_id,
+            username: senderName,
+            message: tip.message || '',
+            message_type: 'tip',
+            tip_data: {
+              id: tip.id,
+              sender_id: tip.sender_id,
+              sender_name: senderName,
+              amount: tip.amount,
+              currency: tip.currency || 'EUR',
+              message: tip.message,
+              created_at: tip.created_at,
+            },
+            created_at: tip.created_at,
+          };
+          
+          setMessages((prev) => {
+            const updated = [...prev, tipMessage];
+            return updated.slice(-MAX_MESSAGES_IN_MEMORY);
+          });
+          
+          // Jouer un son pour les tips
+          if (initialLoadDoneRef.current) {
+            playNotificationSound();
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(chatChannel);
+      supabase.removeChannel(tipChannel);
     };
   }, [streamId, loadMessages, user?.id, playNotificationSound]);
 
