@@ -61,10 +61,17 @@ const Header: React.FC = () => {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 ring-2 ring-primary/20 hover:ring-primary/50 transition-all">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={getAvatarUrl() || undefined} alt={getDisplayName() || 'Avatar'} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground font-semibold text-sm">
+                <Button 
+                  variant="ghost" 
+                  className="relative h-12 w-12 rounded-full p-0 ring-2 ring-primary/30 hover:ring-primary hover:ring-offset-2 hover:ring-offset-background transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary/30"
+                >
+                  <Avatar className="h-12 w-12 border-2 border-background shadow-xl">
+                    <AvatarImage 
+                      src={getAvatarUrl() || undefined} 
+                      alt={getDisplayName() || 'Avatar'} 
+                      className="object-cover"
+                    />
+                    <AvatarFallback className="bg-gradient-to-br from-primary via-primary-glow to-accent text-primary-foreground font-bold text-base">
                       {getInitials()}
                     </AvatarFallback>
                   </Avatar>
