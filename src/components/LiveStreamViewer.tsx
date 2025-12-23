@@ -401,20 +401,28 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
           </Card>
         </div>
 
-        {/* Chat en direct */}
-        <Card className="flex flex-col h-[600px]">
-          <CardHeader>
+        {/* Chat en direct - Design moderne */}
+        <Card className="flex flex-col h-[600px] overflow-hidden">
+          <CardHeader className="pb-2 border-b bg-gradient-to-r from-primary/5 to-transparent">
             <CardTitle className="flex items-center justify-between">
-              <span>Chat en direct</span>
-              <Badge variant="secondary">{messages.length}</Badge>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+                <span>Chat en direct</span>
+              </div>
+              <Badge variant="secondary" className="font-mono">{messages.length}</Badge>
             </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col p-0">
-            {/* Panel de modération et offres (créateurs uniquement) */}
+            {/* Debug: afficher si créateur */}
             {isCreator && (
-              <div className="px-4 pt-4 space-y-2">
-                <LiveModerationPanel liveStreamId={streamId} isCreator={isCreator} />
-                <div className="flex gap-2 flex-wrap">
+              <p className="text-xs text-green-500 font-medium">✓ Mode créateur actif</p>
+            )}
+          </CardHeader>
+          
+          <CardContent className="flex-1 flex flex-col p-0 min-h-0">
+            {/* Panel créateur avec boutons visibles */}
+            {isCreator && (
+              <div className="px-3 py-2 bg-primary/5 border-b space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <LiveModerationPanel liveStreamId={streamId} isCreator={isCreator} />
                   <ContentOfferSelector 
                     creatorId={liveStream?.creator_id} 
                     onSelectContent={(content) => sendContentOffer(content)}
@@ -428,38 +436,45 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
               </div>
             )}
 
-            {/* Messages avec pagination */}
-            <ScrollArea className="flex-1 px-4" ref={chatScrollRef}>
-              <div className="space-y-3 py-4">
+            {/* Messages */}
+            <ScrollArea className="flex-1 min-h-0" ref={chatScrollRef}>
+              <div className="p-3 space-y-2">
                 {hasMore && (
-                  <div className="flex justify-center pb-2">
+                  <div className="flex justify-center py-2">
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={loadMore}
                       disabled={chatLoading}
+                      className="text-xs"
                     >
-                      <ChevronUp className="h-4 w-4 mr-2" />
-                      {chatLoading ? 'Chargement...' : 'Charger plus'}
+                      <ChevronUp className="h-3 w-3 mr-1" />
+                      {chatLoading ? 'Chargement...' : 'Messages précédents'}
                     </Button>
                   </div>
                 )}
+                
+                {messages.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p className="text-sm">Aucun message pour l'instant</p>
+                    <p className="text-xs mt-1">Soyez le premier à écrire !</p>
+                  </div>
+                )}
+                
                 {messages.map((msg) => (
-                  <div key={msg.id} className="space-y-1">
-                    {/* Affichage pour les médias payants */}
+                  <div key={msg.id} className="group animate-in slide-in-from-bottom-2 duration-200">
                     {msg.message_type === 'paid_media' && msg.content_offer ? (
-                      <div className="flex items-start gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-xs">
+                      <div className="flex items-start gap-2 p-2 rounded-lg bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20">
+                        <Avatar className="h-7 w-7 ring-2 ring-amber-500/50">
+                          <AvatarFallback className="text-xs bg-amber-500/20 text-amber-600">
                             {msg.username.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-baseline gap-2 mb-1">
-                            <span className="font-semibold text-sm truncate">
-                              {msg.username}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-sm text-amber-600">{msg.username}</span>
+                            <Badge variant="secondary" className="text-[10px] px-1 py-0">Créateur</Badge>
+                            <span className="text-[10px] text-muted-foreground ml-auto">
                               {new Date(msg.created_at).toLocaleTimeString('fr-FR', {
                                 hour: '2-digit',
                                 minute: '2-digit',
@@ -476,30 +491,26 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
                         </div>
                       </div>
                     ) : msg.message_type === 'offer' && msg.content_offer ? (
-                      /* Affichage pour les offres de contenu */
                       <ContentOfferCard offer={msg.content_offer} />
                     ) : (
-                      <div className="flex items-start gap-2">
-                        <Avatar className="h-6 w-6">
+                      <div className="flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                        <Avatar className="h-7 w-7">
                           <AvatarFallback className="text-xs">
                             {msg.username.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-baseline gap-2">
-                            <span className="font-semibold text-sm truncate">
-                              {msg.username}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="font-medium text-sm">{msg.username}</span>
+                            <span className="text-[10px] text-muted-foreground">
                               {new Date(msg.created_at).toLocaleTimeString('fr-FR', {
                                 hour: '2-digit',
                                 minute: '2-digit',
                               })}
                             </span>
                           </div>
-                          <p className="text-sm break-words">{msg.message}</p>
+                          <p className="text-sm break-words leading-relaxed">{msg.message}</p>
                         </div>
-                        {/* Boutons de modération (créateurs uniquement) */}
                         <MessageModeration
                           messageId={msg.id}
                           userId={msg.user_id}
@@ -515,30 +526,46 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
               </div>
             </ScrollArea>
 
-            {/* Input message avec emoji picker */}
-            <div className="p-4 border-t">
-              <div className="flex gap-2 items-center">
-                <EmojiPicker 
-                  onEmojiSelect={(emoji) => setNewMessage(prev => prev + emoji)} 
-                />
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') handleSendMessage();
-                  }}
-                  placeholder={user ? 'Envoyer un message...' : 'Connectez-vous pour participer'}
-                  disabled={!user}
-                  className="flex-1"
-                />
-                <Button
-                  size="icon"
-                  onClick={handleSendMessage}
-                  disabled={!user || !newMessage.trim()}
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
+            {/* Zone de saisie moderne */}
+            <div className="p-3 border-t bg-muted/30">
+              {!user ? (
+                <div className="text-center py-2">
+                  <p className="text-sm text-muted-foreground">Connectez-vous pour participer au chat</p>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  {/* Bouton emoji */}
+                  <EmojiPicker 
+                    onEmojiSelect={(emoji) => setNewMessage(prev => prev + emoji)} 
+                  />
+                  
+                  {/* Input message */}
+                  <div className="flex-1 relative">
+                    <Input
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      placeholder="Votre message..."
+                      className="pr-10 bg-background/50 border-muted-foreground/20 focus:border-primary"
+                    />
+                  </div>
+                  
+                  {/* Bouton envoyer */}
+                  <Button
+                    size="icon"
+                    onClick={handleSendMessage}
+                    disabled={!newMessage.trim()}
+                    className="shrink-0 rounded-full h-9 w-9"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
