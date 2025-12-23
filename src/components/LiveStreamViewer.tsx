@@ -69,7 +69,6 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
     if (!streamId) return;
 
     let isRedirecting = false;
-    let previousStatus = liveStream?.status;
 
     const checkStreamStatus = async () => {
       if (isRedirecting) return;
@@ -81,27 +80,24 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
           .eq('id', streamId)
           .maybeSingle();
 
+        console.log('[LiveStreamViewer] Polling status:', data?.status, 'isCreator:', isCreator);
+
         if (!data) return;
 
-        // Mettre à jour le statut du stream en temps réel
-        if (data.status !== previousStatus) {
-          console.log('[LiveStreamViewer] Status changed:', previousStatus, '->', data.status);
-          previousStatus = data.status;
-          
-          // Mettre à jour le state du liveStream avec le nouveau statut
-          setLiveStream((prev: any) => prev ? { ...prev, status: data.status, viewer_count: data.viewer_count, started_at: data.started_at } : prev);
-
-          // Le statut change silencieusement - pas de notification intrusive
-        }
+        // Mettre à jour le state du liveStream avec le nouveau statut
+        setLiveStream((prev: any) => {
+          if (prev?.status !== data.status) {
+            console.log('[LiveStreamViewer] Status changed:', prev?.status, '->', data.status);
+          }
+          return prev ? { ...prev, status: data.status, viewer_count: data.viewer_count, started_at: data.started_at } : prev;
+        });
 
         // Rediriger si terminé (sauf pour le créateur)
         if (!isCreator && (data.status === 'ended' || data.status === 'cancelled')) {
           isRedirecting = true;
-          console.log('[LiveStreamViewer] Live ended, redirecting...');
+          console.log('[LiveStreamViewer] Live ended, redirecting viewer to dashboard...');
           toast.info('Le live est terminé');
-          setTimeout(() => {
-            navigate('/dashboard');
-          }, 1500);
+          navigate('/dashboard');
         }
       } catch (error) {
         console.error('Error checking stream status:', error);
@@ -117,7 +113,7 @@ export const LiveStreamViewer = ({ streamId }: LiveStreamViewerProps) => {
     return () => {
       clearInterval(interval);
     };
-  }, [streamId, isCreator, navigate, liveStream?.status]);
+  }, [streamId, isCreator, navigate]);
 
   /**
    * Charger les infos du stream et vérifier l'accès avec gestion d'erreurs
