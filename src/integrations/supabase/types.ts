@@ -1818,6 +1818,24 @@ export type Database = {
         }[]
       }
       get_own_stream_key: { Args: { _live_stream_id: string }; Returns: string }
+      get_public_creator_data: {
+        Args: { creator_uuid: string }
+        Returns: {
+          category: string
+          content_type: string[]
+          created_at: string
+          currency: string
+          gender: string
+          id: string
+          is_accepting_tips: boolean
+          is_featured: boolean
+          orientation: string
+          stage_name: string
+          subscription_price: number
+          total_content: number
+          total_subscribers: number
+        }[]
+      }
       get_public_profile: {
         Args: { _user_id: string }
         Returns: {
