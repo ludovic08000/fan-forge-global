@@ -2,86 +2,119 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
+// CORS restreint aux domaines autorisés
+const ALLOWED_ORIGINS = [
+  "https://lovable.dev",
+  "https://usjxcgauyvdocngfkhys.supabase.co",
+];
+
+const getCorsHeaders = (origin: string | null): Record<string, string> => {
+  const allowedOrigin = origin && ALLOWED_ORIGINS.some(allowed => origin.includes(allowed.replace("https://", "")))
+    ? origin
+    : ALLOWED_ORIGINS[0];
+  
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[STRIPE-LIVE-MEDIA-WEBHOOK] ${step}${detailsStr}`);
 };
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-  );
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 405,
+    });
+  }
 
   try {
     logStep("Webhook received");
 
+    // Vérifier les secrets requis
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
-    
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    logStep("Stripe key verified");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-
-    // Récupérer le body brut et la signature
-    const body = await req.text();
-    const signature = req.headers.get("stripe-signature");
-
-    if (!signature) {
-      throw new Error("No Stripe signature found");
+    if (!stripeKey || !supabaseUrl || !supabaseServiceKey) {
+      logStep("ERROR: Missing required environment variables");
+      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
     }
 
+    // Vérification OBLIGATOIRE de la signature Stripe
+    const signature = req.headers.get("stripe-signature");
+    if (!signature) {
+      logStep("ERROR: Missing stripe-signature header");
+      return new Response(JSON.stringify({ error: "Missing stripe-signature header" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+
+    if (!webhookSecret) {
+      logStep("ERROR: STRIPE_WEBHOOK_SECRET not configured");
+      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+
+    const body = await req.text();
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    
     let event: Stripe.Event;
 
-    // Vérifier la signature du webhook si le secret est configuré
-    if (webhookSecret) {
-      try {
-        event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-        logStep("Webhook signature verified");
-      } catch (err) {
-        logStep("Webhook signature verification failed", { error: err });
-        return new Response(JSON.stringify({ error: "Invalid signature" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    } else {
-      // En mode développement, parser directement l'événement
-      event = JSON.parse(body);
-      logStep("Webhook parsed (no signature verification - dev mode)");
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      logStep("Signature verified", { eventType: event.type, eventId: event.id });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      logStep("ERROR: Signature verification failed", { error: errorMessage });
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
     }
 
-    logStep("Event type", { type: event.type });
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Gérer les événements de paiement réussi
+    // Gérer les événements de paiement
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
-      logStep("Checkout session completed", { sessionId: session.id });
-
       const metadata = session.metadata;
       
-      // Vérifier que c'est un paiement de média live
       if (metadata?.content_type !== 'live_media') {
-        logStep("Not a live media payment, skipping", { contentType: metadata?.content_type });
+        logStep("Not a live media payment", { contentType: metadata?.content_type });
         return new Response(JSON.stringify({ received: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const messageId = metadata.message_id;
-      const userId = metadata.user_id;
-      const liveStreamId = metadata.live_stream_id;
-      const creatorId = metadata.creator_id;
+      const { message_id: messageId, user_id: userId, live_stream_id: liveStreamId, creator_id: creatorId } = metadata;
+
+      if (!liveStreamId || !userId) {
+        logStep("ERROR: Missing required metadata", { liveStreamId, userId });
+        return new Response(JSON.stringify({ error: "Missing metadata" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
 
       logStep("Processing live media payment", { messageId, userId, liveStreamId });
 
@@ -94,13 +127,11 @@ serve(async (req) => {
         .eq('status', 'pending');
 
       if (updateError) {
-        logStep("Error updating payment status", { error: updateError });
-      } else {
-        logStep("Payment status updated to completed");
+        logStep("Warning: Error updating payment status", { error: updateError.message });
       }
 
-      // Créer une notification pour l'utilisateur
-      const { error: notifError } = await supabaseClient
+      // Notification utilisateur
+      await supabaseClient
         .from('notifications')
         .insert({
           user_id: userId,
@@ -114,16 +145,11 @@ serve(async (req) => {
           },
         });
 
-      if (notifError) {
-        logStep("Error creating user notification", { error: notifError });
-      }
-
-      // Créer une notification pour le créateur
+      // Notification créateur
       if (creatorId) {
-        // Récupérer le user_id du créateur
         const { data: creatorData } = await supabaseClient
           .from('creators')
-          .select('user_id, stage_name')
+          .select('user_id')
           .eq('id', creatorId)
           .single();
 
@@ -144,12 +170,10 @@ serve(async (req) => {
                 payment_type: 'live_media',
               },
             });
-
-          logStep("Creator notification created", { creatorUserId: creatorData.user_id });
         }
       }
 
-      // Insérer un enregistrement de paiement dans live_stream_payments si nécessaire
+      // Créer un enregistrement de paiement si nécessaire
       const { data: existingPayment } = await supabaseClient
         .from('live_stream_payments')
         .select('id')
@@ -165,11 +189,9 @@ serve(async (req) => {
             live_stream_id: liveStreamId,
             subscriber_id: userId,
             amount,
-            stripe_payment_intent_id: session.payment_intent as string || session.id,
+            stripe_payment_intent_id: (session.payment_intent as string) || session.id,
             status: 'completed',
           });
-
-        logStep("Payment record created");
       }
 
       logStep("Live media payment processed successfully");
@@ -179,27 +201,21 @@ serve(async (req) => {
     if (event.type === "checkout.session.expired" || event.type === "payment_intent.payment_failed") {
       logStep("Payment failed or expired", { type: event.type });
       
-      let metadata: any;
+      let metadata: Record<string, string> | null | undefined;
       
       if (event.type === "checkout.session.expired") {
-        const session = event.data.object as Stripe.Checkout.Session;
-        metadata = session.metadata;
+        metadata = (event.data.object as Stripe.Checkout.Session).metadata;
       } else {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        metadata = paymentIntent.metadata;
+        metadata = (event.data.object as Stripe.PaymentIntent).metadata;
       }
 
-      if (metadata?.content_type === 'live_media') {
-        const { error } = await supabaseClient
+      if (metadata?.content_type === 'live_media' && metadata.live_stream_id && metadata.user_id) {
+        await supabaseClient
           .from('live_stream_payments')
           .update({ status: 'failed' })
           .eq('live_stream_id', metadata.live_stream_id)
           .eq('subscriber_id', metadata.user_id)
           .eq('status', 'pending');
-
-        if (error) {
-          logStep("Error updating failed payment", { error });
-        }
       }
     }
 
@@ -209,9 +225,9 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      headers: { ...getCorsHeaders(null), "Content-Type": "application/json" },
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
