@@ -395,27 +395,136 @@ serve(async (req) => {
       }
     }
 
-    // Gérer le renouvellement réussi
-    if (event.type === "invoice.payment_succeeded") {
-      const invoice = event.data.object as Stripe.Invoice;
-      const subscriptionId = invoice.subscription as string;
+    // Gérer invoice.paid - inclut la création d'abonnement ET les renouvellements
+    if (event.type === "invoice.paid" || event.type === "invoice.payment_succeeded") {
+      const invoice = event.data.object as any;
+      const subscriptionId = invoice.subscription || invoice.parent?.subscription_details?.subscription;
+      const billingReason = invoice.billing_reason;
       
-      if (subscriptionId) {
-        logStep("Payment succeeded for subscription", { subscriptionId });
-        
-        // Mettre à jour le statut à actif
-        const { error } = await supabaseClient
-          .from('subscriptions')
-          .update({ 
-            status: 'active',
-            updated_at: new Date().toISOString()
-          })
-          .eq('stripe_subscription_id', subscriptionId);
+      logStep("Invoice paid event", { 
+        subscriptionId, 
+        billingReason,
+        amount: invoice.amount_paid
+      });
 
-        if (error) {
-          logStep("Error updating subscription after payment", { error: error.message });
+      if (subscriptionId) {
+        // Si c'est une création d'abonnement (première facture)
+        if (billingReason === "subscription_create") {
+          // Récupérer les metadata depuis les lignes de facture ou parent
+          const lineItem = invoice.lines?.data?.[0];
+          const subscriptionMetadata = invoice.parent?.subscription_details?.metadata || lineItem?.metadata || {};
+          
+          const creatorId = subscriptionMetadata.creator_id;
+          const userId = subscriptionMetadata.user_id;
+
+          logStep("Subscription create from invoice", { creatorId, userId, subscriptionId });
+
+          if (creatorId && userId) {
+            // Récupérer les détails de l'abonnement Stripe
+            const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+            const priceAmount = stripeSubscription.items.data[0]?.price?.unit_amount || 0;
+            const currency = stripeSubscription.items.data[0]?.price?.currency || 'eur';
+
+            // Vérifier si un abonnement existe déjà
+            const { data: existingSub } = await supabaseClient
+              .from('subscriptions')
+              .select('id')
+              .eq('subscriber_id', userId)
+              .eq('creator_id', creatorId)
+              .single();
+
+            if (existingSub) {
+              const { error: updateError } = await supabaseClient
+                .from('subscriptions')
+                .update({
+                  status: 'active',
+                  stripe_subscription_id: subscriptionId,
+                  price: priceAmount / 100,
+                  currency: currency.toUpperCase(),
+                  start_date: new Date().toISOString(),
+                  end_date: new Date(stripeSubscription.current_period_end * 1000).toISOString(),
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', existingSub.id);
+
+              if (updateError) {
+                logStep("Error updating subscription from invoice.paid", { error: updateError.message });
+              } else {
+                logStep("Subscription updated from invoice.paid", { subscriptionId: existingSub.id });
+              }
+            } else {
+              const { data: newSub, error: insertError } = await supabaseClient
+                .from('subscriptions')
+                .insert({
+                  subscriber_id: userId,
+                  creator_id: creatorId,
+                  stripe_subscription_id: subscriptionId,
+                  status: 'active',
+                  price: priceAmount / 100,
+                  currency: currency.toUpperCase(),
+                  start_date: new Date().toISOString(),
+                  end_date: new Date(stripeSubscription.current_period_end * 1000).toISOString(),
+                  auto_renew: true
+                })
+                .select()
+                .single();
+
+              if (insertError) {
+                logStep("Error creating subscription from invoice.paid", { error: insertError.message });
+              } else {
+                logStep("New subscription created from invoice.paid", { subscriptionId: newSub?.id });
+
+                // Notification au créateur
+                const { data: creator } = await supabaseClient
+                  .from('creators')
+                  .select('user_id')
+                  .eq('id', creatorId)
+                  .single();
+
+                if (creator) {
+                  const { data: subscriberProfile } = await supabaseClient
+                    .from('profiles')
+                    .select('display_name, username')
+                    .eq('user_id', userId)
+                    .single();
+
+                  const subscriberName = subscriberProfile?.display_name || subscriberProfile?.username || 'Un utilisateur';
+
+                  await supabaseClient
+                    .from('notifications')
+                    .insert({
+                      user_id: creator.user_id,
+                      type: 'new_subscription',
+                      title: 'Nouvel abonnement',
+                      message: `${subscriberName} s'est abonné(e) à votre profil !`,
+                      data: {
+                        subscriber_id: userId,
+                        creator_id: creatorId
+                      }
+                    });
+
+                  logStep("New subscription notification sent");
+                }
+              }
+            }
+          } else {
+            logStep("Missing metadata in invoice", { creatorId, userId });
+          }
         } else {
-          logStep("Subscription reactivated after payment");
+          // Renouvellement normal
+          const { error } = await supabaseClient
+            .from('subscriptions')
+            .update({ 
+              status: 'active',
+              updated_at: new Date().toISOString()
+            })
+            .eq('stripe_subscription_id', subscriptionId);
+
+          if (error) {
+            logStep("Error updating subscription after payment", { error: error.message });
+          } else {
+            logStep("Subscription reactivated after payment");
+          }
         }
       }
     }
