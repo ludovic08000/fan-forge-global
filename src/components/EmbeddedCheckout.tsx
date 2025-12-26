@@ -61,23 +61,34 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
   };
 
   useEffect(() => {
-    // Si déjà préchargé et pas de code promo, pas besoin de refetch
+    // Si déjà préchargé et pas de code promo, utiliser le secret préchargé
     if (preloadedSecret && !promoCode) {
       setClientSecret(decodeSecret(preloadedSecret));
       return;
     }
 
-    // Fetch with promo code if available
-    fetchCheckoutSession(promoCode);
-  }, [creatorId, preloadedSecret, promoCode]);
+    // Ne pas fetch si on n'a pas de promoCode et qu'on attend un préchargé
+    if (!promoCode && preloadedSecret) {
+      return;
+    }
 
-  const handlePromoCodeValidated = (code: string | null, discountInfo: { type: 'percentage' | 'fixed'; value: number } | null) => {
-    setPromoCode(code);
+    // Fetch with promo code if available, ou fetch initial si pas de préchargé
+    fetchCheckoutSession(promoCode);
+  }, [creatorId, promoCode]); // Retirer preloadedSecret des dépendances
+
+  const handlePromoCodeValidated = async (code: string | null, discountInfo: { type: 'percentage' | 'fixed'; value: number } | null) => {
     setDiscount(discountInfo);
     
-    // Reset client secret to trigger refetch with new code
+    // Si un code est validé, refetch immédiatement avec ce code
     if (code) {
-      setClientSecret('');
+      setClientSecret(''); // Reset pour afficher le loader
+      setPromoCode(code);
+    } else {
+      setPromoCode(null);
+      // Si pas de code et qu'on a un préchargé, le réutiliser
+      if (preloadedSecret) {
+        setClientSecret(decodeSecret(preloadedSecret));
+      }
     }
   };
 
