@@ -234,14 +234,13 @@ export const useConversations = () => {
       return participantId;
     },
     onSuccess: (participantId) => {
-      // Mettre à jour le cache localement
-      queryClient.setQueryData(['conversations', user?.id], (old: Conversation[] | undefined) => {
-        if (!old) return [];
-        return old.filter(c => c.participant_id !== participantId);
-      });
+      // Invalider les queries pour forcer le rechargement
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['conversation-messages', participantId] });
       toast.success('Conversation supprimée');
     },
     onError: (error) => {
+      console.error('Erreur suppression conversation:', error);
       toast.error(`Erreur: ${error.message}`);
     },
   });
@@ -314,7 +313,7 @@ export const useConversationMessages = (participantId: string | null) => {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      const creatorId = creatorData?.id;
+      const myCreatorId = creatorData?.id;
 
       // Construire le filtre OR pour couvrir tous les cas
       let filterParts: string[] = [];
@@ -323,16 +322,17 @@ export const useConversationMessages = (participantId: string | null) => {
       filterParts.push(`and(subscriber_id.eq.${user.id},creator_id.eq.${participantId})`);
       
       // Cas où je suis créateur
-      if (creatorId) {
-        // L'autre est subscriber
-        filterParts.push(`and(creator_id.eq.${creatorId},subscriber_id.eq.${participantId})`);
-        // L'autre est aussi créateur (je suis subscriber dans son contexte)
-        filterParts.push(`and(subscriber_id.eq.${creatorId},creator_id.eq.${participantId})`);
+      if (myCreatorId) {
+        // L'autre est subscriber - mes messages sortants
+        filterParts.push(`and(creator_id.eq.${myCreatorId},subscriber_id.eq.${participantId})`);
+        // L'autre est créateur - je suis subscriber dans son contexte
+        filterParts.push(`and(subscriber_id.eq.${myCreatorId},creator_id.eq.${participantId})`);
       }
 
       const { data, error } = await supabase
         .from('private_messages')
         .select('*')
+        .eq('is_deleted', false)
         .or(filterParts.join(','))
         .order('created_at', { ascending: true });
 
@@ -342,12 +342,14 @@ export const useConversationMessages = (participantId: string | null) => {
       return (data || []).map(msg => {
         // Déterminer si le message vient de moi
         let isFromMe = false;
-        if (creatorId) {
-          // Je suis créateur - le message vient de moi si creator_id = mon creatorId
-          isFromMe = msg.creator_id === creatorId;
+        
+        if (myCreatorId) {
+          // Je suis créateur - un message vient de moi si je l'ai envoyé (creator_id = mon creatorId)
+          isFromMe = msg.creator_id === myCreatorId;
         } else {
-          // Je suis subscriber - le message vient de moi si subscriber_id = mon user.id ET message_type = text
-          isFromMe = msg.subscriber_id === user.id;
+          // Je suis subscriber - un message vient de moi si subscriber_id = mon user.id ET creator_id != mon user.id
+          // (le créateur m'envoie des messages, donc si creator_id = participantId, c'est lui qui envoie)
+          isFromMe = msg.subscriber_id === user.id && msg.creator_id === participantId;
         }
         
         return {
@@ -562,16 +564,14 @@ export const useConversationMessages = (participantId: string | null) => {
       if (error) throw error;
       return messageId;
     },
-    onSuccess: (messageId) => {
-      // Mettre à jour le cache localement
-      queryClient.setQueryData(['conversation-messages', participantId, user?.id], (old: Message[] | undefined) => {
-        if (!old) return [];
-        return old.filter(m => m.id !== messageId);
-      });
+    onSuccess: () => {
+      // Invalider toutes les queries de messages pour cette conversation
+      queryClient.invalidateQueries({ queryKey: ['conversation-messages', participantId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       toast.success('Message supprimé');
     },
     onError: (error) => {
+      console.error('Erreur suppression message:', error);
       toast.error(`Erreur: ${error.message}`);
     },
   });
