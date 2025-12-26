@@ -71,7 +71,7 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
   
   const { messages, isLoading, sendMessage, sendPaidContent, payForContent } = usePrivateMessages(targetId);
   const [newMessage, setNewMessage] = useState('');
-  const [contentPrice, setContentPrice] = useState(10);
+  const [contentPrice, setContentPrice] = useState<number | string>(10);
   const [showPriceInput, setShowPriceInput] = useState(false);
   const [isValidatingFile, setIsValidatingFile] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -167,7 +167,7 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
 
       await sendPaidContent.mutateAsync({
         mediaUrl: publicUrl,
-        price: contentPrice,
+        price: Number(contentPrice) || 1,
         creatorId,
         messageType: previewFile.type,
       });
@@ -423,7 +423,17 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                     <Input
                       type="number"
                       value={contentPrice}
-                      onChange={(e) => setContentPrice(Number(e.target.value))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setContentPrice(val === '' ? '' : Number(val));
+                      }}
+                      onBlur={() => {
+                        if (contentPrice === '' || Number(contentPrice) < 1) {
+                          setContentPrice(1);
+                        } else if (Number(contentPrice) > 500) {
+                          setContentPrice(500);
+                        }
+                      }}
                       min="1"
                       max="500"
                       className="w-20 h-8 text-sm"
