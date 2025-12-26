@@ -585,11 +585,11 @@ const CreatorPublicPage = () => {
                       <div className="flex items-center gap-3 text-white/80 text-xs mt-1">
                         <span className="flex items-center gap-1">
                           <Eye className="h-3 w-3" />
-                          {item.view_count}
+                          {item.view_count || 0}
                         </span>
                         <span className="flex items-center gap-1">
-                          <Heart className="h-3 w-3" />
-                          {item.like_count}
+                          <Heart className={`h-3 w-3 ${userLikes.has(item.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                          {item.like_count || 0}
                         </span>
                       </div>
                     </div>
@@ -658,11 +658,11 @@ const CreatorPublicPage = () => {
                         <div className="flex items-center gap-3 text-white/80 text-xs mt-1">
                           <span className="flex items-center gap-1">
                             <Eye className="h-3 w-3" />
-                            {item.view_count}
+                            {item.view_count || 0}
                           </span>
                           <span className="flex items-center gap-1">
-                            <Heart className="h-3 w-3" />
-                            {item.like_count}
+                            <Heart className={`h-3 w-3 ${userLikes.has(item.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                            {item.like_count || 0}
                           </span>
                         </div>
                       )}
