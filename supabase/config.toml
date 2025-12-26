@@ -104,6 +104,9 @@ verify_jwt = false
 [functions.stripe-live-webhook]
 verify_jwt = false
 
+[functions.stripe-subscription-webhook]
+verify_jwt = false
+
 [functions.calculate-tax]
 verify_jwt = true
 
