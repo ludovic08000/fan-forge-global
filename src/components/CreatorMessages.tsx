@@ -23,6 +23,9 @@ import {
 } from '@/components/ui/alert-dialog';
 
 interface Conversation {
+  participant_id: string;
+  participant_type: 'creator' | 'subscriber';
+  creator_id: string;
   subscriber_id: string;
   subscriber_name: string;
   subscriber_avatar: string | null;
@@ -53,32 +56,63 @@ const CreatorMessages: React.FC = () => {
     enabled: !!user,
   });
 
-  // Récupérer les conversations
+  // Récupérer les conversations (messages où je suis créateur OU subscriber)
   const { data: conversations, isLoading, refetch } = useQuery({
-    queryKey: ['creator-conversations', creatorData?.id],
+    queryKey: ['creator-conversations', creatorData?.id, user?.id],
     queryFn: async () => {
-      if (!creatorData?.id) return [];
+      if (!user) return [];
+      
+      const creatorId = creatorData?.id;
 
-      // Récupérer les messages groupés par subscriber
-      const { data: messages, error } = await supabase
+      // Récupérer les messages où l'utilisateur est impliqué
+      let query = supabase
         .from('private_messages')
         .select(`
+          creator_id,
           subscriber_id,
           content,
           created_at,
           message_type
         `)
-        .eq('creator_id', creatorData.id)
         .eq('is_deleted', false)
         .order('created_at', { ascending: false });
 
+      // Filtrer par créateur OU subscriber
+      if (creatorId) {
+        query = query.or(`creator_id.eq.${creatorId},subscriber_id.eq.${user.id}`);
+      } else {
+        query = query.eq('subscriber_id', user.id);
+      }
+
+      const { data: messages, error } = await query;
+
       if (error) throw error;
 
-      // Grouper par subscriber
+      // Grouper par participant (l'autre personne dans la conversation)
       const conversationMap = new Map<string, any>();
       for (const msg of messages || []) {
-        if (!conversationMap.has(msg.subscriber_id)) {
-          conversationMap.set(msg.subscriber_id, {
+        // Déterminer qui est l'autre participant
+        let participantId: string;
+        let participantType: 'creator' | 'subscriber';
+        
+        if (creatorId && msg.creator_id === creatorId) {
+          // Je suis le créateur, l'autre est subscriber
+          participantId = msg.subscriber_id;
+          participantType = 'subscriber';
+        } else {
+          // Je suis subscriber, l'autre est créateur
+          participantId = msg.creator_id;
+          participantType = 'creator';
+        }
+        
+        // Ignorer les conversations avec soi-même
+        if (participantId === user.id || participantId === creatorId) continue;
+        
+        if (!conversationMap.has(participantId)) {
+          conversationMap.set(participantId, {
+            participant_id: participantId,
+            participant_type: participantType,
+            creator_id: msg.creator_id,
             subscriber_id: msg.subscriber_id,
             last_message: msg.message_type === 'text' ? msg.content : `📷 ${msg.message_type === 'image' ? 'Photo' : 'Vidéo'}`,
             last_message_at: msg.created_at,
@@ -86,35 +120,82 @@ const CreatorMessages: React.FC = () => {
         }
       }
 
-      // Récupérer les infos des subscribers
-      const subscriberIds = Array.from(conversationMap.keys());
-      if (subscriberIds.length === 0) return [];
+      // Récupérer les infos des participants
+      const participantIds = Array.from(conversationMap.keys());
+      if (participantIds.length === 0) return [];
 
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, display_name, username, avatar_url')
-        .in('user_id', subscriberIds);
+      // Séparer les IDs par type
+      const creatorParticipants = Array.from(conversationMap.entries())
+        .filter(([_, v]) => v.participant_type === 'creator')
+        .map(([id, _]) => id);
+      const subscriberParticipants = Array.from(conversationMap.entries())
+        .filter(([_, v]) => v.participant_type === 'subscriber')
+        .map(([id, _]) => id);
 
-      const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+      const participantsData = new Map<string, any>();
 
-      return Array.from(conversationMap.values()).map(conv => {
-        const profile = profileMap.get(conv.subscriber_id);
+      // Fetch les créateurs participants
+      if (creatorParticipants.length > 0) {
+        const { data: creators } = await supabase
+          .from('creators')
+          .select('id, stage_name, user_id')
+          .in('id', creatorParticipants);
+
+        for (const c of creators || []) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('avatar_url, display_name, username')
+            .eq('user_id', c.user_id)
+            .maybeSingle();
+          
+          participantsData.set(c.id, {
+            name: c.stage_name || profile?.display_name || 'Créateur',
+            avatar: profile?.avatar_url,
+          });
+        }
+      }
+
+      // Fetch les subscribers participants
+      if (subscriberParticipants.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, avatar_url, username')
+          .in('user_id', subscriberParticipants);
+
+        for (const p of profiles || []) {
+          participantsData.set(p.user_id, {
+            name: p.display_name || p.username || 'Utilisateur',
+            avatar: p.avatar_url,
+          });
+        }
+      }
+
+      return Array.from(conversationMap.entries()).map(([participantId, conv]) => {
+        const participant = participantsData.get(participantId);
         return {
-          ...conv,
-          subscriber_name: profile?.display_name || profile?.username || 'Utilisateur',
-          subscriber_avatar: profile?.avatar_url,
+          participant_id: participantId,
+          participant_type: conv.participant_type,
+          creator_id: conv.creator_id,
+          subscriber_id: conv.subscriber_id,
+          subscriber_id_for_delete: conv.subscriber_id,
+          creator_id_for_delete: conv.creator_id,
+          subscriber_name: participant?.name || 'Utilisateur',
+          subscriber_avatar: participant?.avatar,
+          last_message: conv.last_message,
+          last_message_at: conv.last_message_at,
           unread_count: 0,
         };
       });
     },
-    enabled: !!creatorData?.id,
+    enabled: !!user,
   });
 
-  const handleDeleteConversation = async (subscriberId: string) => {
-    if (!creatorData?.id) return;
+  const handleDeleteConversation = async (conv: Conversation) => {
+    if (!user) return;
     
-    setDeletingId(subscriberId);
+    setDeletingId(conv.participant_id);
     try {
+      // Supprimer tous les messages de cette conversation
       const { error } = await supabase
         .from('private_messages')
         .update({ 
@@ -124,8 +205,8 @@ const CreatorMessages: React.FC = () => {
           media_url: null,
           media_thumbnail: null
         })
-        .eq('creator_id', creatorData.id)
-        .eq('subscriber_id', subscriberId);
+        .eq('creator_id', conv.creator_id)
+        .eq('subscriber_id', conv.subscriber_id);
 
       if (error) throw error;
 
@@ -140,7 +221,7 @@ const CreatorMessages: React.FC = () => {
     }
   };
 
-  if (!creatorData) {
+  if (isLoading && !conversations) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
@@ -162,10 +243,10 @@ const CreatorMessages: React.FC = () => {
           Retour aux conversations
         </Button>
         <ModernPrivateChat
-          creatorId={creatorData.id}
+          creatorId={selectedConversation.creator_id}
           creatorName={selectedConversation.subscriber_name}
           creatorAvatar={selectedConversation.subscriber_avatar || undefined}
-          subscriberId={selectedConversation.subscriber_id}
+          subscriberId={selectedConversation.participant_type === 'subscriber' ? selectedConversation.participant_id : selectedConversation.subscriber_id}
         />
       </div>
     );
@@ -189,7 +270,7 @@ const CreatorMessages: React.FC = () => {
             <div className="space-y-2">
               {conversations.map((conv) => (
                 <div
-                  key={conv.subscriber_id}
+                  key={conv.participant_id}
                   onClick={() => setSelectedConversation(conv)}
                   className="flex items-center gap-3 p-4 rounded-xl bg-muted/30 hover:bg-muted/50 cursor-pointer transition-all border border-border/50 group"
                 >
@@ -242,11 +323,11 @@ const CreatorMessages: React.FC = () => {
                         <AlertDialogFooter>
                           <AlertDialogCancel>Annuler</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() => handleDeleteConversation(conv.subscriber_id)}
+                            onClick={() => handleDeleteConversation(conv)}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            disabled={deletingId === conv.subscriber_id}
+                            disabled={deletingId === conv.participant_id}
                           >
-                            {deletingId === conv.subscriber_id ? 'Suppression...' : 'Supprimer'}
+                            {deletingId === conv.participant_id ? 'Suppression...' : 'Supprimer'}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
