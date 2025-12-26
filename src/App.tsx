@@ -19,6 +19,7 @@ import Footer from "@/components/Footer";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import CookieConsent from "@/components/CookieConsent";
+import { MessageNotificationProvider } from "@/components/MessageNotificationProvider";
 
 
 // Lazy loading des pages pour améliorer les performances
@@ -178,16 +179,18 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
       <AuthProvider>
-        <TranslationProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppRoutes />
-              <CookieConsent />
-            </BrowserRouter>
-          </TooltipProvider>
-        </TranslationProvider>
+        <MessageNotificationProvider>
+          <TranslationProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AppRoutes />
+                <CookieConsent />
+              </BrowserRouter>
+            </TooltipProvider>
+          </TranslationProvider>
+        </MessageNotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
