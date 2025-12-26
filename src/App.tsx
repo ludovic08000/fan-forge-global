@@ -183,14 +183,9 @@ const AppRoutes = () => {
  * Gère tous les providers et le routing avec lazy loading
  */
 const App = () => {
-  const [showSplash, setShowSplash] = useState(() => {
-    // Show splash only once per session
-    const hasSeenSplash = sessionStorage.getItem('crub_splash_seen');
-    return !hasSeenSplash;
-  });
+  const [showSplash, setShowSplash] = useState(true);
 
   const handleSplashComplete = () => {
-    sessionStorage.setItem('crub_splash_seen', 'true');
     setShowSplash(false);
   };
 
