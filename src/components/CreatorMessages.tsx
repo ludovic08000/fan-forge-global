@@ -313,7 +313,7 @@ const CreatorMessages: React.FC = () => {
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                         <AlertDialogHeader>
                           <AlertDialogTitle>Supprimer la conversation ?</AlertDialogTitle>
                           <AlertDialogDescription>
@@ -323,7 +323,12 @@ const CreatorMessages: React.FC = () => {
                         <AlertDialogFooter>
                           <AlertDialogCancel>Annuler</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() => handleDeleteConversation(conv)}
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('Deleting conversation:', conv.creator_id, conv.subscriber_id);
+                              await handleDeleteConversation(conv);
+                            }}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             disabled={deletingId === conv.participant_id}
                           >
