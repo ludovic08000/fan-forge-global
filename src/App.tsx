@@ -3,7 +3,7 @@
  * Configure tous les providers et le routing
  */
 
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +20,7 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import CookieConsent from "@/components/CookieConsent";
 import { MessageNotificationProvider } from "@/components/MessageNotificationProvider";
+import SplashScreen from "@/components/SplashScreen";
 
 
 // Lazy loading des pages pour améliorer les performances
@@ -181,25 +182,39 @@ const AppRoutes = () => {
  * Composant racine de l'application
  * Gère tous les providers et le routing avec lazy loading
  */
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-      <AuthProvider>
-        <MessageNotificationProvider>
-          <TranslationProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <AppRoutes />
-                <CookieConsent />
-              </BrowserRouter>
-            </TooltipProvider>
-          </TranslationProvider>
-        </MessageNotificationProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [showSplash, setShowSplash] = useState(() => {
+    // Show splash only once per session
+    const hasSeenSplash = sessionStorage.getItem('crub_splash_seen');
+    return !hasSeenSplash;
+  });
+
+  const handleSplashComplete = () => {
+    sessionStorage.setItem('crub_splash_seen', 'true');
+    setShowSplash(false);
+  };
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+        {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+        <AuthProvider>
+          <MessageNotificationProvider>
+            <TranslationProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <AppRoutes />
+                  <CookieConsent />
+                </BrowserRouter>
+              </TooltipProvider>
+            </TranslationProvider>
+          </MessageNotificationProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
