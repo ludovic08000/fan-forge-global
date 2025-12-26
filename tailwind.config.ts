@@ -149,6 +149,14 @@ export default {
           "0%, 100%": { borderRadius: "60% 40% 30% 70% / 60% 30% 70% 40%" },
           "50%": { borderRadius: "30% 60% 70% 40% / 50% 60% 30% 60%" }
         },
+        "heart-burst": {
+          "0%": { transform: "scale(0)", opacity: "0" },
+          "15%": { transform: "scale(1.3)", opacity: "1" },
+          "30%": { transform: "scale(0.95)" },
+          "45%": { transform: "scale(1.1)" },
+          "60%": { transform: "scale(1)" },
+          "100%": { transform: "scale(1)", opacity: "0" }
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -168,6 +176,7 @@ export default {
         "flip": "flip 1s ease-in-out",
         "wiggle": "wiggle 0.5s ease-in-out",
         "morph": "morph 8s ease-in-out infinite",
+        "heart-burst": "heart-burst 0.8s ease-out forwards",
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
