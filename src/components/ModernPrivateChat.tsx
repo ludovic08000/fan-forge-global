@@ -112,20 +112,10 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
   const subscriberFileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Déterminer si l'utilisateur est l'auteur d'un message
+  // Déterminer si l'utilisateur est l'auteur d'un message (pour la suppression)
   const isMessageAuthor = (message: any) => {
-    if (isUserCreator) {
-      // Si l'utilisateur est le créateur, il est l'auteur de ses propres messages
-      // Les créateurs envoient les médias payants (message_type !== 'text')
-      // ET les messages texte envoyés par le créateur (côté créateur, les messages "from me" ont creator_id = creatorId)
-      const isCreatorMessage = message.creator_id === creatorId;
-      // Le créateur est l'auteur si c'est un média OU si c'est un message où il est "from me"
-      // Dans le contexte du chat, les messages du créateur ont creator_id = son propre ID
-      return isCreatorMessage && (message.message_type !== 'text' || message.subscriber_id !== user?.id);
-    } else {
-      // Si l'utilisateur est un subscriber, il est l'auteur des messages texte qu'il a envoyé
-      return message.subscriber_id === user?.id && message.message_type === 'text';
-    }
+    // Utiliser sender_id qui identifie clairement qui a envoyé le message
+    return message.sender_id === user?.id;
   };
 
   const handleDeleteMessage = (messageId: string) => {
@@ -153,7 +143,8 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
     if (!newMessage.trim() || sendMessage.isPending) return;
     
     try {
-      await sendMessage.mutateAsync({ content: newMessage, creatorId });
+      // Utiliser targetId qui est déjà la bonne cible selon le contexte
+      await sendMessage.mutateAsync({ content: newMessage, creatorId: targetId || creatorId });
       setNewMessage('');
     } catch (error) {
       console.error('Erreur lors de l\'envoi du message:', error);

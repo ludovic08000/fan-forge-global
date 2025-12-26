@@ -248,32 +248,49 @@ export const usePrivateMessages = (creatorId?: string) => {
 
   // Envoyer un message texte avec update optimiste
   const sendMessage = useMutation({
-    mutationFn: async ({ content, creatorId: targetCreatorId }: { content: string; creatorId: string }) => {
+    mutationFn: async ({ content, creatorId: targetId }: { content: string; creatorId: string }) => {
       if (!user) throw new Error('Non authentifié');
 
-      const { data: creator } = await supabase
+      // Vérifier si je suis un créateur
+      const { data: myCreator } = await supabase
         .from('creators')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      const messageData = creator
-        ? {
-            creator_id: creator.id,
-            subscriber_id: targetCreatorId,
-            sender_id: user.id,
-            message_type: 'text' as const,
-            content,
-            status: 'sent',
-          }
-        : {
-            creator_id: targetCreatorId,
-            subscriber_id: user.id,
-            sender_id: user.id,
-            message_type: 'text' as const,
-            content,
-            status: 'sent',
-          };
+      // Vérifier si la cible est un créateur (pour déterminer son creator.id)
+      const { data: targetCreator } = await supabase
+        .from('creators')
+        .select('id, user_id')
+        .or(`id.eq.${targetId},user_id.eq.${targetId}`)
+        .maybeSingle();
+
+      let messageData;
+      
+      if (myCreator) {
+        // Je suis créateur - j'envoie à un subscriber (ou un autre créateur)
+        // targetId peut être un user_id (subscriber) ou un creator.id
+        const subscriberUserId = targetCreator?.user_id || targetId;
+        messageData = {
+          creator_id: myCreator.id,
+          subscriber_id: subscriberUserId,
+          sender_id: user.id,
+          message_type: 'text' as const,
+          content,
+          status: 'sent',
+        };
+      } else {
+        // Je suis subscriber - j'envoie à un créateur
+        // targetId est le creator.id
+        messageData = {
+          creator_id: targetId,
+          subscriber_id: user.id,
+          sender_id: user.id,
+          message_type: 'text' as const,
+          content,
+          status: 'sent',
+        };
+      }
 
       const { data, error } = await supabase
         .from('private_messages')
@@ -356,9 +373,19 @@ export const usePrivateMessages = (creatorId?: string) => {
 
       if (!creator) throw new Error('Seuls les créateurs peuvent envoyer du contenu payant');
 
+      // targetCreatorId peut être un user_id du subscriber
+      // Vérifier s'il correspond à un créateur
+      const { data: targetCreator } = await supabase
+        .from('creators')
+        .select('id, user_id')
+        .or(`id.eq.${targetCreatorId},user_id.eq.${targetCreatorId}`)
+        .maybeSingle();
+
+      const subscriberUserId = targetCreator?.user_id || targetCreatorId;
+
       const messageData = {
         creator_id: creator.id,
-        subscriber_id: targetCreatorId,
+        subscriber_id: subscriberUserId,
         sender_id: user.id,
         message_type: messageType,
         media_url: mediaUrl,
