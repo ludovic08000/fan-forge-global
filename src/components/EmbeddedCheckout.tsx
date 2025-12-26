@@ -18,9 +18,8 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
   const [error, setError] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState<string | null>(null);
   const [discount, setDiscount] = useState<{ type: 'percentage' | 'fixed'; value: number } | null>(null);
-  const [isRefetching, setIsRefetching] = useState(false);
-  const [initialLoadDone, setInitialLoadDone] = useState(false);
-  const fetchInProgress = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [promoCodeChecked, setPromoCodeChecked] = useState(false);
 
   // Décoder le clientSecret si nécessaire (URL encoded)
   const decodeSecret = (secret: string): string => {
@@ -35,15 +34,8 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
   };
 
   const fetchCheckoutSession = async (referralCode?: string | null) => {
-    // Éviter les appels multiples simultanés
-    if (fetchInProgress[0]) {
-      console.log('[EmbeddedCheckout] Fetch already in progress, skipping');
-      return;
-    }
-    
     try {
-      fetchInProgress[0] = true;
-      setIsRefetching(true);
+      setIsLoading(true);
       console.log('[EmbeddedCheckout] Fetching checkout session with referralCode:', referralCode);
       
       const { data, error } = await supabase.functions.invoke('create-creator-checkout', {
@@ -67,52 +59,46 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
       console.error('Checkout error:', err);
       setError(err.message || 'Erreur lors du chargement du paiement');
     } finally {
-      setIsRefetching(false);
-      fetchInProgress[0] = false;
+      setIsLoading(false);
     }
   };
 
-  // Attendre que PromoCodeInput ait fini de charger le code depuis localStorage
-  // avant de décider si on utilise le preloadedSecret ou si on fetch
+  // Un seul effet: attendre que promoCodeChecked soit true, puis fetch
   useEffect(() => {
-    // Petit délai pour laisser PromoCodeInput valider le code sauvegardé
-    const timer = setTimeout(() => {
-      setInitialLoadDone(true);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!initialLoadDone) return;
+    if (!promoCodeChecked) return;
     
     // Si on a un code promo, fetch avec le code
     if (promoCode) {
       fetchCheckoutSession(promoCode);
-      return;
-    }
-    
-    // Sinon, utiliser le secret préchargé ou fetch sans code
-    if (preloadedSecret) {
+    } else if (preloadedSecret) {
+      // Pas de code promo et on a un secret préchargé, l'utiliser
       setClientSecret(decodeSecret(preloadedSecret));
+      setIsLoading(false);
     } else {
+      // Pas de code promo et pas de préchargé, fetch sans code
       fetchCheckoutSession(null);
     }
-  }, [creatorId, promoCode, initialLoadDone]);
+  }, [promoCodeChecked, promoCode, creatorId]);
 
-  const handlePromoCodeValidated = async (code: string | null, discountInfo: { type: 'percentage' | 'fixed'; value: number } | null) => {
+  const handlePromoCodeValidated = (code: string | null, discountInfo: { type: 'percentage' | 'fixed'; value: number } | null) => {
     console.log('[EmbeddedCheckout] Promo code validated:', code, discountInfo);
     setDiscount(discountInfo);
+    setPromoCode(code);
     
-    // Si un code est validé, refetch avec ce code
-    if (code) {
-      setClientSecret(''); // Reset pour afficher le loader
-      setPromoCode(code);
-    } else {
-      setPromoCode(null);
-      // Si pas de code et qu'on a un préchargé, le réutiliser
-      if (preloadedSecret) {
-        setClientSecret(decodeSecret(preloadedSecret));
-      }
+    // Si le code promo n'a pas encore été vérifié, marquer comme vérifié
+    if (!promoCodeChecked) {
+      setPromoCodeChecked(true);
+    } else if (code !== promoCode) {
+      // Si le code change, refetch
+      setClientSecret('');
+      setIsLoading(true);
+    }
+  };
+
+  // Callback appelé par PromoCodeInput quand il a fini de vérifier localStorage
+  const handlePromoCodeCheckComplete = () => {
+    if (!promoCodeChecked) {
+      setPromoCodeChecked(true);
     }
   };
 
@@ -132,17 +118,18 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
         <PromoCodeInput
           creatorId={creatorId}
           onCodeValidated={handlePromoCodeValidated}
+          onInitialCheckComplete={handlePromoCodeCheckComplete}
         />
       </div>
 
       {/* Checkout form */}
       <div className="min-h-[500px]">
-        {!clientSecret || isRefetching ? (
+        {!clientSecret || isLoading ? (
           <div className="flex items-center justify-center p-8 h-[500px]">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : (
-          <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
+          <EmbeddedCheckoutProvider key={clientSecret} stripe={stripePromise} options={{ clientSecret }}>
             <StripeEmbeddedCheckout className="w-full" />
           </EmbeddedCheckoutProvider>
         )}

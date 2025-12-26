@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 interface PromoCodeInputProps {
   creatorId: string;
   onCodeValidated: (code: string | null, discount: { type: 'percentage' | 'fixed'; value: number } | null) => void;
+  onInitialCheckComplete?: () => void;
   className?: string;
 }
 
@@ -17,6 +18,7 @@ const PROMO_CODE_STORAGE_KEY = 'crub_promo_code';
 export const PromoCodeInput: React.FC<PromoCodeInputProps> = ({
   creatorId,
   onCodeValidated,
+  onInitialCheckComplete,
   className
 }) => {
   const [code, setCode] = useState('');
@@ -30,25 +32,33 @@ export const PromoCodeInput: React.FC<PromoCodeInputProps> = ({
 
   // Load saved promo code from localStorage
   useEffect(() => {
-    const savedCode = localStorage.getItem(PROMO_CODE_STORAGE_KEY);
-    if (savedCode) {
-      try {
-        const parsed = JSON.parse(savedCode);
-        if (parsed.creatorId === creatorId && parsed.code) {
-          setCode(parsed.code);
-          // Auto-validate saved code
-          validateCode(parsed.code);
+    const checkSavedCode = async () => {
+      const savedCode = localStorage.getItem(PROMO_CODE_STORAGE_KEY);
+      if (savedCode) {
+        try {
+          const parsed = JSON.parse(savedCode);
+          if (parsed.creatorId === creatorId && parsed.code) {
+            setCode(parsed.code);
+            // Auto-validate saved code
+            await validateCode(parsed.code, true);
+            return; // onInitialCheckComplete sera appelé par validateCode
+          }
+        } catch {
+          localStorage.removeItem(PROMO_CODE_STORAGE_KEY);
         }
-      } catch {
-        localStorage.removeItem(PROMO_CODE_STORAGE_KEY);
       }
-    }
+      // Pas de code sauvegardé, signaler que la vérification est terminée
+      onInitialCheckComplete?.();
+    };
+    
+    checkSavedCode();
   }, [creatorId]);
 
-  const validateCode = async (codeToValidate: string) => {
+  const validateCode = async (codeToValidate: string, isInitialCheck = false) => {
     if (!codeToValidate.trim()) {
       setValidationResult(null);
       onCodeValidated(null, null);
+      if (isInitialCheck) onInitialCheckComplete?.();
       return;
     }
 
@@ -72,6 +82,7 @@ export const PromoCodeInput: React.FC<PromoCodeInputProps> = ({
         });
         onCodeValidated(null, null);
         localStorage.removeItem(PROMO_CODE_STORAGE_KEY);
+        if (isInitialCheck) onInitialCheckComplete?.();
         return;
       }
 
@@ -83,6 +94,7 @@ export const PromoCodeInput: React.FC<PromoCodeInputProps> = ({
         });
         onCodeValidated(null, null);
         localStorage.removeItem(PROMO_CODE_STORAGE_KEY);
+        if (isInitialCheck) onInitialCheckComplete?.();
         return;
       }
 
@@ -94,6 +106,7 @@ export const PromoCodeInput: React.FC<PromoCodeInputProps> = ({
         });
         onCodeValidated(null, null);
         localStorage.removeItem(PROMO_CODE_STORAGE_KEY);
+        if (isInitialCheck) onInitialCheckComplete?.();
         return;
       }
 
@@ -128,6 +141,7 @@ export const PromoCodeInput: React.FC<PromoCodeInputProps> = ({
       onCodeValidated(null, null);
     } finally {
       setIsValidating(false);
+      if (isInitialCheck) onInitialCheckComplete?.();
     }
   };
 
