@@ -29,6 +29,7 @@ import { useContent } from '@/hooks/useContent';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/lib/analytics';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import CreatorMessages from '@/components/CreatorMessages';
 import ImageLightbox from '@/components/ImageLightbox';
 import PhotoEditor from '@/components/PhotoEditor';
@@ -56,6 +57,7 @@ const Dashboard = () => {
   const { useMyContent } = useContent();
   const { trackPageView } = useAnalytics();
   const navigate = useNavigate();
+  const { unreadCount } = useUnreadMessages();
   const { data: myContent, isLoading: contentLoading, refetch } = useMyContent();
   
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
@@ -245,13 +247,13 @@ const Dashboard = () => {
   }
 
   const menuItems = [
-    { id: 'overview' as DashboardSection, label: 'Aperçu', icon: BarChart3 },
-    { id: 'content' as DashboardSection, label: 'Mon contenu', icon: ImageIcon },
-    { id: 'live' as DashboardSection, label: 'Live', icon: Radio },
-    { id: 'messages' as DashboardSection, label: 'Messages', icon: MessageCircle },
-    { id: 'analytics' as DashboardSection, label: 'Statistiques', icon: BarChart3 },
-    { id: 'pricing' as DashboardSection, label: 'Abonnement & Boost', icon: Sparkles },
-    { id: 'settings' as DashboardSection, label: 'Paramètres', icon: Settings },
+    { id: 'overview' as DashboardSection, label: 'Aperçu', icon: BarChart3, badge: 0 },
+    { id: 'content' as DashboardSection, label: 'Mon contenu', icon: ImageIcon, badge: 0 },
+    { id: 'live' as DashboardSection, label: 'Live', icon: Radio, badge: 0 },
+    { id: 'messages' as DashboardSection, label: 'Messages', icon: MessageCircle, badge: unreadCount },
+    { id: 'analytics' as DashboardSection, label: 'Statistiques', icon: BarChart3, badge: 0 },
+    { id: 'pricing' as DashboardSection, label: 'Abonnement & Boost', icon: Sparkles, badge: 0 },
+    { id: 'settings' as DashboardSection, label: 'Paramètres', icon: Settings, badge: 0 },
   ];
 
   return (
@@ -321,7 +323,7 @@ const Dashboard = () => {
               variant={activeSection === item.id ? "default" : "ghost"}
               size="sm"
               onClick={() => setActiveSection(item.id)}
-              className={`gap-2 whitespace-nowrap rounded-xl transition-all ${
+              className={`gap-2 whitespace-nowrap rounded-xl transition-all relative ${
                 activeSection === item.id 
                   ? "shadow-lg shadow-primary/20" 
                   : "hover:bg-muted/60"
@@ -329,6 +331,11 @@ const Dashboard = () => {
             >
               <item.icon className="h-4 w-4" />
               {item.label}
+              {item.badge > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full bg-destructive text-destructive-foreground shadow-sm">
+                  {item.badge > 99 ? '99+' : item.badge}
+                </span>
+              )}
             </Button>
           ))}
         </div>
