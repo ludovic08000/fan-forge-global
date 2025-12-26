@@ -3,10 +3,23 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { MessageCircle, ArrowRight } from 'lucide-react';
+import { MessageCircle, ArrowRight, Trash2 } from 'lucide-react';
 import SEOHead from '@/components/SEOHead';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface Conversation {
   creator_id: string;
@@ -22,6 +35,7 @@ const Messages = () => {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -49,6 +63,7 @@ const Messages = () => {
                 created_at
               `)
               .eq('creator_id', creatorData.id)
+              .eq('is_deleted', false)
               .order('created_at', { ascending: false });
 
             // Grouper par subscriber
@@ -86,6 +101,7 @@ const Messages = () => {
               created_at
             `)
             .eq('subscriber_id', user.id)
+            .eq('is_deleted', false)
             .order('created_at', { ascending: false });
 
           // Grouper par créateur
@@ -133,6 +149,49 @@ const Messages = () => {
     loadConversations();
   }, [user, userRole, navigate]);
 
+  const handleDeleteConversation = async (conversationId: string) => {
+    if (!user) return;
+    
+    setDeletingId(conversationId);
+    try {
+      if (userRole === 'creator') {
+        // Pour les créateurs : supprimer les messages avec cet abonné
+        const { data: creatorData } = await supabase
+          .from('creators')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (creatorData) {
+          const { error } = await supabase
+            .from('private_messages')
+            .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+            .eq('creator_id', creatorData.id)
+            .eq('subscriber_id', conversationId);
+
+          if (error) throw error;
+        }
+      } else {
+        // Pour les abonnés : supprimer les messages avec ce créateur
+        const { error } = await supabase
+          .from('private_messages')
+          .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+          .eq('subscriber_id', user.id)
+          .eq('creator_id', conversationId);
+
+        if (error) throw error;
+      }
+
+      setConversations(prev => prev.filter(c => c.creator_id !== conversationId));
+      toast.success('Conversation supprimée');
+    } catch (error: any) {
+      console.error('Error deleting conversation:', error);
+      toast.error('Erreur lors de la suppression');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center pt-16">
@@ -169,13 +228,12 @@ const Messages = () => {
         ) : (
           <div className="space-y-3">
             {conversations.map((conv) => (
-              <Link 
-                key={conv.creator_id} 
-                to={`/chat/${conv.creator_id}`}
-                className="block"
-              >
-                <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-                  <CardContent className="p-4 flex items-center gap-4">
+              <Card key={conv.creator_id} className="hover:bg-muted/50 transition-colors">
+                <CardContent className="p-4 flex items-center gap-4">
+                  <Link 
+                    to={`/chat/${conv.creator_id}`}
+                    className="flex items-center gap-4 flex-1 min-w-0"
+                  >
                     <Avatar className="h-14 w-14 border-2 border-primary/20">
                       <AvatarImage src={conv.creator_avatar || undefined} />
                       <AvatarFallback className="bg-primary/10 text-primary font-bold">
@@ -205,9 +263,40 @@ const Messages = () => {
                     </div>
                     
                     <ArrowRight className="h-5 w-5 text-muted-foreground" />
-                  </CardContent>
-                </Card>
-              </Link>
+                  </Link>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        disabled={deletingId === conv.creator_id}
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer la conversation</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Êtes-vous sûr de vouloir supprimer cette conversation avec {conv.creator_name} ? 
+                          Cette action est irréversible.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleDeleteConversation(conv.creator_id)}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          Supprimer
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
