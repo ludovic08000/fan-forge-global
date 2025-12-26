@@ -221,6 +221,8 @@ serve(async (req) => {
       customer_update: {
         address: 'auto',
       },
+      // Si période d'essai, ne pas collecter de moyen de paiement immédiatement
+      payment_method_collection: trialDays ? 'if_required' : 'always',
       discounts: discounts.length > 0 ? discounts : undefined,
       subscription_data: {
         trial_period_days: trialDays,
@@ -236,6 +238,8 @@ serve(async (req) => {
         referral_code: referralCode || null,
       },
     });
+    
+    logStep("Checkout session params", { trialDays, hasDiscounts: discounts.length > 0, paymentMethodCollection: trialDays ? 'if_required' : 'always' });
 
     logStep("Embedded checkout session created", { sessionId: session.id, clientSecret: session.client_secret });
 
