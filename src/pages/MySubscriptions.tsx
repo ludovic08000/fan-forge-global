@@ -627,8 +627,13 @@ const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
   };
 
   const handleResubscribe = () => {
+    // Si abonnement gratuit, rediriger vers le profil du créateur
     if (creator.subscription_price <= 0) {
-      toast.info('Ce créateur propose un abonnement gratuit');
+      if (username) {
+        window.location.href = `/${username}`;
+      } else {
+        toast.info('Visitez le profil du créateur pour vous réabonner');
+      }
       return;
     }
     setShowCheckout(true);
