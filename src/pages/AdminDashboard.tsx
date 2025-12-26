@@ -34,7 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp } from 'lucide-react';
+import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentRequestsManager from '@/components/admin/PaymentRequestsManager';
 import PlatformCommissions from '@/components/admin/PlatformCommissions';
@@ -43,6 +43,7 @@ import UserManagement from '@/components/admin/UserManagement';
 import AdminContentManager from '@/components/admin/AdminContentManager';
 import AdminLiveManager from '@/components/admin/AdminLiveManager';
 import PopularProfiles from '@/components/admin/PopularProfiles';
+import IdentityVerificationManager from '@/components/admin/IdentityVerificationManager';
 
 interface ContentReport {
   id: string;
@@ -408,7 +409,16 @@ const AdminDashboard = () => {
             <Fingerprint className="h-3 w-3" />
             Investigation fuites
           </TabsTrigger>
+          <TabsTrigger value="identity" className="flex items-center gap-1">
+            <Shield className="h-3 w-3" />
+            Vérifications ID
+          </TabsTrigger>
         </TabsList>
+
+        {/* Onglet Vérifications d'identité */}
+        <TabsContent value="identity" className="space-y-4">
+          <IdentityVerificationManager />
+        </TabsContent>
 
         {/* Onglet Profils populaires */}
         <TabsContent value="popular" className="space-y-4">
