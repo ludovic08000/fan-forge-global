@@ -226,11 +226,11 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
           messageType: previewFile.type,
         });
       } else {
-        // Créateur envoie du contenu payant
+        // Créateur envoie du contenu payant - utiliser targetId (l'abonné)
         await sendPaidContent.mutateAsync({
           mediaUrl: publicUrl,
           price: Number(contentPrice) || 1,
-          creatorId,
+          creatorId: targetId || creatorId,
           messageType: previewFile.type,
         });
       }
