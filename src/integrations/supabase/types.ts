@@ -1123,6 +1123,7 @@ export type Database = {
           media_url: string | null
           message_type: string
           price: number | null
+          read_at: string | null
           sender_id: string | null
           status: string | null
           stripe_payment_intent_id: string | null
@@ -1141,6 +1142,7 @@ export type Database = {
           media_url?: string | null
           message_type?: string
           price?: number | null
+          read_at?: string | null
           sender_id?: string | null
           status?: string | null
           stripe_payment_intent_id?: string | null
@@ -1159,6 +1161,7 @@ export type Database = {
           media_url?: string | null
           message_type?: string
           price?: number | null
+          read_at?: string | null
           sender_id?: string | null
           status?: string | null
           stripe_payment_intent_id?: string | null
