@@ -206,8 +206,8 @@ export const ModernMessageBubble: React.FC<ModernMessageBubbleProps> = ({
         onMouseLeave={() => setIsHovered(false)}
       >
         <div className="flex items-end gap-1 max-w-[85%] md:max-w-[70%]">
-          {/* Bouton supprimer - TOUJOURS VISIBLE pour mes messages */}
-          {isFromMe && onDelete && (
+          {/* Bouton supprimer à gauche - TOUJOURS VISIBLE */}
+          {isFromMe && (
             <div className="flex items-center gap-1 shrink-0 mb-1">
               {message.message_type === 'text' && message.content && (
                 <Button
@@ -215,6 +215,7 @@ export const ModernMessageBubble: React.FC<ModernMessageBubbleProps> = ({
                   size="icon"
                   className="h-8 w-8 rounded-full bg-muted/60 hover:bg-muted"
                   onClick={handleCopyText}
+                  title="Copier"
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -224,6 +225,7 @@ export const ModernMessageBubble: React.FC<ModernMessageBubbleProps> = ({
                 size="icon"
                 className="h-8 w-8 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive"
                 onClick={() => setShowDeleteDialog(true)}
+                title="Supprimer"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
