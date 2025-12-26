@@ -75,9 +75,15 @@ serve(async (req) => {
       throw new Error("Unauthorized: You can only pay for your own messages");
     }
 
+    // Pour les media requests, vérifier que le statut est bien 'price_set'
+    const isMediaRequest = messageData.message_type === 'image_request' || messageData.message_type === 'video_request';
+    if (isMediaRequest && messageData.status !== 'price_set') {
+      throw new Error("This media request is not ready for payment. Wait for the creator to set a price.");
+    }
+
     // Vérifier que le message a un prix
-    if (messageData.price <= 0) {
-      throw new Error("This content is free");
+    if (!messageData.price || messageData.price <= 0) {
+      throw new Error("This content is free or has no price set");
     }
 
     // Vérifier que le contenu n'est pas déjà payé
@@ -109,6 +115,15 @@ serve(async (req) => {
 
     const amountInCents = Math.round(messageData.price * 100);
 
+    // Déterminer le nom et la description du produit selon le type
+    const isMediaRequest = messageData.message_type === 'image_request' || messageData.message_type === 'video_request';
+    const productName = isMediaRequest 
+      ? `Paiement média pour ${messageWithCreator.creator.stage_name}`
+      : `Contenu privé de ${messageWithCreator.creator.stage_name}`;
+    const productDescription = isMediaRequest
+      ? `Paiement pour votre ${messageData.message_type === 'video_request' ? 'vidéo' : 'photo'} envoyée`
+      : `Déblocage de contenu privé`;
+
     // Préparer les paramètres de la session
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
@@ -117,8 +132,8 @@ serve(async (req) => {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: `Contenu privé de ${messageWithCreator.creator.stage_name}`,
-              description: `Déblocage de contenu privé`,
+              name: productName,
+              description: productDescription,
             },
             unit_amount: amountInCents,
           },
