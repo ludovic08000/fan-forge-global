@@ -231,7 +231,7 @@ const Messages = () => {
               <Card key={conv.creator_id} className="hover:bg-muted/50 transition-colors">
                 <CardContent className="p-4 flex items-center gap-4">
                   <Link 
-                    to={`/chat/${conv.creator_id}`}
+                    to={userRole === 'creator' ? `/messages/${conv.creator_id}` : `/chat/${conv.creator_id}`}
                     className="flex items-center gap-4 flex-1 min-w-0"
                   >
                     <Avatar className="h-14 w-14 border-2 border-primary/20">

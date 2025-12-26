@@ -46,6 +46,7 @@ const LegalNotice = lazy(() => import("./pages/LegalNotice"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const Suspended = lazy(() => import("./pages/Suspended"));
 const PrivateChatPage = lazy(() => import("./pages/PrivateChatPage"));
+const CreatorChatPage = lazy(() => import("./pages/CreatorChatPage"));
 const Messages = lazy(() => import("./pages/Messages"));
 
 
@@ -141,6 +142,11 @@ const AppRoutes = () => {
           <Route path="/chat/:creatorId" element={
             <ProtectedRoute>
               <PrivateChatPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/messages/:subscriberId" element={
+            <ProtectedRoute>
+              <CreatorChatPage />
             </ProtectedRoute>
           } />
           <Route path="/dashboard" element={
