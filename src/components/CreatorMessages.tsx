@@ -2,12 +2,25 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Trash2, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useConversations } from '@/hooks/useConversations';
 import ModernPrivateChat from './ModernPrivateChat';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface Conversation {
   subscriber_id: string;
@@ -21,6 +34,7 @@ interface Conversation {
 const CreatorMessages: React.FC = () => {
   const { user } = useAuth();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const { deleteConversation } = useConversations();
 
   // Récupérer l'ID créateur
   const { data: creatorData } = useQuery({
@@ -39,7 +53,7 @@ const CreatorMessages: React.FC = () => {
   });
 
   // Récupérer les conversations
-  const { data: conversations, isLoading } = useQuery({
+  const { data: conversations, isLoading, refetch } = useQuery({
     queryKey: ['creator-conversations', creatorData?.id],
     queryFn: async () => {
       if (!creatorData?.id) return [];
@@ -54,6 +68,7 @@ const CreatorMessages: React.FC = () => {
           message_type
         `)
         .eq('creator_id', creatorData.id)
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -87,12 +102,18 @@ const CreatorMessages: React.FC = () => {
           ...conv,
           subscriber_name: profile?.display_name || profile?.username || 'Utilisateur',
           subscriber_avatar: profile?.avatar_url,
-          unread_count: 0, // À implémenter si besoin
+          unread_count: 0,
         };
       });
     },
     enabled: !!creatorData?.id,
   });
+
+  const handleDeleteConversation = async (subscriberId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await deleteConversation.mutateAsync(subscriberId);
+    refetch();
+  };
 
   if (!creatorData) {
     return (
@@ -107,17 +128,14 @@ const CreatorMessages: React.FC = () => {
   if (selectedConversation) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setSelectedConversation(null)}
-            className="text-primary hover:underline"
-          >
-            ← Retour aux conversations
-          </button>
-          <span className="text-muted-foreground">
-            Conversation avec {selectedConversation.subscriber_name}
-          </span>
-        </div>
+        <Button 
+          variant="ghost" 
+          onClick={() => setSelectedConversation(null)}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Retour aux conversations
+        </Button>
         <ModernPrivateChat
           creatorId={creatorData.id}
           creatorName={selectedConversation.subscriber_name}
@@ -142,36 +160,72 @@ const CreatorMessages: React.FC = () => {
             Chargement des conversations...
           </div>
         ) : conversations && conversations.length > 0 ? (
-          <ScrollArea className="h-[400px]">
+          <ScrollArea className="h-[500px]">
             <div className="space-y-2">
               {conversations.map((conv) => (
                 <div
                   key={conv.subscriber_id}
                   onClick={() => setSelectedConversation(conv)}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                  className="flex items-center gap-3 p-4 rounded-xl bg-muted/30 hover:bg-muted/50 cursor-pointer transition-all border border-border/50 group"
                 >
-                  <Avatar>
+                  <Avatar className="h-12 w-12 ring-2 ring-primary/20">
                     <AvatarImage src={conv.subscriber_avatar || undefined} />
-                    <AvatarFallback>
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                       {conv.subscriber_name?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{conv.subscriber_name}</span>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-foreground">{conv.subscriber_name}</span>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(conv.last_message_at).toLocaleDateString()}
+                        {new Date(conv.last_message_at).toLocaleDateString('fr-FR', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground truncate">
                       {conv.last_message}
                     </p>
                   </div>
-                  {conv.unread_count > 0 && (
-                    <Badge variant="default" className="shrink-0">
-                      {conv.unread_count}
-                    </Badge>
-                  )}
+                  
+                  <div className="flex items-center gap-2">
+                    {conv.unread_count > 0 && (
+                      <Badge variant="default" className="shrink-0">
+                        {conv.unread_count}
+                      </Badge>
+                    )}
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Supprimer la conversation ?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Cette action est irréversible. Tous les messages avec {conv.subscriber_name} seront supprimés.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={(e) => handleDeleteConversation(conv.subscriber_id, e)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Supprimer
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               ))}
             </div>
