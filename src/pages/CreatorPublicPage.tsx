@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, MessageCircle } from 'lucide-react';
+import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, MessageCircle, UserMinus } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
 import ModernPrivateChat from '@/components/ModernPrivateChat';
@@ -33,6 +34,7 @@ const CreatorPublicPage = () => {
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [likingContent, setLikingContent] = useState<string | null>(null);
   const [heartAnimation, setHeartAnimation] = useState<string | null>(null);
+  const [unsubscribing, setUnsubscribing] = useState(false);
 
   // Activer la protection anti-capture sur toute la page
   useContentProtection(true);
@@ -200,6 +202,30 @@ const CreatorPublicPage = () => {
     } else {
       // Abonnement payant - ouvrir le checkout embedded
       setShowCheckout(true);
+    }
+  };
+
+  const handleUnsubscribe = async () => {
+    if (!user || !creator) return;
+
+    setUnsubscribing(true);
+    try {
+      const { error } = await supabase
+        .from('subscriptions')
+        .update({ status: 'canceled' })
+        .eq('subscriber_id', user.id)
+        .eq('creator_id', creator.id)
+        .eq('status', 'active');
+
+      if (error) throw error;
+
+      setIsSubscribed(false);
+      toast.success('Désabonnement effectué');
+    } catch (error: any) {
+      console.error('Error unsubscribing:', error);
+      toast.error('Erreur lors du désabonnement');
+    } finally {
+      setUnsubscribing(false);
     }
   };
 
@@ -448,10 +474,39 @@ const CreatorPublicPage = () => {
               <div className="flex flex-col gap-2">
                 {user ? (
                   isSubscribed ? (
-                    <Badge variant="default" className="text-base px-4 py-2">
-                      <Crown className="h-4 w-4 mr-2" />
-                      Abonné
-                    </Badge>
+                    <div className="flex flex-col gap-2">
+                      <Badge variant="default" className="text-base px-4 py-2">
+                        <Crown className="h-4 w-4 mr-2" />
+                        Abonné
+                      </Badge>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                            <UserMinus className="h-4 w-4 mr-2" />
+                            Se désabonner
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmer le désabonnement</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Êtes-vous sûr de vouloir vous désabonner de {creator.stage_name || profile.display_name || profile.username} ? 
+                              Vous perdrez l'accès au contenu premium.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={handleUnsubscribe}
+                              disabled={unsubscribing}
+                              className="bg-destructive hover:bg-destructive/90"
+                            >
+                              {unsubscribing ? 'Désabonnement...' : 'Se désabonner'}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   ) : (
                     <Button size="lg" variant="premium" onClick={handleSubscribe}>
                       <Crown className="h-4 w-4 mr-2" />
