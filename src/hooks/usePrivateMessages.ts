@@ -127,15 +127,31 @@ export const usePrivateMessages = (creatorId?: string) => {
           schema: 'public',
           table: 'private_messages',
         },
-        (payload) => {
+        async (payload) => {
           const newMessage = payload.new as PrivateMessage;
           
-          // Vérifier si le message concerne cette conversation
-          const isRelevant = 
-            (newMessage.creator_id === creatorId && newMessage.subscriber_id === user.id) ||
-            (newMessage.creator_id === user.id && newMessage.subscriber_id === creatorId);
+          // Récupérer l'ID créateur de l'utilisateur actuel
+          const { data: myCreator } = await supabase
+            .from('creators')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
           
-          if (!isRelevant) return;
+          const myCreatorId = myCreator?.id;
+          
+          // Vérifier si le message concerne cette conversation
+          // Cas 1: Je suis subscriber, message entre moi et le créateur cible
+          const isSubscriberConversation = 
+            newMessage.creator_id === creatorId && newMessage.subscriber_id === user.id;
+          
+          // Cas 2: Je suis créateur, message entre moi (créateur) et l'abonné (creatorId = targetId qui est l'abonné ici)
+          const isCreatorConversation = 
+            myCreatorId && (
+              (newMessage.creator_id === myCreatorId && newMessage.subscriber_id === creatorId) ||
+              (newMessage.creator_id === creatorId && newMessage.subscriber_id === myCreatorId)
+            );
+          
+          if (!isSubscriberConversation && !isCreatorConversation) return;
           
           queryClient.setQueryData(
             ['private-messages', creatorId, user.id],
@@ -143,8 +159,19 @@ export const usePrivateMessages = (creatorId?: string) => {
               if (!old?.pages?.length) return old;
               
               const allMessages = old.pages.flatMap((p: any) => p.messages);
-              if (allMessages.some((m: PrivateMessage) => m.id === newMessage.id)) {
-                return old;
+              // Vérifier les doublons par ID ou par ID temporaire
+              if (allMessages.some((m: PrivateMessage) => 
+                m.id === newMessage.id || 
+                (m.id.startsWith('temp-') && m.content === newMessage.content && m.created_at)
+              )) {
+                // Remplacer le message temporaire par le vrai message
+                const newPages = old.pages.map((page: any) => ({
+                  ...page,
+                  messages: page.messages.map((m: PrivateMessage) =>
+                    m.id.startsWith('temp-') && m.content === newMessage.content ? newMessage : m
+                  ),
+                }));
+                return { ...old, pages: newPages };
               }
 
               const newPages = [...old.pages];
