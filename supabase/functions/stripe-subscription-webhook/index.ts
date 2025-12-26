@@ -474,12 +474,64 @@ serve(async (req) => {
               } else {
                 logStep("New subscription created from invoice.paid", { subscriptionId: newSub?.id });
 
-                // Notification au créateur
+                // Récupérer le taux de commission du créateur
                 const { data: creator } = await supabaseClient
                   .from('creators')
-                  .select('user_id')
+                  .select('user_id, platform_commission_rate')
                   .eq('id', creatorId)
                   .single();
+
+                // Enregistrer la commission de la plateforme (seulement si montant > 0)
+                const subscriptionRevenue = priceAmount / 100;
+                if (subscriptionRevenue > 0 && creator) {
+                  const commissionRate = creator.platform_commission_rate || 0.15;
+                  const commissionAmount = subscriptionRevenue * commissionRate;
+                  const creatorPayout = subscriptionRevenue - commissionAmount;
+
+                  const periodStart = new Date().toISOString();
+                  const periodEnd = new Date(stripeSubscription.current_period_end * 1000).toISOString();
+
+                  const { error: commissionError } = await supabaseClient
+                    .from('platform_commissions')
+                    .insert({
+                      creator_id: creatorId,
+                      total_revenue: subscriptionRevenue,
+                      subscription_revenue: subscriptionRevenue,
+                      tips_revenue: 0,
+                      live_revenue: 0,
+                      private_content_revenue: 0,
+                      commission_rate: commissionRate,
+                      commission_amount: commissionAmount,
+                      creator_payout: creatorPayout,
+                      currency: currency.toUpperCase(),
+                      period_start: periodStart,
+                      period_end: periodEnd
+                    });
+
+                  if (commissionError) {
+                    logStep("Error recording platform commission", { error: commissionError.message });
+                  } else {
+                    logStep("Platform commission recorded", { 
+                      revenue: subscriptionRevenue, 
+                      commission: commissionAmount,
+                      payout: creatorPayout
+                    });
+                  }
+
+                  // Mettre à jour les gains totaux du créateur
+                  await supabaseClient
+                    .from('creators')
+                    .update({ 
+                      total_earnings: (await supabaseClient
+                        .from('creators')
+                        .select('total_earnings')
+                        .eq('id', creatorId)
+                        .single()).data?.total_earnings + creatorPayout || creatorPayout
+                    })
+                    .eq('id', creatorId);
+                }
+
+                // Notification au créateur
 
                 if (creator) {
                   const { data: subscriberProfile } = await supabaseClient
