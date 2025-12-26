@@ -3,7 +3,7 @@
  */
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { 
   Lock, 
@@ -14,15 +14,8 @@ import {
   Euro, 
   Eye,
   Trash2,
-  MoreHorizontal,
   Copy
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -213,45 +206,28 @@ export const ModernMessageBubble: React.FC<ModernMessageBubbleProps> = ({
         onMouseLeave={() => setIsHovered(false)}
       >
         <div className="flex items-end gap-1 max-w-[85%] md:max-w-[70%]">
-          {/* Menu actions - Left side for my messages */}
+          {/* Bouton supprimer - TOUJOURS VISIBLE pour mes messages */}
           {isFromMe && onDelete && (
-            <AnimatePresence>
-              {isHovered && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  className="shrink-0 mb-1"
+            <div className="flex items-center gap-1 shrink-0 mb-1">
+              {message.message_type === 'text' && message.content && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full bg-muted/60 hover:bg-muted"
+                  onClick={handleCopyText}
                 >
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-full bg-muted/80 hover:bg-muted"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" side="top" className="w-40">
-                      {message.message_type === 'text' && message.content && (
-                        <DropdownMenuItem onClick={handleCopyText}>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copier
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem 
-                        onClick={() => setShowDeleteDialog(true)}
-                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Supprimer
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </motion.div>
+                  <Copy className="h-4 w-4" />
+                </Button>
               )}
-            </AnimatePresence>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           )}
 
           {/* Message bubble */}
@@ -288,27 +264,16 @@ export const ModernMessageBubble: React.FC<ModernMessageBubbleProps> = ({
             </div>
           </div>
 
-          {/* Menu actions - Right side for received messages */}
+          {/* Bouton copier - TOUJOURS VISIBLE pour messages reçus */}
           {!isFromMe && message.message_type === 'text' && message.content && (
-            <AnimatePresence>
-              {isHovered && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  className="shrink-0 mb-1"
-                >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 rounded-full bg-muted/80 hover:bg-muted"
-                    onClick={handleCopyText}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full bg-muted/60 hover:bg-muted shrink-0 mb-1"
+              onClick={handleCopyText}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
           )}
         </div>
       </motion.div>
