@@ -105,7 +105,7 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [requestPriceDialogOpen, setRequestPriceDialogOpen] = useState(false);
   const [requestToPrice, setRequestToPrice] = useState<string | null>(null);
-  const [requestPrice, setRequestPrice] = useState<number>(5);
+  const [requestPrice, setRequestPrice] = useState<number | string>(5);
   const [isSubscriberUpload, setIsSubscriberUpload] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -304,7 +304,7 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
       await respondToMediaRequest.mutateAsync({
         messageId: requestToPrice,
         action: 'accept',
-        price: requestPrice,
+        price: Number(requestPrice) || 1,
       });
       setRequestPriceDialogOpen(false);
       setRequestToPrice(null);
@@ -959,8 +959,18 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
               <Euro className="h-5 w-5 text-muted-foreground" />
               <Input
                 type="number"
-                value={requestPrice}
-                onChange={(e) => setRequestPrice(Number(e.target.value))}
+                value={requestPrice === 0 ? '' : requestPrice}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') {
+                    setRequestPrice('');
+                  } else {
+                    const num = parseInt(val, 10);
+                    if (!isNaN(num)) {
+                      setRequestPrice(Math.min(500, Math.max(0, num)));
+                    }
+                  }
+                }}
                 min="1"
                 max="500"
                 className="flex-1"
@@ -973,7 +983,7 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmAcceptRequest}
-              disabled={requestPrice < 1 || respondToMediaRequest.isPending}
+              disabled={!requestPrice || Number(requestPrice) < 1 || respondToMediaRequest.isPending}
               className="bg-emerald-600 hover:bg-emerald-700"
             >
               {respondToMediaRequest.isPending ? (
@@ -981,7 +991,7 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
               ) : (
                 <CheckCircle className="h-4 w-4 mr-2" />
               )}
-              Accepter pour {requestPrice}€
+              Accepter pour {requestPrice || 0}€
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
