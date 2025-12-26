@@ -407,23 +407,10 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
               </p>
             </motion.div>
           ) : (
-            messages?.map((message, index) => {
-              // Logique corrigée pour déterminer "isFromMe"
-              // - Si je suis le créateur (isUserCreator=true), mes messages ont creator_id = creatorId (mon ID)
-              // - Si je suis subscriber, mes messages texte ont subscriber_id = user.id
-              
-              let isFromMe = false;
-              if (isUserCreator) {
-                // Je suis le créateur : mes messages sortants ont creator_id = mon creatorId
-                // Pour les textes: je les ai envoyés si creator_id = creatorId ET subscriber_id != moi
-                // Pour les médias: creator_id = creatorId signifie que c'est moi qui l'ai envoyé
-                isFromMe = message.creator_id === creatorId;
-              } else {
-                // Je suis subscriber : mes messages sortants ont subscriber_id = user.id ET sont des textes OU des media_request
-                const isMyText = message.message_type === 'text' && message.subscriber_id === user?.id;
-                const isMyMediaRequest = (message.message_type === 'image_request' || message.message_type === 'video_request') && message.subscriber_id === user?.id;
-                isFromMe = isMyText || isMyMediaRequest;
-              }
+          messages?.map((message, index) => {
+              // Logique simple : utiliser sender_id pour déterminer qui a envoyé le message
+              // sender_id = user.id signifie que c'est MOI qui ai envoyé ce message
+              const isFromMe = message.sender_id === user?.id;
               
               const isFromCreator = message.creator_id === creatorId;
               const canViewPaidContent = message.price === 0 || message.price === null || message.is_paid;
