@@ -593,30 +593,36 @@ const MySubscriptions = () => {
 };
 
 const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
-  const [isManaging, setIsManaging] = useState(false);
+  const [isCanceling, setIsCanceling] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const creator = subscription.creator;
   const profile = creator.profile;
   const displayName = creator.stage_name || profile?.display_name || profile?.username || 'Créateur';
   const username = profile?.username;
 
-  const handleManageSubscription = async () => {
-    setIsManaging(true);
+  const handleCancelSubscription = async () => {
+    setIsCanceling(true);
     try {
-      const { data, error } = await supabase.functions.invoke('customer-portal');
+      const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+        body: { subscriptionId: subscription.id }
+      });
       
       if (error) throw error;
       
-      if (data?.url) {
-        window.open(data.url, '_blank');
+      if (data?.success) {
+        toast.success('Abonnement annulé avec succès');
+        setShowConfirmCancel(false);
+        // Recharger la page pour mettre à jour la liste
+        window.location.reload();
       } else {
-        throw new Error('No portal URL returned');
+        throw new Error(data?.error || 'Erreur lors de l\'annulation');
       }
     } catch (error: any) {
-      console.error('Error opening customer portal:', error);
-      toast.error(error.message || 'Impossible d\'ouvrir le portail de gestion');
+      console.error('Error canceling subscription:', error);
+      toast.error(error.message || 'Impossible d\'annuler l\'abonnement');
     } finally {
-      setIsManaging(false);
+      setIsCanceling(false);
     }
   };
 
@@ -692,15 +698,10 @@ const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
                   <Button 
                     variant="destructive" 
                     size="sm" 
-                    onClick={handleManageSubscription}
-                    disabled={isManaging}
+                    onClick={() => setShowConfirmCancel(true)}
                     className="w-full sm:w-auto"
                   >
-                    {isManaging ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      'Se désabonner'
-                    )}
+                    Se désabonner
                   </Button>
                   <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
                     <Link to={username ? `/${username}` : '#'}>
@@ -731,6 +732,38 @@ const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmCancel} onOpenChange={setShowConfirmCancel}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmer le désabonnement</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-muted-foreground">
+              Êtes-vous sûr de vouloir vous désabonner de <span className="font-semibold text-foreground">{displayName}</span> ?
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Vous perdrez l'accès à tout le contenu exclusif de ce créateur.
+            </p>
+          </div>
+          <div className="flex gap-3 justify-end">
+            <Button variant="outline" onClick={() => setShowConfirmCancel(false)}>
+              Annuler
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleCancelSubscription}
+              disabled={isCanceling}
+            >
+              {isCanceling ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              Confirmer le désabonnement
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Checkout Dialog */}
       <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
