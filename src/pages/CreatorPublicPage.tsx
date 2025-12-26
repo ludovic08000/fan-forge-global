@@ -176,22 +176,38 @@ const CreatorPublicPage = () => {
     if (creator.subscription_price <= 0) {
       // Abonnement gratuit
       try {
-        const { error } = await supabase
+        // Vérifier s'il existe déjà un abonnement (même annulé)
+        const { data: existingSub } = await supabase
           .from('subscriptions')
-          .insert({
-            subscriber_id: user.id,
-            creator_id: creator.id,
-            price: 0,
-            currency: creator.currency
-          });
+          .select('id, status')
+          .eq('subscriber_id', user.id)
+          .eq('creator_id', creator.id)
+          .single();
 
-        if (error) {
-          if (error.code === '23505') {
+        if (existingSub) {
+          if (existingSub.status === 'active') {
             toast.error('Vous êtes déjà abonné à ce créateur');
-          } else {
-            throw error;
+            return;
           }
-          return;
+          // Réactiver l'abonnement existant
+          const { error } = await supabase
+            .from('subscriptions')
+            .update({ status: 'active', updated_at: new Date().toISOString() })
+            .eq('id', existingSub.id);
+
+          if (error) throw error;
+        } else {
+          // Créer un nouvel abonnement
+          const { error } = await supabase
+            .from('subscriptions')
+            .insert({
+              subscriber_id: user.id,
+              creator_id: creator.id,
+              price: 0,
+              currency: creator.currency
+            });
+
+          if (error) throw error;
         }
 
         setIsSubscribed(true);
