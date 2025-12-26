@@ -105,9 +105,13 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
   // Déterminer si l'utilisateur est l'auteur d'un message
   const isMessageAuthor = (message: any) => {
     if (isUserCreator) {
-      // Si l'utilisateur est le créateur, il est l'auteur des messages de type non-text (média)
-      // et des messages où il est subscriber (texte envoyé par lui en tant que créateur)
-      return message.creator_id === creatorId && message.message_type !== 'text';
+      // Si l'utilisateur est le créateur, il est l'auteur de ses propres messages
+      // Les créateurs envoient les médias payants (message_type !== 'text')
+      // ET les messages texte envoyés par le créateur (côté créateur, les messages "from me" ont creator_id = creatorId)
+      const isCreatorMessage = message.creator_id === creatorId;
+      // Le créateur est l'auteur si c'est un média OU si c'est un message où il est "from me"
+      // Dans le contexte du chat, les messages du créateur ont creator_id = son propre ID
+      return isCreatorMessage && (message.message_type !== 'text' || message.subscriber_id !== user?.id);
     } else {
       // Si l'utilisateur est un subscriber, il est l'auteur des messages texte qu'il a envoyé
       return message.subscriber_id === user?.id && message.message_type === 'text';
@@ -322,15 +326,17 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                     "flex items-end gap-2 max-w-[85%]",
                     isFromMe ? "flex-row-reverse" : "flex-row"
                   )}>
-                    {/* Bouton suppression - TOUJOURS VISIBLE */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive shrink-0"
-                      onClick={() => handleDeleteMessage(message.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {/* Bouton suppression - visible uniquement pour l'auteur */}
+                    {canDelete && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => handleDeleteMessage(message.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                     
                     {/* Bulle de message compacte */}
                     <div
