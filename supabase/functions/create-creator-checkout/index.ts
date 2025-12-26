@@ -147,6 +147,8 @@ serve(async (req) => {
 
     // Gérer le code promo/parrainage
     let discounts: any[] = [];
+    let trialDays: number | undefined = undefined;
+    
     if (referralCode) {
       // Vérifier le code de parrainage
       const { data: refCode } = await supabaseClient
@@ -158,32 +160,48 @@ serve(async (req) => {
         .maybeSingle();
 
       if (refCode) {
-        // Créer un coupon Stripe pour ce code
-        const couponParams: any = {
-          metadata: { referral_code_id: refCode.id }
-        };
-
-        // Gérer la durée (si pas de duration_months, défaut = 1 mois = 'once')
-        const durationMonths = refCode.duration_months;
-        if (durationMonths === null || durationMonths === undefined || durationMonths === 0) {
-          couponParams.duration = 'forever';
-        } else if (durationMonths === 1) {
-          couponParams.duration = 'once';
+        // Si c'est un code 100% gratuit, utiliser une période d'essai au lieu d'un coupon
+        const isFreeCode = refCode.discount_percentage === 100;
+        
+        if (isFreeCode) {
+          // Calculer les jours d'essai basés sur duration_months
+          const durationMonths = refCode.duration_months;
+          if (durationMonths === null || durationMonths === undefined || durationMonths === 0) {
+            // "Forever" gratuit = 365 jours d'essai (max raisonnable)
+            trialDays = 365;
+          } else {
+            // X mois gratuits = X * 30 jours d'essai
+            trialDays = durationMonths * 30;
+          }
+          logStep("Free promo code - using trial period", { referralCode, trialDays, durationMonths });
         } else {
-          couponParams.duration = 'repeating';
-          couponParams.duration_in_months = durationMonths;
-        }
+          // Code avec réduction partielle - utiliser un coupon classique
+          const couponParams: any = {
+            metadata: { referral_code_id: refCode.id }
+          };
 
-        if (refCode.discount_percentage) {
-          couponParams.percent_off = refCode.discount_percentage;
-        } else if (refCode.discount_amount) {
-          couponParams.amount_off = Math.round(refCode.discount_amount * 100);
-          couponParams.currency = creatorData.currency.toLowerCase();
-        }
+          // Gérer la durée (si pas de duration_months, défaut = 1 mois = 'once')
+          const durationMonths = refCode.duration_months;
+          if (durationMonths === null || durationMonths === undefined || durationMonths === 0) {
+            couponParams.duration = 'forever';
+          } else if (durationMonths === 1) {
+            couponParams.duration = 'once';
+          } else {
+            couponParams.duration = 'repeating';
+            couponParams.duration_in_months = durationMonths;
+          }
 
-        const coupon = await stripe.coupons.create(couponParams);
-        discounts = [{ coupon: coupon.id }];
-        logStep("Coupon created for referral code", { couponId: coupon.id, referralCode, duration: couponParams.duration });
+          if (refCode.discount_percentage) {
+            couponParams.percent_off = refCode.discount_percentage;
+          } else if (refCode.discount_amount) {
+            couponParams.amount_off = Math.round(refCode.discount_amount * 100);
+            couponParams.currency = creatorData.currency.toLowerCase();
+          }
+
+          const coupon = await stripe.coupons.create(couponParams);
+          discounts = [{ coupon: coupon.id }];
+          logStep("Coupon created for referral code", { couponId: coupon.id, referralCode, duration: couponParams.duration });
+        }
       }
     }
 
@@ -205,6 +223,7 @@ serve(async (req) => {
       },
       discounts: discounts.length > 0 ? discounts : undefined,
       subscription_data: {
+        trial_period_days: trialDays,
         metadata: {
           creator_id: creatorId,
           user_id: user.id,
