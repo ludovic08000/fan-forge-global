@@ -522,22 +522,24 @@ const Dashboard = () => {
               variant={activeSection === item.id ? "default" : "ghost"}
               size="sm"
               onClick={() => setActiveSection(item.id)}
-              className={`gap-2 whitespace-nowrap rounded-xl transition-all relative ${
+              className={`gap-2 whitespace-nowrap rounded-xl transition-all ${
                 activeSection === item.id 
                   ? "shadow-lg shadow-primary/20" 
                   : "hover:bg-muted/60"
               }`}
             >
               <item.icon className="h-4 w-4" />
-              {item.label}
-              {item.badge > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-1.5 -right-1.5 h-5 min-w-5 px-1.5 text-[10px] font-bold flex items-center justify-center"
-                >
-                  {item.badge > 99 ? '99+' : item.badge}
-                </Badge>
-              )}
+              <span className="flex items-center gap-1.5">
+                {item.label}
+                {item.badge > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="h-5 min-w-5 px-1.5 text-[10px] font-bold"
+                  >
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </Badge>
+                )}
+              </span>
             </Button>
           ))}
         </div>
