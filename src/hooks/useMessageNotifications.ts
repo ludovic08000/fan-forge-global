@@ -2,9 +2,11 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useChatNotificationSound } from './useChatNotificationSound';
 
 export const useMessageNotifications = () => {
   const { user, userRole } = useAuth();
+  const { playNotificationSound } = useChatNotificationSound();
   const notificationPermission = useRef<NotificationPermission>('default');
   const creatorIdRef = useRef<string | null>(null);
 
@@ -139,6 +141,9 @@ export const useMessageNotifications = () => {
               messagePreview = '💎 Contenu payant';
             }
 
+            // Jouer le son de notification
+            playNotificationSound();
+
             // Afficher la notification
             showNotification(
               `Nouveau message de ${senderName}`,
@@ -164,7 +169,7 @@ export const useMessageNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, userRole]);
+  }, [user, userRole, playNotificationSound]);
 
   return { requestPermission };
 };
