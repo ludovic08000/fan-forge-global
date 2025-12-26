@@ -341,31 +341,37 @@ export const useConversationMessages = (participantId: string | null) => {
       // Mapper les messages avec is_from_me
       return (data || []).map(msg => {
         // Déterminer si le message vient de moi
+        // Règle simple: si je suis créateur, tous les messages que j'envoie ont creator_id = mon creatorId
+        // Les messages des subscribers ont subscriber_id différent de mon user_id (sauf si je me parle à moi-même)
         let isFromMe = false;
         
         if (myCreatorId) {
-          // Je suis créateur - un message vient de moi si creator_id = mon creatorId
-          isFromMe = msg.creator_id === myCreatorId;
+          // Je suis créateur
+          // Un message vient de moi si:
+          // - creator_id = mon creatorId ET (price > 0 OU message_type != 'text' OU subscriber_id = mon user.id)
+          // Pour simplifier: les créateurs envoient les médias payants, les subscribers envoient les textes
+          const isPaidMedia = msg.price && msg.price > 0;
+          const isMedia = msg.message_type !== 'text';
+          const isSelfChat = msg.subscriber_id === user.id;
+          
+          // Si c'est un média ou média payant, c'est le créateur qui l'a envoyé
+          if (isPaidMedia || isMedia) {
+            isFromMe = msg.creator_id === myCreatorId;
+          } else {
+            // Message texte: si subscriber = moi, c'est le subscriber qui parle, sauf si c'est un self-chat
+            if (isSelfChat) {
+              // Self-chat: tous les messages viennent de moi
+              isFromMe = true;
+            } else {
+              // Conversation avec un autre: les textes des subscribers ne viennent pas de moi (créateur)
+              // Mais si je suis le subscriber dans cette conv (autre créateur), alors oui
+              isFromMe = msg.subscriber_id !== user.id && msg.creator_id === myCreatorId;
+            }
+          }
         } else {
-          // Je suis subscriber - un message vient de moi si subscriber_id = mon user.id 
-          // ET que le message n'est pas un media payant (envoyé par le créateur) 
-          // OU si c'est un message texte que j'ai envoyé
-          // La logique: les subscribers envoient des messages texte, les créateurs envoient des media payants
-          // Pour un subscriber: ses messages texte lui appartiennent
-          // Les messages du créateur sont ceux avec un prix > 0 ou type media
-          const isCreatorMessage = msg.price && msg.price > 0;
-          isFromMe = msg.subscriber_id === user.id && !isCreatorMessage && msg.message_type === 'text';
+          // Je suis subscriber - mes messages texte viennent de moi
+          isFromMe = msg.subscriber_id === user.id && msg.message_type === 'text' && (!msg.price || msg.price === 0);
         }
-        
-        console.log('Message debug:', { 
-          id: msg.id, 
-          type: msg.message_type, 
-          isFromMe, 
-          myCreatorId, 
-          creator_id: msg.creator_id, 
-          subscriber_id: msg.subscriber_id,
-          price: msg.price
-        });
         
         return {
           ...msg,
