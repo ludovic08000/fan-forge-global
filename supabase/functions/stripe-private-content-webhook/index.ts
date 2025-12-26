@@ -120,13 +120,29 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Marquer le message comme payé
+    // Récupérer le message pour connaître son type
+    const { data: messageData } = await supabaseAdmin
+      .from('private_messages')
+      .select('message_type')
+      .eq('id', messageId)
+      .single();
+
+    const isMediaRequest = messageData?.message_type === 'image_request' || messageData?.message_type === 'video_request';
+
+    // Marquer le message comme payé et mettre à jour le statut pour les media requests
+    const updateData: Record<string, unknown> = { 
+      is_paid: true,
+      stripe_payment_intent_id: session.payment_intent as string
+    };
+    
+    // Pour les media requests, mettre le statut à 'paid'
+    if (isMediaRequest) {
+      updateData.status = 'paid';
+    }
+
     const { error: updateError } = await supabaseAdmin
       .from('private_messages')
-      .update({ 
-        is_paid: true,
-        stripe_payment_intent_id: session.payment_intent as string
-      })
+      .update(updateData)
       .eq('id', messageId);
 
     if (updateError) {
