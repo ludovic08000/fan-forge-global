@@ -632,9 +632,9 @@ const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
     <>
       <Card className="overflow-hidden hover:shadow-lg transition-shadow">
         <CardContent className="p-4">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <Link to={username ? `/${username}` : '#'} className="flex-shrink-0">
-              <Avatar className="h-18 w-18 ring-2 ring-primary/20 hover:ring-primary/50 hover:ring-4 transition-all duration-300 shadow-lg">
+              <Avatar className="h-16 w-16 ring-2 ring-primary/20 hover:ring-primary/50 hover:ring-4 transition-all duration-300 shadow-lg">
                 <AvatarImage src={profile?.avatar_url || undefined} className="object-cover" />
                 <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary/20 to-primary-glow/20 text-primary">
                   {displayName.charAt(0).toUpperCase()}
@@ -643,73 +643,89 @@ const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
             </Link>
             
             <div className="flex-1 min-w-0">
-              <Link 
-                to={username ? `/${username}` : '#'}
-                className="font-semibold text-lg hover:text-primary transition-colors line-clamp-1"
-              >
-                {displayName}
-              </Link>
+              <div className="flex items-center gap-2 mb-1">
+                <Link 
+                  to={username ? `/${username}` : '#'}
+                  className="font-semibold text-lg hover:text-primary transition-colors line-clamp-1"
+                >
+                  {displayName}
+                </Link>
+                <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
+                  {subscription.status === 'active' ? 'Actif' : 'Expiré'}
+                </Badge>
+              </div>
               {username && (
-                <p className="text-sm text-muted-foreground">@{username}</p>
+                <p className="text-sm text-muted-foreground mb-2">@{username}</p>
               )}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
+              
+              {/* Dates et prix */}
+              <div className="flex flex-col gap-1 text-sm">
+                <span className="flex items-center gap-1.5 text-muted-foreground">
                   <Calendar className="h-3.5 w-3.5" />
-                  Depuis {format(new Date(subscription.start_date), 'dd MMM yyyy', { locale: fr })}
+                  Abonné depuis le {format(new Date(subscription.start_date), 'dd MMMM yyyy', { locale: fr })}
                 </span>
+                
                 {subscription.end_date && subscription.status === 'active' && (
-                  <span className="flex items-center gap-1 text-primary">
-                    Renouvellement : {format(new Date(subscription.end_date), 'dd MMM yyyy', { locale: fr })}
+                  <span className="flex items-center gap-1.5 font-medium text-primary">
+                    <Clock className="h-3.5 w-3.5" />
+                    Prochain renouvellement : {format(new Date(subscription.end_date), 'dd MMMM yyyy', { locale: fr })}
                   </span>
                 )}
+                
                 {subscription.end_date && subscription.status !== 'active' && (
-                  <span className="flex items-center gap-1 text-destructive">
-                    Expiré le {format(new Date(subscription.end_date), 'dd MMM yyyy', { locale: fr })}
+                  <span className="flex items-center gap-1.5 font-medium text-destructive">
+                    <Clock className="h-3.5 w-3.5" />
+                    Expiré le {format(new Date(subscription.end_date), 'dd MMMM yyyy', { locale: fr })}
                   </span>
                 )}
-                <span className="font-medium text-foreground">
-                  {creator.subscription_price}€/mois
+                
+                <span className="font-semibold text-foreground mt-1">
+                  {creator.subscription_price > 0 ? `${creator.subscription_price}€/mois` : 'Gratuit'}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
-                {subscription.status === 'active' ? 'Actif' : 'Expiré'}
-              </Badge>
+            {/* Boutons d'action */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
               {subscription.status === 'active' && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleManageSubscription}
-                  disabled={isManaging}
-                >
-                  {isManaging ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Settings className="h-4 w-4 mr-1" />
-                      Gérer
-                    </>
-                  )}
-                </Button>
+                <>
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    onClick={handleManageSubscription}
+                    disabled={isManaging}
+                    className="w-full sm:w-auto"
+                  >
+                    {isManaging ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      'Se désabonner'
+                    )}
+                  </Button>
+                  <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
+                    <Link to={username ? `/${username}` : '#'}>
+                      Voir le profil
+                    </Link>
+                  </Button>
+                </>
               )}
               {subscription.status !== 'active' && (
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  onClick={handleResubscribe}
-                >
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  Se réabonner
-                </Button>
-              )}
-              {username && (
-                <Button variant="outline" size="sm" asChild>
-                  <Link to={`/${username}`}>
-                    <ExternalLink className="h-4 w-4" />
-                  </Link>
-                </Button>
+                <>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    onClick={handleResubscribe}
+                    className="w-full sm:w-auto"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    Se réabonner
+                  </Button>
+                  <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
+                    <Link to={username ? `/${username}` : '#'}>
+                      Voir le profil
+                    </Link>
+                  </Button>
+                </>
               )}
             </div>
           </div>
