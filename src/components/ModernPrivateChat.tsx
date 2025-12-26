@@ -427,15 +427,9 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                     duration: 0.25,
                     ease: [0.25, 0.1, 0.25, 1]
                   }}
-                  className={cn(
-                    "flex w-full group",
-                    isFromMe ? "justify-end pl-8 sm:pl-16" : "justify-start pr-8 sm:pr-16"
-                  )}
+                  className="flex w-full group justify-end pl-8 sm:pl-16"
                 >
-                  <div className={cn(
-                    "flex items-end gap-1.5 max-w-[85%] sm:max-w-[75%]",
-                    isFromMe ? "flex-row-reverse" : "flex-row"
-                  )}>
+                  <div className="flex items-end gap-1.5 max-w-[85%] sm:max-w-[75%] flex-row-reverse">
                     {/* Bouton suppression - style iOS */}
                     {canDelete && (
                       <Button
@@ -458,15 +452,10 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                             ? "rounded-2xl px-3.5 py-2 bg-destructive/10 border border-destructive/30"
                             : isMediaRequest
                               ? "rounded-2xl px-3.5 py-2 bg-amber-500/10 border border-amber-500/30"
-                              : isFromMe
-                                ? cn(
-                                    "px-4 py-2.5 bg-gradient-to-br from-primary to-primary/90 text-primary-foreground",
-                                    "rounded-[20px] rounded-br-md"
-                                  )
-                                : cn(
-                                    "px-4 py-2.5 bg-muted/80 dark:bg-muted/60",
-                                    "rounded-[20px] rounded-bl-md"
-                                  ),
+                              : cn(
+                                  "px-4 py-2.5 bg-gradient-to-br from-primary to-primary/90 text-primary-foreground",
+                                  "rounded-[20px] rounded-br-md"
+                                ),
                         isLocked && !isDeleted && !isMediaRequest && "bg-muted/50 border border-border/40"
                       )}
                     >
