@@ -19,11 +19,12 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
   const [promoCode, setPromoCode] = useState<string | null>(null);
   const [discount, setDiscount] = useState<{ type: 'percentage' | 'fixed'; value: number } | null>(null);
   const [isRefetching, setIsRefetching] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const fetchInProgress = useState(false);
 
   // Décoder le clientSecret si nécessaire (URL encoded)
   const decodeSecret = (secret: string): string => {
     try {
-      // Si le secret contient des caractères encodés, le décoder
       if (secret.includes('%')) {
         return decodeURIComponent(secret);
       }
@@ -34,8 +35,17 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
   };
 
   const fetchCheckoutSession = async (referralCode?: string | null) => {
+    // Éviter les appels multiples simultanés
+    if (fetchInProgress[0]) {
+      console.log('[EmbeddedCheckout] Fetch already in progress, skipping');
+      return;
+    }
+    
     try {
+      fetchInProgress[0] = true;
       setIsRefetching(true);
+      console.log('[EmbeddedCheckout] Fetching checkout session with referralCode:', referralCode);
+      
       const { data, error } = await supabase.functions.invoke('create-creator-checkout', {
         body: { 
           creatorId,
@@ -48,6 +58,7 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
 
       if (error) throw error;
       if (data.clientSecret) {
+        console.log('[EmbeddedCheckout] Got clientSecret');
         setClientSecret(decodeSecret(data.clientSecret));
       } else {
         throw new Error('Aucun clientSecret reçu');
@@ -57,29 +68,42 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
       setError(err.message || 'Erreur lors du chargement du paiement');
     } finally {
       setIsRefetching(false);
+      fetchInProgress[0] = false;
     }
   };
 
+  // Attendre que PromoCodeInput ait fini de charger le code depuis localStorage
+  // avant de décider si on utilise le preloadedSecret ou si on fetch
   useEffect(() => {
-    // Si déjà préchargé et pas de code promo, utiliser le secret préchargé
-    if (preloadedSecret && !promoCode) {
+    // Petit délai pour laisser PromoCodeInput valider le code sauvegardé
+    const timer = setTimeout(() => {
+      setInitialLoadDone(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!initialLoadDone) return;
+    
+    // Si on a un code promo, fetch avec le code
+    if (promoCode) {
+      fetchCheckoutSession(promoCode);
+      return;
+    }
+    
+    // Sinon, utiliser le secret préchargé ou fetch sans code
+    if (preloadedSecret) {
       setClientSecret(decodeSecret(preloadedSecret));
-      return;
+    } else {
+      fetchCheckoutSession(null);
     }
-
-    // Ne pas fetch si on n'a pas de promoCode et qu'on attend un préchargé
-    if (!promoCode && preloadedSecret) {
-      return;
-    }
-
-    // Fetch with promo code if available, ou fetch initial si pas de préchargé
-    fetchCheckoutSession(promoCode);
-  }, [creatorId, promoCode]); // Retirer preloadedSecret des dépendances
+  }, [creatorId, promoCode, initialLoadDone]);
 
   const handlePromoCodeValidated = async (code: string | null, discountInfo: { type: 'percentage' | 'fixed'; value: number } | null) => {
+    console.log('[EmbeddedCheckout] Promo code validated:', code, discountInfo);
     setDiscount(discountInfo);
     
-    // Si un code est validé, refetch immédiatement avec ce code
+    // Si un code est validé, refetch avec ce code
     if (code) {
       setClientSecret(''); // Reset pour afficher le loader
       setPromoCode(code);
