@@ -583,57 +583,70 @@ const CreatorPublicPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Image Lightbox avec bouton like */}
-      <Dialog open={!!selectedImage} onOpenChange={(open) => { if (!open) setSelectedImage(null); }}>
-        <DialogContent className="z-[1000] w-[95vw] max-w-none h-[90vh] p-0 overflow-hidden bg-black/95" aria-describedby="image-description">
-          <DialogHeader className="sr-only">
-            <DialogTitle>{selectedImage?.title || 'Image'}</DialogTitle>
-          </DialogHeader>
-          {selectedImage && (
-            <div className="relative w-full h-full flex items-center justify-center p-4">
-              <OptimizedImage
-                src={selectedImage.thumbnail_url || selectedImage.file_url}
-                alt={selectedImage.title}
-                className="max-w-full max-h-[88vh] object-contain bg-transparent"
-              />
-              <div id="image-description" className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6 z-[100]">
-                <h3 className="text-white text-xl font-bold mb-2">{selectedImage.title}</h3>
-                {selectedImage.description && (
-                  <p className="text-white/80 text-sm mb-3">{selectedImage.description}</p>
-                )}
-                <div className="flex items-center gap-6">
-                  <span className="flex items-center gap-2 text-white/70 text-sm">
-                    <Eye className="h-4 w-4" />
-                    {selectedImage.view_count || 0} vues
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      console.log('Like button clicked!', selectedImage.id);
-                      handleLikeContent(selectedImage.id);
-                    }}
-                    disabled={likingContent === selectedImage.id}
-                    className={`flex items-center gap-2 text-sm transition-all px-3 py-2 rounded-lg hover:bg-white/20 pointer-events-auto cursor-pointer ${
-                      userLikes.has(selectedImage.id)
-                        ? 'text-red-500 hover:text-red-400'
-                        : 'text-white/70 hover:text-red-400'
-                    }`}
-                  >
-                    <Heart 
-                      className={`h-5 w-5 transition-transform ${
-                        userLikes.has(selectedImage.id) ? 'fill-current scale-110' : ''
-                      } ${likingContent === selectedImage.id ? 'animate-pulse' : ''}`} 
-                    />
-                    {selectedImage.like_count || 0} likes
-                  </button>
-                </div>
+      {/* Image Lightbox personnalisé avec bouton like */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center"
+          onClick={() => setSelectedImage(null)}
+        >
+          {/* Bouton fermer */}
+          <button
+            type="button"
+            onClick={() => setSelectedImage(null)}
+            className="absolute top-4 right-4 z-[10000] p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+          >
+            <span className="sr-only">Fermer</span>
+            ✕
+          </button>
+          
+          {/* Container principal - empêche la propagation du clic */}
+          <div 
+            className="relative max-w-[95vw] max-h-[95vh] flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Image */}
+            <OptimizedImage
+              src={selectedImage.thumbnail_url || selectedImage.file_url}
+              alt={selectedImage.title}
+              className="max-w-full max-h-[80vh] object-contain rounded-lg"
+            />
+            
+            {/* Infos et bouton like */}
+            <div className="w-full mt-4 px-4">
+              <h3 className="text-white text-xl font-bold mb-2">{selectedImage.title}</h3>
+              {selectedImage.description && (
+                <p className="text-white/80 text-sm mb-3">{selectedImage.description}</p>
+              )}
+              <div className="flex items-center gap-6">
+                <span className="flex items-center gap-2 text-white/70 text-sm">
+                  <Eye className="h-4 w-4" />
+                  {selectedImage.view_count || 0} vues
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    console.log('Like button clicked!', selectedImage.id);
+                    handleLikeContent(selectedImage.id);
+                  }}
+                  disabled={likingContent === selectedImage.id}
+                  className={`flex items-center gap-2 text-sm transition-all px-4 py-2 rounded-lg border ${
+                    userLikes.has(selectedImage.id)
+                      ? 'bg-red-500/20 border-red-500 text-red-400 hover:bg-red-500/30'
+                      : 'bg-white/10 border-white/30 text-white/70 hover:bg-white/20 hover:text-red-400'
+                  }`}
+                >
+                  <Heart 
+                    className={`h-5 w-5 transition-transform ${
+                      userLikes.has(selectedImage.id) ? 'fill-current scale-110' : ''
+                    } ${likingContent === selectedImage.id ? 'animate-pulse' : ''}`} 
+                  />
+                  {selectedImage.like_count || 0} likes
+                </button>
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </div>
+        </div>
+      )}
 
       {/* Private Chat Dialog */}
       <Dialog open={showChat} onOpenChange={setShowChat}>
