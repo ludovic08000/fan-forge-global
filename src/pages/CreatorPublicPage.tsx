@@ -32,6 +32,7 @@ const CreatorPublicPage = () => {
   const [showChat, setShowChat] = useState(false);
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [likingContent, setLikingContent] = useState<string | null>(null);
+  const [heartAnimation, setHeartAnimation] = useState<string | null>(null);
 
   // Activer la protection anti-capture sur toute la page
   useContentProtection(true);
@@ -245,15 +246,21 @@ const CreatorPublicPage = () => {
     recordContentView(item.id);
   };
 
-  const handleLikeContent = async (contentId: string) => {
+  const handleLikeContent = async (contentId: string, showAnimation = true) => {
     if (!user) {
       toast.info('Connectez-vous pour liker');
       navigate('/auth');
       return;
     }
 
-    setLikingContent(contentId);
+    // Animation du cœur au double-clic (seulement si on ajoute un like)
     const isLiked = userLikes.has(contentId);
+    if (showAnimation && !isLiked) {
+      setHeartAnimation(contentId);
+      setTimeout(() => setHeartAnimation(null), 800);
+    }
+
+    setLikingContent(contentId);
 
     try {
       if (isLiked) {
@@ -503,6 +510,14 @@ const CreatorPublicPage = () => {
                       alt={item.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />
+                    
+                    {/* Animation cœur Instagram */}
+                    {heartAnimation === item.id && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40">
+                        <Heart className="h-24 w-24 text-red-500 fill-red-500 animate-heart-burst drop-shadow-lg" />
+                      </div>
+                    )}
+                    
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 pointer-events-none z-30">
                       <h3 className="text-white font-medium text-sm line-clamp-1">{item.title}</h3>
                       <div className="flex items-center gap-3 text-white/80 text-xs mt-1">
@@ -559,6 +574,14 @@ const CreatorPublicPage = () => {
                       alt={item.title}
                       className={`w-full h-full object-cover ${!isSubscribed ? 'blur-lg' : 'group-hover:scale-105 transition-transform'}`}
                     />
+                    
+                    {/* Animation cœur Instagram */}
+                    {heartAnimation === item.id && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40">
+                        <Heart className="h-24 w-24 text-red-500 fill-red-500 animate-heart-burst drop-shadow-lg" />
+                      </div>
+                    )}
+                    
                     {!isSubscribed && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/60 pointer-events-none z-30">
                         <div className="text-center text-white">
@@ -647,12 +670,21 @@ const CreatorPublicPage = () => {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Image - Double-clic pour liker */}
-            <OptimizedImage
-              src={selectedImage.thumbnail_url || selectedImage.file_url}
-              alt={selectedImage.title}
-              className="max-w-full max-h-[80vh] object-contain rounded-lg cursor-pointer"
-              onDoubleClick={() => handleLikeContent(selectedImage.id)}
-            />
+            <div className="relative">
+              <OptimizedImage
+                src={selectedImage.thumbnail_url || selectedImage.file_url}
+                alt={selectedImage.title}
+                className="max-w-full max-h-[80vh] object-contain rounded-lg cursor-pointer"
+                onDoubleClick={() => handleLikeContent(selectedImage.id)}
+              />
+              
+              {/* Animation cœur Instagram dans le lightbox */}
+              {heartAnimation === selectedImage.id && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <Heart className="h-32 w-32 text-red-500 fill-red-500 animate-heart-burst drop-shadow-2xl" />
+                </div>
+              )}
+            </div>
             
             {/* Infos et bouton like */}
             <div className="w-full mt-4 px-4">
