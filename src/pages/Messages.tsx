@@ -1,10 +1,10 @@
 /**
- * Page de messagerie ultra premium 2025 - Design Instagram/iMessage
+ * Page de messagerie ultra premium 2025 - Style Instagram/Snapchat
  */
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Search, X, Trash2, MoreVertical } from 'lucide-react';
+import { MessageCircle, Search, X, Trash2, MoreVertical, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -70,34 +70,36 @@ const Messages: React.FC = () => {
 
   return (
     <div className="h-screen flex bg-background pt-16">
-      {/* Sidebar conversations - Style iMessage */}
+      {/* Sidebar conversations - Style Instagram */}
       <motion.aside
         initial={{ x: -20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         className={cn(
           "w-full md:w-80 lg:w-96 flex flex-col",
-          "bg-card/50 backdrop-blur-sm border-r border-border/50",
+          "bg-gradient-to-b from-card/80 to-card/50 backdrop-blur-xl border-r border-border/30",
           selectedConversation && "hidden md:flex"
         )}
       >
         {/* Header */}
-        <div className="p-4 border-b border-border/50">
-          <h1 className="text-2xl font-bold mb-4">Messages</h1>
+        <div className="p-4 border-b border-border/30">
+          <h1 className="text-2xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            Messages
+          </h1>
           
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          {/* Search bar style Instagram */}
+          <div className="relative group">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Rechercher..."
-              className="pl-10 h-10 rounded-full bg-muted/50 border-0 focus-visible:ring-1 focus-visible:ring-primary"
+              className="pl-10 h-11 rounded-xl bg-muted/50 border-0 focus-visible:ring-2 focus-visible:ring-primary/50 transition-all"
             />
             {searchQuery && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full hover:bg-destructive/10"
                 onClick={() => setSearchQuery('')}
               >
                 <X className="h-4 w-4" />
@@ -112,25 +114,35 @@ const Messages: React.FC = () => {
             {loadingConversations ? (
               <div className="space-y-2">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center gap-3 p-3">
-                    <Skeleton className="h-12 w-12 rounded-full" />
-                    <div className="flex-1">
-                      <Skeleton className="h-4 w-28 mb-2" />
+                  <motion.div 
+                    key={i} 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="flex items-center gap-3 p-3"
+                  >
+                    <Skeleton className="h-14 w-14 rounded-2xl" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-28" />
                       <Skeleton className="h-3 w-40" />
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             ) : filteredConversations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                  <MessageCircle className="h-8 w-8 text-muted-foreground" />
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center justify-center py-20 text-center"
+              >
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-4 border border-primary/10">
+                  <MessageCircle className="h-9 w-9 text-primary/60" />
                 </div>
-                <p className="font-medium">Aucune conversation</p>
+                <p className="font-semibold text-lg">Aucune conversation</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Vos messages apparaîtront ici
                 </p>
-              </div>
+              </motion.div>
             ) : (
               <AnimatePresence mode="popLayout">
                 {filteredConversations.map((conversation, index) => (
@@ -141,35 +153,52 @@ const Messages: React.FC = () => {
                     exit={{ opacity: 0, x: -50 }}
                     transition={{ delay: index * 0.03 }}
                     className={cn(
-                      "flex items-center gap-3 p-3 rounded-xl cursor-pointer group transition-colors",
+                      "flex items-center gap-3 p-3 rounded-2xl cursor-pointer group transition-all duration-200",
                       selectedConversation?.id === conversation.id
-                        ? "bg-primary/10"
-                        : "hover:bg-muted/50"
+                        ? "bg-gradient-to-r from-primary/15 via-primary/10 to-transparent"
+                        : "hover:bg-muted/60"
                     )}
                     onClick={() => setSelectedConversation(conversation)}
                   >
-                    {/* Avatar */}
+                    {/* Selection indicator */}
+                    {selectedConversation?.id === conversation.id && (
+                      <motion.div
+                        layoutId="selectedIndicator"
+                        className="absolute left-0 w-1 h-10 rounded-r-full bg-gradient-to-b from-primary to-primary/60"
+                      />
+                    )}
+
+                    {/* Avatar avec indicateur en ligne */}
                     <div className="relative shrink-0">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={conversation.participant_avatar} />
-                        <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-semibold">
+                      <Avatar className={cn(
+                        "h-14 w-14 rounded-2xl ring-2 transition-all",
+                        selectedConversation?.id === conversation.id 
+                          ? "ring-primary/50" 
+                          : "ring-border/30 group-hover:ring-border/50"
+                      )}>
+                        <AvatarImage src={conversation.participant_avatar} className="object-cover" />
+                        <AvatarFallback className="rounded-2xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-bold text-lg">
                           {conversation.participant_name.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       {/* Online indicator */}
-                      <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
+                      <motion.span 
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                        className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-[3px] border-background"
+                      />
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
                         <span className={cn(
-                          "font-semibold truncate",
+                          "font-bold truncate text-[15px]",
                           selectedConversation?.id === conversation.id && "text-primary"
                         )}>
                           {conversation.participant_stage_name || conversation.participant_name}
                         </span>
-                        <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                        <span className="text-[11px] text-muted-foreground shrink-0 ml-2 font-medium">
                           {formatDistanceToNow(new Date(conversation.last_message_time), {
                             addSuffix: false,
                             locale: fr,
@@ -181,25 +210,25 @@ const Messages: React.FC = () => {
                       </p>
                     </div>
 
-                    {/* Actions */}
+                    {/* Actions dropdown */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 rounded-full hover:bg-destructive/10"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem
                           onClick={(e) => handleDeleteClick(e as any, conversation)}
-                          className="text-destructive focus:text-destructive"
+                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Supprimer
+                          Supprimer la conversation
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -211,7 +240,7 @@ const Messages: React.FC = () => {
         </ScrollArea>
       </motion.aside>
 
-      {/* Chat area - Takes remaining space on the right */}
+      {/* Chat area - Right side */}
       <div className={cn(
         "flex-1 flex flex-col bg-background",
         !selectedConversation && "hidden md:flex"
@@ -224,22 +253,24 @@ const Messages: React.FC = () => {
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-sm rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cette conversation ?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-center">Supprimer cette conversation ?</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
               Tous les messages seront supprimés définitivement.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
             <AlertDialogAction
               onClick={handleConfirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl h-11"
               disabled={deleteConversation.isPending}
             >
               {deleteConversation.isPending ? 'Suppression...' : 'Supprimer'}
             </AlertDialogAction>
+            <AlertDialogCancel className="w-full rounded-xl h-11 mt-0">
+              Annuler
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -543,6 +543,39 @@ export const useConversationMessages = (participantId: string | null) => {
     };
   }, [user, participantId, queryClient, playNotificationSound]);
 
+  // Supprimer un message individuel
+  const deleteMessage = useMutation({
+    mutationFn: async (messageId: string) => {
+      if (!user) throw new Error('Non authentifié');
+
+      const { error } = await supabase
+        .from('private_messages')
+        .update({ 
+          is_deleted: true, 
+          deleted_at: new Date().toISOString(),
+          content: null,
+          media_url: null,
+          media_thumbnail: null
+        })
+        .eq('id', messageId);
+
+      if (error) throw error;
+      return messageId;
+    },
+    onSuccess: (messageId) => {
+      // Mettre à jour le cache localement
+      queryClient.setQueryData(['conversation-messages', participantId, user?.id], (old: Message[] | undefined) => {
+        if (!old) return [];
+        return old.filter(m => m.id !== messageId);
+      });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success('Message supprimé');
+    },
+    onError: (error) => {
+      toast.error(`Erreur: ${error.message}`);
+    },
+  });
+
   return {
     messages: messages || [],
     isLoading,
@@ -550,5 +583,6 @@ export const useConversationMessages = (participantId: string | null) => {
     sendMessage,
     sendPaidMedia,
     unlockContent,
+    deleteMessage,
   };
 };
