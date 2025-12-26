@@ -21,14 +21,14 @@ export const useUnreadMessages = () => {
 
       if (!creator) return 0;
 
-      // Compter les messages non lus (envoyés par des subscribers, pas lus)
+      // Compter les messages non lus envoyés par des subscribers (pas par le créateur)
       const { count, error } = await supabase
         .from('private_messages')
         .select('id', { count: 'exact', head: true })
         .eq('creator_id', creator.id)
         .neq('sender_id', user.id)
         .is('read_at', null)
-        .is('is_deleted', false);
+        .eq('is_deleted', false);
 
       if (error) {
         console.error('Error counting unread messages:', error);
