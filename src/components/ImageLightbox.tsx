@@ -46,13 +46,21 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
     }
   }, [isOpen, imageUrl, signedUrl, effectiveUrl, urlLoading, urlError]);
 
-  // Reset loading state when image changes
+  // Reset loading state when image changes or when signed URL arrives
   React.useEffect(() => {
     if (isOpen) {
       setImageLoaded(false);
       setImageError(false);
     }
   }, [isOpen, imageUrl]);
+
+  // Reset error when signed URL arrives (new URL to try)
+  React.useEffect(() => {
+    if (signedUrl && imageError) {
+      setImageError(false);
+      setImageLoaded(false);
+    }
+  }, [signedUrl]);
 
   if (!isOpen) return null;
 
