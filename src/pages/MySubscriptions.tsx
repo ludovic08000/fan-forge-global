@@ -299,6 +299,68 @@ const MySubscriptions = () => {
   return (
     <div className="min-h-screen bg-background pt-20">
       <div className="container mx-auto px-4 py-8 max-w-5xl">
+        {/* My Subscriptions Section - EN HAUT */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold flex items-center gap-2 mb-2">
+            <Crown className="h-6 w-6 text-primary" />
+            Mes abonnements
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            Les créateurs auxquels vous êtes abonné
+          </p>
+
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : subscriptions.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Crown className="h-16 w-16 text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Aucun abonnement</h3>
+                <p className="text-muted-foreground text-center mb-4">
+                  Vous n'êtes abonné à aucun créateur pour le moment.
+                </p>
+                <Button asChild>
+                  <Link to="/search">Découvrir des créateurs</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {/* Active Subscriptions */}
+              {activeSubscriptions.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Badge variant="default" className="bg-green-500">Actifs</Badge>
+                    <span>{activeSubscriptions.length} abonnement{activeSubscriptions.length > 1 ? 's' : ''}</span>
+                  </h3>
+                  <div className="grid gap-4">
+                    {activeSubscriptions.map((sub) => (
+                      <SubscriptionCard key={sub.id} subscription={sub} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Expired Subscriptions */}
+              {expiredSubscriptions.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Badge variant="secondary">Expirés</Badge>
+                    <span>{expiredSubscriptions.length} abonnement{expiredSubscriptions.length > 1 ? 's' : ''}</span>
+                  </h3>
+                  <div className="grid gap-4">
+                    {expiredSubscriptions.map((sub) => (
+                      <SubscriptionCard key={sub.id} subscription={sub} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Search Section - Centered */}
         <div className="flex flex-col items-center text-center mb-10">
           <h1 className="text-3xl md:text-4xl font-bold mb-3">
@@ -447,12 +509,12 @@ const MySubscriptions = () => {
                           <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-primary/20 to-primary-glow/20">
                             {(creatorInfo?.stage_name || creatorInfo?.display_name || 'C').charAt(0).toUpperCase()}
                           </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-sm line-clamp-1">{stream.title}</h3>
-                        <p className="text-xs text-muted-foreground">
-                          {creatorInfo?.stage_name || creatorInfo?.display_name || 'Créateur'}
-                          {isPremium && <span className="ml-1">• {stream.price}€</span>}
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-sm line-clamp-1">{stream.title}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {creatorInfo?.stage_name || creatorInfo?.display_name || 'Créateur'}
+                            {isPremium && <span className="ml-1">• {stream.price}€</span>}
                           </p>
                         </div>
                       </div>
@@ -463,6 +525,7 @@ const MySubscriptions = () => {
             </div>
           </div>
         )}
+
         {/* Active Creators Section */}
         <div className="mb-12">
           <div className="flex items-center gap-2 mb-6">
@@ -484,7 +547,7 @@ const MySubscriptions = () => {
                   to={creator.profile?.username ? `/${creator.profile.username}` : '#'}
                   className="group"
                 >
-                <Card className="overflow-hidden hover:shadow-xl transition-all hover:scale-[1.03] h-full border-primary/10 hover:border-primary/30">
+                  <Card className="overflow-hidden hover:shadow-xl transition-all hover:scale-[1.03] h-full border-primary/10 hover:border-primary/30">
                     <CardContent className="p-5 flex flex-col items-center text-center">
                       <Avatar className="h-20 w-20 mb-4 ring-2 ring-primary/20 group-hover:ring-primary/50 group-hover:ring-4 transition-all duration-300 shadow-lg">
                         <AvatarImage src={creator.profile?.avatar_url || undefined} className="object-cover" />
@@ -524,68 +587,6 @@ const MySubscriptions = () => {
             </Button>
           </div>
         </div>
-
-        {/* My Subscriptions Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Crown className="h-6 w-6 text-primary" />
-            Mes abonnements
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            Les créateurs auxquels vous êtes abonné
-          </p>
-        </div>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : subscriptions.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Crown className="h-16 w-16 text-muted-foreground mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Aucun abonnement</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                Vous n'êtes abonné à aucun créateur pour le moment.
-              </p>
-              <Button asChild>
-                <Link to="/search">Découvrir des créateurs</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            {/* Active Subscriptions */}
-            {activeSubscriptions.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Badge variant="default" className="bg-green-500">Actifs</Badge>
-                  <span>{activeSubscriptions.length} abonnement{activeSubscriptions.length > 1 ? 's' : ''}</span>
-                </h2>
-                <div className="grid gap-4">
-                  {activeSubscriptions.map((sub) => (
-                    <SubscriptionCard key={sub.id} subscription={sub} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Expired Subscriptions */}
-            {expiredSubscriptions.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Badge variant="secondary">Expirés</Badge>
-                  <span>{expiredSubscriptions.length} abonnement{expiredSubscriptions.length > 1 ? 's' : ''}</span>
-                </h2>
-                <div className="grid gap-4">
-                  {expiredSubscriptions.map((sub) => (
-                    <SubscriptionCard key={sub.id} subscription={sub} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
