@@ -58,7 +58,149 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    // Gérer les événements d'abonnement
+    // Gérer le checkout complété - CRÉATION de l'abonnement
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      
+      logStep("Checkout session completed", { 
+        sessionId: session.id,
+        subscriptionId: session.subscription,
+        customerId: session.customer,
+        customerEmail: session.customer_email || session.customer_details?.email
+      });
+
+      if (session.mode === 'subscription' && session.subscription) {
+        const stripeSubscriptionId = session.subscription as string;
+        const customerEmail = session.customer_email || session.customer_details?.email;
+        
+        // Récupérer les détails de l'abonnement Stripe
+        const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+        
+        logStep("Retrieved Stripe subscription", {
+          status: stripeSubscription.status,
+          currentPeriodEnd: stripeSubscription.current_period_end
+        });
+
+        // Trouver l'utilisateur par email
+        const { data: userData } = await supabaseClient.auth.admin.listUsers();
+        const user = userData.users.find(u => u.email === customerEmail);
+        
+        if (!user) {
+          logStep("User not found for email", { email: customerEmail });
+          return new Response(JSON.stringify({ error: "User not found" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+          });
+        }
+
+        logStep("Found user", { userId: user.id });
+
+        // Récupérer le creator_id depuis les metadata de la session
+        const creatorId = session.metadata?.creator_id;
+        
+        if (!creatorId) {
+          logStep("Creator ID not found in session metadata");
+          return new Response(JSON.stringify({ error: "Creator ID not found" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400,
+          });
+        }
+
+        // Récupérer le prix de l'abonnement
+        const priceAmount = stripeSubscription.items.data[0]?.price?.unit_amount || 0;
+        const currency = stripeSubscription.items.data[0]?.price?.currency || 'eur';
+
+        // Vérifier si un abonnement existe déjà pour ce subscriber/creator
+        const { data: existingSub } = await supabaseClient
+          .from('subscriptions')
+          .select('id')
+          .eq('subscriber_id', user.id)
+          .eq('creator_id', creatorId)
+          .single();
+
+        if (existingSub) {
+          // Mettre à jour l'abonnement existant
+          const { error: updateError } = await supabaseClient
+            .from('subscriptions')
+            .update({
+              status: 'active',
+              stripe_subscription_id: stripeSubscriptionId,
+              price: priceAmount / 100,
+              currency: currency.toUpperCase(),
+              start_date: new Date().toISOString(),
+              end_date: new Date(stripeSubscription.current_period_end * 1000).toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingSub.id);
+
+          if (updateError) {
+            logStep("Error updating existing subscription", { error: updateError.message });
+          } else {
+            logStep("Existing subscription updated", { subscriptionId: existingSub.id });
+          }
+        } else {
+          // Créer un nouvel abonnement
+          const { data: newSub, error: insertError } = await supabaseClient
+            .from('subscriptions')
+            .insert({
+              subscriber_id: user.id,
+              creator_id: creatorId,
+              stripe_subscription_id: stripeSubscriptionId,
+              status: 'active',
+              price: priceAmount / 100,
+              currency: currency.toUpperCase(),
+              start_date: new Date().toISOString(),
+              end_date: new Date(stripeSubscription.current_period_end * 1000).toISOString(),
+              auto_renew: true
+            })
+            .select()
+            .single();
+
+          if (insertError) {
+            logStep("Error creating subscription", { error: insertError.message });
+          } else {
+            logStep("New subscription created", { subscriptionId: newSub?.id });
+
+            // Mettre à jour le compteur d'abonnés du créateur
+            await supabaseClient.rpc('increment_creator_subscribers', { creator_uuid: creatorId });
+          }
+        }
+
+        // Créer une notification pour le créateur
+        const { data: creator } = await supabaseClient
+          .from('creators')
+          .select('user_id')
+          .eq('id', creatorId)
+          .single();
+
+        if (creator) {
+          const { data: subscriberProfile } = await supabaseClient
+            .from('profiles')
+            .select('display_name, username')
+            .eq('user_id', user.id)
+            .single();
+
+          const subscriberName = subscriberProfile?.display_name || subscriberProfile?.username || 'Un utilisateur';
+
+          await supabaseClient
+            .from('notifications')
+            .insert({
+              user_id: creator.user_id,
+              type: 'new_subscription',
+              title: 'Nouvel abonnement',
+              message: `${subscriberName} s'est abonné(e) à votre profil !`,
+              data: {
+                subscriber_id: user.id,
+                creator_id: creatorId
+              }
+            });
+
+          logStep("New subscription notification sent to creator");
+        }
+      }
+    }
+
+    // Gérer les événements d'abonnement (mise à jour / suppression)
     if (event.type === "customer.subscription.deleted" || 
         event.type === "customer.subscription.updated") {
       
