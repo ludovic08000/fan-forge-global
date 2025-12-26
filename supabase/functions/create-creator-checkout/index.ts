@@ -160,9 +160,19 @@ serve(async (req) => {
       if (refCode) {
         // Créer un coupon Stripe pour ce code
         const couponParams: any = {
-          duration: 'once',
           metadata: { referral_code_id: refCode.id }
         };
+
+        // Gérer la durée (si pas de duration_months, défaut = 1 mois = 'once')
+        const durationMonths = refCode.duration_months;
+        if (durationMonths === null || durationMonths === undefined || durationMonths === 0) {
+          couponParams.duration = 'forever';
+        } else if (durationMonths === 1) {
+          couponParams.duration = 'once';
+        } else {
+          couponParams.duration = 'repeating';
+          couponParams.duration_in_months = durationMonths;
+        }
 
         if (refCode.discount_percentage) {
           couponParams.percent_off = refCode.discount_percentage;
@@ -173,7 +183,7 @@ serve(async (req) => {
 
         const coupon = await stripe.coupons.create(couponParams);
         discounts = [{ coupon: coupon.id }];
-        logStep("Coupon created for referral code", { couponId: coupon.id, referralCode });
+        logStep("Coupon created for referral code", { couponId: coupon.id, referralCode, duration: couponParams.duration });
       }
     }
 

@@ -35,10 +35,11 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newCode, setNewCode] = useState({
     code: '',
-    discountType: 'percentage' as 'percentage' | 'amount',
+    discountType: 'percentage' as 'percentage' | 'amount' | 'free',
     discountValue: '',
     maxUses: '',
-    expiresAt: ''
+    expiresAt: '',
+    duration: '1' as string // Durée en mois (1 = premier mois, 2 = 2 premiers mois, etc.)
   });
   const [creating, setCreating] = useState(false);
 
@@ -79,7 +80,8 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
       return;
     }
 
-    if (!newCode.discountValue || parseFloat(newCode.discountValue) <= 0) {
+    // Validation selon le type
+    if (newCode.discountType !== 'free' && (!newCode.discountValue || parseFloat(newCode.discountValue) <= 0)) {
       toast.error('Veuillez entrer une réduction valide');
       return;
     }
@@ -94,7 +96,11 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
         current_uses: 0
       };
 
-      if (newCode.discountType === 'percentage') {
+      if (newCode.discountType === 'free') {
+        // Gratuit = 100% de réduction
+        codeData.discount_percentage = 100;
+        codeData.discount_amount = 0;
+      } else if (newCode.discountType === 'percentage') {
         codeData.discount_percentage = parseInt(newCode.discountValue);
         codeData.discount_amount = 0;
       } else {
@@ -123,7 +129,8 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
         discountType: 'percentage',
         discountValue: '',
         maxUses: '',
-        expiresAt: ''
+        expiresAt: '',
+        duration: '1'
       });
       loadCodes();
     } catch (error: any) {
@@ -182,11 +189,14 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
   };
 
   const formatDiscount = (code: ReferralCode) => {
+    if (code.discount_percentage === 100) {
+      return 'GRATUIT';
+    }
     if (code.discount_percentage && code.discount_percentage > 0) {
-      return `${code.discount_percentage}%`;
+      return `-${code.discount_percentage}%`;
     }
     if (code.discount_amount && code.discount_amount > 0) {
-      return `${code.discount_amount.toFixed(2)} €`;
+      return `-${code.discount_amount.toFixed(2)} €`;
     }
     return '-';
   };
@@ -252,38 +262,70 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
                   <Label>Type de réduction</Label>
                   <div className="flex gap-2">
                     <Button
+                      variant={newCode.discountType === 'free' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setNewCode(prev => ({ ...prev, discountType: 'free', discountValue: '100' }))}
+                      className="flex-1"
+                    >
+                      <Gift className="h-4 w-4 mr-2" />
+                      Gratuit
+                    </Button>
+                    <Button
                       variant={newCode.discountType === 'percentage' ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setNewCode(prev => ({ ...prev, discountType: 'percentage' }))}
+                      onClick={() => setNewCode(prev => ({ ...prev, discountType: 'percentage', discountValue: '' }))}
                       className="flex-1"
                     >
                       <Percent className="h-4 w-4 mr-2" />
-                      Pourcentage
+                      %
                     </Button>
                     <Button
                       variant={newCode.discountType === 'amount' ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setNewCode(prev => ({ ...prev, discountType: 'amount' }))}
+                      onClick={() => setNewCode(prev => ({ ...prev, discountType: 'amount', discountValue: '' }))}
                       className="flex-1"
                     >
                       <Euro className="h-4 w-4 mr-2" />
-                      Montant fixe
+                      €
                     </Button>
                   </div>
                 </div>
 
+                {newCode.discountType !== 'free' && (
+                  <div className="space-y-2">
+                    <Label>
+                      {newCode.discountType === 'percentage' ? 'Réduction (%)' : 'Réduction (€)'}
+                    </Label>
+                    <Input
+                      type="number"
+                      value={newCode.discountValue}
+                      onChange={(e) => setNewCode(prev => ({ ...prev, discountValue: e.target.value }))}
+                      placeholder={newCode.discountType === 'percentage' ? 'Ex: 20' : 'Ex: 5.00'}
+                      min="1"
+                      max={newCode.discountType === 'percentage' ? '100' : undefined}
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-2">
-                  <Label>
-                    {newCode.discountType === 'percentage' ? 'Réduction (%)' : 'Réduction (€)'}
-                  </Label>
-                  <Input
-                    type="number"
-                    value={newCode.discountValue}
-                    onChange={(e) => setNewCode(prev => ({ ...prev, discountValue: e.target.value }))}
-                    placeholder={newCode.discountType === 'percentage' ? 'Ex: 20' : 'Ex: 5.00'}
-                    min="1"
-                    max={newCode.discountType === 'percentage' ? '100' : undefined}
-                  />
+                  <Label>Durée de la réduction</Label>
+                  <div className="flex gap-2 flex-wrap">
+                    {['1', '2', '3', '6', 'forever'].map((d) => (
+                      <Button
+                        key={d}
+                        variant={newCode.duration === d ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setNewCode(prev => ({ ...prev, duration: d }))}
+                      >
+                        {d === 'forever' ? 'Toujours' : d === '1' ? '1 mois' : `${d} mois`}
+                      </Button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {newCode.duration === 'forever' 
+                      ? 'La réduction s\'applique à tous les paiements' 
+                      : `La réduction s'applique aux ${newCode.duration} premier${parseInt(newCode.duration) > 1 ? 's' : ''} mois`}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -298,7 +340,7 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Date d'expiration (optionnel)</Label>
+                    <Label>Expiration du code (optionnel)</Label>
                     <Input
                       type="date"
                       value={newCode.expiresAt}
