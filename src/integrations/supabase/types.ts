@@ -1259,6 +1259,7 @@ export type Database = {
           current_uses: number | null
           discount_amount: number | null
           discount_percentage: number | null
+          duration_months: number | null
           expires_at: string | null
           id: string
           is_active: boolean | null
@@ -1271,6 +1272,7 @@ export type Database = {
           current_uses?: number | null
           discount_amount?: number | null
           discount_percentage?: number | null
+          duration_months?: number | null
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
@@ -1283,6 +1285,7 @@ export type Database = {
           current_uses?: number | null
           discount_amount?: number | null
           discount_percentage?: number | null
+          duration_months?: number | null
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
