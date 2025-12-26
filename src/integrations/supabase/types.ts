@@ -570,6 +570,66 @@ export type Database = {
           },
         ]
       }
+      identity_verifications: {
+        Row: {
+          birthdate: string
+          created_at: string
+          document_number: string | null
+          document_type: string
+          expires_at: string | null
+          full_name: string
+          id: string
+          id_back_url: string | null
+          id_front_url: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          selfie_with_id_url: string
+          status: string
+          submitted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          birthdate: string
+          created_at?: string
+          document_number?: string | null
+          document_type: string
+          expires_at?: string | null
+          full_name: string
+          id?: string
+          id_back_url?: string | null
+          id_front_url: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          selfie_with_id_url: string
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          birthdate?: string
+          created_at?: string
+          document_number?: string | null
+          document_type?: string
+          expires_at?: string | null
+          full_name?: string
+          id?: string
+          id_back_url?: string | null
+          id_front_url?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          selfie_with_id_url?: string
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       live_stream_bans: {
         Row: {
           banned_by: string
@@ -1180,6 +1240,7 @@ export type Database = {
           display_name: string | null
           gender: string | null
           id: string
+          is_identity_verified: boolean | null
           is_verified: boolean | null
           location: string | null
           orientation: string | null
@@ -1198,6 +1259,7 @@ export type Database = {
           display_name?: string | null
           gender?: string | null
           id?: string
+          is_identity_verified?: boolean | null
           is_verified?: boolean | null
           location?: string | null
           orientation?: string | null
@@ -1216,6 +1278,7 @@ export type Database = {
           display_name?: string | null
           gender?: string | null
           id?: string
+          is_identity_verified?: boolean | null
           is_verified?: boolean | null
           location?: string | null
           orientation?: string | null

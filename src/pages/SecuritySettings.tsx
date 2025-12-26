@@ -4,6 +4,7 @@ import { ArrowLeft, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TwoFactorSetup } from '@/components/security/TwoFactorSetup';
+import IdentityVerificationForm from '@/components/identity/IdentityVerificationForm';
 
 const SecuritySettings = () => {
   return (
@@ -26,6 +27,9 @@ const SecuritySettings = () => {
         </div>
 
         <div className="space-y-6">
+          {/* Identity Verification */}
+          <IdentityVerificationForm />
+
           <TwoFactorSetup />
 
           <Card>
