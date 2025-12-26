@@ -403,6 +403,14 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
               // sender_id = user.id signifie que c'est MOI qui ai envoyé ce message
               const isFromMe = message.sender_id === user?.id;
               
+              // Debug pour vérifier l'alignement
+              console.log('Message debug:', { 
+                content: message.content?.substring(0, 20), 
+                sender_id: message.sender_id, 
+                user_id: user?.id, 
+                isFromMe 
+              });
+              
               const isFromCreator = message.creator_id === creatorId;
               const canViewPaidContent = message.price === 0 || message.price === null || message.is_paid;
               const isPaidContent = (message.price ?? 0) > 0;
