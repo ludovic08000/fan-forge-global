@@ -211,7 +211,10 @@ const CreatorPublicPage = () => {
   };
 
   const handleLikeContent = async (contentId: string) => {
+    console.log('handleLikeContent called', { contentId, user: user?.id, userLikes: [...userLikes] });
+    
     if (!user) {
+      console.log('No user, redirecting to auth');
       toast.info('Connectez-vous pour liker');
       navigate('/auth');
       return;
