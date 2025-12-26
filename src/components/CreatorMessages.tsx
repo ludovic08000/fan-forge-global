@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageCircle, Trash2, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useConversations } from '@/hooks/useConversations';
 import ModernPrivateChat from './ModernPrivateChat';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,8 +33,9 @@ interface Conversation {
 
 const CreatorMessages: React.FC = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
-  const { deleteConversation } = useConversations();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Récupérer l'ID créateur
   const { data: creatorData } = useQuery({
@@ -109,10 +110,34 @@ const CreatorMessages: React.FC = () => {
     enabled: !!creatorData?.id,
   });
 
-  const handleDeleteConversation = async (subscriberId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    await deleteConversation.mutateAsync(subscriberId);
-    refetch();
+  const handleDeleteConversation = async (subscriberId: string) => {
+    if (!creatorData?.id) return;
+    
+    setDeletingId(subscriberId);
+    try {
+      const { error } = await supabase
+        .from('private_messages')
+        .update({ 
+          is_deleted: true, 
+          deleted_at: new Date().toISOString(),
+          content: null,
+          media_url: null,
+          media_thumbnail: null
+        })
+        .eq('creator_id', creatorData.id)
+        .eq('subscriber_id', subscriberId);
+
+      if (error) throw error;
+
+      toast.success('Conversation supprimée');
+      queryClient.invalidateQueries({ queryKey: ['creator-conversations'] });
+      refetch();
+    } catch (error: any) {
+      console.error('Erreur suppression:', error);
+      toast.error(`Erreur: ${error.message}`);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (!creatorData) {
@@ -217,10 +242,11 @@ const CreatorMessages: React.FC = () => {
                         <AlertDialogFooter>
                           <AlertDialogCancel>Annuler</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={(e) => handleDeleteConversation(conv.subscriber_id, e)}
+                            onClick={() => handleDeleteConversation(conv.subscriber_id)}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={deletingId === conv.subscriber_id}
                           >
-                            Supprimer
+                            {deletingId === conv.subscriber_id ? 'Suppression...' : 'Supprimer'}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
