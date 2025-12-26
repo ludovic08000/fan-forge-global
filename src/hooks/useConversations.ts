@@ -59,32 +59,60 @@ export const useConversations = () => {
       const isCreator = !!creatorData;
       const creatorId = creatorData?.id;
 
-      // Récupérer uniquement le dernier message par conversation avec une requête optimisée
-      let query = supabase
+      // Récupérer les messages où l'utilisateur est impliqué (comme creator ou subscriber)
+      let filterParts: string[] = [];
+      
+      // Messages où je suis subscriber
+      filterParts.push(`subscriber_id.eq.${user.id}`);
+      
+      // Messages où je suis créateur
+      if (creatorId) {
+        filterParts.push(`creator_id.eq.${creatorId}`);
+        filterParts.push(`subscriber_id.eq.${creatorId}`);
+      }
+
+      const { data: messages, error } = await supabase
         .from('private_messages')
         .select('id, creator_id, subscriber_id, content, message_type, created_at')
         .eq('is_deleted', false)
+        .or(filterParts.join(','))
         .order('created_at', { ascending: false })
-        .limit(100); // Limiter pour la performance
+        .limit(200);
 
-      if (isCreator && creatorId) {
-        query = query.eq('creator_id', creatorId);
-      } else {
-        query = query.eq('subscriber_id', user.id);
-      }
-
-      const { data: messages, error } = await query;
       if (error) throw error;
 
       // Grouper par participant (garder seulement le dernier message)
       const conversationMap = new Map<string, any>();
       const participantIds: string[] = [];
+      const participantTypes = new Map<string, 'creator' | 'subscriber'>();
 
       for (const msg of messages || []) {
-        const participantId = isCreator ? msg.subscriber_id : msg.creator_id;
+        // Déterminer qui est l'autre participant
+        let participantId: string;
+        let participantType: 'creator' | 'subscriber';
+        
+        // Si je suis le creator_id ou subscriber_id
+        const iAmCreator = creatorId && (msg.creator_id === creatorId);
+        const iAmSubscriber = msg.subscriber_id === user.id || (creatorId && msg.subscriber_id === creatorId);
+        
+        if (iAmCreator && msg.subscriber_id !== creatorId && msg.subscriber_id !== user.id) {
+          // Je suis créateur, l'autre est subscriber
+          participantId = msg.subscriber_id;
+          participantType = 'subscriber';
+        } else if (iAmSubscriber || msg.subscriber_id === user.id) {
+          // L'autre est créateur
+          participantId = msg.creator_id;
+          participantType = 'creator';
+        } else {
+          continue; // Message ne nous concerne pas
+        }
+        
+        // Ignorer les conversations avec soi-même
+        if (participantId === user.id || participantId === creatorId) continue;
         
         if (!conversationMap.has(participantId)) {
           participantIds.push(participantId);
+          participantTypes.set(participantId, participantType);
           conversationMap.set(participantId, {
             participant_id: participantId,
             last_message: msg.content || (msg.message_type === 'image' ? '📷 Photo' : '🎬 Vidéo'),
@@ -100,26 +128,16 @@ export const useConversations = () => {
       // Requête batch pour tous les participants en une seule fois
       let participantsData: Map<string, any> = new Map();
 
-      if (isCreator) {
-        // Les participants sont des subscribers - fetch tous les profiles en une requête
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, display_name, avatar_url, username')
-          .in('user_id', participantIds);
+      // Séparer les IDs par type
+      const creatorParticipantIds = participantIds.filter(id => participantTypes.get(id) === 'creator');
+      const subscriberParticipantIds = participantIds.filter(id => participantTypes.get(id) === 'subscriber');
 
-        profiles?.forEach(p => {
-          participantsData.set(p.user_id, {
-            name: p.display_name || p.username || 'Utilisateur',
-            avatar: p.avatar_url,
-            is_creator: false,
-          });
-        });
-      } else {
-        // Les participants sont des créateurs - fetch avec join en une requête
+      // Fetch les créateurs participants
+      if (creatorParticipantIds.length > 0) {
         const { data: creators } = await supabase
           .from('creators')
           .select('id, stage_name, user_id, profiles!creators_user_id_fkey(avatar_url)')
-          .in('id', participantIds);
+          .in('id', creatorParticipantIds);
 
         creators?.forEach(c => {
           const profile = c.profiles as any;
@@ -128,6 +146,22 @@ export const useConversations = () => {
             stage_name: c.stage_name,
             avatar: profile?.avatar_url,
             is_creator: true,
+          });
+        });
+      }
+
+      // Fetch les subscribers participants
+      if (subscriberParticipantIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, display_name, avatar_url, username')
+          .in('user_id', subscriberParticipantIds);
+
+        profiles?.forEach(p => {
+          participantsData.set(p.user_id, {
+            name: p.display_name || p.username || 'Utilisateur',
+            avatar: p.avatar_url,
+            is_creator: false,
           });
         });
       }
@@ -170,39 +204,31 @@ export const useConversations = () => {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      const isCreator = !!creatorData;
       const creatorId = creatorData?.id;
 
-      let deleteQuery;
-      if (isCreator && creatorId) {
-        // Je suis créateur, supprimer les messages avec ce subscriber
-        deleteQuery = supabase
-          .from('private_messages')
-          .update({ 
-            is_deleted: true, 
-            deleted_at: new Date().toISOString(),
-            content: null,
-            media_url: null,
-            media_thumbnail: null
-          })
-          .eq('creator_id', creatorId)
-          .eq('subscriber_id', participantId);
-      } else {
-        // Je suis subscriber, supprimer les messages avec ce créateur
-        deleteQuery = supabase
-          .from('private_messages')
-          .update({ 
-            is_deleted: true, 
-            deleted_at: new Date().toISOString(),
-            content: null,
-            media_url: null,
-            media_thumbnail: null
-          })
-          .eq('subscriber_id', user.id)
-          .eq('creator_id', participantId);
+      // Construire le filtre OR pour couvrir tous les cas
+      let filterParts: string[] = [];
+      
+      // Cas où je suis subscriber
+      filterParts.push(`and(subscriber_id.eq.${user.id},creator_id.eq.${participantId})`);
+      
+      // Cas où je suis créateur
+      if (creatorId) {
+        filterParts.push(`and(creator_id.eq.${creatorId},subscriber_id.eq.${participantId})`);
+        filterParts.push(`and(subscriber_id.eq.${creatorId},creator_id.eq.${participantId})`);
       }
 
-      const { error } = await deleteQuery;
+      const { error } = await supabase
+        .from('private_messages')
+        .update({ 
+          is_deleted: true, 
+          deleted_at: new Date().toISOString(),
+          content: null,
+          media_url: null,
+          media_thumbnail: null
+        })
+        .or(filterParts.join(','));
+
       if (error) throw error;
 
       return participantId;
@@ -288,37 +314,47 @@ export const useConversationMessages = (participantId: string | null) => {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      const isCreator = !!creatorData;
       const creatorId = creatorData?.id;
 
-      let query;
-      if (isCreator && creatorId) {
-        // Je suis créateur, participantId est un subscriber_id
-        query = supabase
-          .from('private_messages')
-          .select('*')
-          .eq('creator_id', creatorId)
-          .eq('subscriber_id', participantId);
-      } else {
-        // Je suis subscriber, participantId est un creator_id
-        query = supabase
-          .from('private_messages')
-          .select('*')
-          .eq('subscriber_id', user.id)
-          .eq('creator_id', participantId);
+      // Construire le filtre OR pour couvrir tous les cas
+      let filterParts: string[] = [];
+      
+      // Cas où je suis subscriber et l'autre est créateur
+      filterParts.push(`and(subscriber_id.eq.${user.id},creator_id.eq.${participantId})`);
+      
+      // Cas où je suis créateur
+      if (creatorId) {
+        // L'autre est subscriber
+        filterParts.push(`and(creator_id.eq.${creatorId},subscriber_id.eq.${participantId})`);
+        // L'autre est aussi créateur (je suis subscriber dans son contexte)
+        filterParts.push(`and(subscriber_id.eq.${creatorId},creator_id.eq.${participantId})`);
       }
 
-      const { data, error } = await query.order('created_at', { ascending: true });
+      const { data, error } = await supabase
+        .from('private_messages')
+        .select('*')
+        .or(filterParts.join(','))
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
 
       // Mapper les messages avec is_from_me
-      return (data || []).map(msg => ({
-        ...msg,
-        is_from_me: isCreator 
-          ? msg.creator_id === creatorId 
-          : msg.subscriber_id === user.id && msg.message_type === 'text',
-      })) as Message[];
+      return (data || []).map(msg => {
+        // Déterminer si le message vient de moi
+        let isFromMe = false;
+        if (creatorId) {
+          // Je suis créateur - le message vient de moi si creator_id = mon creatorId
+          isFromMe = msg.creator_id === creatorId;
+        } else {
+          // Je suis subscriber - le message vient de moi si subscriber_id = mon user.id ET message_type = text
+          isFromMe = msg.subscriber_id === user.id;
+        }
+        
+        return {
+          ...msg,
+          is_from_me: isFromMe,
+        };
+      }) as Message[];
     },
     enabled: !!user && !!participantId,
   });

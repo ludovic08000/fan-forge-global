@@ -45,6 +45,33 @@ export const usePrivateMessages = (creatorId?: string) => {
       const from = pageParam * MESSAGES_PER_PAGE;
       const to = from + MESSAGES_PER_PAGE - 1;
 
+      // Récupérer l'ID créateur de l'utilisateur actuel s'il en a un
+      const { data: myCreator } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      const myCreatorId = myCreator?.id;
+      
+      // Construire le filtre pour couvrir tous les cas:
+      // 1. Message du créateur cible vers moi (subscriber ou créateur)
+      // 2. Message de moi (subscriber ou créateur) vers le créateur cible
+      let filterParts: string[] = [];
+      
+      // Cas où je suis subscriber (user.id)
+      filterParts.push(`and(creator_id.eq.${creatorId},subscriber_id.eq.${user.id})`);
+      
+      // Cas où le créateur cible est subscriber (improbable mais possible)
+      if (myCreatorId) {
+        filterParts.push(`and(creator_id.eq.${myCreatorId},subscriber_id.eq.${creatorId})`);
+      }
+      
+      // Cas entre deux créateurs
+      if (myCreatorId && myCreatorId !== creatorId) {
+        filterParts.push(`and(creator_id.eq.${creatorId},subscriber_id.eq.${myCreatorId})`);
+      }
+
       const { data, error } = await supabase
         .from('private_messages')
         .select(`
@@ -63,7 +90,7 @@ export const usePrivateMessages = (creatorId?: string) => {
           deleted_at,
           status
         `)
-        .or(`and(creator_id.eq.${creatorId},subscriber_id.eq.${user.id}),and(creator_id.eq.${user.id},subscriber_id.eq.${creatorId})`)
+        .or(filterParts.join(','))
         .order('created_at', { ascending: false })
         .range(from, to);
 
