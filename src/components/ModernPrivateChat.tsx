@@ -310,29 +310,15 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                     "flex items-end gap-2 max-w-[85%]",
                     isFromMe ? "flex-row-reverse" : "flex-row"
                   )}>
-                    {/* Menu suppression */}
-                    {canDelete && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-muted shrink-0"
-                          >
-                            <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align={isFromMe ? "end" : "start"} className="w-36">
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteMessage(message.id)}
-                            className="text-destructive focus:text-destructive cursor-pointer"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Supprimer
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
+                    {/* Bouton suppression - TOUJOURS VISIBLE */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive shrink-0"
+                      onClick={() => handleDeleteMessage(message.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                     
                     {/* Bulle de message compacte */}
                     <div
