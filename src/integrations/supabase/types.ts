@@ -1115,12 +1115,15 @@ export type Database = {
           content: string | null
           created_at: string
           creator_id: string
+          deleted_at: string | null
           id: string
+          is_deleted: boolean | null
           is_paid: boolean | null
           media_thumbnail: string | null
           media_url: string | null
           message_type: string
           price: number | null
+          status: string | null
           stripe_payment_intent_id: string | null
           subscriber_id: string
           updated_at: string
@@ -1129,12 +1132,15 @@ export type Database = {
           content?: string | null
           created_at?: string
           creator_id: string
+          deleted_at?: string | null
           id?: string
+          is_deleted?: boolean | null
           is_paid?: boolean | null
           media_thumbnail?: string | null
           media_url?: string | null
           message_type?: string
           price?: number | null
+          status?: string | null
           stripe_payment_intent_id?: string | null
           subscriber_id: string
           updated_at?: string
@@ -1143,12 +1149,15 @@ export type Database = {
           content?: string | null
           created_at?: string
           creator_id?: string
+          deleted_at?: string | null
           id?: string
+          is_deleted?: boolean | null
           is_paid?: boolean | null
           media_thumbnail?: string | null
           media_url?: string | null
           message_type?: string
           price?: number | null
+          status?: string | null
           stripe_payment_intent_id?: string | null
           subscriber_id?: string
           updated_at?: string
