@@ -451,7 +451,13 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                   {!isDeleted && (
                     <div className="flex items-center gap-1 mt-1">
                       <span className="text-[11px] text-muted-foreground">{format(new Date(message.created_at), 'HH:mm', { locale: fr })}</span>
-                      {isFromMe && <Check className="h-3 w-3 text-muted-foreground" />}
+                      {isFromMe && (
+                        message.read_at ? (
+                          <CheckCheck className="h-3.5 w-3.5 text-emerald-500" />
+                        ) : (
+                          <Check className="h-3 w-3 text-muted-foreground" />
+                        )
+                      )}
                     </div>
                   )}
                 </div>
