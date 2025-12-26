@@ -120,10 +120,10 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Récupérer le message pour connaître son type
+    // Récupérer le message pour connaître son type et le créateur
     const { data: messageData } = await supabaseAdmin
       .from('private_messages')
-      .select('message_type')
+      .select('message_type, price, creator_id')
       .eq('id', messageId)
       .single();
 
@@ -159,6 +159,45 @@ serve(async (req) => {
 
     if (paymentUpdateError) {
       logStep("Warning: Error updating payment record", { error: paymentUpdateError.message });
+    }
+
+    // Enregistrer la commission de la plateforme
+    if (messageData?.price && messageData?.creator_id) {
+      const { data: creator } = await supabaseAdmin
+        .from('creators')
+        .select('platform_commission_rate')
+        .eq('id', messageData.creator_id)
+        .single();
+
+      const revenue = messageData.price;
+      const commissionRate = creator?.platform_commission_rate || 0.15;
+      const commissionAmount = revenue * commissionRate;
+      const creatorPayout = revenue - commissionAmount;
+
+      const now = new Date().toISOString();
+
+      const { error: commissionError } = await supabaseAdmin
+        .from('platform_commissions')
+        .insert({
+          creator_id: messageData.creator_id,
+          total_revenue: revenue,
+          subscription_revenue: 0,
+          tips_revenue: 0,
+          live_revenue: 0,
+          private_content_revenue: revenue,
+          commission_rate: commissionRate,
+          commission_amount: commissionAmount,
+          creator_payout: creatorPayout,
+          currency: 'EUR',
+          period_start: now,
+          period_end: now
+        });
+
+      if (commissionError) {
+        logStep("Error recording commission", { error: commissionError.message });
+      } else {
+        logStep("Commission recorded", { revenue, commission: commissionAmount });
+      }
     }
 
     logStep("Private content payment processed successfully");

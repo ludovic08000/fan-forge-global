@@ -81,7 +81,7 @@ serve(async (req) => {
     let event: Stripe.Event;
 
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
       logStep("Signature verified", { eventType: event.type, eventId: event.id });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -180,9 +180,9 @@ serve(async (req) => {
         .eq('stripe_payment_intent_id', session.payment_intent as string)
         .maybeSingle();
 
+      const amount = session.amount_total ? session.amount_total / 100 : 0;
+
       if (!existingPayment) {
-        const amount = session.amount_total ? session.amount_total / 100 : 0;
-        
         await supabaseClient
           .from('live_stream_payments')
           .insert({
@@ -192,6 +192,44 @@ serve(async (req) => {
             stripe_payment_intent_id: (session.payment_intent as string) || session.id,
             status: 'completed',
           });
+      }
+
+      // Enregistrer la commission de la plateforme
+      if (creatorId && amount > 0) {
+        const { data: creator } = await supabaseClient
+          .from('creators')
+          .select('platform_commission_rate')
+          .eq('id', creatorId)
+          .single();
+
+        const commissionRate = creator?.platform_commission_rate || 0.15;
+        const commissionAmount = amount * commissionRate;
+        const creatorPayout = amount - commissionAmount;
+
+        const now = new Date().toISOString();
+
+        const { error: commissionError } = await supabaseClient
+          .from('platform_commissions')
+          .insert({
+            creator_id: creatorId,
+            total_revenue: amount,
+            subscription_revenue: 0,
+            tips_revenue: 0,
+            live_revenue: amount,
+            private_content_revenue: 0,
+            commission_rate: commissionRate,
+            commission_amount: commissionAmount,
+            creator_payout: creatorPayout,
+            currency: 'EUR',
+            period_start: now,
+            period_end: now
+          });
+
+        if (commissionError) {
+          logStep("Error recording commission", { error: commissionError.message });
+        } else {
+          logStep("Commission recorded", { revenue: amount, commission: commissionAmount });
+        }
       }
 
       logStep("Live media payment processed successfully");
