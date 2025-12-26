@@ -290,7 +290,7 @@ const Dashboard = () => {
       )
       .subscribe();
 
-    // Subscription pour les abonnés
+    // Subscription pour les abonnés et revenus d'abonnement
     const subscribersChannel = supabase
       .channel('realtime-subscribers')
       .on(
@@ -308,10 +308,93 @@ const Dashboard = () => {
       )
       .subscribe();
 
+    // Subscription pour les tips (pourboires) - revenus en temps réel
+    const tipsChannel = supabase
+      .channel('realtime-tips')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'tips',
+          filter: `creator_id=eq.${creatorProfile.id}`
+        },
+        (payload) => {
+          const tipAmount = payload.new.amount || 0;
+          setCreatorStats(prev => ({
+            ...prev,
+            totalEarnings: prev.totalEarnings + tipAmount
+          }));
+        }
+      )
+      .subscribe();
+
+    // Subscription pour les paiements de contenu privé
+    const privateContentChannel = supabase
+      .channel('realtime-private-content')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'private_content_payments'
+        },
+        async (payload) => {
+          // Vérifier si le paiement est complété et si c'est pour ce créateur
+          if (payload.new.status === 'paid' && payload.old.status !== 'paid') {
+            const { data: message } = await supabase
+              .from('private_messages')
+              .select('creator_id')
+              .eq('id', payload.new.message_id)
+              .single();
+            
+            if (message?.creator_id === creatorProfile.id) {
+              setCreatorStats(prev => ({
+                ...prev,
+                totalEarnings: prev.totalEarnings + (payload.new.amount || 0)
+              }));
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscription pour les paiements de live
+    const livePaymentsChannel = supabase
+      .channel('realtime-live-payments')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'live_stream_payments'
+        },
+        async (payload) => {
+          if (payload.new.status === 'paid' && payload.old.status !== 'paid') {
+            const { data: liveStream } = await supabase
+              .from('live_streams')
+              .select('creator_id')
+              .eq('id', payload.new.live_stream_id)
+              .single();
+            
+            if (liveStream?.creator_id === creatorProfile.id) {
+              setCreatorStats(prev => ({
+                ...prev,
+                totalEarnings: prev.totalEarnings + (payload.new.amount || 0)
+              }));
+            }
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(viewsChannel);
       supabase.removeChannel(likesChannel);
       supabase.removeChannel(subscribersChannel);
+      supabase.removeChannel(tipsChannel);
+      supabase.removeChannel(privateContentChannel);
+      supabase.removeChannel(livePaymentsChannel);
     };
   }, [user, isCreatorLocal, creatorProfile?.id]);
 
