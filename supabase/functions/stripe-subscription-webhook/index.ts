@@ -200,6 +200,113 @@ serve(async (req) => {
       }
     }
 
+    // Gérer la création d'abonnement via customer.subscription.created
+    if (event.type === "customer.subscription.created") {
+      const subscription = event.data.object as Stripe.Subscription;
+      const stripeSubscriptionId = subscription.id;
+      const customerId = subscription.customer as string;
+      const creatorId = subscription.metadata?.creator_id;
+      const userId = subscription.metadata?.user_id;
+
+      logStep("Subscription created event", { 
+        subscriptionId: stripeSubscriptionId,
+        customerId,
+        creatorId,
+        userId,
+        status: subscription.status
+      });
+
+      if (creatorId && userId) {
+        const priceAmount = subscription.items.data[0]?.price?.unit_amount || 0;
+        const currency = subscription.items.data[0]?.price?.currency || 'eur';
+
+        // Vérifier si un abonnement existe déjà
+        const { data: existingSub } = await supabaseClient
+          .from('subscriptions')
+          .select('id')
+          .eq('subscriber_id', userId)
+          .eq('creator_id', creatorId)
+          .single();
+
+        if (existingSub) {
+          const { error: updateError } = await supabaseClient
+            .from('subscriptions')
+            .update({
+              status: 'active',
+              stripe_subscription_id: stripeSubscriptionId,
+              price: priceAmount / 100,
+              currency: currency.toUpperCase(),
+              start_date: new Date().toISOString(),
+              end_date: new Date(subscription.current_period_end * 1000).toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingSub.id);
+
+          if (updateError) {
+            logStep("Error updating existing subscription", { error: updateError.message });
+          } else {
+            logStep("Existing subscription updated via subscription.created", { subscriptionId: existingSub.id });
+          }
+        } else {
+          const { data: newSub, error: insertError } = await supabaseClient
+            .from('subscriptions')
+            .insert({
+              subscriber_id: userId,
+              creator_id: creatorId,
+              stripe_subscription_id: stripeSubscriptionId,
+              status: 'active',
+              price: priceAmount / 100,
+              currency: currency.toUpperCase(),
+              start_date: new Date().toISOString(),
+              end_date: new Date(subscription.current_period_end * 1000).toISOString(),
+              auto_renew: true
+            })
+            .select()
+            .single();
+
+          if (insertError) {
+            logStep("Error creating subscription", { error: insertError.message });
+          } else {
+            logStep("New subscription created via subscription.created", { subscriptionId: newSub?.id });
+          }
+        }
+
+        // Notification au créateur
+        const { data: creator } = await supabaseClient
+          .from('creators')
+          .select('user_id')
+          .eq('id', creatorId)
+          .single();
+
+        if (creator) {
+          const { data: subscriberProfile } = await supabaseClient
+            .from('profiles')
+            .select('display_name, username')
+            .eq('user_id', userId)
+            .single();
+
+          const subscriberName = subscriberProfile?.display_name || subscriberProfile?.username || 'Un utilisateur';
+
+          await supabaseClient
+            .from('notifications')
+            .insert({
+              user_id: creator.user_id,
+              type: 'new_subscription',
+              title: 'Nouvel abonnement',
+              message: `${subscriberName} s'est abonné(e) à votre profil !`,
+              data: {
+                subscriber_id: userId,
+                creator_id: creatorId
+              }
+            });
+
+          logStep("New subscription notification sent to creator");
+        }
+      } else {
+        logStep("Missing metadata in subscription", { creatorId, userId });
+      }
+    }
+
     // Gérer les événements d'abonnement (mise à jour / suppression)
     if (event.type === "customer.subscription.deleted" || 
         event.type === "customer.subscription.updated") {
