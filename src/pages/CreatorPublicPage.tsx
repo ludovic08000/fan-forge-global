@@ -165,7 +165,7 @@ const CreatorPublicPage = () => {
   const handleSubscribe = async () => {
     if (!user) {
       toast.info('Connectez-vous pour vous abonner');
-      navigate('/auth');
+      navigate('/login');
       return;
     }
 
