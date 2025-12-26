@@ -206,7 +206,8 @@ const CreatorMessages: React.FC = () => {
     
     // Marquer les messages de cette conversation comme lus
     if (conv.unread_count > 0 && conv.participant_type === 'subscriber') {
-      await markAsRead.mutateAsync(conv.participant_id);
+      // Utiliser subscriber_id de la conversation, pas participant_id
+      await markAsRead.mutateAsync(conv.subscriber_id);
       refetch();
       refetchUnread();
     }
