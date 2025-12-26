@@ -91,33 +91,22 @@ export const ProtectedMedia = ({
     >
       {/* Contenu média avec styles de protection */}
       <div 
-        className="protected-media-content"
-        style={{
-          pointerEvents: 'none',
-        }}
+        className="protected-media-content relative z-5"
+        onContextMenu={(e) => e.preventDefault()}
+        onDragStart={(e) => e.preventDefault()}
       >
         {children}
       </div>
       
-      {/* Overlay invisible pour bloquer les interactions directes */}
+      {/* Overlay invisible pour bloquer clic droit et drag seulement - z-index plus bas pour ne pas bloquer les clics */}
       <div 
-        className="absolute inset-0 z-10"
+        className="absolute inset-0 z-[1]"
         style={{ 
           background: 'transparent',
-          pointerEvents: 'auto',
-          cursor: 'default',
+          pointerEvents: 'none',
         }}
         onContextMenu={(e) => e.preventDefault()}
         onDragStart={(e) => e.preventDefault()}
-        onMouseDown={(e) => {
-          if (e.button === 2 || e.button === 1) {
-            e.preventDefault();
-          }
-        }}
-        onTouchStart={(e) => {
-          const target = e.target as HTMLElement;
-          target.addEventListener('contextmenu', (ev) => ev.preventDefault(), { once: true });
-        }}
       />
       
       {/* Motif de protection invisible */}
