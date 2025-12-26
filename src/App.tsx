@@ -189,10 +189,18 @@ const App = () => {
     setShowSplash(false);
   };
 
+  // Show only splash screen until it completes
+  if (showSplash) {
+    return (
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+        <SplashScreen onComplete={handleSplashComplete} />
+      </ThemeProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-        {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
         <AuthProvider>
           <MessageNotificationProvider>
             <TranslationProvider>
