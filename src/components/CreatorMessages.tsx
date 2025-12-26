@@ -199,9 +199,9 @@ const CreatorMessages: React.FC = () => {
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
-                          variant="ghost"
+                          variant="destructive"
                           size="icon"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className="h-9 w-9 shrink-0"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <Trash2 className="h-4 w-4" />
