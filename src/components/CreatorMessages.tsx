@@ -39,6 +39,7 @@ const CreatorMessages: React.FC = () => {
   const queryClient = useQueryClient();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
 
   // Récupérer l'ID créateur
   const { data: creatorData } = useQuery({
@@ -302,41 +303,17 @@ const CreatorMessages: React.FC = () => {
                       </Badge>
                     )}
                     
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="h-9 w-9 shrink-0"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Supprimer la conversation ?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Cette action est irréversible. Tous les messages avec {conv.subscriber_name} seront supprimés.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Annuler</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              console.log('Deleting conversation:', conv.creator_id, conv.subscriber_id);
-                              await handleDeleteConversation(conv);
-                            }}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            disabled={deletingId === conv.participant_id}
-                          >
-                            {deletingId === conv.participant_id ? 'Suppression...' : 'Supprimer'}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="h-9 w-9 shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConversationToDelete(conv);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -349,6 +326,32 @@ const CreatorMessages: React.FC = () => {
             <p className="text-sm">Les messages de vos abonnés apparaîtront ici</p>
           </div>
         )}
+        
+        <AlertDialog open={!!conversationToDelete} onOpenChange={(open) => !open && setConversationToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Supprimer la conversation ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action est irréversible. Tous les messages avec {conversationToDelete?.subscriber_name} seront supprimés.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setConversationToDelete(null)}>Annuler</AlertDialogCancel>
+              <Button
+                variant="destructive"
+                disabled={!!deletingId}
+                onClick={async () => {
+                  if (conversationToDelete) {
+                    await handleDeleteConversation(conversationToDelete);
+                    setConversationToDelete(null);
+                  }
+                }}
+              >
+                {deletingId ? 'Suppression...' : 'Supprimer'}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
