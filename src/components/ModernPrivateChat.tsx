@@ -239,69 +239,74 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
 
   if (isLoading) {
     return (
-      <div className="h-[450px] flex flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-muted/50 to-muted/30">
+      <div className="h-[600px] flex flex-col items-center justify-center rounded-3xl bg-gradient-to-b from-card to-background border border-border/30 shadow-2xl">
         <motion.div 
-          className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center"
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
+          className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center backdrop-blur-xl"
+          animate={{ scale: [1, 1.08, 1], rotate: [0, 5, -5, 0] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
         >
-          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          <Loader2 className="h-10 w-10 text-primary animate-spin" />
         </motion.div>
-        <p className="mt-4 text-muted-foreground font-medium">Chargement des messages...</p>
+        <p className="mt-6 text-muted-foreground font-medium text-lg">Chargement...</p>
       </div>
     );
   }
 
   return (
-    <div className="h-[450px] flex flex-col rounded-2xl overflow-hidden bg-gradient-to-br from-background via-background to-muted/30 border border-border/50">
-      {/* Header du chat */}
-      <div className="relative p-4 border-b border-border/50">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5" />
-        <div className="relative flex items-center gap-3">
+    <div className="h-[600px] flex flex-col rounded-3xl overflow-hidden bg-gradient-to-b from-card via-card/95 to-background border border-border/30 shadow-2xl">
+      {/* Header élégant */}
+      <div className="relative px-6 py-4 border-b border-border/30 bg-gradient-to-r from-card via-card to-card/80 backdrop-blur-xl">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/3 via-transparent to-primary/3 pointer-events-none" />
+        <div className="relative flex items-center gap-4">
           <div className="relative">
-            <Avatar className="h-10 w-10 ring-2 ring-primary/30 ring-offset-2 ring-offset-background">
+            <Avatar className="h-12 w-12 ring-2 ring-primary/20 ring-offset-2 ring-offset-card shadow-lg">
               <AvatarImage src={creatorAvatar} className="object-cover" />
-              <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-bold">
+              <AvatarFallback className="bg-gradient-to-br from-primary via-primary to-primary/70 text-primary-foreground font-bold text-lg">
                 {creatorName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <motion.div 
-              className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 border-2 border-background"
-              animate={{ scale: [1, 1.2, 1] }}
+              className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-gradient-to-r from-emerald-400 to-green-500 border-[2.5px] border-card shadow-lg shadow-emerald-500/30"
+              animate={{ scale: [1, 1.15, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
             />
           </div>
-          <div className="flex-1">
-            <h3 className="font-semibold">{creatorName}</h3>
-            <p className="text-xs text-emerald-500 font-medium flex items-center gap-1">
-              <span className="relative flex h-1.5 w-1.5">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-lg truncate">{creatorName}</h3>
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
-              En ligne
-            </p>
+              <span className="text-sm text-emerald-500 font-medium">En ligne</span>
+            </div>
           </div>
-          <Shield className="h-4 w-4 text-primary/50" />
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-full bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer">
+              <Shield className="h-5 w-5 text-primary/60" />
+            </div>
+          </div>
         </div>
       </div>
       
-      {/* Zone des messages */}
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-3">
+      {/* Zone des messages - Design épuré */}
+      <ScrollArea className="flex-1 px-4 py-6 bg-gradient-to-b from-muted/5 to-transparent">
+        <div className="space-y-4 max-w-3xl mx-auto">
           {messages?.length === 0 ? (
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center justify-center py-12 text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="flex flex-col items-center justify-center py-16 text-center"
             >
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-4">
-                <Sparkles className="h-7 w-7 text-primary/60" />
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 via-primary/10 to-transparent flex items-center justify-center mb-6 shadow-inner">
+                <Sparkles className="h-10 w-10 text-primary/50" />
               </div>
-              <p className="text-muted-foreground font-medium">
-                Commencez la conversation !
+              <p className="text-xl font-medium text-foreground/80">
+                Démarrez la conversation
               </p>
-              <p className="text-sm text-muted-foreground/60 mt-1">
-                Envoyez un message à {creatorName}
+              <p className="text-sm text-muted-foreground mt-2 max-w-xs">
+                Envoyez un message à {creatorName} pour commencer
               </p>
             </motion.div>
           ) : (
@@ -313,35 +318,39 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
               const isLocked = isPaidContent && !message.is_paid;
               const isDeleted = message.is_deleted;
               const canDelete = isMessageAuthor(message) && !isDeleted;
-              
-              // Statut du message
               const messageStatus = message.status || 'sent';
               
               return (
                 <motion.div
                   key={message.id}
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ delay: index * 0.02 }}
-                  className={`flex ${isFromMe ? 'justify-end' : 'justify-start'} group`}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(index * 0.03, 0.3), duration: 0.3 }}
+                  className={cn(
+                    "flex w-full group",
+                    isFromMe ? "justify-end pl-12" : "justify-start pr-12"
+                  )}
                 >
-                  <div className="flex items-start gap-1">
-                    {/* Menu d'actions (suppression) - affiché à gauche pour mes messages */}
-                    {isFromMe && canDelete && (
+                  <div className={cn(
+                    "flex items-end gap-2 max-w-[85%]",
+                    isFromMe ? "flex-row-reverse" : "flex-row"
+                  )}>
+                    {/* Menu suppression */}
+                    {canDelete && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-muted shrink-0"
                           >
-                            <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
+                            <MoreVertical className="h-4 w-4 text-muted-foreground" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuContent align={isFromMe ? "end" : "start"} className="w-36">
                           <DropdownMenuItem 
                             onClick={() => handleDeleteMessage(message.id)}
-                            className="text-destructive focus:text-destructive"
+                            className="text-destructive focus:text-destructive cursor-pointer"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Supprimer
@@ -350,58 +359,57 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                       </DropdownMenu>
                     )}
                     
+                    {/* Bulle de message */}
                     <div
                       className={cn(
-                        "max-w-[80%] rounded-2xl px-4 py-2.5 relative",
+                        "relative rounded-2xl transition-all duration-200",
                         isDeleted
-                          ? "bg-muted/50 border border-border/30"
+                          ? "bg-muted/40 border border-border/20 px-4 py-3"
                           : isFromMe
-                            ? "bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground rounded-br-md shadow-lg shadow-primary/20"
-                            : "bg-muted/80 text-foreground rounded-bl-md",
-                        isLocked && !isDeleted && "bg-gradient-to-br from-card to-muted/50 border border-border/50 text-foreground"
+                            ? "bg-primary text-primary-foreground px-4 py-3 rounded-br-sm shadow-lg shadow-primary/25"
+                            : "bg-card border border-border/40 px-4 py-3 rounded-bl-sm shadow-sm",
+                        isLocked && !isDeleted && "bg-gradient-to-br from-card to-muted/30 border border-border/40"
                       )}
                     >
-                      {/* Effet de brillance */}
+                      {/* Effet glassmorphism subtil */}
                       {isFromMe && !isLocked && !isDeleted && (
-                        <div className="absolute inset-0 rounded-2xl rounded-br-md overflow-hidden pointer-events-none">
-                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
+                        <div className="absolute inset-0 rounded-2xl rounded-br-sm overflow-hidden pointer-events-none">
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/15 via-transparent to-transparent" />
                         </div>
                       )}
                       
-                      <div className="relative z-10">
+                      <div className="relative">
                         {isDeleted ? (
-                          // Message supprimé
                           <p className="text-sm text-muted-foreground italic flex items-center gap-2">
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-3.5 w-3.5 opacity-60" />
                             Ce message a été supprimé
                           </p>
                         ) : message.message_type === 'text' ? (
-                          <p className="text-[15px] leading-relaxed">{message.content}</p>
+                          <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
                         ) : (
                           <div className="space-y-2">
                             {!canViewPaidContent ? (
-                              // Contenu verrouillé
                               <div className="space-y-3">
-                                <div className="relative aspect-[4/3] w-44 rounded-xl overflow-hidden">
+                                <div className="relative aspect-[4/3] w-52 rounded-xl overflow-hidden">
                                   {message.media_thumbnail ? (
                                     <img
                                       src={message.media_thumbnail}
                                       alt="Aperçu"
-                                      className="w-full h-full object-cover blur-2xl scale-125 brightness-50"
+                                      className="w-full h-full object-cover blur-xl scale-110 brightness-50"
                                     />
                                   ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10" />
+                                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
                                   )}
-                                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 backdrop-blur-sm">
-                                    <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center">
+                                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 backdrop-blur-sm">
+                                    <div className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center">
                                       {message.message_type === 'video' ? (
-                                        <Play className="h-5 w-5 text-white ml-0.5" />
+                                        <Play className="h-6 w-6 text-white ml-0.5" />
                                       ) : (
-                                        <ImageIcon className="h-5 w-5 text-white" />
+                                        <ImageIcon className="h-6 w-6 text-white" />
                                       )}
                                     </div>
-                                    <p className="text-white text-xs font-medium mt-2">
-                                      {message.message_type === 'video' ? 'Vidéo' : 'Photo'} exclusive
+                                    <p className="text-white text-xs font-medium mt-3 opacity-90">
+                                      Contenu {message.message_type === 'video' ? 'vidéo' : 'photo'} exclusif
                                     </p>
                                   </div>
                                 </div>
@@ -409,27 +417,26 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                                   size="sm"
                                   onClick={() => handlePayForContent(message.id)}
                                   disabled={payForContent.isPending}
-                                  className="w-full h-9 rounded-xl bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20"
+                                  className="w-full h-10 rounded-xl bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/25 font-medium"
                                 >
-                                  <Lock className="h-3.5 w-3.5 mr-2" />
-                                  Débloquer {message.price}€
+                                  <Lock className="h-4 w-4 mr-2" />
+                                  Débloquer pour {message.price}€
                                 </Button>
                               </div>
                             ) : (
-                              // Contenu débloqué
                               <div className="space-y-2">
                                 {isPaidContent && (
-                                  <div className="flex items-center gap-1.5 text-xs">
-                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
+                                  <div className="flex items-center gap-1.5 mb-2">
+                                    <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-500 text-xs font-medium">
                                       <Eye className="h-3 w-3" />
-                                      <span className="font-medium">Débloqué</span>
+                                      Débloqué
                                     </div>
                                   </div>
                                 )}
                                 {message.message_type === 'video' ? (
                                   <video
                                     controls
-                                    className="w-full rounded-xl"
+                                    className="w-full max-w-sm rounded-xl"
                                     poster={message.media_thumbnail}
                                   >
                                     <source src={message.media_url} type="video/mp4" />
@@ -438,7 +445,7 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                                   <img
                                     src={message.media_url}
                                     alt="Contenu"
-                                    className="w-full rounded-xl"
+                                    className="w-full max-w-sm rounded-xl"
                                   />
                                 )}
                               </div>
@@ -450,53 +457,31 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                       {/* Horodatage et statut */}
                       {!isDeleted && (
                         <div className={cn(
-                          "flex items-center gap-1.5 mt-1.5",
+                          "flex items-center gap-1.5 mt-2 select-none",
                           isFromMe ? "justify-end" : "justify-start"
                         )}>
                           <span className={cn(
-                            "text-[10px] font-medium",
-                            isFromMe ? "text-primary-foreground/60" : "text-muted-foreground"
+                            "text-[11px] font-medium",
+                            isFromMe ? "text-primary-foreground/50" : "text-muted-foreground/70"
                           )}>
                             {format(new Date(message.created_at), 'HH:mm', { locale: fr })}
                           </span>
                           {isFromMe && (
-                            messageStatus === 'sending' ? (
-                              <Loader2 className="h-3 w-3 text-primary-foreground/60 animate-spin" />
-                            ) : messageStatus === 'read' ? (
-                              <CheckCheck className="h-3 w-3 text-blue-400" />
-                            ) : messageStatus === 'delivered' ? (
-                              <CheckCheck className="h-3 w-3 text-primary-foreground/60" />
-                            ) : (
-                              <Check className="h-3 w-3 text-primary-foreground/60" />
-                            )
+                            <span className="flex items-center">
+                              {messageStatus === 'sending' ? (
+                                <Loader2 className="h-3 w-3 text-primary-foreground/50 animate-spin" />
+                              ) : messageStatus === 'read' ? (
+                                <CheckCheck className="h-3.5 w-3.5 text-sky-300" />
+                              ) : messageStatus === 'delivered' ? (
+                                <CheckCheck className="h-3.5 w-3.5 text-primary-foreground/50" />
+                              ) : (
+                                <Check className="h-3.5 w-3.5 text-primary-foreground/50" />
+                              )}
+                            </span>
                           )}
                         </div>
                       )}
                     </div>
-                    
-                    {/* Menu d'actions - affiché à droite pour les messages reçus */}
-                    {!isFromMe && canDelete && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-40">
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteMessage(message.id)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Supprimer
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
                   </div>
                 </motion.div>
               );
@@ -579,13 +564,15 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Zone de saisie moderne */}
-      <div className="p-3 border-t border-border/50">
+      {/* Zone de saisie moderne et élégante */}
+      <div className="p-4 border-t border-border/20 bg-gradient-to-t from-card via-card to-card/80">
         <motion.div 
           className={cn(
-            "flex items-center gap-2 p-2 rounded-xl transition-all duration-300",
-            "bg-muted/50 border",
-            isFocused ? "border-primary/50 shadow-lg shadow-primary/10" : "border-transparent"
+            "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300",
+            "bg-muted/30 border",
+            isFocused 
+              ? "border-primary/40 shadow-lg shadow-primary/10 bg-muted/40" 
+              : "border-border/30 hover:border-border/50"
           )}
         >
           <EmojiPicker onEmojiSelect={handleEmojiSelect} />
@@ -604,12 +591,12 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                 size="icon"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={sendPaidContent.isPending || isValidatingFile || !!previewFile}
-                className="h-9 w-9 rounded-full hover:bg-primary/10 hover:text-primary"
+                className="h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors"
               >
                 {isValidatingFile ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <Paperclip className="h-4 w-4" />
+                  <Paperclip className="h-5 w-5" />
                 )}
               </Button>
             </>
@@ -624,16 +611,8 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
             onBlur={() => setIsFocused(false)}
             placeholder="Écrivez votre message..."
             disabled={sendMessage.isPending}
-            className="flex-1 h-9 rounded-lg bg-transparent border-0 focus-visible:ring-0 text-sm placeholder:text-muted-foreground/50"
+            className="flex-1 h-10 rounded-xl bg-transparent border-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/40"
           />
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 rounded-full hover:bg-primary/10 hover:text-primary"
-          >
-            <Mic className="h-4 w-4" />
-          </Button>
           
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Button
@@ -641,16 +620,16 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
               disabled={!newMessage.trim() || sendMessage.isPending}
               size="icon"
               className={cn(
-                "h-9 w-9 rounded-full transition-all",
+                "h-11 w-11 rounded-xl transition-all duration-200",
                 newMessage.trim() 
-                  ? "bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/30"
-                  : "bg-muted text-muted-foreground"
+                  ? "bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30"
+                  : "bg-muted/60 text-muted-foreground hover:bg-muted"
               )}
             >
               {sendMessage.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
-                <Send className={cn("h-4 w-4", newMessage.trim() && "-rotate-45")} />
+                <Send className={cn("h-5 w-5 transition-transform", newMessage.trim() && "-rotate-45")} />
               )}
             </Button>
           </motion.div>
