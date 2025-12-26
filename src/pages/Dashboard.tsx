@@ -531,9 +531,12 @@ const Dashboard = () => {
               <item.icon className="h-4 w-4" />
               {item.label}
               {item.badge > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold rounded-full bg-destructive text-destructive-foreground shadow-sm">
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-1.5 -right-1.5 h-5 min-w-5 px-1.5 text-[10px] font-bold flex items-center justify-center"
+                >
                   {item.badge > 99 ? '99+' : item.badge}
-                </span>
+                </Badge>
               )}
             </Button>
           ))}
