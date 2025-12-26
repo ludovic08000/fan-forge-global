@@ -27,7 +27,12 @@ import {
   Eye,
   Mic,
   Trash2,
-  MoreVertical
+  MoreVertical,
+  Clock,
+  CheckCircle,
+  XCircle,
+  HelpCircle,
+  Upload
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -89,7 +94,7 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
   const isUserCreator = userCreatorData?.id === creatorId;
   const targetId = isUserCreator ? subscriberId : creatorId;
   
-  const { messages, isLoading, sendMessage, sendPaidContent, payForContent, deleteMessage } = usePrivateMessages(targetId);
+  const { messages, isLoading, sendMessage, sendPaidContent, sendMediaRequest, respondToMediaRequest, payForContent, payForMediaRequest, deleteMessage } = usePrivateMessages(targetId);
   const [newMessage, setNewMessage] = useState('');
   const [contentPrice, setContentPrice] = useState<number | string>(10);
   const [showPriceInput, setShowPriceInput] = useState(false);
@@ -98,8 +103,13 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
   const [previewFile, setPreviewFile] = useState<{ url: string; type: 'image' | 'video'; file: File } | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
+  const [requestPriceDialogOpen, setRequestPriceDialogOpen] = useState(false);
+  const [requestToPrice, setRequestToPrice] = useState<string | null>(null);
+  const [requestPrice, setRequestPrice] = useState<number>(5);
+  const [isSubscriberUpload, setIsSubscriberUpload] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const subscriberFileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Déterminer si l'utilisateur est l'auteur d'un message
@@ -198,6 +208,7 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
     }
     setPreviewFile(null);
     setShowPriceInput(false);
+    setIsSubscriberUpload(false);
   };
 
   const handleSendMedia = async () => {
@@ -216,22 +227,104 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
         .from('content')
         .getPublicUrl(fileName);
 
-      await sendPaidContent.mutateAsync({
-        mediaUrl: publicUrl,
-        price: Number(contentPrice) || 1,
-        creatorId,
-        messageType: previewFile.type,
-      });
+      if (isSubscriberUpload) {
+        // Abonné envoie une demande de média
+        await sendMediaRequest.mutateAsync({
+          mediaUrl: publicUrl,
+          creatorId,
+          messageType: previewFile.type,
+        });
+      } else {
+        // Créateur envoie du contenu payant
+        await sendPaidContent.mutateAsync({
+          mediaUrl: publicUrl,
+          price: Number(contentPrice) || 1,
+          creatorId,
+          messageType: previewFile.type,
+        });
+      }
 
       handleCancelMedia();
-      toast.success('Contenu envoyé avec succès !', {
-        icon: <Sparkles className="h-4 w-4" />
-      });
     } catch (error) {
       console.error('Erreur lors de l\'upload:', error);
       toast.error('Erreur lors de l\'envoi du fichier');
     } finally {
       setIsValidatingFile(false);
+    }
+  };
+
+  // Gérer la sélection de fichier par l'abonné
+  const handleSubscriberFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsValidatingFile(true);
+
+    try {
+      const validationResult = await validatePrivateMessageFile(file);
+
+      if (!validationResult.isValid) {
+        toast.error(validationResult.error || 'Fichier non valide');
+        if (subscriberFileInputRef.current) {
+          subscriberFileInputRef.current.value = '';
+        }
+        setIsValidatingFile(false);
+        return;
+      }
+
+      const isVideo = file.type.startsWith('video/');
+      const url = URL.createObjectURL(file);
+      
+      setPreviewFile({
+        url,
+        type: isVideo ? 'video' : 'image',
+        file,
+      });
+      setIsSubscriberUpload(true);
+      setShowPriceInput(false); // Pas de prix pour l'abonné
+    } catch (error) {
+      toast.error('Erreur lors de la validation du fichier');
+    } finally {
+      setIsValidatingFile(false);
+      if (subscriberFileInputRef.current) {
+        subscriberFileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Créateur accepte la demande et fixe un prix
+  const handleAcceptRequest = (messageId: string) => {
+    setRequestToPrice(messageId);
+    setRequestPrice(5);
+    setRequestPriceDialogOpen(true);
+  };
+
+  const confirmAcceptRequest = async () => {
+    if (requestToPrice) {
+      await respondToMediaRequest.mutateAsync({
+        messageId: requestToPrice,
+        action: 'accept',
+        price: requestPrice,
+      });
+      setRequestPriceDialogOpen(false);
+      setRequestToPrice(null);
+    }
+  };
+
+  // Créateur refuse la demande
+  const handleRejectRequest = async (messageId: string) => {
+    await respondToMediaRequest.mutateAsync({
+      messageId,
+      action: 'reject',
+    });
+  };
+
+  // Abonné paie pour sa propre demande
+  const handlePayForRequest = async (messageId: string) => {
+    try {
+      await payForMediaRequest.mutateAsync(messageId);
+    } catch (error) {
+      console.error('Erreur lors du paiement:', error);
     }
   };
 
@@ -304,12 +397,20 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
             messages?.map((message, index) => {
               const isFromCreator = message.creator_id === creatorId;
               const isFromMe = isUserCreator ? isFromCreator : !isFromCreator;
-              const canViewPaidContent = message.price === 0 || message.is_paid;
-              const isPaidContent = message.price > 0;
+              const canViewPaidContent = message.price === 0 || message.price === null || message.is_paid;
+              const isPaidContent = (message.price ?? 0) > 0;
               const isLocked = isPaidContent && !message.is_paid;
               const isDeleted = message.is_deleted;
               const canDelete = isMessageAuthor(message) && !isDeleted;
               const messageStatus = message.status || 'sent';
+              
+              // Déterminer si c'est une demande de média
+              const isMediaRequest = message.message_type === 'image_request' || message.message_type === 'video_request';
+              const mediaRequestType = message.message_type === 'video_request' ? 'video' : 'image';
+              const isRequestPending = isMediaRequest && messageStatus === 'pending';
+              const isRequestPriceSet = isMediaRequest && messageStatus === 'price_set';
+              const isRequestRejected = isMediaRequest && messageStatus === 'rejected';
+              const isRequestPaid = isMediaRequest && message.is_paid;
               
               return (
                 <motion.div
@@ -344,10 +445,14 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                         "relative rounded-2xl px-3 py-2 text-sm",
                         isDeleted
                           ? "bg-muted/50 border border-border/30"
-                          : isFromMe
-                            ? "bg-primary text-primary-foreground rounded-br-md"
-                            : "bg-muted/60 rounded-bl-md",
-                        isLocked && !isDeleted && "bg-muted/40 border border-border/30"
+                          : isRequestRejected
+                            ? "bg-destructive/10 border border-destructive/30"
+                            : isMediaRequest
+                              ? "bg-amber-500/10 border border-amber-500/30"
+                              : isFromMe
+                                ? "bg-primary text-primary-foreground rounded-br-md"
+                                : "bg-muted/60 rounded-bl-md",
+                        isLocked && !isDeleted && !isMediaRequest && "bg-muted/40 border border-border/30"
                       )}
                     >
                       <div className="relative">
@@ -356,6 +461,121 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                             <Trash2 className="h-3 w-3" />
                             Message supprimé
                           </p>
+                        ) : isMediaRequest ? (
+                          /* DEMANDE DE MÉDIA */
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <Upload className="h-4 w-4 text-amber-500" />
+                              <span className="text-sm font-medium">
+                                Demande de {mediaRequestType === 'video' ? 'vidéo' : 'photo'}
+                              </span>
+                            </div>
+                            
+                            {/* Aperçu flouté du média */}
+                            <div className="relative aspect-[4/3] w-48 md:w-56 rounded-xl overflow-hidden">
+                              {message.media_url && !isRequestPaid ? (
+                                <img
+                                  src={message.media_url}
+                                  alt="Aperçu"
+                                  className="w-full h-full object-cover blur-xl scale-110 brightness-50"
+                                />
+                              ) : message.media_url && isRequestPaid ? (
+                                mediaRequestType === 'video' ? (
+                                  <video src={message.media_url} controls className="w-full h-full object-cover" />
+                                ) : (
+                                  <img src={message.media_url} alt="Média" className="w-full h-full object-cover" />
+                                )
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-amber-500/30 via-amber-500/20 to-amber-500/10" />
+                              )}
+                              
+                              {/* Overlay si pas payé */}
+                              {!isRequestPaid && (
+                                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                                  {isRequestPending && (
+                                    <div className="text-center">
+                                      <Clock className="h-8 w-8 text-amber-400 mx-auto mb-2" />
+                                      <p className="text-white text-xs">En attente</p>
+                                    </div>
+                                  )}
+                                  {isRequestPriceSet && (
+                                    <div className="text-center">
+                                      <Euro className="h-8 w-8 text-emerald-400 mx-auto mb-2" />
+                                      <p className="text-white text-sm font-semibold">{message.price?.toFixed(2)}€</p>
+                                    </div>
+                                  )}
+                                  {isRequestRejected && (
+                                    <div className="text-center">
+                                      <XCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+                                      <p className="text-white text-xs">Refusé</p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Actions selon le statut et le rôle */}
+                            {isUserCreator && isRequestPending && (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-1 h-9 border-destructive/50 text-destructive hover:bg-destructive/10"
+                                  onClick={() => handleRejectRequest(message.id)}
+                                  disabled={respondToMediaRequest.isPending}
+                                >
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  Refuser
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="flex-1 h-9 bg-emerald-600 hover:bg-emerald-700"
+                                  onClick={() => handleAcceptRequest(message.id)}
+                                  disabled={respondToMediaRequest.isPending}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Accepter
+                                </Button>
+                              </div>
+                            )}
+                            
+                            {!isUserCreator && isRequestPriceSet && (
+                              <Button
+                                size="sm"
+                                className="w-full h-9 bg-gradient-to-r from-primary to-primary/80"
+                                onClick={() => handlePayForRequest(message.id)}
+                                disabled={payForMediaRequest.isPending}
+                              >
+                                {payForMediaRequest.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                ) : (
+                                  <Euro className="h-4 w-4 mr-1" />
+                                )}
+                                Payer {message.price?.toFixed(2)}€
+                              </Button>
+                            )}
+                            
+                            {isRequestPaid && (
+                              <div className="flex items-center gap-1.5 text-emerald-500 text-xs">
+                                <CheckCircle className="h-3.5 w-3.5" />
+                                <span>Payé - Contenu visible</span>
+                              </div>
+                            )}
+                            
+                            {isRequestRejected && (
+                              <div className="flex items-center gap-1.5 text-destructive text-xs">
+                                <XCircle className="h-3.5 w-3.5" />
+                                <span>Demande refusée</span>
+                              </div>
+                            )}
+                            
+                            {!isUserCreator && isRequestPending && (
+                              <div className="flex items-center gap-1.5 text-amber-500 text-xs">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>En attente de réponse du créateur</span>
+                              </div>
+                            )}
+                          </div>
                         ) : message.message_type === 'text' ? (
                           <p className="text-[13px] leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
                         ) : (
@@ -529,45 +749,76 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                   </Button>
                 </div>
                 <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Euro className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Prix</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      value={contentPrice}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setContentPrice(val === '' ? '' : Number(val));
-                      }}
-                      onBlur={() => {
-                        if (contentPrice === '' || Number(contentPrice) < 1) {
-                          setContentPrice(1);
-                        } else if (Number(contentPrice) > 500) {
-                          setContentPrice(500);
-                        }
-                      }}
-                      min="1"
-                      max="500"
-                      className="w-20 h-8 text-sm"
-                    />
-                    <Button
-                      size="sm"
-                      onClick={handleSendMedia}
-                      disabled={isValidatingFile}
-                      className="flex-1 h-8 bg-gradient-to-r from-primary to-primary/80"
-                    >
-                      {isValidatingFile ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Send className="h-3.5 w-3.5 mr-1.5" />
-                          {contentPrice}€
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                  {isSubscriberUpload ? (
+                    /* Abonné envoie une demande */
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Upload className="h-4 w-4 text-amber-500" />
+                        <span className="text-sm font-medium">Envoyer au créateur</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Le créateur fixera un prix pour voir votre {previewFile.type === 'video' ? 'vidéo' : 'photo'}
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={handleSendMedia}
+                        disabled={isValidatingFile || sendMediaRequest.isPending}
+                        className="w-full h-8 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700"
+                      >
+                        {isValidatingFile || sendMediaRequest.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Send className="h-3.5 w-3.5 mr-1.5" />
+                            Envoyer la demande
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  ) : (
+                    /* Créateur envoie du contenu payant */
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Euro className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Prix</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={contentPrice}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setContentPrice(val === '' ? '' : Number(val));
+                          }}
+                          onBlur={() => {
+                            if (contentPrice === '' || Number(contentPrice) < 1) {
+                              setContentPrice(1);
+                            } else if (Number(contentPrice) > 500) {
+                              setContentPrice(500);
+                            }
+                          }}
+                          min="1"
+                          max="500"
+                          className="w-20 h-8 text-sm"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={handleSendMedia}
+                          disabled={isValidatingFile || sendPaidContent.isPending}
+                          className="flex-1 h-8 bg-gradient-to-r from-primary to-primary/80"
+                        >
+                          {isValidatingFile || sendPaidContent.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Send className="h-3.5 w-3.5 mr-1.5" />
+                              {contentPrice}€
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -584,7 +835,8 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
         )}>
           <EmojiPicker onEmojiSelect={handleEmojiSelect} />
 
-          {isUserCreator && (
+          {isUserCreator ? (
+            /* Bouton pour créateurs - contenu payant */
             <>
               <input
                 ref={fileInputRef}
@@ -599,11 +851,37 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                 onClick={() => fileInputRef.current?.click()}
                 disabled={sendPaidContent.isPending || isValidatingFile || !!previewFile}
                 className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
+                title="Envoyer du contenu payant"
               >
                 {isValidatingFile ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Paperclip className="h-4 w-4" />
+                )}
+              </Button>
+            </>
+          ) : (
+            /* Bouton pour abonnés - envoyer une demande de média */
+            <>
+              <input
+                ref={subscriberFileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
+                onChange={handleSubscriberFileSelect}
+                className="hidden"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => subscriberFileInputRef.current?.click()}
+                disabled={sendMediaRequest.isPending || isValidatingFile || !!previewFile}
+                className="h-8 w-8 rounded-lg hover:bg-amber-500/10 hover:text-amber-500"
+                title="Envoyer une photo/vidéo au créateur (payant)"
+              >
+                {isValidatingFile ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
                 )}
               </Button>
             </>
@@ -662,6 +940,48 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                 <Trash2 className="h-4 w-4 mr-2" />
               )}
               Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog pour fixer le prix d'une demande de média */}
+      <AlertDialog open={requestPriceDialogOpen} onOpenChange={setRequestPriceDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Fixer un prix</AlertDialogTitle>
+            <AlertDialogDescription>
+              L'abonné devra payer ce montant pour que vous puissiez voir son contenu.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <div className="flex items-center gap-3">
+              <Euro className="h-5 w-5 text-muted-foreground" />
+              <Input
+                type="number"
+                value={requestPrice}
+                onChange={(e) => setRequestPrice(Number(e.target.value))}
+                min="1"
+                max="500"
+                className="flex-1"
+                placeholder="Prix en euros"
+              />
+              <span className="text-muted-foreground">€</span>
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmAcceptRequest}
+              disabled={requestPrice < 1 || respondToMediaRequest.isPending}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {respondToMediaRequest.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <CheckCircle className="h-4 w-4 mr-2" />
+              )}
+              Accepter pour {requestPrice}€
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

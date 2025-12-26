@@ -299,7 +299,7 @@ export const usePrivateMessages = (creatorId?: string) => {
     },
   });
 
-  // Envoyer du contenu média payant
+  // Envoyer du contenu média payant (créateur vers abonné)
   const sendPaidContent = useMutation({
     mutationFn: async ({ 
       mediaUrl, 
@@ -349,6 +349,117 @@ export const usePrivateMessages = (creatorId?: string) => {
     },
     onError: (error) => {
       toast.error(`Erreur lors de l'envoi: ${error.message}`);
+    },
+  });
+
+  // Envoyer une demande de média (abonné vers créateur)
+  // L'abonné soumet son média avec message_type = 'media_request' et status = 'pending'
+  const sendMediaRequest = useMutation({
+    mutationFn: async ({ 
+      mediaUrl, 
+      thumbnailUrl, 
+      creatorId: targetCreatorId,
+      messageType 
+    }: { 
+      mediaUrl: string; 
+      thumbnailUrl?: string; 
+      creatorId: string;
+      messageType: 'video' | 'image';
+    }) => {
+      if (!user) throw new Error('Non authentifié');
+
+      const messageData = {
+        creator_id: targetCreatorId,
+        subscriber_id: user.id,
+        message_type: `${messageType}_request`, // 'image_request' ou 'video_request'
+        media_url: mediaUrl,
+        media_thumbnail: thumbnailUrl,
+        price: null, // Le créateur fixera le prix
+        is_paid: false,
+        status: 'pending', // En attente d'acceptation par le créateur
+      };
+
+      const { data, error } = await supabase
+        .from('private_messages')
+        .insert(messageData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('Demande envoyée ! Le créateur va définir un prix.');
+    },
+    onError: (error) => {
+      toast.error(`Erreur lors de l'envoi: ${error.message}`);
+    },
+  });
+
+  // Répondre à une demande de média (créateur accepte/refuse)
+  const respondToMediaRequest = useMutation({
+    mutationFn: async ({ 
+      messageId, 
+      action, 
+      price 
+    }: { 
+      messageId: string; 
+      action: 'accept' | 'reject';
+      price?: number;
+    }) => {
+      if (!user) throw new Error('Non authentifié');
+
+      // Vérifier que l'utilisateur est bien le créateur de ce message
+      const { data: creator } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!creator) throw new Error('Seuls les créateurs peuvent répondre aux demandes');
+
+      const updateData = action === 'accept' 
+        ? { status: 'price_set', price: price || 0 }
+        : { status: 'rejected' };
+
+      const { data, error } = await supabase
+        .from('private_messages')
+        .update(updateData)
+        .eq('id', messageId)
+        .eq('creator_id', creator.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      toast.success(variables.action === 'accept' ? 'Prix fixé ! En attente de paiement.' : 'Demande refusée');
+    },
+    onError: (error) => {
+      toast.error(`Erreur: ${error.message}`);
+    },
+  });
+
+  // Payer pour une demande de média (abonné paie pour que le créateur voie son contenu)
+  const payForMediaRequest = useMutation({
+    mutationFn: async (messageId: string) => {
+      if (!user) throw new Error('Non authentifié');
+
+      const { data, error } = await supabase.functions.invoke('pay-private-content', {
+        body: { messageId },
+      });
+
+      if (error) throw error;
+      
+      if (data.url) {
+        window.open(data.url, '_blank');
+      }
+      
+      return data;
+    },
+    onError: (error) => {
+      toast.error(`Erreur lors du paiement: ${error.message}`);
     },
   });
 
@@ -485,7 +596,10 @@ export const usePrivateMessages = (creatorId?: string) => {
     isFetchingMore: isFetchingNextPage,
     sendMessage,
     sendPaidContent,
+    sendMediaRequest,
+    respondToMediaRequest,
     payForContent,
+    payForMediaRequest,
     deleteMessage,
     markAsRead,
   };
