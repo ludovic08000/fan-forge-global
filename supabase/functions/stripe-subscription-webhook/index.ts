@@ -198,6 +198,85 @@ serve(async (req) => {
           logStep("New subscription notification sent to creator");
         }
       }
+
+      // Gérer les tips (live_tip)
+      if (session.mode === 'payment' && session.metadata?.type === 'live_tip') {
+        const creatorId = session.metadata.creator_id;
+        const senderId = session.metadata.sender_id;
+        const liveStreamId = session.metadata.live_stream_id;
+        const tipMessage = session.metadata.message || '';
+        const amount = session.amount_total ? session.amount_total / 100 : 0;
+
+        logStep("Processing live tip", { creatorId, senderId, amount });
+
+        if (creatorId && senderId && amount > 0) {
+          // Récupérer le taux de commission du créateur
+          const { data: creator } = await supabaseClient
+            .from('creators')
+            .select('user_id, platform_commission_rate')
+            .eq('id', creatorId)
+            .single();
+
+          const commissionRate = creator?.platform_commission_rate || 0.15;
+          const commissionAmount = amount * commissionRate;
+          const creatorPayout = amount - commissionAmount;
+
+          const now = new Date().toISOString();
+
+          // Enregistrer la commission
+          const { error: commissionError } = await supabaseClient
+            .from('platform_commissions')
+            .insert({
+              creator_id: creatorId,
+              total_revenue: amount,
+              subscription_revenue: 0,
+              tips_revenue: amount,
+              live_revenue: 0,
+              private_content_revenue: 0,
+              commission_rate: commissionRate,
+              commission_amount: commissionAmount,
+              creator_payout: creatorPayout,
+              currency: 'EUR',
+              period_start: now,
+              period_end: now
+            });
+
+          if (commissionError) {
+            logStep("Error recording tip commission", { error: commissionError.message });
+          } else {
+            logStep("Tip commission recorded", { revenue: amount, commission: commissionAmount });
+          }
+
+          // Notification au créateur
+          if (creator?.user_id) {
+            const { data: senderProfile } = await supabaseClient
+              .from('profiles')
+              .select('display_name, username')
+              .eq('user_id', senderId)
+              .single();
+
+            const senderName = senderProfile?.display_name || senderProfile?.username || 'Quelqu\'un';
+
+            await supabaseClient
+              .from('notifications')
+              .insert({
+                user_id: creator.user_id,
+                type: 'tip_received',
+                title: 'Pourboire reçu !',
+                message: tipMessage 
+                  ? `${senderName} vous a envoyé ${amount.toFixed(2)}€ : "${tipMessage}"`
+                  : `${senderName} vous a envoyé ${amount.toFixed(2)}€`,
+                data: {
+                  sender_id: senderId,
+                  amount,
+                  live_stream_id: liveStreamId
+                }
+              });
+
+            logStep("Tip notification sent to creator");
+          }
+        }
+      }
     }
 
     // Gérer la création d'abonnement via customer.subscription.created
