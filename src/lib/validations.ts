@@ -66,13 +66,28 @@ export const signUpSchema = authSchema.extend({
   role: z.enum(['subscriber', 'creator'], {
     errorMap: () => ({ message: "Rôle invalide" })
   }),
-  birthdate: z.string().optional(),
+  birthdate: z.string().min(1, { message: "La date de naissance est requise" }),
   gender: z.string().optional(),
   stageName: z.string().trim().max(50, { message: "Le surnom doit contenir moins de 50 caractères" }).optional().or(z.literal('')),
   category: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Les mots de passe ne correspondent pas",
   path: ["confirmPassword"],
+}).refine((data) => {
+  // Vérification d'âge obligatoire pour TOUS les utilisateurs (18+)
+  if (!data.birthdate) {
+    return false;
+  }
+  const birthDate = new Date(data.birthdate);
+  const today = new Date();
+  const age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  const dayDiff = today.getDate() - birthDate.getDate();
+  const actualAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+  return actualAge >= 18;
+}, {
+  message: "Vous devez avoir au moins 18 ans pour vous inscrire sur cette plateforme",
+  path: ["birthdate"],
 }).refine((data) => {
   if (data.role === 'creator') {
     if (!data.birthdate) {
