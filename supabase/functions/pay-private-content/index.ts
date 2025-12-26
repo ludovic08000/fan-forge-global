@@ -17,9 +17,16 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
+  // Client avec anon key pour l'authentification utilisateur
+  const supabaseAuth = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+  );
+
+  // Client avec service role pour contourner les RLS et lire les messages
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
   try {
@@ -33,7 +40,7 @@ serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header provided");
     
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    const { data: userData, error: userError } = await supabaseAuth.auth.getUser(token);
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
@@ -44,7 +51,7 @@ serve(async (req) => {
     logStep("Message ID received", { messageId });
 
     // Récupérer les informations du message
-    const { data: messageData, error: messageError } = await supabaseClient
+    const { data: messageData, error: messageError } = await supabaseAdmin
       .from('private_messages')
       .select('*')
       .eq('id', messageId)
@@ -56,7 +63,7 @@ serve(async (req) => {
     }
 
     // Récupérer les informations du créateur séparément
-    const { data: creatorData, error: creatorError } = await supabaseClient
+    const { data: creatorData, error: creatorError } = await supabaseAdmin
       .from('creators')
       .select('id, stage_name, user_id, stripe_account_id')
       .eq('id', messageData.creator_id)
@@ -181,7 +188,7 @@ serve(async (req) => {
     logStep("Checkout session created", { sessionId: session.id, url: session.url });
 
     // Enregistrer le paiement en attente
-    const { error: paymentError } = await supabaseClient
+    const { error: paymentError } = await supabaseAdmin
       .from('private_content_payments')
       .insert({
         message_id: messageId,
