@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -10,16 +10,15 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ModernPrivateChat from './ModernPrivateChat';
 import { toast } from 'sonner';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
 interface Conversation {
@@ -37,6 +36,7 @@ interface Conversation {
 const CreatorMessages: React.FC = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { markAsRead, refetch: refetchUnread } = useUnreadMessages();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [conversationToDelete, setConversationToDelete] = useState<Conversation | null>(null);
@@ -57,7 +57,7 @@ const CreatorMessages: React.FC = () => {
     enabled: !!user,
   });
 
-  // Récupérer les conversations (messages où je suis créateur OU subscriber)
+  // Récupérer les conversations avec comptage des messages non lus
   const { data: conversations, isLoading, refetch } = useQuery({
     queryKey: ['creator-conversations', creatorData?.id, user?.id],
     queryFn: async () => {
@@ -71,9 +71,11 @@ const CreatorMessages: React.FC = () => {
         .select(`
           creator_id,
           subscriber_id,
+          sender_id,
           content,
           created_at,
-          message_type
+          message_type,
+          read_at
         `)
         .eq('is_deleted', false)
         .order('created_at', { ascending: false });
@@ -117,7 +119,14 @@ const CreatorMessages: React.FC = () => {
             subscriber_id: msg.subscriber_id,
             last_message: msg.message_type === 'text' ? msg.content : `📷 ${msg.message_type === 'image' ? 'Photo' : 'Vidéo'}`,
             last_message_at: msg.created_at,
+            unread_count: 0,
           });
+        }
+        
+        // Compter les messages non lus (envoyés par l'autre, pas encore lus)
+        if (msg.sender_id !== user.id && !msg.read_at) {
+          const conv = conversationMap.get(participantId);
+          conv.unread_count++;
         }
       }
 
@@ -184,12 +193,24 @@ const CreatorMessages: React.FC = () => {
           subscriber_avatar: participant?.avatar,
           last_message: conv.last_message,
           last_message_at: conv.last_message_at,
-          unread_count: 0,
+          unread_count: conv.unread_count,
         };
       });
     },
     enabled: !!user,
   });
+
+  // Marquer comme lu quand on ouvre une conversation
+  const handleSelectConversation = async (conv: Conversation) => {
+    setSelectedConversation(conv);
+    
+    // Marquer les messages de cette conversation comme lus
+    if (conv.unread_count > 0 && conv.participant_type === 'subscriber') {
+      await markAsRead.mutateAsync(conv.participant_id);
+      refetch();
+      refetchUnread();
+    }
+  };
 
   const handleDeleteConversation = async (conv: Conversation) => {
     if (!user) return;
@@ -272,7 +293,7 @@ const CreatorMessages: React.FC = () => {
               {conversations.map((conv) => (
                 <div
                   key={conv.participant_id}
-                  onClick={() => setSelectedConversation(conv)}
+                  onClick={() => handleSelectConversation(conv)}
                   className="flex items-center gap-3 p-4 rounded-xl bg-muted/30 hover:bg-muted/50 cursor-pointer transition-all border border-border/50 group"
                 >
                   <Avatar className="h-12 w-12 ring-2 ring-primary/20">

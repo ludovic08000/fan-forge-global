@@ -1,10 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 
 export const useUnreadMessages = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: unreadCount = 0, refetch } = useQuery({
     queryKey: ['unread-messages-count', user?.id],
@@ -20,14 +21,13 @@ export const useUnreadMessages = () => {
 
       if (!creator) return 0;
 
-      // Compter les messages non lus (envoyés par des subscribers, pas encore vus)
-      // On compte les messages où sender_id != user.id (pas envoyés par moi)
-      // et où status != 'read' ou created_at récent
+      // Compter les messages non lus (envoyés par des subscribers, pas lus)
       const { count, error } = await supabase
         .from('private_messages')
         .select('id', { count: 'exact', head: true })
         .eq('creator_id', creator.id)
         .neq('sender_id', user.id)
+        .is('read_at', null)
         .is('is_deleted', false);
 
       if (error) {
@@ -39,7 +39,37 @@ export const useUnreadMessages = () => {
     },
     enabled: !!user,
     staleTime: 30000,
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 60000,
+  });
+
+  // Marquer les messages d'une conversation comme lus
+  const markAsRead = useMutation({
+    mutationFn: async (subscriberId: string) => {
+      if (!user) throw new Error('Non authentifié');
+
+      const { data: creator } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!creator) return;
+
+      // Marquer tous les messages non lus de ce subscriber comme lus
+      const { error } = await supabase
+        .from('private_messages')
+        .update({ read_at: new Date().toISOString() })
+        .eq('creator_id', creator.id)
+        .eq('subscriber_id', subscriberId)
+        .neq('sender_id', user.id)
+        .is('read_at', null);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
   });
 
   // Écouter les nouveaux messages en temps réel
@@ -59,6 +89,17 @@ export const useUnreadMessages = () => {
           refetch();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'private_messages',
+        },
+        () => {
+          refetch();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -66,5 +107,5 @@ export const useUnreadMessages = () => {
     };
   }, [user?.id, refetch]);
 
-  return { unreadCount, refetch };
+  return { unreadCount, refetch, markAsRead };
 };
