@@ -157,7 +157,7 @@ const PrivateChatPage = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/messages')}
               className="shrink-0 h-10 w-10 rounded-full hover:bg-muted/60"
             >
               <ChevronLeft className="h-6 w-6" />
