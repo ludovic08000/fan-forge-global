@@ -10,6 +10,7 @@ interface PrivateMessage {
   id: string;
   creator_id: string;
   subscriber_id: string;
+  sender_id?: string | null;
   message_type: string;
   content: string | null;
   media_url: string | null;
@@ -78,6 +79,7 @@ export const usePrivateMessages = (creatorId?: string) => {
           id,
           creator_id,
           subscriber_id,
+          sender_id,
           message_type,
           content,
           media_url,
@@ -259,6 +261,7 @@ export const usePrivateMessages = (creatorId?: string) => {
         ? {
             creator_id: creator.id,
             subscriber_id: targetCreatorId,
+            sender_id: user.id,
             message_type: 'text' as const,
             content,
             status: 'sent',
@@ -266,6 +269,7 @@ export const usePrivateMessages = (creatorId?: string) => {
         : {
             creator_id: targetCreatorId,
             subscriber_id: user.id,
+            sender_id: user.id,
             message_type: 'text' as const,
             content,
             status: 'sent',
@@ -289,6 +293,7 @@ export const usePrivateMessages = (creatorId?: string) => {
         id: `temp-${Date.now()}`,
         creator_id: creatorId || targetCreatorId,
         subscriber_id: user?.id || '',
+        sender_id: user?.id || '',
         message_type: 'text',
         content,
         media_url: null,
@@ -354,6 +359,7 @@ export const usePrivateMessages = (creatorId?: string) => {
       const messageData = {
         creator_id: creator.id,
         subscriber_id: targetCreatorId,
+        sender_id: user.id,
         message_type: messageType,
         media_url: mediaUrl,
         media_thumbnail: thumbnailUrl,
@@ -398,6 +404,7 @@ export const usePrivateMessages = (creatorId?: string) => {
       const messageData = {
         creator_id: targetCreatorId,
         subscriber_id: user.id,
+        sender_id: user.id,
         message_type: `${messageType}_request`, // 'image_request' ou 'video_request'
         media_url: mediaUrl,
         media_thumbnail: thumbnailUrl,
