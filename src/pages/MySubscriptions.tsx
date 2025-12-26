@@ -362,7 +362,7 @@ const MySubscriptions = () => {
         </div>
 
         {/* Search Section - Centered */}
-        <div className="flex flex-col items-center text-center mb-10 relative z-50">
+        <div className="flex flex-col items-center text-center mb-16 pb-8 border-b border-border/50 relative z-50">
           <h1 className="text-3xl md:text-4xl font-bold mb-3">
             Découvrez des créateurs
           </h1>
