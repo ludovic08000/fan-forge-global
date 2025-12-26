@@ -210,11 +210,43 @@ const CreatorPublicPage = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Enregistrer une vue de contenu
+  const recordContentView = async (contentId: string) => {
+    try {
+      // Vérifier si l'utilisateur a déjà vu ce contenu (éviter les doublons)
+      const { error } = await supabase
+        .from('content_views')
+        .insert({ 
+          content_id: contentId, 
+          viewer_id: user?.id || null 
+        });
+
+      if (!error) {
+        // Incrémenter le compteur de vues
+        const currentContent = content.find(c => c.id === contentId);
+        await supabase
+          .from('content')
+          .update({ view_count: (currentContent?.view_count || 0) + 1 })
+          .eq('id', contentId);
+
+        // Mettre à jour le contenu local
+        setContent(prev => prev.map(c => 
+          c.id === contentId ? { ...c, view_count: (c.view_count || 0) + 1 } : c
+        ));
+      }
+    } catch (error) {
+      console.debug('View already recorded or error:', error);
+    }
+  };
+
+  // Ouvrir l'image et enregistrer une vue
+  const handleOpenImage = (item: any) => {
+    setSelectedImage(item);
+    recordContentView(item.id);
+  };
+
   const handleLikeContent = async (contentId: string) => {
-    console.log('handleLikeContent called', { contentId, user: user?.id, userLikes: [...userLikes] });
-    
     if (!user) {
-      console.log('No user, redirecting to auth');
       toast.info('Connectez-vous pour liker');
       navigate('/auth');
       return;
@@ -459,7 +491,11 @@ const CreatorPublicPage = () => {
                     className="aspect-square bg-muted relative overflow-hidden"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedImage(item);
+                      handleOpenImage(item);
+                    }}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      handleLikeContent(item.id);
                     }}
                   >
                     <OptimizedImage
@@ -508,7 +544,13 @@ const CreatorPublicPage = () => {
                     onClick={(e) => {
                       if (isSubscribed) {
                         e.stopPropagation();
-                        setSelectedImage(item);
+                        handleOpenImage(item);
+                      }
+                    }}
+                    onDoubleClick={(e) => {
+                      if (isSubscribed) {
+                        e.stopPropagation();
+                        handleLikeContent(item.id);
                       }
                     }}
                   >
@@ -604,11 +646,12 @@ const CreatorPublicPage = () => {
             className="relative max-w-[95vw] max-h-[95vh] flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Image */}
+            {/* Image - Double-clic pour liker */}
             <OptimizedImage
               src={selectedImage.thumbnail_url || selectedImage.file_url}
               alt={selectedImage.title}
-              className="max-w-full max-h-[80vh] object-contain rounded-lg"
+              className="max-w-full max-h-[80vh] object-contain rounded-lg cursor-pointer"
+              onDoubleClick={() => handleLikeContent(selectedImage.id)}
             />
             
             {/* Infos et bouton like */}
