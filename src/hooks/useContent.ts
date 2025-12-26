@@ -34,6 +34,23 @@ export interface Content {
 export const useContent = () => {
   const queryClient = useQueryClient();
 
+  // Récupérer les likes de l'utilisateur connecté
+  const { data: userLikes = [] } = useQuery({
+    queryKey: ['user-likes'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('content_likes')
+        .select('content_id')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      return data?.map(like => like.content_id) || [];
+    }
+  });
+
   // Récupérer tout le contenu public et premium accessible
   const { data: contents, isLoading, error } = useQuery({
     queryKey: ['contents'],
@@ -85,6 +102,9 @@ export const useContent = () => {
       return enrichedContent;
     }
   });
+
+  // Helper pour vérifier si un contenu est liké
+  const isContentLiked = (contentId: string) => userLikes.includes(contentId);
 
   // Récupérer le contenu d'un créateur spécifique
   const useCreatorContent = (creatorId: string) => {
@@ -147,6 +167,7 @@ export const useContent = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['contents'] });
+      queryClient.invalidateQueries({ queryKey: ['user-likes'] });
     },
     onError: (error: any) => {
       toast.error('Erreur lors du like : ' + error.message);
@@ -187,6 +208,8 @@ export const useContent = () => {
     contents,
     isLoading,
     error,
+    userLikes,
+    isContentLiked,
     useCreatorContent,
     useMyContent,
     likeMutation,
