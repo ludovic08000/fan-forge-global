@@ -44,6 +44,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const LegalNotice = lazy(() => import("./pages/LegalNotice"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const Suspended = lazy(() => import("./pages/Suspended"));
+const PrivateChatPage = lazy(() => import("./pages/PrivateChatPage"));
 
 
 // Composant de chargement pour le Suspense
@@ -128,6 +129,11 @@ const AppRoutes = () => {
           <Route path="/subscriptions" element={
             <ProtectedRoute>
               <MySubscriptions />
+            </ProtectedRoute>
+          } />
+          <Route path="/chat/:creatorId" element={
+            <ProtectedRoute>
+              <PrivateChatPage />
             </ProtectedRoute>
           } />
           <Route path="/dashboard" element={

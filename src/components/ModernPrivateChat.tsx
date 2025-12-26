@@ -59,13 +59,15 @@ interface ModernPrivateChatProps {
   creatorName: string;
   creatorAvatar?: string;
   subscriberId?: string;
+  fullScreen?: boolean;
 }
 
 const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({ 
   creatorId, 
   creatorName, 
   creatorAvatar,
-  subscriberId 
+  subscriberId,
+  fullScreen = false
 }) => {
   const { user } = useAuth();
   
@@ -239,7 +241,10 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
 
   if (isLoading) {
     return (
-      <div className="h-[600px] flex flex-col items-center justify-center rounded-3xl bg-gradient-to-b from-card to-background border border-border/30 shadow-2xl">
+      <div className={cn(
+        "flex flex-col items-center justify-center bg-gradient-to-b from-card to-background",
+        fullScreen ? "h-full" : "h-[600px] rounded-3xl border border-border/30 shadow-2xl"
+      )}>
         <motion.div 
           className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center backdrop-blur-xl"
           animate={{ scale: [1, 1.08, 1], rotate: [0, 5, -5, 0] }}
@@ -253,26 +258,33 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
   }
 
   return (
-    <div className="h-[550px] flex flex-col rounded-2xl overflow-hidden bg-card border border-border/50 shadow-xl">
-      {/* Header compact et élégant */}
-      <div className="px-4 py-3 border-b border-border/50 bg-card/95 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Avatar className="h-9 w-9 ring-1 ring-primary/20">
-              <AvatarImage src={creatorAvatar} className="object-cover" />
-              <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
-                {creatorName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-card" />
+    <div className={cn(
+      "flex flex-col overflow-hidden bg-card",
+      fullScreen 
+        ? "h-full" 
+        : "h-[550px] rounded-2xl border border-border/50 shadow-xl"
+    )}>
+      {/* Header compact et élégant - masqué en mode plein écran car le header est dans la page */}
+      {!fullScreen && (
+        <div className="px-4 py-3 border-b border-border/50 bg-card/95 backdrop-blur-sm">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Avatar className="h-9 w-9 ring-1 ring-primary/20">
+                <AvatarImage src={creatorAvatar} className="object-cover" />
+                <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
+                  {creatorName.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-card" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-sm truncate">{creatorName}</h3>
+              <span className="text-xs text-emerald-500">En ligne</span>
+            </div>
+            <Shield className="h-4 w-4 text-muted-foreground/50" />
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm truncate">{creatorName}</h3>
-            <span className="text-xs text-emerald-500">En ligne</span>
-          </div>
-          <Shield className="h-4 w-4 text-muted-foreground/50" />
         </div>
-      </div>
+      )}
       
       {/* Zone des messages */}
       <ScrollArea className="flex-1 px-3 py-4">

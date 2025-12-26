@@ -30,6 +30,8 @@ const CreatorPublicPage = () => {
   const [preloadedSecret, setPreloadedSecret] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<any>(null);
   const [showChat, setShowChat] = useState(false);
+  const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
+  const [likingContent, setLikingContent] = useState<string | null>(null);
 
   // Activer la protection anti-capture sur toute la page
   useContentProtection(true);
@@ -97,7 +99,7 @@ const CreatorPublicPage = () => {
 
         setContent(contentData || []);
 
-        // Vérifier si abonné
+        // Vérifier si abonné et charger les likes de l'utilisateur
         if (user) {
           const { data: subData } = await supabase
             .from('subscriptions')
@@ -108,6 +110,20 @@ const CreatorPublicPage = () => {
             .maybeSingle();
 
           setIsSubscribed(!!subData);
+
+          // Charger les likes de l'utilisateur pour ce contenu
+          if (contentData && contentData.length > 0) {
+            const contentIds = contentData.map((c: any) => c.id);
+            const { data: likesData } = await supabase
+              .from('content_likes')
+              .select('content_id')
+              .eq('user_id', user.id)
+              .in('content_id', contentIds);
+
+            if (likesData) {
+              setUserLikes(new Set(likesData.map((l: any) => l.content_id)));
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading creator:', error);
@@ -192,6 +208,86 @@ const CreatorPublicPage = () => {
     setCopied(true);
     toast.success('Lien copié !');
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleLikeContent = async (contentId: string) => {
+    if (!user) {
+      toast.info('Connectez-vous pour liker');
+      navigate('/auth');
+      return;
+    }
+
+    setLikingContent(contentId);
+    const isLiked = userLikes.has(contentId);
+
+    try {
+      if (isLiked) {
+        // Retirer le like
+        const { error } = await supabase
+          .from('content_likes')
+          .delete()
+          .eq('content_id', contentId)
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+
+        // Décrémenter le compteur
+        await supabase
+          .from('content')
+          .update({ like_count: (content.find(c => c.id === contentId)?.like_count || 1) - 1 })
+          .eq('id', contentId);
+
+        setUserLikes(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(contentId);
+          return newSet;
+        });
+
+        // Mettre à jour le contenu local
+        setContent(prev => prev.map(c => 
+          c.id === contentId ? { ...c, like_count: Math.max(0, (c.like_count || 1) - 1) } : c
+        ));
+        if (selectedImage?.id === contentId) {
+          setSelectedImage((prev: any) => prev ? { ...prev, like_count: Math.max(0, (prev.like_count || 1) - 1) } : null);
+        }
+      } else {
+        // Ajouter le like
+        const { error } = await supabase
+          .from('content_likes')
+          .insert({ content_id: contentId, user_id: user.id });
+
+        if (error) {
+          if (error.code === '23505') {
+            // Already liked
+            return;
+          }
+          throw error;
+        }
+
+        // Incrémenter le compteur
+        await supabase
+          .from('content')
+          .update({ like_count: (content.find(c => c.id === contentId)?.like_count || 0) + 1 })
+          .eq('id', contentId);
+
+        setUserLikes(prev => new Set([...prev, contentId]));
+
+        // Mettre à jour le contenu local
+        setContent(prev => prev.map(c => 
+          c.id === contentId ? { ...c, like_count: (c.like_count || 0) + 1 } : c
+        ));
+        if (selectedImage?.id === contentId) {
+          setSelectedImage((prev: any) => prev ? { ...prev, like_count: (prev.like_count || 0) + 1 } : null);
+        }
+
+        toast.success('❤️ Liked !');
+      }
+    } catch (error: any) {
+      console.error('Error liking content:', error);
+      toast.error('Erreur lors du like');
+    } finally {
+      setLikingContent(null);
+    }
   };
 
   if (loading) {
@@ -330,7 +426,7 @@ const CreatorPublicPage = () => {
                 )}
                 
                 {isSubscribed && (
-                  <Button variant="outline" onClick={() => setShowChat(true)}>
+                  <Button variant="outline" onClick={() => navigate(`/chat/${creator.id}`)}>
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Message privé
                   </Button>
@@ -484,7 +580,7 @@ const CreatorPublicPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Image Lightbox */}
+      {/* Image Lightbox avec bouton like */}
       <Dialog open={!!selectedImage} onOpenChange={(open) => { if (!open) setSelectedImage(null); }}>
         <DialogContent className="z-[1000] w-[95vw] max-w-none h-[90vh] p-0 overflow-hidden bg-black/95" aria-describedby="image-description">
           <DialogHeader className="sr-only">
@@ -502,15 +598,27 @@ const CreatorPublicPage = () => {
                 {selectedImage.description && (
                   <p className="text-white/80 text-sm mb-3">{selectedImage.description}</p>
                 )}
-                <div className="flex items-center gap-6 text-white/70 text-sm">
-                  <span className="flex items-center gap-2">
+                <div className="flex items-center gap-6">
+                  <span className="flex items-center gap-2 text-white/70 text-sm">
                     <Eye className="h-4 w-4" />
-                    {selectedImage.view_count} vues
+                    {selectedImage.view_count || 0} vues
                   </span>
-                  <span className="flex items-center gap-2">
-                    <Heart className="h-4 w-4" />
-                    {selectedImage.like_count} likes
-                  </span>
+                  <button
+                    onClick={() => handleLikeContent(selectedImage.id)}
+                    disabled={likingContent === selectedImage.id}
+                    className={`flex items-center gap-2 text-sm transition-all ${
+                      userLikes.has(selectedImage.id)
+                        ? 'text-red-500 hover:text-red-400'
+                        : 'text-white/70 hover:text-red-400'
+                    }`}
+                  >
+                    <Heart 
+                      className={`h-5 w-5 transition-transform ${
+                        userLikes.has(selectedImage.id) ? 'fill-current scale-110' : ''
+                      } ${likingContent === selectedImage.id ? 'animate-pulse' : ''}`} 
+                    />
+                    {selectedImage.like_count || 0} likes
+                  </button>
                 </div>
               </div>
             </div>
