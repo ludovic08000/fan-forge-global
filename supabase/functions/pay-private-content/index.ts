@@ -43,19 +43,32 @@ serve(async (req) => {
     if (!messageId) throw new Error("Message ID is required");
     logStep("Message ID received", { messageId });
 
-    // Récupérer les informations du message avec le compte Stripe Connect du créateur
+    // Récupérer les informations du message
     const { data: messageData, error: messageError } = await supabaseClient
       .from('private_messages')
-      .select(`
-        *,
-        creator:creators!creator_id(stage_name, user_id, stripe_account_id)
-      `)
+      .select('*')
       .eq('id', messageId)
       .single();
 
     if (messageError || !messageData) {
+      logStep("Message fetch error", { error: messageError });
       throw new Error("Message not found or error fetching message data");
     }
+
+    // Récupérer les informations du créateur séparément
+    const { data: creatorData, error: creatorError } = await supabaseClient
+      .from('creators')
+      .select('id, stage_name, user_id, stripe_account_id')
+      .eq('id', messageData.creator_id)
+      .single();
+
+    if (creatorError || !creatorData) {
+      logStep("Creator fetch error", { error: creatorError });
+      throw new Error("Creator not found");
+    }
+
+    // Attacher les données du créateur au message
+    const messageWithCreator = { ...messageData, creator: creatorData };
 
     // Vérifier que l'utilisateur est bien l'abonné de ce message
     if (messageData.subscriber_id !== user.id) {
@@ -74,7 +87,7 @@ serve(async (req) => {
 
     logStep("Message data loaded", { 
       price: messageData.price, 
-      creatorName: messageData.creator.stage_name 
+      creatorName: messageWithCreator.creator.stage_name 
     });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
@@ -104,7 +117,7 @@ serve(async (req) => {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: `Contenu privé de ${messageData.creator.stage_name}`,
+              name: `Contenu privé de ${messageWithCreator.creator.stage_name}`,
               description: `Déblocage de contenu privé`,
             },
             unit_amount: amountInCents,
@@ -136,15 +149,15 @@ serve(async (req) => {
     };
 
     // Si le créateur a Stripe Connect, ajouter le transfer avec 15% commission
-    if (messageData.creator?.stripe_account_id) {
+    if (messageWithCreator.creator?.stripe_account_id) {
       sessionParams.payment_intent_data = {
         transfer_data: {
-          destination: messageData.creator.stripe_account_id,
+          destination: messageWithCreator.creator.stripe_account_id,
         },
         application_fee_amount: Math.round(amountInCents * 0.15),
       };
       logStep("Stripe Connect transfer configured", { 
-        destination: messageData.creator.stripe_account_id,
+        destination: messageWithCreator.creator.stripe_account_id,
         fee: Math.round(amountInCents * 0.15)
       });
     }
