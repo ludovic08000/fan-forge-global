@@ -593,7 +593,7 @@ const CreatorPublicPage = () => {
                 alt={selectedImage.title}
                 className="max-w-full max-h-[88vh] object-contain bg-transparent"
               />
-              <div id="image-description" className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">
+              <div id="image-description" className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6 z-50">
                 <h3 className="text-white text-xl font-bold mb-2">{selectedImage.title}</h3>
                 {selectedImage.description && (
                   <p className="text-white/80 text-sm mb-3">{selectedImage.description}</p>
@@ -603,10 +603,15 @@ const CreatorPublicPage = () => {
                     <Eye className="h-4 w-4" />
                     {selectedImage.view_count || 0} vues
                   </span>
-                  <button
-                    onClick={() => handleLikeContent(selectedImage.id)}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLikeContent(selectedImage.id);
+                    }}
                     disabled={likingContent === selectedImage.id}
-                    className={`flex items-center gap-2 text-sm transition-all ${
+                    className={`flex items-center gap-2 text-sm transition-all hover:bg-white/10 ${
                       userLikes.has(selectedImage.id)
                         ? 'text-red-500 hover:text-red-400'
                         : 'text-white/70 hover:text-red-400'
@@ -618,7 +623,7 @@ const CreatorPublicPage = () => {
                       } ${likingContent === selectedImage.id ? 'animate-pulse' : ''}`} 
                     />
                     {selectedImage.like_count || 0} likes
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
