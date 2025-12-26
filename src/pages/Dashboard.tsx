@@ -250,7 +250,7 @@ const Dashboard = () => {
     { id: 'live' as DashboardSection, label: 'Live', icon: Radio },
     { id: 'messages' as DashboardSection, label: 'Messages', icon: MessageCircle },
     { id: 'analytics' as DashboardSection, label: 'Statistiques', icon: BarChart3 },
-    { id: 'pricing' as DashboardSection, label: 'Tarification', icon: Tag },
+    { id: 'pricing' as DashboardSection, label: 'Abonnement & Boost', icon: Sparkles },
     { id: 'settings' as DashboardSection, label: 'Paramètres', icon: Settings },
   ];
 
@@ -444,6 +444,22 @@ const Dashboard = () => {
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
                 </CardContent>
               </Card>
+
+              <Card 
+                className="cursor-pointer hover:border-primary/50 transition-colors bg-gradient-to-br from-amber-500/5 to-orange-500/5 border-amber-500/20"
+                onClick={() => setActiveSection('pricing')}
+              >
+                <CardContent className="p-6 flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20">
+                    <Sparkles className="h-6 w-6 text-amber-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-amber-600 dark:text-amber-400">Booster mon profil</h3>
+                    <p className="text-sm text-muted-foreground">Apparaître en tête des résultats</p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-amber-500" />
+                </CardContent>
+              </Card>
             </div>
 
             {/* Derniers contenus */}
@@ -617,16 +633,16 @@ const Dashboard = () => {
         {/* Section: Analytics */}
         {activeSection === 'analytics' && <CreatorAnalyticsDashboard />}
 
-        {/* Section: Tarification */}
+        {/* Section: Abonnement & Boost */}
         {activeSection === 'pricing' && (
           <div className="space-y-6">
             <div>
               <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Tag className="h-5 w-5" />
-                Tarification & Monétisation
+                <Sparkles className="h-5 w-5 text-amber-500" />
+                Abonnement & Boost
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Gérez vos prix, codes promo et boostez votre visibilité
+                Gérez votre prix d'abonnement, codes promo et boostez votre visibilité
               </p>
             </div>
 
