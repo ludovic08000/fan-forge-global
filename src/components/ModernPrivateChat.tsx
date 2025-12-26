@@ -343,61 +343,104 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                         ) : (
                           <div className="space-y-2">
                             {!canViewPaidContent ? (
-                              <div className="space-y-2">
-                                <div className="relative aspect-[4/3] w-44 rounded-lg overflow-hidden">
+                              /* MÉDIA VERROUILLÉ - Design Premium */
+                              <div className="relative">
+                                <div className="relative aspect-[4/3] w-56 md:w-64 rounded-2xl overflow-hidden">
+                                  {/* Background avec blur */}
                                   {message.media_thumbnail ? (
                                     <img
                                       src={message.media_thumbnail}
                                       alt="Aperçu"
-                                      className="w-full h-full object-cover blur-lg scale-105 brightness-50"
+                                      className="w-full h-full object-cover blur-xl scale-110 brightness-50"
                                     />
                                   ) : (
-                                    <div className="w-full h-full bg-muted" />
+                                    <div className="w-full h-full bg-gradient-to-br from-primary/30 via-primary/20 to-primary/10" />
                                   )}
-                                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+                                  
+                                  {/* Overlay glass effect */}
+                                  <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+                                  
+                                  {/* Contenu central */}
+                                  <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+                                    {/* Icône animée */}
+                                    <motion.div 
+                                      initial={{ scale: 0.9 }}
+                                      animate={{ scale: [1, 1.05, 1] }}
+                                      transition={{ repeat: Infinity, duration: 2 }}
+                                      className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center mb-3 border border-white/20 shadow-xl"
+                                    >
                                       {message.message_type === 'video' ? (
-                                        <Play className="h-5 w-5 text-white" />
+                                        <Play className="h-7 w-7 text-white ml-1" />
                                       ) : (
-                                        <ImageIcon className="h-5 w-5 text-white" />
+                                        <ImageIcon className="h-7 w-7 text-white" />
                                       )}
+                                    </motion.div>
+                                    
+                                    {/* Texte */}
+                                    <p className="text-white font-semibold text-sm mb-1">
+                                      {message.message_type === 'video' ? 'Vidéo' : 'Photo'} exclusive
+                                    </p>
+                                    <div className="flex items-center gap-1.5 text-white/70 text-xs mb-4">
+                                      <Lock className="h-3 w-3" />
+                                      <span>Contenu privé</span>
                                     </div>
-                                    <p className="text-white text-[10px] mt-2 opacity-80">Contenu exclusif</p>
+                                    
+                                    {/* Bouton débloquer premium */}
+                                    <Button
+                                      onClick={() => handlePayForContent(message.id)}
+                                      disabled={payForContent.isPending}
+                                      className="w-full max-w-[180px] h-11 rounded-xl bg-gradient-to-r from-primary via-primary to-primary/80 font-semibold text-sm shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all hover:scale-[1.02]"
+                                    >
+                                      {payForContent.isPending ? (
+                                        <span className="flex items-center gap-2">
+                                          <Loader2 className="h-4 w-4 animate-spin" />
+                                          Paiement...
+                                        </span>
+                                      ) : (
+                                        <span className="flex items-center gap-2">
+                                          <Eye className="h-4 w-4" />
+                                          Débloquer - {message.price?.toFixed(2)}€
+                                        </span>
+                                      )}
+                                    </Button>
                                   </div>
                                 </div>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handlePayForContent(message.id)}
-                                  disabled={payForContent.isPending}
-                                  className="w-full h-8 rounded-lg text-xs font-medium"
-                                >
-                                  <Lock className="h-3 w-3 mr-1.5" />
-                                  {message.price}€
-                                </Button>
                               </div>
                             ) : (
-                              <div className="space-y-1.5">
+                              /* MÉDIA DÉBLOQUÉ - Affichage premium */
+                              <div className="space-y-2">
                                 {isPaidContent && (
-                                  <div className="flex items-center gap-1 text-emerald-500 text-[10px] font-medium">
-                                    <Eye className="h-3 w-3" />
-                                    Débloqué
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-medium">
+                                      <Check className="h-3 w-3" />
+                                      Débloqué
+                                    </span>
+                                    <span className="text-muted-foreground text-xs flex items-center gap-1">
+                                      <Euro className="h-3 w-3" />
+                                      {message.price?.toFixed(2)}
+                                    </span>
                                   </div>
                                 )}
-                                {message.message_type === 'video' ? (
-                                  <video
-                                    controls
-                                    className="w-full max-w-[200px] rounded-lg"
-                                    poster={message.media_thumbnail}
-                                  >
-                                    <source src={message.media_url} type="video/mp4" />
-                                  </video>
-                                ) : (
-                                  <img
-                                    src={message.media_url}
-                                    alt="Contenu"
-                                    className="w-full max-w-[200px] rounded-lg"
-                                  />
-                                )}
+                                
+                                <div className="rounded-2xl overflow-hidden shadow-lg">
+                                  {message.message_type === 'video' ? (
+                                    <video
+                                      controls
+                                      className="w-full max-w-[280px] rounded-2xl"
+                                      poster={message.media_thumbnail || undefined}
+                                    >
+                                      <source src={message.media_url} type="video/mp4" />
+                                    </video>
+                                  ) : (
+                                    <motion.img
+                                      initial={{ opacity: 0 }}
+                                      animate={{ opacity: 1 }}
+                                      src={message.media_url}
+                                      alt="Contenu exclusif"
+                                      className="w-full max-w-[280px] rounded-2xl cursor-pointer hover:brightness-95 transition-all"
+                                    />
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>
