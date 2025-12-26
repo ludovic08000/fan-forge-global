@@ -168,36 +168,152 @@ const Dashboard = () => {
     loadUserProfile();
   }, [user]);
 
-  useEffect(() => {
-    const loadCreatorStats = async () => {
-      if (!user || isCreatorLocal !== true) return;
-      try {
-        const { data: creatorData } = await supabase
-          .from('creators')
-          .select('id, total_earnings, total_subscribers, total_content, featured_until, stripe_account_status, stripe_charges_enabled, stripe_payouts_enabled')
-          .eq('user_id', user.id)
-          .maybeSingle();
+  // Charger les stats du créateur avec les vrais chiffres de la base
+  const loadCreatorStats = async () => {
+    if (!user || isCreatorLocal !== true) return;
+    try {
+      const { data: creatorData } = await supabase
+        .from('creators')
+        .select('id, total_earnings, total_subscribers, total_content, featured_until, stripe_account_status, stripe_charges_enabled, stripe_payouts_enabled')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-        if (creatorData) {
-          setCreatorProfile(creatorData);
-          setStripeConnected(creatorData.stripe_account_status === 'active' && creatorData.stripe_payouts_enabled);
-          
-          const totalViews = myContent?.reduce((sum, content) => sum + content.view_count, 0) || 0;
-          const totalLikes = myContent?.reduce((sum, content) => sum + content.like_count, 0) || 0;
+      if (creatorData) {
+        setCreatorProfile(creatorData);
+        setStripeConnected(creatorData.stripe_account_status === 'active' && creatorData.stripe_payouts_enabled);
+        
+        // Récupérer les vraies statistiques depuis la base de données
+        const { data: contentStats } = await supabase
+          .from('content')
+          .select('id, view_count, like_count')
+          .eq('creator_id', creatorData.id);
 
-          setCreatorStats({
-            totalEarnings: creatorData.total_earnings || 0,
-            totalSubscribers: creatorData.total_subscribers || 0,
-            totalViews,
-            totalLikes
-          });
-        }
-      } catch (error) {
-        console.error('Error loading creator stats:', error);
+        const totalViews = contentStats?.reduce((sum, content) => sum + (content.view_count || 0), 0) || 0;
+        const totalLikes = contentStats?.reduce((sum, content) => sum + (content.like_count || 0), 0) || 0;
+
+        setCreatorStats({
+          totalEarnings: creatorData.total_earnings || 0,
+          totalSubscribers: creatorData.total_subscribers || 0,
+          totalViews,
+          totalLikes
+        });
       }
-    };
+    } catch (error) {
+      console.error('Error loading creator stats:', error);
+    }
+  };
+
+  useEffect(() => {
     loadCreatorStats();
-  }, [user, isCreatorLocal, myContent]);
+  }, [user, isCreatorLocal]);
+
+  // Temps réel pour les vues et likes
+  useEffect(() => {
+    if (!user || isCreatorLocal !== true || !creatorProfile?.id) return;
+
+    // Subscription pour les nouvelles vues
+    const viewsChannel = supabase
+      .channel('realtime-views')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'content_views'
+        },
+        async (payload) => {
+          // Vérifier si c'est pour le contenu du créateur
+          const { data: content } = await supabase
+            .from('content')
+            .select('creator_id')
+            .eq('id', payload.new.content_id)
+            .single();
+          
+          if (content?.creator_id === creatorProfile.id) {
+            setCreatorStats(prev => ({
+              ...prev,
+              totalViews: prev.totalViews + 1
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscription pour les likes
+    const likesChannel = supabase
+      .channel('realtime-likes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'content_likes'
+        },
+        async (payload) => {
+          // Vérifier si c'est pour le contenu du créateur
+          const { data: content } = await supabase
+            .from('content')
+            .select('creator_id')
+            .eq('id', payload.new.content_id)
+            .single();
+          
+          if (content?.creator_id === creatorProfile.id) {
+            setCreatorStats(prev => ({
+              ...prev,
+              totalLikes: prev.totalLikes + 1
+            }));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'content_likes'
+        },
+        async (payload) => {
+          // Vérifier si c'est pour le contenu du créateur (on utilise old pour DELETE)
+          const { data: content } = await supabase
+            .from('content')
+            .select('creator_id')
+            .eq('id', payload.old.content_id)
+            .single();
+          
+          if (content?.creator_id === creatorProfile.id) {
+            setCreatorStats(prev => ({
+              ...prev,
+              totalLikes: Math.max(0, prev.totalLikes - 1)
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscription pour les abonnés
+    const subscribersChannel = supabase
+      .channel('realtime-subscribers')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'subscriptions',
+          filter: `creator_id=eq.${creatorProfile.id}`
+        },
+        () => {
+          // Recharger les stats pour avoir le bon compte
+          loadCreatorStats();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(viewsChannel);
+      supabase.removeChannel(likesChannel);
+      supabase.removeChannel(subscribersChannel);
+    };
+  }, [user, isCreatorLocal, creatorProfile?.id]);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
