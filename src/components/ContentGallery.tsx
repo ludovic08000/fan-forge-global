@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const ContentGallery: React.FC = () => {
-  const { contents, isLoading, likeMutation } = useContent();
+  const { contents, isLoading, likeMutation, isContentLiked } = useContent();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -112,7 +112,7 @@ const ContentGallery: React.FC = () => {
               key={content.id}
               content={content}
               onLike={handleLike}
-              isLiked={false} // TODO: Implémenter la logique de vérification des likes
+              isLiked={isContentLiked(content.id)}
               showCreatorInfo={true}
               onOpenFreeImage={(c) => setSelected(c)}
             />

@@ -4,6 +4,7 @@ import ContentCard from '@/components/ContentCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { useContent } from '@/hooks/useContent';
 
 interface OptimizedContentGalleryProps {
   creatorId?: string;
@@ -23,6 +24,11 @@ export const OptimizedContentGallery = ({
   const [page, setPage] = useState(0);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const { isContentLiked, likeMutation } = useContent();
+
+  const handleLike = (contentId: string) => {
+    likeMutation.mutate(contentId);
+  };
 
   const fetchContent = useCallback(async (pageNum: number, append = false) => {
     try {
@@ -122,7 +128,12 @@ export const OptimizedContentGallery = ({
     <div className="space-y-8">
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {content.map((item) => (
-          <ContentCard key={item.id} content={item} />
+          <ContentCard 
+            key={item.id} 
+            content={item} 
+            onLike={handleLike}
+            isLiked={isContentLiked(item.id)}
+          />
         ))}
       </div>
 
