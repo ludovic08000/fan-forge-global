@@ -25,8 +25,26 @@ import {
   Video,
   Play,
   Eye,
-  Mic
+  Mic,
+  Trash2,
+  MoreVertical
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
@@ -69,16 +87,43 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
   const isUserCreator = userCreatorData?.id === creatorId;
   const targetId = isUserCreator ? subscriberId : creatorId;
   
-  const { messages, isLoading, sendMessage, sendPaidContent, payForContent } = usePrivateMessages(targetId);
+  const { messages, isLoading, sendMessage, sendPaidContent, payForContent, deleteMessage } = usePrivateMessages(targetId);
   const [newMessage, setNewMessage] = useState('');
   const [contentPrice, setContentPrice] = useState<number | string>(10);
   const [showPriceInput, setShowPriceInput] = useState(false);
   const [isValidatingFile, setIsValidatingFile] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [previewFile, setPreviewFile] = useState<{ url: string; type: 'image' | 'video'; file: File } | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Déterminer si l'utilisateur est l'auteur d'un message
+  const isMessageAuthor = (message: any) => {
+    if (isUserCreator) {
+      // Si l'utilisateur est le créateur, il est l'auteur des messages de type non-text (média)
+      // et des messages où il est subscriber (texte envoyé par lui en tant que créateur)
+      return message.creator_id === creatorId && message.message_type !== 'text';
+    } else {
+      // Si l'utilisateur est un subscriber, il est l'auteur des messages texte qu'il a envoyé
+      return message.subscriber_id === user?.id && message.message_type === 'text';
+    }
+  };
+
+  const handleDeleteMessage = (messageId: string) => {
+    setMessageToDelete(messageId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteMessage = async () => {
+    if (messageToDelete) {
+      await deleteMessage.mutateAsync(messageToDelete);
+      setDeleteDialogOpen(false);
+      setMessageToDelete(null);
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -266,6 +311,11 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
               const canViewPaidContent = message.price === 0 || message.is_paid;
               const isPaidContent = message.price > 0;
               const isLocked = isPaidContent && !message.is_paid;
+              const isDeleted = message.is_deleted;
+              const canDelete = isMessageAuthor(message) && !isDeleted;
+              
+              // Statut du message
+              const messageStatus = message.status || 'sent';
               
               return (
                 <motion.div
@@ -273,112 +323,180 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ delay: index * 0.02 }}
-                  className={`flex ${isFromMe ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${isFromMe ? 'justify-end' : 'justify-start'} group`}
                 >
-                  <div
-                    className={cn(
-                      "max-w-[80%] rounded-2xl px-4 py-2.5 relative",
-                      isFromMe
-                        ? "bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground rounded-br-md shadow-lg shadow-primary/20"
-                        : "bg-muted/80 text-foreground rounded-bl-md",
-                      isLocked && "bg-gradient-to-br from-card to-muted/50 border border-border/50 text-foreground"
-                    )}
-                  >
-                    {/* Effet de brillance */}
-                    {isFromMe && !isLocked && (
-                      <div className="absolute inset-0 rounded-2xl rounded-br-md overflow-hidden pointer-events-none">
-                        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
-                      </div>
+                  <div className="flex items-start gap-1">
+                    {/* Menu d'actions (suppression) - affiché à gauche pour mes messages */}
+                    {isFromMe && canDelete && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteMessage(message.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                     
-                    <div className="relative z-10">
-                      {message.message_type === 'text' ? (
-                        <p className="text-[15px] leading-relaxed">{message.content}</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {!canViewPaidContent ? (
-                            // Contenu verrouillé
-                            <div className="space-y-3">
-                              <div className="relative aspect-[4/3] w-44 rounded-xl overflow-hidden">
-                                {message.media_thumbnail ? (
-                                  <img
-                                    src={message.media_thumbnail}
-                                    alt="Aperçu"
-                                    className="w-full h-full object-cover blur-2xl scale-125 brightness-50"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10" />
-                                )}
-                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 backdrop-blur-sm">
-                                  <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center">
-                                    {message.message_type === 'video' ? (
-                                      <Play className="h-5 w-5 text-white ml-0.5" />
-                                    ) : (
-                                      <ImageIcon className="h-5 w-5 text-white" />
-                                    )}
+                    <div
+                      className={cn(
+                        "max-w-[80%] rounded-2xl px-4 py-2.5 relative",
+                        isDeleted
+                          ? "bg-muted/50 border border-border/30"
+                          : isFromMe
+                            ? "bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground rounded-br-md shadow-lg shadow-primary/20"
+                            : "bg-muted/80 text-foreground rounded-bl-md",
+                        isLocked && !isDeleted && "bg-gradient-to-br from-card to-muted/50 border border-border/50 text-foreground"
+                      )}
+                    >
+                      {/* Effet de brillance */}
+                      {isFromMe && !isLocked && !isDeleted && (
+                        <div className="absolute inset-0 rounded-2xl rounded-br-md overflow-hidden pointer-events-none">
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
+                        </div>
+                      )}
+                      
+                      <div className="relative z-10">
+                        {isDeleted ? (
+                          // Message supprimé
+                          <p className="text-sm text-muted-foreground italic flex items-center gap-2">
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Ce message a été supprimé
+                          </p>
+                        ) : message.message_type === 'text' ? (
+                          <p className="text-[15px] leading-relaxed">{message.content}</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {!canViewPaidContent ? (
+                              // Contenu verrouillé
+                              <div className="space-y-3">
+                                <div className="relative aspect-[4/3] w-44 rounded-xl overflow-hidden">
+                                  {message.media_thumbnail ? (
+                                    <img
+                                      src={message.media_thumbnail}
+                                      alt="Aperçu"
+                                      className="w-full h-full object-cover blur-2xl scale-125 brightness-50"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10" />
+                                  )}
+                                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/20 backdrop-blur-sm">
+                                    <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center">
+                                      {message.message_type === 'video' ? (
+                                        <Play className="h-5 w-5 text-white ml-0.5" />
+                                      ) : (
+                                        <ImageIcon className="h-5 w-5 text-white" />
+                                      )}
+                                    </div>
+                                    <p className="text-white text-xs font-medium mt-2">
+                                      {message.message_type === 'video' ? 'Vidéo' : 'Photo'} exclusive
+                                    </p>
                                   </div>
-                                  <p className="text-white text-xs font-medium mt-2">
-                                    {message.message_type === 'video' ? 'Vidéo' : 'Photo'} exclusive
-                                  </p>
                                 </div>
-                              </div>
-                              <Button
-                                size="sm"
-                                onClick={() => handlePayForContent(message.id)}
-                                disabled={payForContent.isPending}
-                                className="w-full h-9 rounded-xl bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20"
-                              >
-                                <Lock className="h-3.5 w-3.5 mr-2" />
-                                Débloquer {message.price}€
-                              </Button>
-                            </div>
-                          ) : (
-                            // Contenu débloqué
-                            <div className="space-y-2">
-                              {isPaidContent && (
-                                <div className="flex items-center gap-1.5 text-xs">
-                                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
-                                    <Eye className="h-3 w-3" />
-                                    <span className="font-medium">Débloqué</span>
-                                  </div>
-                                </div>
-                              )}
-                              {message.message_type === 'video' ? (
-                                <video
-                                  controls
-                                  className="w-full rounded-xl"
-                                  poster={message.media_thumbnail}
+                                <Button
+                                  size="sm"
+                                  onClick={() => handlePayForContent(message.id)}
+                                  disabled={payForContent.isPending}
+                                  className="w-full h-9 rounded-xl bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20"
                                 >
-                                  <source src={message.media_url} type="video/mp4" />
-                                </video>
-                              ) : (
-                                <img
-                                  src={message.media_url}
-                                  alt="Contenu"
-                                  className="w-full rounded-xl"
-                                />
-                              )}
-                            </div>
+                                  <Lock className="h-3.5 w-3.5 mr-2" />
+                                  Débloquer {message.price}€
+                                </Button>
+                              </div>
+                            ) : (
+                              // Contenu débloqué
+                              <div className="space-y-2">
+                                {isPaidContent && (
+                                  <div className="flex items-center gap-1.5 text-xs">
+                                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
+                                      <Eye className="h-3 w-3" />
+                                      <span className="font-medium">Débloqué</span>
+                                    </div>
+                                  </div>
+                                )}
+                                {message.message_type === 'video' ? (
+                                  <video
+                                    controls
+                                    className="w-full rounded-xl"
+                                    poster={message.media_thumbnail}
+                                  >
+                                    <source src={message.media_url} type="video/mp4" />
+                                  </video>
+                                ) : (
+                                  <img
+                                    src={message.media_url}
+                                    alt="Contenu"
+                                    className="w-full rounded-xl"
+                                  />
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Horodatage et statut */}
+                      {!isDeleted && (
+                        <div className={cn(
+                          "flex items-center gap-1.5 mt-1.5",
+                          isFromMe ? "justify-end" : "justify-start"
+                        )}>
+                          <span className={cn(
+                            "text-[10px] font-medium",
+                            isFromMe ? "text-primary-foreground/60" : "text-muted-foreground"
+                          )}>
+                            {format(new Date(message.created_at), 'HH:mm', { locale: fr })}
+                          </span>
+                          {isFromMe && (
+                            messageStatus === 'sending' ? (
+                              <Loader2 className="h-3 w-3 text-primary-foreground/60 animate-spin" />
+                            ) : messageStatus === 'read' ? (
+                              <CheckCheck className="h-3 w-3 text-blue-400" />
+                            ) : messageStatus === 'delivered' ? (
+                              <CheckCheck className="h-3 w-3 text-primary-foreground/60" />
+                            ) : (
+                              <Check className="h-3 w-3 text-primary-foreground/60" />
+                            )
                           )}
                         </div>
                       )}
                     </div>
                     
-                    {/* Horodatage */}
-                    <div className={cn(
-                      "flex items-center gap-1.5 mt-1.5",
-                      isFromMe ? "justify-end" : "justify-start"
-                    )}>
-                      <span className={cn(
-                        "text-[10px] font-medium",
-                        isFromMe ? "text-primary-foreground/60" : "text-muted-foreground"
-                      )}>
-                        {format(new Date(message.created_at), 'HH:mm', { locale: fr })}
-                      </span>
-                      {isFromMe && (
-                        <CheckCheck className="h-3 w-3 text-primary-foreground/60" />
-                      )}
-                    </div>
+                    {/* Menu d'actions - affiché à droite pour les messages reçus */}
+                    {!isFromMe && canDelete && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-40">
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteMessage(message.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 </motion.div>
               );
@@ -538,6 +656,32 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
           </motion.div>
         </motion.div>
       </div>
+
+      {/* Dialog de confirmation de suppression */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer ce message ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ce message sera supprimé pour tous les participants de la conversation. Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteMessage}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMessage.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

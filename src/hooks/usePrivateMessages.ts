@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -18,6 +18,9 @@ interface PrivateMessage {
   is_paid: boolean | null;
   created_at: string;
   updated_at: string;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
+  status?: string;
   creator?: { stage_name: string | null; user_id: string };
   subscriber?: { display_name: string | null; avatar_url: string | null };
 }
@@ -55,7 +58,10 @@ export const usePrivateMessages = (creatorId?: string) => {
           price,
           is_paid,
           created_at,
-          updated_at
+          updated_at,
+          is_deleted,
+          deleted_at,
+          status
         `)
         .or(`and(creator_id.eq.${creatorId},subscriber_id.eq.${user.id}),and(creator_id.eq.${user.id},subscriber_id.eq.${creatorId})`)
         .order('created_at', { ascending: false })
@@ -64,25 +70,23 @@ export const usePrivateMessages = (creatorId?: string) => {
       if (error) throw error;
       
       return {
-        messages: (data || []).reverse(), // Reverse pour avoir l'ordre chronologique
+        messages: (data || []).reverse(),
         nextCursor: data && data.length === MESSAGES_PER_PAGE ? pageParam + 1 : null,
       };
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     initialPageParam: 0,
     enabled: !!user && !!creatorId,
-    staleTime: 30000, // Cache pendant 30s
-    gcTime: 5 * 60 * 1000, // Garde en cache 5 min
+    staleTime: 30000,
+    gcTime: 5 * 60 * 1000,
   });
 
-  // Aplatir les messages de toutes les pages
   const messages = data?.pages.flatMap(page => page.messages) ?? [];
 
-  // Abonnement temps réel optimisé
+  // Abonnement temps réel optimisé (INSERT, UPDATE, DELETE)
   useEffect(() => {
     if (!user || !creatorId) return;
 
-    // Cleanup ancien abonnement
     if (subscriptionRef.current) {
       subscriptionRef.current.unsubscribe();
     }
@@ -95,24 +99,27 @@ export const usePrivateMessages = (creatorId?: string) => {
           event: 'INSERT',
           schema: 'public',
           table: 'private_messages',
-          filter: `or(and(creator_id.eq.${creatorId},subscriber_id.eq.${user.id}),and(creator_id.eq.${user.id},subscriber_id.eq.${creatorId}))`,
         },
         (payload) => {
           const newMessage = payload.new as PrivateMessage;
           
-          // Update optimiste - ajoute le message directement au cache
+          // Vérifier si le message concerne cette conversation
+          const isRelevant = 
+            (newMessage.creator_id === creatorId && newMessage.subscriber_id === user.id) ||
+            (newMessage.creator_id === user.id && newMessage.subscriber_id === creatorId);
+          
+          if (!isRelevant) return;
+          
           queryClient.setQueryData(
             ['private-messages', creatorId, user.id],
             (old: any) => {
               if (!old?.pages?.length) return old;
               
-              // Vérifie si le message existe déjà (évite les doublons)
               const allMessages = old.pages.flatMap((p: any) => p.messages);
               if (allMessages.some((m: PrivateMessage) => m.id === newMessage.id)) {
                 return old;
               }
 
-              // Ajoute à la première page (messages les plus récents)
               const newPages = [...old.pages];
               newPages[0] = {
                 ...newPages[0],
@@ -133,7 +140,6 @@ export const usePrivateMessages = (creatorId?: string) => {
         (payload) => {
           const updatedMessage = payload.new as PrivateMessage;
           
-          // Update le message dans le cache
           queryClient.setQueryData(
             ['private-messages', creatorId, user.id],
             (old: any) => {
@@ -144,6 +150,30 @@ export const usePrivateMessages = (creatorId?: string) => {
                 messages: page.messages.map((m: PrivateMessage) =>
                   m.id === updatedMessage.id ? updatedMessage : m
                 ),
+              }));
+              return { ...old, pages: newPages };
+            }
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'private_messages',
+        },
+        (payload) => {
+          const deletedMessage = payload.old as { id: string };
+          
+          queryClient.setQueryData(
+            ['private-messages', creatorId, user.id],
+            (old: any) => {
+              if (!old?.pages?.length) return old;
+              
+              const newPages = old.pages.map((page: any) => ({
+                ...page,
+                messages: page.messages.filter((m: PrivateMessage) => m.id !== deletedMessage.id),
               }));
               return { ...old, pages: newPages };
             }
@@ -177,12 +207,14 @@ export const usePrivateMessages = (creatorId?: string) => {
             subscriber_id: targetCreatorId,
             message_type: 'text' as const,
             content,
+            status: 'sent',
           }
         : {
             creator_id: targetCreatorId,
             subscriber_id: user.id,
             message_type: 'text' as const,
             content,
+            status: 'sent',
           };
 
       const { data, error } = await supabase
@@ -195,13 +227,10 @@ export const usePrivateMessages = (creatorId?: string) => {
       return data;
     },
     onMutate: async ({ content, creatorId: targetCreatorId }) => {
-      // Cancel les queries en cours
       await queryClient.cancelQueries({ queryKey: ['private-messages', creatorId, user?.id] });
 
-      // Snapshot du cache actuel
       const previousMessages = queryClient.getQueryData(['private-messages', creatorId, user?.id]);
 
-      // Update optimiste
       const optimisticMessage: PrivateMessage = {
         id: `temp-${Date.now()}`,
         creator_id: creatorId || targetCreatorId,
@@ -214,6 +243,8 @@ export const usePrivateMessages = (creatorId?: string) => {
         is_paid: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        is_deleted: false,
+        status: 'sending',
       };
 
       queryClient.setQueryData(
@@ -234,14 +265,10 @@ export const usePrivateMessages = (creatorId?: string) => {
       return { previousMessages };
     },
     onError: (err, _, context) => {
-      // Rollback en cas d'erreur
       if (context?.previousMessages) {
         queryClient.setQueryData(['private-messages', creatorId, user?.id], context.previousMessages);
       }
       toast.error(`Erreur lors de l'envoi: ${err.message}`);
-    },
-    onSettled: () => {
-      // Pas d'invalidation - le realtime gère la synchro
     },
   });
 
@@ -278,6 +305,7 @@ export const usePrivateMessages = (creatorId?: string) => {
         media_thumbnail: thumbnailUrl,
         price,
         is_paid: false,
+        status: 'sent',
       };
 
       const { data, error } = await supabase
@@ -319,7 +347,103 @@ export const usePrivateMessages = (creatorId?: string) => {
     },
   });
 
-  // Charger plus de messages (pour infinite scroll)
+  // Supprimer un message (soft delete - seul l'auteur peut supprimer)
+  const deleteMessage = useMutation({
+    mutationFn: async (messageId: string) => {
+      if (!user) throw new Error('Non authentifié');
+
+      // Récupérer le message pour vérifier l'auteur
+      const { data: message, error: fetchError } = await supabase
+        .from('private_messages')
+        .select('*')
+        .eq('id', messageId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!message) throw new Error('Message non trouvé');
+
+      // Vérifier que l'utilisateur est l'auteur du message
+      const { data: userCreator } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const isAuthor = userCreator 
+        ? (message.creator_id === userCreator.id && message.message_type !== 'text') ||
+          (message.subscriber_id === user.id && message.message_type === 'text')
+        : message.subscriber_id === user.id;
+
+      if (!isAuthor) {
+        throw new Error('Vous ne pouvez supprimer que vos propres messages');
+      }
+
+      const { error } = await supabase
+        .from('private_messages')
+        .update({
+          is_deleted: true,
+          deleted_at: new Date().toISOString(),
+          content: null,
+          media_url: null,
+          media_thumbnail: null,
+        })
+        .eq('id', messageId);
+
+      if (error) throw error;
+      return { messageId };
+    },
+    onMutate: async (messageId) => {
+      await queryClient.cancelQueries({ queryKey: ['private-messages', creatorId, user?.id] });
+
+      const previousMessages = queryClient.getQueryData(['private-messages', creatorId, user?.id]);
+
+      // Update optimiste
+      queryClient.setQueryData(
+        ['private-messages', creatorId, user?.id],
+        (old: any) => {
+          if (!old?.pages?.length) return old;
+          
+          const newPages = old.pages.map((page: any) => ({
+            ...page,
+            messages: page.messages.map((m: PrivateMessage) =>
+              m.id === messageId 
+                ? { ...m, is_deleted: true, deleted_at: new Date().toISOString(), content: null, media_url: null }
+                : m
+            ),
+          }));
+          return { ...old, pages: newPages };
+        }
+      );
+
+      return { previousMessages };
+    },
+    onError: (err, _, context) => {
+      if (context?.previousMessages) {
+        queryClient.setQueryData(['private-messages', creatorId, user?.id], context.previousMessages);
+      }
+      toast.error(err.message);
+    },
+    onSuccess: () => {
+      toast.success('Message supprimé');
+    },
+  });
+
+  // Marquer les messages comme lus
+  const markAsRead = useMutation({
+    mutationFn: async (messageIds: string[]) => {
+      if (!user || messageIds.length === 0) return;
+
+      const { error } = await supabase
+        .from('private_messages')
+        .update({ status: 'read' })
+        .in('id', messageIds)
+        .neq('status', 'read');
+
+      if (error) throw error;
+    },
+  });
+
+  // Charger plus de messages
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
@@ -335,5 +459,7 @@ export const usePrivateMessages = (creatorId?: string) => {
     sendMessage,
     sendPaidContent,
     payForContent,
+    deleteMessage,
+    markAsRead,
   };
 };
