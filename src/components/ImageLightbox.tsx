@@ -26,12 +26,25 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
   hasNext = false,
 }) => {
   // Utiliser l'URL signée pour accéder à l'image
-  const { signedUrl, loading: urlLoading } = useSignedUrl(imageUrl, { enabled: isOpen && !!imageUrl });
+  const { signedUrl, loading: urlLoading, error: urlError } = useSignedUrl(imageUrl, { enabled: isOpen && !!imageUrl });
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  // L'URL effective à utiliser
+  // L'URL effective à utiliser - fallback à l'URL originale si pas de signed URL
   const effectiveUrl = signedUrl || imageUrl;
+
+  // Log pour debug
+  React.useEffect(() => {
+    if (isOpen && imageUrl) {
+      console.log('ImageLightbox debug:', { 
+        imageUrl, 
+        signedUrl, 
+        effectiveUrl, 
+        urlLoading, 
+        urlError 
+      });
+    }
+  }, [isOpen, imageUrl, signedUrl, effectiveUrl, urlLoading, urlError]);
 
   // Reset loading state when image changes
   React.useEffect(() => {
@@ -110,6 +123,16 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
           <div className="flex flex-col items-center gap-3 text-red-400">
             <X className="w-12 h-12" />
             <span>Impossible de charger l'image</span>
+            {urlError && <span className="text-xs text-red-300">{urlError}</span>}
+            <button 
+              onClick={() => {
+                setImageError(false);
+                setImageLoaded(false);
+              }}
+              className="text-sm text-white/70 underline hover:text-white"
+            >
+              Réessayer
+            </button>
           </div>
         )}
 
