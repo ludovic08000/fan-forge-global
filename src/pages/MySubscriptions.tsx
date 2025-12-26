@@ -362,14 +362,14 @@ const MySubscriptions = () => {
         </div>
 
         {/* Search Section - Centered */}
-        <div className="flex flex-col items-center text-center mb-10">
+        <div className="flex flex-col items-center text-center mb-10 relative z-50">
           <h1 className="text-3xl md:text-4xl font-bold mb-3">
             Découvrez des créateurs
           </h1>
           <p className="text-muted-foreground mb-6 max-w-md">
             Recherchez parmi nos créateurs et trouvez du contenu exclusif
           </p>
-          <div className="w-full max-w-xl">
+          <div className="w-full max-w-xl relative z-50">
             <SearchBar placeholder="Rechercher un créateur..." />
           </div>
         </div>
