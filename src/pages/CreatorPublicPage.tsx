@@ -210,17 +210,42 @@ const CreatorPublicPage = () => {
 
     setUnsubscribing(true);
     try {
-      const { error } = await supabase
+      // Vérifier si c'est un abonnement payant avec Stripe
+      const { data: subscription } = await supabase
         .from('subscriptions')
-        .update({ status: 'canceled' })
+        .select('stripe_subscription_id, price')
         .eq('subscriber_id', user.id)
         .eq('creator_id', creator.id)
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .single();
 
-      if (error) throw error;
+      if (subscription?.stripe_subscription_id && subscription.price > 0) {
+        // Abonnement payant - rediriger vers le portail Stripe
+        const { data, error } = await supabase.functions.invoke('customer-portal', {
+          headers: {
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          },
+        });
 
-      setIsSubscribed(false);
-      toast.success('Désabonnement effectué');
+        if (error) throw error;
+        if (data?.url) {
+          window.open(data.url, '_blank');
+          toast.info('Gérez votre abonnement dans le portail Stripe');
+        }
+      } else {
+        // Abonnement gratuit - annuler directement
+        const { error } = await supabase
+          .from('subscriptions')
+          .update({ status: 'canceled' })
+          .eq('subscriber_id', user.id)
+          .eq('creator_id', creator.id)
+          .eq('status', 'active');
+
+        if (error) throw error;
+
+        setIsSubscribed(false);
+        toast.success('Désabonnement effectué');
+      }
     } catch (error: any) {
       console.error('Error unsubscribing:', error);
       toast.error('Erreur lors du désabonnement');
