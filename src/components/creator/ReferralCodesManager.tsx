@@ -108,6 +108,13 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
         codeData.discount_percentage = 0;
       }
 
+      // Durée de la réduction
+      if (newCode.duration === 'forever') {
+        codeData.duration_months = 0; // 0 = forever
+      } else {
+        codeData.duration_months = parseInt(newCode.duration);
+      }
+
       if (newCode.maxUses) {
         codeData.max_uses = parseInt(newCode.maxUses);
       }
