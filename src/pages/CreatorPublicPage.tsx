@@ -330,66 +330,32 @@ const CreatorPublicPage = () => {
     setLikingContent(contentId);
 
     try {
-      if (isLiked) {
-        // Retirer le like
-        const { error } = await supabase
-          .from('content_likes')
-          .delete()
-          .eq('content_id', contentId)
-          .eq('user_id', user.id);
+      // Utiliser la fonction SQL sécurisée
+      const { data, error } = await supabase.rpc('toggle_content_like', {
+        p_content_id: contentId
+      });
 
-        if (error) throw error;
+      if (error) throw error;
 
-        // Décrémenter le compteur
-        await supabase
-          .from('content')
-          .update({ like_count: (content.find(c => c.id === contentId)?.like_count || 1) - 1 })
-          .eq('id', contentId);
+      const result = data as { liked: boolean; like_count: number };
 
+      if (result.liked) {
+        setUserLikes(prev => new Set([...prev, contentId]));
+        toast.success('❤️ Liked !');
+      } else {
         setUserLikes(prev => {
           const newSet = new Set(prev);
           newSet.delete(contentId);
           return newSet;
         });
+      }
 
-        // Mettre à jour le contenu local
-        setContent(prev => prev.map(c => 
-          c.id === contentId ? { ...c, like_count: Math.max(0, (c.like_count || 1) - 1) } : c
-        ));
-        if (selectedImage?.id === contentId) {
-          setSelectedImage((prev: any) => prev ? { ...prev, like_count: Math.max(0, (prev.like_count || 1) - 1) } : null);
-        }
-      } else {
-        // Ajouter le like
-        const { error } = await supabase
-          .from('content_likes')
-          .insert({ content_id: contentId, user_id: user.id });
-
-        if (error) {
-          if (error.code === '23505') {
-            // Already liked
-            return;
-          }
-          throw error;
-        }
-
-        // Incrémenter le compteur
-        await supabase
-          .from('content')
-          .update({ like_count: (content.find(c => c.id === contentId)?.like_count || 0) + 1 })
-          .eq('id', contentId);
-
-        setUserLikes(prev => new Set([...prev, contentId]));
-
-        // Mettre à jour le contenu local
-        setContent(prev => prev.map(c => 
-          c.id === contentId ? { ...c, like_count: (c.like_count || 0) + 1 } : c
-        ));
-        if (selectedImage?.id === contentId) {
-          setSelectedImage((prev: any) => prev ? { ...prev, like_count: (prev.like_count || 0) + 1 } : null);
-        }
-
-        toast.success('❤️ Liked !');
+      // Mettre à jour le contenu local avec le nouveau compteur
+      setContent(prev => prev.map(c => 
+        c.id === contentId ? { ...c, like_count: result.like_count } : c
+      ));
+      if (selectedImage?.id === contentId) {
+        setSelectedImage((prev: any) => prev ? { ...prev, like_count: result.like_count } : null);
       }
     } catch (error: any) {
       console.error('Error liking content:', error);

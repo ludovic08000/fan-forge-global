@@ -1969,6 +1969,7 @@ export type Database = {
               username: string
             }[]
           }
+      toggle_content_like: { Args: { p_content_id: string }; Returns: Json }
     }
     Enums: {
       content_status: "draft" | "published" | "archived"
