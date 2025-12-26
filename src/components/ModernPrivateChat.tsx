@@ -427,9 +427,9 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                     duration: 0.25,
                     ease: [0.25, 0.1, 0.25, 1]
                   }}
-                  className="flex w-full group justify-end pl-8 sm:pl-16"
+                  className="flex w-full group justify-start"
                 >
-                  <div className="flex items-end gap-1.5 max-w-[85%] sm:max-w-[75%] flex-row-reverse">
+                  <div className="flex items-end gap-1.5 w-full">
                     {/* Bouton suppression - style iOS */}
                     {canDelete && (
                       <Button
@@ -442,10 +442,9 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                       </Button>
                     )}
                     
-                    {/* Bulle de message style iMessage/Instagram */}
                     <div
                       className={cn(
-                        "relative text-[15px] leading-relaxed shadow-sm",
+                        "relative text-[15px] leading-relaxed shadow-sm w-full",
                         isDeleted
                           ? "rounded-2xl px-3.5 py-2 bg-muted/50 border border-border/30"
                           : isRequestRejected
@@ -453,8 +452,8 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                             : isMediaRequest
                               ? "rounded-2xl px-3.5 py-2 bg-amber-500/10 border border-amber-500/30"
                               : cn(
-                                  "px-4 py-2.5 bg-gradient-to-br from-primary to-primary/90 text-primary-foreground",
-                                  "rounded-[20px] rounded-br-md"
+                                  "px-4 py-2.5 bg-muted/80 dark:bg-muted/60",
+                                  "rounded-2xl"
                                 ),
                         isLocked && !isDeleted && !isMediaRequest && "bg-muted/50 border border-border/40"
                       )}
