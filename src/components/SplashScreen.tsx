@@ -9,9 +9,9 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   const [phase, setPhase] = useState<'logo' | 'text' | 'exit'>('logo');
 
   useEffect(() => {
-    const logoTimer = setTimeout(() => setPhase('text'), 800);
-    const textTimer = setTimeout(() => setPhase('exit'), 2200);
-    const exitTimer = setTimeout(() => onComplete(), 2800);
+    const logoTimer = setTimeout(() => setPhase('text'), 1200);
+    const textTimer = setTimeout(() => setPhase('exit'), 3500);
+    const exitTimer = setTimeout(() => onComplete(), 4200);
 
     return () => {
       clearTimeout(logoTimer);
