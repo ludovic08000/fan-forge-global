@@ -378,346 +378,83 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
         </div>
       )}
       
-      {/* Zone des messages - style Instagram/iMessage */}
-      <ScrollArea className="flex-1 px-3 py-3">
-        <div className="space-y-1">
+      {/* Zone des messages */}
+      <ScrollArea className="flex-1">
+        <div>
           {messages?.length === 0 ? (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex flex-col items-center justify-center py-16 text-center"
-            >
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-4">
-                <Sparkles className="h-8 w-8 text-primary/50" />
-              </div>
-              <p className="text-sm text-muted-foreground font-medium">
-                Envoyez un message à {creatorName}
-              </p>
-              <p className="text-xs text-muted-foreground/60 mt-1">
-                Vos messages sont privés et sécurisés
-              </p>
-            </motion.div>
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Sparkles className="h-8 w-8 text-primary/50 mb-4" />
+              <p className="text-sm text-muted-foreground">Envoyez un message à {creatorName}</p>
+            </div>
           ) : (
-          messages?.map((message, index) => {
-              // sender_id = user.id signifie que c'est MOI qui ai envoyé ce message
+            messages?.map((message) => {
               const isFromMe = message.sender_id === user?.id;
-              
               const canViewPaidContent = message.price === 0 || message.price === null || message.is_paid;
               const isPaidContent = (message.price ?? 0) > 0;
-              const isLocked = isPaidContent && !message.is_paid;
               const isDeleted = message.is_deleted;
               const canDelete = isMessageAuthor(message) && !isDeleted;
               const messageStatus = message.status || 'sent';
-              
-              // Déterminer si c'est une demande de média
               const isMediaRequest = message.message_type === 'image_request' || message.message_type === 'video_request';
               const mediaRequestType = message.message_type === 'video_request' ? 'video' : 'image';
               const isRequestPending = isMediaRequest && messageStatus === 'pending';
               const isRequestPriceSet = isMediaRequest && messageStatus === 'price_set';
               const isRequestRejected = isMediaRequest && messageStatus === 'rejected';
               const isRequestPaid = isMediaRequest && message.is_paid;
-              
-                return (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ 
-                    delay: Math.min(index * 0.02, 0.2), 
-                    duration: 0.25,
-                    ease: [0.25, 0.1, 0.25, 1]
-                  }}
-                  className="flex w-full group justify-start"
-                >
-                  <div className="flex items-end gap-1.5 w-full">
-                    {/* Bouton suppression - style iOS */}
-                    {canDelete && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 scale-90 group-hover:scale-100"
-                        onClick={() => handleDeleteMessage(message.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                    
-                    <div
-                      className={cn(
-                        "relative text-[15px] leading-relaxed shadow-sm w-full",
-                        isDeleted
-                          ? "rounded-2xl px-3.5 py-2 bg-muted/50 border border-border/30"
-                          : isRequestRejected
-                            ? "rounded-2xl px-3.5 py-2 bg-destructive/10 border border-destructive/30"
-                            : isMediaRequest
-                              ? "rounded-2xl px-3.5 py-2 bg-amber-500/10 border border-amber-500/30"
-                              : cn(
-                                  "px-4 py-2.5 bg-muted/80 dark:bg-muted/60",
-                                  "rounded-2xl"
-                                ),
-                        isLocked && !isDeleted && !isMediaRequest && "bg-muted/50 border border-border/40"
-                      )}
-                    >
-                      <div className="relative">
-                        {isDeleted ? (
-                          <p className="text-xs text-muted-foreground italic flex items-center gap-1.5">
-                            <Trash2 className="h-3 w-3" />
-                            Message supprimé
-                          </p>
-                        ) : isMediaRequest ? (
-                          /* DEMANDE DE MÉDIA */
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2">
-                              <Upload className="h-4 w-4 text-amber-500" />
-                              <span className="text-sm font-medium">
-                                Demande de {mediaRequestType === 'video' ? 'vidéo' : 'photo'}
-                              </span>
-                            </div>
-                            
-                            {/* Aperçu flouté du média */}
-                            <div className="relative aspect-[4/3] w-48 md:w-56 rounded-xl overflow-hidden">
-                              {message.media_url && !isRequestPaid ? (
-                                <img
-                                  src={message.media_url}
-                                  alt="Aperçu"
-                                  className="w-full h-full object-cover blur-xl scale-110 brightness-50"
-                                />
-                              ) : message.media_url && isRequestPaid ? (
-                                mediaRequestType === 'video' ? (
-                                  <video src={message.media_url} controls className="w-full h-full object-cover" />
-                                ) : (
-                                  <img src={message.media_url} alt="Média" className="w-full h-full object-cover" />
-                                )
-                              ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-amber-500/30 via-amber-500/20 to-amber-500/10" />
-                              )}
-                              
-                              {/* Overlay si pas payé */}
-                              {!isRequestPaid && (
-                                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
-                                  {isRequestPending && (
-                                    <div className="text-center">
-                                      <Clock className="h-8 w-8 text-amber-400 mx-auto mb-2" />
-                                      <p className="text-white text-xs">En attente</p>
-                                    </div>
-                                  )}
-                                  {isRequestPriceSet && (
-                                    <div className="text-center">
-                                      <Euro className="h-8 w-8 text-emerald-400 mx-auto mb-2" />
-                                      <p className="text-white text-sm font-semibold">{message.price?.toFixed(2)}€</p>
-                                    </div>
-                                  )}
-                                  {isRequestRejected && (
-                                    <div className="text-center">
-                                      <XCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
-                                      <p className="text-white text-xs">Refusé</p>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Actions selon le statut et le rôle */}
-                            {isUserCreator && isRequestPending && (
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="flex-1 h-9 border-destructive/50 text-destructive hover:bg-destructive/10"
-                                  onClick={() => handleRejectRequest(message.id)}
-                                  disabled={respondToMediaRequest.isPending}
-                                >
-                                  <XCircle className="h-4 w-4 mr-1" />
-                                  Refuser
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  className="flex-1 h-9 bg-emerald-600 hover:bg-emerald-700"
-                                  onClick={() => handleAcceptRequest(message.id)}
-                                  disabled={respondToMediaRequest.isPending}
-                                >
-                                  <CheckCircle className="h-4 w-4 mr-1" />
-                                  Accepter
-                                </Button>
-                              </div>
-                            )}
-                            
-                            {!isUserCreator && isRequestPriceSet && (
-                              <Button
-                                size="sm"
-                                className="w-full h-9 bg-gradient-to-r from-primary to-primary/80"
-                                onClick={() => handlePayForRequest(message.id)}
-                                disabled={payForMediaRequest.isPending}
-                              >
-                                {payForMediaRequest.isPending ? (
-                                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                                ) : (
-                                  <Euro className="h-4 w-4 mr-1" />
-                                )}
-                                Payer {message.price?.toFixed(2)}€
-                              </Button>
-                            )}
-                            
-                            {isRequestPaid && (
-                              <div className="flex items-center gap-1.5 text-emerald-500 text-xs">
-                                <CheckCircle className="h-3.5 w-3.5" />
-                                <span>Payé - Contenu visible</span>
-                              </div>
-                            )}
-                            
-                            {isRequestRejected && (
-                              <div className="flex items-center gap-1.5 text-destructive text-xs">
-                                <XCircle className="h-3.5 w-3.5" />
-                                <span>Demande refusée</span>
-                              </div>
-                            )}
-                            
-                            {!isUserCreator && isRequestPending && (
-                              <div className="flex items-center gap-1.5 text-amber-500 text-xs">
-                                <Clock className="h-3.5 w-3.5" />
-                                <span>En attente de réponse du créateur</span>
-                              </div>
-                            )}
-                          </div>
-                        ) : message.message_type === 'text' ? (
-                          <p className="text-[13px] leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {!canViewPaidContent ? (
-                              /* MÉDIA VERROUILLÉ - Design Premium */
-                              <div className="relative">
-                                <div className="relative aspect-[4/3] w-56 md:w-64 rounded-2xl overflow-hidden">
-                                  {/* Background avec blur */}
-                                  {message.media_thumbnail ? (
-                                    <img
-                                      src={message.media_thumbnail}
-                                      alt="Aperçu"
-                                      className="w-full h-full object-cover blur-xl scale-110 brightness-50"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-primary/30 via-primary/20 to-primary/10" />
-                                  )}
-                                  
-                                  {/* Overlay glass effect */}
-                                  <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-                                  
-                                  {/* Contenu central */}
-                                  <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-                                    {/* Icône animée */}
-                                    <motion.div 
-                                      initial={{ scale: 0.9 }}
-                                      animate={{ scale: [1, 1.05, 1] }}
-                                      transition={{ repeat: Infinity, duration: 2 }}
-                                      className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center mb-3 border border-white/20 shadow-xl"
-                                    >
-                                      {message.message_type === 'video' ? (
-                                        <Play className="h-7 w-7 text-white ml-1" />
-                                      ) : (
-                                        <ImageIcon className="h-7 w-7 text-white" />
-                                      )}
-                                    </motion.div>
-                                    
-                                    {/* Texte */}
-                                    <p className="text-white font-semibold text-sm mb-1">
-                                      {message.message_type === 'video' ? 'Vidéo' : 'Photo'} exclusive
-                                    </p>
-                                    <div className="flex items-center gap-1.5 text-white/70 text-xs mb-4">
-                                      <Lock className="h-3 w-3" />
-                                      <span>Contenu privé</span>
-                                    </div>
-                                    
-                                    {/* Bouton débloquer premium */}
-                                    <Button
-                                      onClick={() => handlePayForContent(message.id)}
-                                      disabled={payForContent.isPending}
-                                      className="w-full max-w-[180px] h-11 rounded-xl bg-gradient-to-r from-primary via-primary to-primary/80 font-semibold text-sm shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all hover:scale-[1.02]"
-                                    >
-                                      {payForContent.isPending ? (
-                                        <span className="flex items-center gap-2">
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                          Paiement...
-                                        </span>
-                                      ) : (
-                                        <span className="flex items-center gap-2">
-                                          <Eye className="h-4 w-4" />
-                                          Débloquer - {message.price?.toFixed(2)}€
-                                        </span>
-                                      )}
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            ) : (
-                              /* MÉDIA DÉBLOQUÉ - Affichage premium */
-                              <div className="space-y-2">
-                                {isPaidContent && (
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-medium">
-                                      <Check className="h-3 w-3" />
-                                      Débloqué
-                                    </span>
-                                    <span className="text-muted-foreground text-xs flex items-center gap-1">
-                                      <Euro className="h-3 w-3" />
-                                      {message.price?.toFixed(2)}
-                                    </span>
-                                  </div>
-                                )}
-                                
-                                <div className="rounded-2xl overflow-hidden shadow-lg">
-                                  {message.message_type === 'video' ? (
-                                    <video
-                                      controls
-                                      className="w-full max-w-[280px] rounded-2xl"
-                                      poster={message.media_thumbnail || undefined}
-                                    >
-                                      <source src={message.media_url} type="video/mp4" />
-                                    </video>
-                                  ) : (
-                                    <motion.img
-                                      initial={{ opacity: 0 }}
-                                      animate={{ opacity: 1 }}
-                                      src={message.media_url}
-                                      alt="Contenu exclusif"
-                                      className="w-full max-w-[280px] rounded-2xl cursor-pointer hover:brightness-95 transition-all"
-                                    />
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
+
+              return (
+                <div key={message.id} className="relative px-4 py-3 border-b border-border/30 hover:bg-muted/20 group">
+                  {canDelete && (
+                    <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 text-destructive" onClick={() => handleDeleteMessage(message.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
+
+                  {isDeleted ? (
+                    <p className="text-xs text-muted-foreground italic">Message supprimé</p>
+                  ) : isMediaRequest ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Upload className="h-4 w-4 text-amber-500" />
+                        <span className="text-sm">Demande de {mediaRequestType}</span>
                       </div>
-                      
-                      {/* Horodatage et statut */}
-                      {!isDeleted && (
-                        <div className={cn(
-                          "flex items-center gap-1.5 mt-2 select-none",
-                          isFromMe ? "justify-end" : "justify-start"
-                        )}>
-                          <span className={cn(
-                            "text-[11px] font-medium",
-                            isFromMe ? "text-primary-foreground/50" : "text-muted-foreground/70"
-                          )}>
-                            {format(new Date(message.created_at), 'HH:mm', { locale: fr })}
-                          </span>
-                          {isFromMe && (
-                            <span className="flex items-center">
-                              {messageStatus === 'sending' ? (
-                                <Loader2 className="h-3 w-3 text-primary-foreground/50 animate-spin" />
-                              ) : messageStatus === 'read' ? (
-                                <CheckCheck className="h-3.5 w-3.5 text-sky-300" />
-                              ) : messageStatus === 'delivered' ? (
-                                <CheckCheck className="h-3.5 w-3.5 text-primary-foreground/50" />
-                              ) : (
-                                <Check className="h-3.5 w-3.5 text-primary-foreground/50" />
-                              )}
-                            </span>
-                          )}
+                      {isUserCreator && isRequestPending && (
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => handleRejectRequest(message.id)}>Refuser</Button>
+                          <Button size="sm" onClick={() => handleAcceptRequest(message.id)}>Accepter</Button>
                         </div>
                       )}
+                      {!isUserCreator && isRequestPriceSet && (
+                        <Button size="sm" onClick={() => handlePayForRequest(message.id)}>Payer {message.price}€</Button>
+                      )}
                     </div>
-                  </div>
-                </motion.div>
+                  ) : message.message_type === 'text' ? (
+                    <p className="text-sm">{message.content}</p>
+                  ) : (
+                    <div>
+                      {!canViewPaidContent ? (
+                        <div className="relative w-48 h-32 bg-muted rounded-lg flex items-center justify-center">
+                          <Lock className="h-6 w-6 text-muted-foreground" />
+                          <Button size="sm" className="absolute bottom-2" onClick={() => handlePayForContent(message.id)}>
+                            Débloquer {message.price}€
+                          </Button>
+                        </div>
+                      ) : (
+                        message.message_type === 'video' ? (
+                          <video controls className="w-48 rounded-lg"><source src={message.media_url || ''} /></video>
+                        ) : (
+                          <img src={message.media_url || ''} alt="" className="w-48 rounded-lg" />
+                        )
+                      )}
+                    </div>
+                  )}
+
+                  {!isDeleted && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-[11px] text-muted-foreground">{format(new Date(message.created_at), 'HH:mm', { locale: fr })}</span>
+                      {isFromMe && <Check className="h-3 w-3 text-muted-foreground" />}
+                    </div>
+                  )}
+                </div>
               );
             })
           )}
