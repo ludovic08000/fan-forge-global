@@ -3,15 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Euro, Save, Settings, Crown, Gift } from 'lucide-react';
+import { Save, User, Gift } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { creatorProfileSchema } from '@/lib/validations';
 import { z } from 'zod';
 import AccountDeletion from '@/components/settings/AccountDeletion';
 import CreatorAccountPause from '@/components/creator/CreatorAccountPause';
@@ -20,8 +18,6 @@ interface CreatorProfile {
   id: string;
   stage_name: string | null;
   category: string | null;
-  subscription_price: number;
-  currency: string;
   is_accepting_tips: boolean;
 }
 
@@ -34,8 +30,6 @@ const CreatorSettings: React.FC = () => {
   const [formData, setFormData] = useState({
     stageName: '',
     category: '',
-    subscriptionPrice: 0,
-    currency: 'EUR',
     isAcceptingTips: true
   });
 
@@ -55,7 +49,6 @@ const CreatorSettings: React.FC = () => {
     'Autre'
   ];
 
-  // Charger le profil créateur
   useEffect(() => {
     const loadProfile = async () => {
       if (!user) return;
@@ -76,8 +69,6 @@ const CreatorSettings: React.FC = () => {
           setFormData({
             stageName: data.stage_name || '',
             category: data.category || '',
-            subscriptionPrice: data.subscription_price || 0,
-            currency: data.currency || 'EUR',
             isAcceptingTips: data.is_accepting_tips
           });
         }
@@ -98,33 +89,21 @@ const CreatorSettings: React.FC = () => {
 
     setSaving(true);
     try {
-      // Valider avec Zod
-      const validatedData = creatorProfileSchema.parse({
-        stageName: formData.stageName,
-        category: formData.category,
-        subscriptionPrice: formData.subscriptionPrice,
-        currency: formData.currency,
-      });
-
       const updateData = {
-        stage_name: validatedData.stageName || null,
-        category: validatedData.category || null,
-        subscription_price: validatedData.subscriptionPrice,
-        currency: validatedData.currency,
+        stage_name: formData.stageName || null,
+        category: formData.category || null,
         is_accepting_tips: formData.isAcceptingTips
       };
 
       if (profile) {
-        // Mise à jour
         const { error } = await supabase
           .from('creators')
           .update(updateData)
           .eq('user_id', user.id);
 
         if (error) throw error;
-        toast.success('Paramètres mis à jour avec succès');
+        toast.success('Profil mis à jour');
       } else {
-        // Création
         const { error } = await supabase
           .from('creators')
           .insert({
@@ -133,9 +112,8 @@ const CreatorSettings: React.FC = () => {
           });
 
         if (error) throw error;
-        toast.success('Profil créateur créé avec succès');
+        toast.success('Profil créateur créé');
         
-        // Recharger le profil
         const { data } = await supabase
           .from('creators')
           .select('*')
@@ -145,14 +123,8 @@ const CreatorSettings: React.FC = () => {
         if (data) setProfile(data);
       }
     } catch (error: any) {
-      if (error instanceof z.ZodError) {
-        error.errors.forEach(err => {
-          toast.error(err.message);
-        });
-      } else {
-        console.error('Error saving profile:', error);
-        toast.error('Erreur lors de la sauvegarde');
-      }
+      console.error('Error saving profile:', error);
+      toast.error('Erreur lors de la sauvegarde');
     } finally {
       setSaving(false);
     }
@@ -168,23 +140,20 @@ const CreatorSettings: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-2">
-        <Settings className="h-5 w-5 text-primary" />
-        <h2 className="text-2xl font-bold">Paramètres Créateur</h2>
-      </div>
-
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Informations de base */}
         <Card>
-          <CardHeader>
-            <CardTitle>Informations de base</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Profil créateur
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="stageName">Nom de scène</Label>
               <Input
                 id="stageName"
-                placeholder="Votre nom d'artiste ou de marque"
+                placeholder="Votre nom d'artiste"
                 value={formData.stageName}
                 onChange={(e) => setFormData(prev => ({ ...prev, stageName: e.target.value }))}
               />
@@ -197,7 +166,7 @@ const CreatorSettings: React.FC = () => {
                 onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionnez votre catégorie" />
+                  <SelectValue placeholder="Sélectionnez" />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((cat) => (
@@ -208,163 +177,47 @@ const CreatorSettings: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Configuration des prix */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Crown className="h-5 w-5 text-primary" />
-              <span>Configuration des prix</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Prix d'abonnement */}
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="subscriptionPrice">Prix d'abonnement mensuel</Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Définissez le prix que vos fans paieront pour accéder à votre contenu premium
-                </p>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="relative flex-1">
-                  <Euro className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="subscriptionPrice"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="9.99"
-                    value={formData.subscriptionPrice}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      subscriptionPrice: parseFloat(e.target.value) || 0 
-                    }))}
-                    className="pl-10"
-                  />
-                </div>
-                
-                <Select
-                  value={formData.currency}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}
-                >
-                  <SelectTrigger className="w-24">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-start space-x-2">
-                  <Crown className="h-4 w-4 text-primary mt-0.5" />
-                  <div className="text-sm">
-                    <p className="font-medium">Conseils de tarification :</p>
-                    <ul className="mt-2 space-y-1 text-muted-foreground">
-                      <li>• Commencez avec un prix accessible (5-15€/mois)</li>
-                      <li>• Augmentez progressivement selon votre popularité</li>
-                      <li>• Prix de 0€ = abonnement gratuit</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             <Separator />
 
-            {/* Pourboires */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <Gift className="h-4 w-4 text-primary" />
-                    <Label htmlFor="acceptTips">Accepter les pourboires</Label>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Permettre à vos fans de vous envoyer des pourboires
-                  </p>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <Gift className="h-4 w-4 text-primary" />
+                  <Label htmlFor="acceptTips">Pourboires</Label>
                 </div>
-                <Switch
-                  id="acceptTips"
-                  checked={formData.isAcceptingTips}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isAcceptingTips: checked }))}
-                />
+                <p className="text-xs text-muted-foreground">
+                  Accepter les pourboires de vos fans
+                </p>
               </div>
+              <Switch
+                id="acceptTips"
+                checked={formData.isAcceptingTips}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isAcceptingTips: checked }))}
+              />
             </div>
           </CardContent>
         </Card>
 
-        {/* Aperçu */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Aperçu pour vos fans</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 border rounded-lg bg-card">
-              <div className="text-center space-y-3">
-                <h3 className="font-semibold">
-                  {formData.stageName || 'Votre nom de scène'}
-                </h3>
-                {formData.category && (
-                  <p className="text-sm text-muted-foreground">{formData.category}</p>
-                )}
-                
-                {formData.subscriptionPrice > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-lg font-bold">
-                      {new Intl.NumberFormat('fr-FR', {
-                        style: 'currency',
-                        currency: formData.currency
-                      }).format(formData.subscriptionPrice)}/mois
-                    </p>
-                    <Button variant="premium" size="sm">
-                      S'abonner
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-muted-foreground">Abonnement gratuit</p>
-                    <Button variant="outline" size="sm">
-                      Suivre gratuitement
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Bouton de sauvegarde */}
         <Button 
           type="submit" 
           disabled={saving}
           className="w-full"
-          variant="premium"
         >
           <Save className="h-4 w-4 mr-2" />
-          {saving ? 'Sauvegarde...' : 'Sauvegarder les paramètres'}
+          {saving ? 'Sauvegarde...' : 'Enregistrer'}
         </Button>
       </form>
 
-      {/* Gestion du compte */}
-      <Separator className="my-8" />
+      <Separator />
       
-      <div className="space-y-6">
-        <h3 className="text-xl font-semibold">Gestion du compte</h3>
+      <div className="space-y-4">
+        <h4 className="font-medium text-sm text-muted-foreground">Gestion du compte</h4>
         
-        {/* Pause du compte */}
         {profile?.id && (
           <CreatorAccountPause creatorId={profile.id} />
         )}
         
-        {/* Suppression du compte */}
         <AccountDeletion isCreator={true} creatorId={profile?.id} />
       </div>
     </div>
