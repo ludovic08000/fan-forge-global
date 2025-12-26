@@ -136,64 +136,16 @@ export const useContent = () => {
   // Liker un contenu
   const likeMutation = useMutation({
     mutationFn: async (contentId: string) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      // Utiliser la fonction SQL sécurisée
+      const { data, error } = await supabase.rpc('toggle_content_like', {
+        p_content_id: contentId
+      });
 
-      // Vérifier si déjà liké
-      const { data: existing } = await supabase
-        .from('content_likes')
-        .select('id')
-        .eq('content_id', contentId)
-        .eq('user_id', user.id)
-        .single();
-
-      if (existing) {
-        // Unliker
-        await supabase
-          .from('content_likes')
-          .delete()
-          .eq('content_id', contentId)
-          .eq('user_id', user.id);
-
-        // Récupérer le nombre actuel de likes
-        const { data: currentContent } = await supabase
-          .from('content')
-          .select('like_count')
-          .eq('id', contentId)
-          .single();
-
-        if (currentContent) {
-          await supabase
-            .from('content')
-            .update({ like_count: Math.max(0, currentContent.like_count - 1) })
-            .eq('id', contentId);
-        }
-
-        return { liked: false };
-      } else {
-        // Liker
-        await supabase
-          .from('content_likes')
-          .insert({ content_id: contentId, user_id: user.id });
-
-        // Récupérer le nombre actuel de likes
-        const { data: currentContent } = await supabase
-          .from('content')
-          .select('like_count')
-          .eq('id', contentId)
-          .single();
-
-        if (currentContent) {
-          await supabase
-            .from('content')
-            .update({ like_count: currentContent.like_count + 1 })
-            .eq('id', contentId);
-        }
-
-        return { liked: true };
-      }
+      if (error) throw error;
+      
+      return data as { liked: boolean; like_count: number };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['contents'] });
     },
     onError: (error: any) => {
