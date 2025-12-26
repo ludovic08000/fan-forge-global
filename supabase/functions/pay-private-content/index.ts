@@ -116,7 +116,6 @@ serve(async (req) => {
     const amountInCents = Math.round(messageData.price * 100);
 
     // Déterminer le nom et la description du produit selon le type
-    const isMediaRequest = messageData.message_type === 'image_request' || messageData.message_type === 'video_request';
     const productName = isMediaRequest 
       ? `Paiement média pour ${messageWithCreator.creator.stage_name}`
       : `Contenu privé de ${messageWithCreator.creator.stage_name}`;
