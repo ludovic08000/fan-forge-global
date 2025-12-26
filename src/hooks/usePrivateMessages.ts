@@ -22,6 +22,7 @@ interface PrivateMessage {
   is_deleted?: boolean;
   deleted_at?: string | null;
   status?: string;
+  read_at?: string | null;
   creator?: { stage_name: string | null; user_id: string };
   subscriber?: { display_name: string | null; avatar_url: string | null };
 }
@@ -90,7 +91,8 @@ export const usePrivateMessages = (creatorId?: string) => {
           updated_at,
           is_deleted,
           deleted_at,
-          status
+          status,
+          read_at
         `)
         .or(filterParts.join(','))
         .order('created_at', { ascending: false })
