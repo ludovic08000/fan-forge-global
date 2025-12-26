@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 
 const Messages: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
-  const { conversations, loadingConversations } = useConversations();
+  const { conversations, loadingConversations, deleteConversation } = useConversations();
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -38,6 +38,13 @@ const Messages: React.FC = () => {
 
   const handleBack = () => {
     setSelectedConversation(null);
+  };
+
+  const handleDeleteConversation = (participantId: string) => {
+    deleteConversation.mutate(participantId);
+    if (selectedConversation?.participant_id === participantId) {
+      setSelectedConversation(null);
+    }
   };
 
   return (
@@ -158,6 +165,8 @@ const Messages: React.FC = () => {
               loading={loadingConversations}
               selectedId={selectedConversation?.id || null}
               onSelect={handleSelectConversation}
+              onDelete={handleDeleteConversation}
+              isDeleting={deleteConversation.isPending}
             />
           </motion.aside>
 

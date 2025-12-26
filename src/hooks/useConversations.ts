@@ -63,6 +63,7 @@ export const useConversations = () => {
       let query = supabase
         .from('private_messages')
         .select('id, creator_id, subscriber_id, content, message_type, created_at')
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false })
         .limit(100); // Limiter pour la performance
 
@@ -157,6 +158,68 @@ export const useConversations = () => {
     staleTime: 30000, // Cache 30 secondes
   });
 
+  // Supprimer une conversation (soft delete tous les messages)
+  const deleteConversation = useMutation({
+    mutationFn: async (participantId: string) => {
+      if (!user) throw new Error('Non authentifié');
+
+      // Récupérer le creator_id si l'utilisateur est un créateur
+      const { data: creatorData } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const isCreator = !!creatorData;
+      const creatorId = creatorData?.id;
+
+      let deleteQuery;
+      if (isCreator && creatorId) {
+        // Je suis créateur, supprimer les messages avec ce subscriber
+        deleteQuery = supabase
+          .from('private_messages')
+          .update({ 
+            is_deleted: true, 
+            deleted_at: new Date().toISOString(),
+            content: null,
+            media_url: null,
+            media_thumbnail: null
+          })
+          .eq('creator_id', creatorId)
+          .eq('subscriber_id', participantId);
+      } else {
+        // Je suis subscriber, supprimer les messages avec ce créateur
+        deleteQuery = supabase
+          .from('private_messages')
+          .update({ 
+            is_deleted: true, 
+            deleted_at: new Date().toISOString(),
+            content: null,
+            media_url: null,
+            media_thumbnail: null
+          })
+          .eq('subscriber_id', user.id)
+          .eq('creator_id', participantId);
+      }
+
+      const { error } = await deleteQuery;
+      if (error) throw error;
+
+      return participantId;
+    },
+    onSuccess: (participantId) => {
+      // Mettre à jour le cache localement
+      queryClient.setQueryData(['conversations', user?.id], (old: Conversation[] | undefined) => {
+        if (!old) return [];
+        return old.filter(c => c.participant_id !== participantId);
+      });
+      toast.success('Conversation supprimée');
+    },
+    onError: (error) => {
+      toast.error(`Erreur: ${error.message}`);
+    },
+  });
+
   // Écouter les nouveaux messages en temps réel
   useEffect(() => {
     if (!user) return;
@@ -201,6 +264,7 @@ export const useConversations = () => {
   return {
     conversations: conversations || [],
     loadingConversations,
+    deleteConversation,
   };
 };
 
