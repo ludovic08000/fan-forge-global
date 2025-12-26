@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout as StripeEmbeddedCheckout } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '@/integrations/supabase/client';
+import { PromoCodeInput } from '@/components/PromoCodeInput';
+import { Separator } from '@/components/ui/separator';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -14,6 +16,9 @@ interface EmbeddedCheckoutProps {
 export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: EmbeddedCheckoutProps) => {
   const [clientSecret, setClientSecret] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [promoCode, setPromoCode] = useState<string | null>(null);
+  const [discount, setDiscount] = useState<{ type: 'percentage' | 'fixed'; value: number } | null>(null);
+  const [isRefetching, setIsRefetching] = useState(false);
 
   // Décoder le clientSecret si nécessaire (URL encoded)
   const decodeSecret = (secret: string): string => {
@@ -28,36 +33,53 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
     }
   };
 
+  const fetchCheckoutSession = async (referralCode?: string | null) => {
+    try {
+      setIsRefetching(true);
+      const { data, error } = await supabase.functions.invoke('create-creator-checkout', {
+        body: { 
+          creatorId,
+          referralCode: referralCode || undefined
+        },
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+      if (data.clientSecret) {
+        setClientSecret(decodeSecret(data.clientSecret));
+      } else {
+        throw new Error('Aucun clientSecret reçu');
+      }
+    } catch (err: any) {
+      console.error('Checkout error:', err);
+      setError(err.message || 'Erreur lors du chargement du paiement');
+    } finally {
+      setIsRefetching(false);
+    }
+  };
+
   useEffect(() => {
-    // Si déjà préchargé, pas besoin de refetch
-    if (preloadedSecret) {
+    // Si déjà préchargé et pas de code promo, pas besoin de refetch
+    if (preloadedSecret && !promoCode) {
       setClientSecret(decodeSecret(preloadedSecret));
       return;
     }
 
-    const fetchClientSecret = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke('create-creator-checkout', {
-          body: { creatorId },
-          headers: {
-            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          },
-        });
+    // Fetch with promo code if available
+    fetchCheckoutSession(promoCode);
+  }, [creatorId, preloadedSecret, promoCode]);
 
-        if (error) throw error;
-        if (data.clientSecret) {
-          setClientSecret(decodeSecret(data.clientSecret));
-        } else {
-          throw new Error('Aucun clientSecret reçu');
-        }
-      } catch (err: any) {
-        console.error('Checkout error:', err);
-        setError(err.message || 'Erreur lors du chargement du paiement');
-      }
-    };
-
-    fetchClientSecret();
-  }, [creatorId, preloadedSecret]);
+  const handlePromoCodeValidated = (code: string | null, discountInfo: { type: 'percentage' | 'fixed'; value: number } | null) => {
+    setPromoCode(code);
+    setDiscount(discountInfo);
+    
+    // Reset client secret to trigger refetch with new code
+    if (code) {
+      setClientSecret('');
+    }
+  };
 
   if (error) {
     return (
@@ -68,19 +90,28 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
     );
   }
 
-  if (!clientSecret) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full min-h-[500px]">
-      <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
-        <StripeEmbeddedCheckout className="w-full" />
-      </EmbeddedCheckoutProvider>
+    <div className="w-full">
+      {/* Promo code input */}
+      <div className="p-4 border-b">
+        <PromoCodeInput
+          creatorId={creatorId}
+          onCodeValidated={handlePromoCodeValidated}
+        />
+      </div>
+
+      {/* Checkout form */}
+      <div className="min-h-[500px]">
+        {!clientSecret || isRefetching ? (
+          <div className="flex items-center justify-center p-8 h-[500px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
+            <StripeEmbeddedCheckout className="w-full" />
+          </EmbeddedCheckoutProvider>
+        )}
+      </div>
     </div>
   );
 };
