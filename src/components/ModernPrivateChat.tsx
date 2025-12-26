@@ -356,43 +356,56 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
 
   return (
     <div className={cn(
-      "flex flex-col overflow-hidden bg-card",
+      "flex flex-col overflow-hidden",
       fullScreen 
-        ? "h-full" 
-        : "h-[550px] rounded-2xl border border-border/50 shadow-xl"
+        ? "h-full bg-background" 
+        : "h-[550px] rounded-2xl border border-border/50 shadow-xl bg-card"
     )}>
-      {/* Header compact et élégant - masqué en mode plein écran car le header est dans la page */}
+      {/* Header compact Instagram-style - masqué en mode plein écran */}
       {!fullScreen && (
-        <div className="px-4 py-3 border-b border-border/50 bg-card/95 backdrop-blur-sm">
+        <div className="px-4 py-3 border-b border-border/40 bg-background/80 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Avatar className="h-9 w-9 ring-1 ring-primary/20">
+              <div className="absolute -inset-0.5 bg-gradient-to-br from-primary via-pink-500 to-orange-400 rounded-full opacity-75" />
+              <Avatar className="h-10 w-10 ring-2 ring-background relative">
                 <AvatarImage src={creatorAvatar} className="object-cover" />
-                <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
+                <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-bold text-sm">
                   {creatorName.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-card" />
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-sm truncate">{creatorName}</h3>
-              <span className="text-xs text-emerald-500">En ligne</span>
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs text-emerald-600 dark:text-emerald-400">En ligne</span>
+              </div>
             </div>
-            <Shield className="h-4 w-4 text-muted-foreground/50" />
+            <Shield className="h-4 w-4 text-muted-foreground/40" />
           </div>
         </div>
       )}
       
-      {/* Zone des messages */}
-      <ScrollArea className="flex-1 px-3 py-4">
-        <div className="space-y-2">
+      {/* Zone des messages - style Instagram/iMessage */}
+      <ScrollArea className="flex-1 px-3 py-3">
+        <div className="space-y-1">
           {messages?.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Sparkles className="h-8 w-8 text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center justify-center py-16 text-center"
+            >
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-4">
+                <Sparkles className="h-8 w-8 text-primary/50" />
+              </div>
+              <p className="text-sm text-muted-foreground font-medium">
                 Envoyez un message à {creatorName}
               </p>
-            </div>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                Vos messages sont privés et sécurisés
+              </p>
+            </motion.div>
           ) : (
             messages?.map((message, index) => {
               const isFromCreator = message.creator_id === creatorId;
@@ -412,47 +425,57 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
               const isRequestRejected = isMediaRequest && messageStatus === 'rejected';
               const isRequestPaid = isMediaRequest && message.is_paid;
               
-              return (
+                return (
                 <motion.div
                   key={message.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(index * 0.03, 0.3), duration: 0.3 }}
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ 
+                    delay: Math.min(index * 0.02, 0.2), 
+                    duration: 0.25,
+                    ease: [0.25, 0.1, 0.25, 1]
+                  }}
                   className={cn(
                     "flex w-full group",
-                    isFromMe ? "justify-end pl-12" : "justify-start pr-12"
+                    isFromMe ? "justify-end pl-8 sm:pl-16" : "justify-start pr-8 sm:pr-16"
                   )}
                 >
                   <div className={cn(
-                    "flex items-end gap-2 max-w-[85%]",
+                    "flex items-end gap-1.5 max-w-[85%] sm:max-w-[75%]",
                     isFromMe ? "flex-row-reverse" : "flex-row"
                   )}>
-                    {/* Bouton suppression - visible uniquement pour l'auteur */}
+                    {/* Bouton suppression - style iOS */}
                     {canDelete && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-7 w-7 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 scale-90 group-hover:scale-100"
                         onClick={() => handleDeleteMessage(message.id)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     )}
                     
-                    {/* Bulle de message compacte */}
+                    {/* Bulle de message style iMessage/Instagram */}
                     <div
                       className={cn(
-                        "relative rounded-2xl px-3 py-2 text-sm",
+                        "relative text-[15px] leading-relaxed shadow-sm",
                         isDeleted
-                          ? "bg-muted/50 border border-border/30"
+                          ? "rounded-2xl px-3.5 py-2 bg-muted/50 border border-border/30"
                           : isRequestRejected
-                            ? "bg-destructive/10 border border-destructive/30"
+                            ? "rounded-2xl px-3.5 py-2 bg-destructive/10 border border-destructive/30"
                             : isMediaRequest
-                              ? "bg-amber-500/10 border border-amber-500/30"
+                              ? "rounded-2xl px-3.5 py-2 bg-amber-500/10 border border-amber-500/30"
                               : isFromMe
-                                ? "bg-primary text-primary-foreground rounded-br-md"
-                                : "bg-muted/60 rounded-bl-md",
-                        isLocked && !isDeleted && !isMediaRequest && "bg-muted/40 border border-border/30"
+                                ? cn(
+                                    "px-4 py-2.5 bg-gradient-to-br from-primary to-primary/90 text-primary-foreground",
+                                    "rounded-[20px] rounded-br-md"
+                                  )
+                                : cn(
+                                    "px-4 py-2.5 bg-muted/80 dark:bg-muted/60",
+                                    "rounded-[20px] rounded-bl-md"
+                                  ),
+                        isLocked && !isDeleted && !isMediaRequest && "bg-muted/50 border border-border/40"
                       )}
                     >
                       <div className="relative">
@@ -826,13 +849,19 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Zone de saisie compacte */}
-      <div className="p-3 border-t border-border/30 bg-card">
-        <div className={cn(
-          "flex items-center gap-2 px-3 py-2 rounded-xl transition-all",
-          "bg-muted/40 border",
-          isFocused ? "border-primary/30" : "border-border/30"
-        )}>
+      {/* Zone de saisie style Instagram/iMessage */}
+      <div className="p-2 sm:p-3 border-t border-border/30 bg-background/80 backdrop-blur-xl safe-area-bottom">
+        <motion.div 
+          className={cn(
+            "flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-full transition-all duration-200",
+            "bg-muted/50 dark:bg-muted/30",
+            isFocused 
+              ? "ring-2 ring-primary/20 bg-muted/70 dark:bg-muted/40" 
+              : "ring-1 ring-border/40"
+          )}
+          animate={{ scale: isFocused ? 1.01 : 1 }}
+          transition={{ duration: 0.15 }}
+        >
           <EmojiPicker onEmojiSelect={handleEmojiSelect} />
 
           {isUserCreator ? (
@@ -850,13 +879,13 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                 size="icon"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={sendPaidContent.isPending || isValidatingFile || !!previewFile}
-                className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
+                className="h-9 w-9 rounded-full hover:bg-primary/10 hover:text-primary transition-colors"
                 title="Envoyer du contenu payant"
               >
                 {isValidatingFile ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <Paperclip className="h-4 w-4" />
+                  <ImageIcon className="h-5 w-5" />
                 )}
               </Button>
             </>
@@ -875,13 +904,13 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                 size="icon"
                 onClick={() => subscriberFileInputRef.current?.click()}
                 disabled={sendMediaRequest.isPending || isValidatingFile || !!previewFile}
-                className="h-8 w-8 rounded-lg hover:bg-amber-500/10 hover:text-amber-500"
-                title="Envoyer une photo/vidéo au créateur (payant)"
+                className="h-9 w-9 rounded-full hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
+                title="Envoyer une photo/vidéo au créateur"
               >
                 {isValidatingFile ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <Upload className="h-4 w-4" />
+                  <ImageIcon className="h-5 w-5" />
                 )}
               </Button>
             </>
@@ -896,27 +925,35 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
             onBlur={() => setIsFocused(false)}
             placeholder="Message..."
             disabled={sendMessage.isPending}
-            className="flex-1 h-8 text-sm bg-transparent border-0 focus-visible:ring-0 placeholder:text-muted-foreground/50"
+            className="flex-1 h-9 text-[15px] bg-transparent border-0 focus-visible:ring-0 placeholder:text-muted-foreground/50 px-1"
           />
           
-          <Button
-            onClick={handleSendMessage}
-            disabled={!newMessage.trim() || sendMessage.isPending}
-            size="icon"
-            className={cn(
-              "h-8 w-8 rounded-lg transition-colors",
-              newMessage.trim() 
-                ? "bg-primary hover:bg-primary/90"
-                : "bg-muted text-muted-foreground"
-            )}
+          <motion.div
+            animate={{ 
+              scale: newMessage.trim() ? 1 : 0.9,
+              opacity: newMessage.trim() ? 1 : 0.5
+            }}
+            transition={{ duration: 0.15 }}
           >
-            {sendMessage.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
+            <Button
+              onClick={handleSendMessage}
+              disabled={!newMessage.trim() || sendMessage.isPending}
+              size="icon"
+              className={cn(
+                "h-9 w-9 rounded-full transition-all duration-200",
+                newMessage.trim() 
+                  ? "bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
+              {sendMessage.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </motion.div>
+        </motion.div>
       </div>
 
       {/* Dialog de confirmation de suppression */}
