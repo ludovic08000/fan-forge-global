@@ -47,9 +47,9 @@ serve(async (req) => {
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     // Récupérer les données de la requête
-    const { creatorId } = await req.json();
+    const { creatorId, referralCode } = await req.json();
     if (!creatorId) throw new Error("Creator ID is required");
-    logStep("Creator ID received", { creatorId });
+    logStep("Creator ID received", { creatorId, referralCode });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
@@ -145,8 +145,39 @@ serve(async (req) => {
       logStep("Using existing price ID", { priceId });
     }
 
+    // Gérer le code promo/parrainage
+    let discounts: any[] = [];
+    if (referralCode) {
+      // Vérifier le code de parrainage
+      const { data: refCode } = await supabaseClient
+        .from('referral_codes')
+        .select('*')
+        .eq('creator_id', creatorId)
+        .eq('code', referralCode.toUpperCase())
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (refCode) {
+        // Créer un coupon Stripe pour ce code
+        const couponParams: any = {
+          duration: 'once',
+          metadata: { referral_code_id: refCode.id }
+        };
+
+        if (refCode.discount_percentage) {
+          couponParams.percent_off = refCode.discount_percentage;
+        } else if (refCode.discount_amount) {
+          couponParams.amount_off = Math.round(refCode.discount_amount * 100);
+          couponParams.currency = creatorData.currency.toLowerCase();
+        }
+
+        const coupon = await stripe.coupons.create(couponParams);
+        discounts = [{ coupon: coupon.id }];
+        logStep("Coupon created for referral code", { couponId: coupon.id, referralCode });
+      }
+    }
+
     // Créer la session de checkout en mode embedded avec Stripe Tax
-    // Note: invoice_creation n'est pas nécessaire pour mode "subscription" car les factures sont créées automatiquement
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [
@@ -158,22 +189,22 @@ serve(async (req) => {
       mode: "subscription",
       ui_mode: "embedded",
       return_url: `${req.headers.get("origin")}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-      // Activer Stripe Tax pour le calcul automatique des taxes
       automatic_tax: { enabled: true },
-      // Sauvegarder l'adresse de facturation pour les taxes automatiques
       customer_update: {
         address: 'auto',
       },
-      // Ajouter les métadonnées de l'abonnement (les factures sont auto-générées pour les subscriptions)
+      discounts: discounts.length > 0 ? discounts : undefined,
       subscription_data: {
         metadata: {
           creator_id: creatorId,
           user_id: user.id,
+          referral_code: referralCode || null,
         },
       },
       metadata: {
         creator_id: creatorId,
         user_id: user.id,
+        referral_code: referralCode || null,
       },
     });
 
