@@ -35,7 +35,7 @@ serve(async (req) => {
     // Vérifier la signature si le secret webhook est configuré
     if (webhookSecret && signature) {
       try {
-        event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+        event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
         logStep("Webhook signature verified");
       } catch (err: any) {
         logStep("Webhook signature verification failed", { error: err.message });
