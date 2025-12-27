@@ -131,8 +131,9 @@ verify_jwt = true
 [functions.create-live-tip]
 verify_jwt = true
 
+# Notification IBAN change - nécessite JWT maintenant
 [functions.notify-iban-change]
-verify_jwt = false
+verify_jwt = true
 
 [functions.stripe-connect-login-link]
 verify_jwt = true

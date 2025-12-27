@@ -2,12 +2,14 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
+// CORS restreint - Stripe n'envoie pas d'origin donc on accepte tout pour les webhooks
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[STRIPE-SUBSCRIPTION-WEBHOOK] ${step}${detailsStr}`);
 };
@@ -17,46 +19,72 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Seules les requêtes POST sont acceptées
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 405,
+    });
+  }
+
   try {
     logStep("Webhook received");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    logStep("Stripe key verified");
+    // Vérifier toutes les variables d'environnement requises
+    if (!stripeKey || !supabaseUrl || !supabaseServiceKey) {
+      logStep("ERROR: Missing required environment variables");
+      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+
+    // SECURITE: La signature Stripe est OBLIGATOIRE en production
+    const signature = req.headers.get("stripe-signature");
+    if (!signature) {
+      logStep("ERROR: Missing stripe-signature header");
+      return new Response(JSON.stringify({ error: "Missing stripe-signature header" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+
+    if (!webhookSecret) {
+      logStep("ERROR: STRIPE_WEBHOOK_SECRET not configured");
+      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
-    const signature = req.headers.get("stripe-signature");
     const body = await req.text();
 
     let event: Stripe.Event;
 
-    // Vérifier la signature si le secret webhook est configuré
-    if (webhookSecret && signature) {
-      try {
-        event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-        logStep("Webhook signature verified");
-      } catch (err: any) {
-        logStep("Webhook signature verification failed", { error: err.message });
-        return new Response(JSON.stringify({ error: "Invalid signature" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        });
-      }
-    } else {
-      // Fallback sans vérification de signature (dev uniquement)
-      event = JSON.parse(body);
-      logStep("Webhook parsed without signature verification");
+    // Vérification OBLIGATOIRE de la signature Stripe
+    try {
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
+      logStep("Webhook signature verified", { eventType: event.type, eventId: event.id });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      logStep("ERROR: Signature verification failed", { error: errorMessage });
+      return new Response(JSON.stringify({ error: "Invalid signature" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
     }
 
     logStep("Event type", { type: event.type });
 
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, { 
+      auth: { persistSession: false } 
+    });
 
     // Gérer le checkout complété - CRÉATION de l'abonnement
     if (event.type === "checkout.session.completed") {

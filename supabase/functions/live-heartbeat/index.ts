@@ -6,6 +6,34 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Rate limiting en mémoire (simple pour heartbeat)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 60; // 60 requêtes par minute
+const RATE_WINDOW = 60000; // 1 minute
+
+const checkRateLimit = (identifier: string): boolean => {
+  const now = Date.now();
+  const record = rateLimitMap.get(identifier);
+  
+  if (!record || now > record.resetAt) {
+    rateLimitMap.set(identifier, { count: 1, resetAt: now + RATE_WINDOW });
+    return true;
+  }
+  
+  if (record.count >= RATE_LIMIT) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+};
+
+// Validation UUID
+const isValidUUID = (str: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -13,14 +41,63 @@ serve(async (req) => {
   }
 
   try {
+    // Récupérer l'IP pour rate limiting
+    const ipAddress = req.headers.get("x-forwarded-for") || 
+                     req.headers.get("x-real-ip") || 
+                     "unknown";
+    
+    // Vérifier le rate limit
+    if (!checkRateLimit(ipAddress)) {
+      console.warn(`[Heartbeat] Rate limited: ${ipAddress}`);
+      return new Response(
+        JSON.stringify({ error: 'Too many requests' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { liveStreamId, action } = await req.json();
+    // Parser et valider le body
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { liveStreamId, action } = body;
+
+    // Valider liveStreamId si fourni
+    if (liveStreamId && !isValidUUID(liveStreamId)) {
+      console.warn(`[Heartbeat] Invalid liveStreamId format: ${liveStreamId}`);
+      return new Response(
+        JSON.stringify({ error: 'Invalid liveStreamId format' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Valider action
+    const validActions = ['heartbeat', 'end', 'cleanup'];
+    if (!action || !validActions.includes(action)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid action. Must be: heartbeat, end, or cleanup' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (action === 'heartbeat') {
-      // Mettre à jour le heartbeat du live
+      if (!liveStreamId) {
+        return new Response(
+          JSON.stringify({ error: 'liveStreamId required for heartbeat' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       console.log(`[Heartbeat] Updating heartbeat for stream: ${liveStreamId}`);
       
       const { error } = await supabase
@@ -41,7 +118,13 @@ serve(async (req) => {
     }
 
     if (action === 'end') {
-      // Terminer le live immédiatement
+      if (!liveStreamId) {
+        return new Response(
+          JSON.stringify({ error: 'liveStreamId required for end' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       console.log(`[End] Ending stream: ${liveStreamId}`);
       
       const { error } = await supabase
@@ -64,7 +147,6 @@ serve(async (req) => {
     }
 
     if (action === 'cleanup') {
-      // Nettoyer les lives sans heartbeat depuis 2 minutes
       console.log('[Cleanup] Checking for stale live streams...');
       
       const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
@@ -119,7 +201,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('[live-heartbeat] Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
