@@ -4,6 +4,7 @@ import { ArrowLeft, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TwoFactorSetup } from '@/components/security/TwoFactorSetup';
+import { SmsVerification } from '@/components/security/SmsVerification';
 import IdentityVerificationForm from '@/components/identity/IdentityVerificationForm';
 
 const SecuritySettings = () => {
@@ -30,6 +31,10 @@ const SecuritySettings = () => {
           {/* Identity Verification */}
           <IdentityVerificationForm />
 
+          {/* SMS 2FA */}
+          <SmsVerification />
+
+          {/* TOTP 2FA */}
           <TwoFactorSetup />
 
           <Card>
