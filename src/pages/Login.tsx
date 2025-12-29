@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, ArrowLeft, Mail, AlertTriangle, Shield } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Mail, AlertTriangle, Shield, Loader2 } from 'lucide-react';
 import { authSchema } from '@/lib/validations';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
 import { useBruteForceProtection } from '@/hooks/useBruteForceProtection';
@@ -32,13 +32,23 @@ const Login = () => {
   } = useBruteForceProtection();
   const navigate = useNavigate();
 
+  // États pour la vérification Email OTP
+  const [pendingOtpVerification, setPendingOtpVerification] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [otpCountdown, setOtpCountdown] = useState(0);
+
   const [signInForm, setSignInForm] = useState({
     email: '',
     password: ''
   });
 
-  // Ne pas rediriger automatiquement ici, laisser handleSignIn gérer la redirection
-  // pour éviter un flash de la page d'accueil
+  useEffect(() => {
+    if (otpCountdown > 0) {
+      const timer = setTimeout(() => setOtpCountdown(otpCountdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCountdown]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +76,7 @@ const Login = () => {
         if (result.warning) {
           toast.warning(result.warning);
         }
+        setIsLoading(false);
         return;
       }
       
@@ -86,21 +97,45 @@ const Login = () => {
           await supabase.auth.signOut();
           sessionStorage.setItem('suspension_details', JSON.stringify(suspension));
           navigate('/suspended');
+          setIsLoading(false);
           return;
         }
 
-        const { data: creatorData } = await supabase
-          .from('creators')
-          .select('id')
+        // Vérifier si l'utilisateur a activé la vérification Email OTP
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_verified')
           .eq('user_id', userData.user.id)
-          .maybeSingle();
+          .single();
         
-        if (creatorData) {
-          navigate('/dashboard');
-        } else {
-          // Abonnés -> espace personnel (mes abonnements)
-          navigate('/subscriptions');
+        if (profile?.is_verified) {
+          // Email OTP est activé - déconnecter temporairement et demander le code
+          await supabase.auth.signOut();
+          
+          // Envoyer le code OTP
+          const { error: otpError } = await supabase.auth.signInWithOtp({
+            email: validatedData.email,
+            options: {
+              shouldCreateUser: false,
+            },
+          });
+          
+          if (otpError) {
+            toast.error('Erreur lors de l\'envoi du code de vérification');
+            setIsLoading(false);
+            return;
+          }
+          
+          setPendingEmail(validatedData.email);
+          setPendingOtpVerification(true);
+          setOtpCountdown(60);
+          toast.success('Code de vérification envoyé à votre email');
+          setIsLoading(false);
+          return;
         }
+
+        // Pas d'OTP activé - redirection normale
+        redirectAfterLogin(userData.user.id);
       } else {
         navigate('/subscriptions');
       }
@@ -113,6 +148,85 @@ const Login = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const redirectAfterLogin = async (userId: string) => {
+    const { data: creatorData } = await supabase
+      .from('creators')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    
+    if (creatorData) {
+      navigate('/dashboard');
+    } else {
+      navigate('/subscriptions');
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode || otpCode.length !== 6) {
+      toast.error('Code invalide. Le code doit contenir 6 chiffres.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: pendingEmail,
+        token: otpCode,
+        type: 'email',
+      });
+
+      if (error) {
+        toast.error('Code invalide. Réessayez.');
+        setIsLoading(false);
+        return;
+      }
+
+      toast.success('Vérification réussie !');
+      
+      // Redirection après vérification OTP réussie
+      if (data.user) {
+        redirectAfterLogin(data.user.id);
+      } else {
+        navigate('/subscriptions');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Erreur de vérification');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (otpCountdown > 0) return;
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: pendingEmail,
+        options: {
+          shouldCreateUser: false,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success('Nouveau code envoyé !');
+      setOtpCountdown(60);
+    } catch (error: any) {
+      toast.error(error.message || 'Erreur lors de l\'envoi');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancelOtp = () => {
+    setPendingOtpVerification(false);
+    setOtpCode('');
+    setPendingEmail('');
+    setSignInForm({ email: '', password: '' });
   };
 
   const handleGoogleSignIn = async () => {
@@ -151,6 +265,94 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
+  // Affichage de la vérification OTP
+  if (pendingOtpVerification) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-6">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+              Vérification de sécurité
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Un code a été envoyé à votre email
+            </p>
+          </div>
+
+          <Card className="border-border bg-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                Code de vérification
+              </CardTitle>
+              <CardDescription>
+                Entrez le code à 6 chiffres envoyé à {pendingEmail}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <Alert>
+                <Mail className="h-4 w-4" />
+                <AlertDescription>
+                  Vérifiez votre boîte de réception et vos spams
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-2">
+                <Label htmlFor="otp-code">Code de vérification</Label>
+                <Input
+                  id="otp-code"
+                  type="text"
+                  placeholder="000000"
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  className="text-center text-2xl tracking-widest font-mono"
+                  autoFocus
+                />
+              </div>
+
+              <div className="text-center">
+                <Button
+                  variant="link"
+                  onClick={handleResendOtp}
+                  disabled={otpCountdown > 0 || isLoading}
+                  className="text-sm"
+                >
+                  {otpCountdown > 0 ? `Renvoyer dans ${otpCountdown}s` : 'Renvoyer le code'}
+                </Button>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelOtp}
+                  disabled={isLoading}
+                  className="flex-1"
+                >
+                  Annuler
+                </Button>
+                <Button
+                  onClick={handleVerifyOtp}
+                  disabled={isLoading || otpCode.length !== 6}
+                  className="flex-1"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Vérification...
+                    </>
+                  ) : (
+                    'Vérifier'
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
