@@ -8,6 +8,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useAuth } from '@/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 export const NotificationBell = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } =
     useNotifications();
+  const { userRole } = useAuth();
   const navigate = useNavigate();
 
   const handleNotificationClick = (notification: any) => {
@@ -24,7 +26,17 @@ export const NotificationBell = () => {
     if (notification.type === 'live_started' && notification.data?.live_stream_id) {
       navigate(`/watch-live/${notification.data.live_stream_id}`);
     } else if (notification.type === 'new_message') {
-      navigate('/messages');
+      // Rediriger vers la bonne conversation selon le rôle
+      if (userRole === 'creator' && notification.data?.subscriber_id) {
+        // Créateur: aller vers la conversation avec l'abonné
+        navigate(`/messages/${notification.data.subscriber_id}`);
+      } else if (notification.data?.creator_id) {
+        // Abonné: aller vers la conversation avec le créateur
+        navigate(`/chat/${notification.data.creator_id}`);
+      } else {
+        // Fallback vers la liste des messages
+        navigate('/messages');
+      }
     }
   };
 
