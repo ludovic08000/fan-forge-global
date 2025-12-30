@@ -1280,6 +1280,7 @@ export type Database = {
           is_verified: boolean | null
           location: string | null
           orientation: string | null
+          otp_verified: boolean | null
           phone: string | null
           updated_at: string | null
           user_id: string
@@ -1299,6 +1300,7 @@ export type Database = {
           is_verified?: boolean | null
           location?: string | null
           orientation?: string | null
+          otp_verified?: boolean | null
           phone?: string | null
           updated_at?: string | null
           user_id: string
@@ -1318,6 +1320,7 @@ export type Database = {
           is_verified?: boolean | null
           location?: string | null
           orientation?: string | null
+          otp_verified?: boolean | null
           phone?: string | null
           updated_at?: string | null
           user_id?: string

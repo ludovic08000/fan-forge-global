@@ -49,6 +49,7 @@ const Suspended = lazy(() => import("./pages/Suspended"));
 const PrivateChatPage = lazy(() => import("./pages/PrivateChatPage"));
 const CreatorChatPage = lazy(() => import("./pages/CreatorChatPage"));
 const Messages = lazy(() => import("./pages/Messages"));
+const VerifyOtp = lazy(() => import("./pages/VerifyOtp"));
 
 
 // Composant de chargement pour le Suspense
@@ -108,6 +109,7 @@ const AppRoutes = () => {
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/verify-otp" element={<VerifyOtp />} />
           <Route path="/suspended" element={<Suspended />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/search" element={<Search />} />
