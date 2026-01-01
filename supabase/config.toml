@@ -144,3 +144,13 @@ verify_jwt = false
 
 [functions.cancel-subscription]
 verify_jwt = true
+
+# OTP 2FA - nécessite JWT
+[functions.send-otp]
+verify_jwt = true
+
+[functions.verify-otp-code]
+verify_jwt = true
+
+[functions.verify-otp-status]
+verify_jwt = true
