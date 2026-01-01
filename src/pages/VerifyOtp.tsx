@@ -16,6 +16,7 @@ const VerifyOtp = () => {
   const [otpCountdown, setOtpCountdown] = useState(0);
   const [otpSent, setOtpSent] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
+  const [devCode, setDevCode] = useState<string | null>(null);
   const { user, session, loading } = useAuth();
   const navigate = useNavigate();
   const hasSentOtp = useRef(false);
@@ -88,13 +89,14 @@ const VerifyOtp = () => {
 
       setOtpSent(true);
       setOtpCountdown(60);
-      toast.success('Code de vérification envoyé ! Consultez les logs pour le code (dev mode).');
       
-      // En dev, afficher le code si retourné
+      // Afficher le code (mode dev - pas d'envoi email sans Resend)
       if (data?.code) {
-        console.log('Code OTP (dev):', data.code);
-        toast.info(`Code: ${data.code}`, { duration: 30000 });
+        setDevCode(data.code);
+        console.log('Code OTP:', data.code);
       }
+      
+      toast.success('Code de vérification généré !');
     } catch (error: any) {
       console.error('Erreur sendOtp:', error);
       toast.error(error.message || 'Erreur lors de l\'envoi du code');
@@ -191,12 +193,23 @@ const VerifyOtp = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <Alert>
-              <Mail className="h-4 w-4" />
-              <AlertDescription>
-                Vérifiez votre boîte de réception et vos spams
-              </AlertDescription>
-            </Alert>
+            {devCode && (
+              <Alert className="bg-primary/10 border-primary">
+                <Shield className="h-4 w-4 text-primary" />
+                <AlertDescription className="font-mono text-lg font-bold text-primary">
+                  Code: {devCode}
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {!devCode && (
+              <Alert>
+                <Mail className="h-4 w-4" />
+                <AlertDescription>
+                  Chargement du code...
+                </AlertDescription>
+              </Alert>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="otp-code">Code de vérification</Label>
