@@ -44,18 +44,38 @@ const VerifyOtp = () => {
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: pendingEmail,
-        options: {
-          shouldCreateUser: false,
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error('Session expirée. Veuillez vous reconnecter.');
+        navigate('/login');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('send-otp', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erreur send-otp:', error);
+        throw new Error(error.message || 'Erreur lors de l\'envoi du code');
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
       setOtpSent(true);
       setOtpCountdown(60);
-      toast.success('Code de vérification envoyé à votre email');
+      toast.success('Code de vérification envoyé ! Consultez les logs pour le code (dev mode).');
+      
+      // En dev, afficher le code si retourné
+      if (data?.code) {
+        console.log('Code OTP (dev):', data.code);
+        toast.info(`Code: ${data.code}`, { duration: 30000 });
+      }
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de l\'envoi du code');
     } finally {
@@ -71,46 +91,48 @@ const VerifyOtp = () => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: pendingEmail,
-        token: otpCode,
-        type: 'email',
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error('Session expirée. Veuillez vous reconnecter.');
+        navigate('/login');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('verify-otp-code', {
+        body: { code: otpCode },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (error) {
-        toast.error('Code invalide ou expiré. Réessayez.');
+        console.error('Erreur verify-otp:', error);
+        throw new Error(error.message || 'Erreur de vérification');
+      }
+
+      if (data?.error) {
+        toast.error(data.error);
         setIsLoading(false);
         return;
       }
 
-      if (data.user) {
-        // Mettre à jour otp_verified = true dans profiles
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ otp_verified: true })
-          .eq('user_id', data.user.id);
+      // Nettoyer le sessionStorage
+      sessionStorage.removeItem('pending_otp_email');
 
-        if (updateError) {
-          console.error('Erreur mise à jour otp_verified:', updateError);
-        }
+      toast.success('Vérification réussie !');
 
-        // Nettoyer le sessionStorage
-        sessionStorage.removeItem('pending_otp_email');
+      // Rediriger vers le dashboard approprié
+      const { data: creatorData } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
 
-        toast.success('Vérification réussie !');
-
-        // Rediriger vers le dashboard approprié
-        const { data: creatorData } = await supabase
-          .from('creators')
-          .select('id')
-          .eq('user_id', data.user.id)
-          .maybeSingle();
-
-        if (creatorData) {
-          navigate('/dashboard');
-        } else {
-          navigate('/subscriptions');
-        }
+      if (creatorData) {
+        navigate('/dashboard');
+      } else {
+        navigate('/subscriptions');
       }
     } catch (error: any) {
       toast.error(error.message || 'Erreur de vérification');
