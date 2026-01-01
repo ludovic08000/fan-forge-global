@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,22 +15,34 @@ const VerifyOtp = () => {
   const [otpCode, setOtpCode] = useState('');
   const [otpCountdown, setOtpCountdown] = useState(0);
   const [otpSent, setOtpSent] = useState(false);
-  const { user } = useAuth();
+  const [sessionReady, setSessionReady] = useState(false);
+  const { user, session, loading } = useAuth();
   const navigate = useNavigate();
+  const hasSentOtp = useRef(false);
 
   // Récupérer l'email depuis la session ou le sessionStorage
   const pendingEmail = sessionStorage.getItem('pending_otp_email') || user?.email || '';
 
+  // Attendre que la session soit prête
   useEffect(() => {
-    // Si pas d'email en attente, rediriger vers login
-    if (!pendingEmail) {
+    if (!loading && session) {
+      setSessionReady(true);
+    }
+  }, [loading, session]);
+
+  useEffect(() => {
+    // Si pas d'email en attente et pas en chargement, rediriger vers login
+    if (!loading && !pendingEmail) {
       navigate('/login');
       return;
     }
 
-    // Envoyer automatiquement l'OTP au chargement de la page
-    sendOtp();
-  }, []);
+    // Envoyer automatiquement l'OTP une seule fois quand la session est prête
+    if (sessionReady && !hasSentOtp.current) {
+      hasSentOtp.current = true;
+      sendOtp();
+    }
+  }, [loading, pendingEmail, sessionReady]);
 
   useEffect(() => {
     if (otpCountdown > 0) {
@@ -44,17 +56,24 @@ const VerifyOtp = () => {
 
     setIsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      // Attendre un peu pour s'assurer que la session est bien établie
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
       
-      if (!session) {
-        toast.error('Session expirée. Veuillez vous reconnecter.');
-        navigate('/login');
+      if (!currentSession) {
+        console.log('Pas de session, attente...');
+        // Réessayer après un court délai
+        setTimeout(() => {
+          setIsLoading(false);
+          sendOtp();
+        }, 1000);
         return;
       }
 
+      console.log('Session trouvée, envoi OTP pour:', currentSession.user.email);
+
       const { data, error } = await supabase.functions.invoke('send-otp', {
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${currentSession.access_token}`,
         },
       });
 
@@ -77,6 +96,7 @@ const VerifyOtp = () => {
         toast.info(`Code: ${data.code}`, { duration: 30000 });
       }
     } catch (error: any) {
+      console.error('Erreur sendOtp:', error);
       toast.error(error.message || 'Erreur lors de l\'envoi du code');
     } finally {
       setIsLoading(false);
