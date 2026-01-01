@@ -6,6 +6,8 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
+  console.log('send-otp: Requête reçue');
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -13,6 +15,7 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.log('send-otp: Pas de header Authorization');
       return new Response(JSON.stringify({ error: 'Non autorisé' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -33,12 +36,14 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError || !user) {
-      console.error('Erreur auth:', userError);
+      console.error('send-otp: Erreur auth:', userError);
       return new Response(JSON.stringify({ error: 'Utilisateur non authentifié' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    console.log('send-otp: Utilisateur authentifié:', user.email);
 
     // Vérifier le rate limiting (max 3 codes par 5 minutes)
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
@@ -49,6 +54,7 @@ Deno.serve(async (req) => {
       .gte('created_at', fiveMinutesAgo);
 
     if (count && count >= 3) {
+      console.log('send-otp: Rate limit atteint pour:', user.email);
       return new Response(JSON.stringify({ error: 'Trop de tentatives. Réessayez dans quelques minutes.' }), {
         status: 429,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -58,6 +64,8 @@ Deno.serve(async (req) => {
     // Générer un code à 6 chiffres
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    console.log('send-otp: Code généré pour', user.email, ':', code);
 
     // Supprimer les anciens codes non vérifiés
     await supabaseAdmin
@@ -77,42 +85,30 @@ Deno.serve(async (req) => {
       });
 
     if (insertError) {
-      console.error('Erreur insertion OTP:', insertError);
+      console.error('send-otp: Erreur insertion OTP:', insertError);
       return new Response(JSON.stringify({ error: 'Erreur lors de la génération du code' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Envoyer l'email via Supabase Auth (magic link désactivé, juste pour l'email)
-    const { error: emailError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email: user.email!,
-      options: {
-        data: { otp_code: code },
-      },
-    });
+    console.log('send-otp: Code enregistré avec succès');
 
-    // Comme on ne peut pas envoyer d'email personnalisé facilement, 
-    // on va utiliser une autre approche: envoyer via l'API admin
-    // Pour l'instant, on log le code (en prod, configurer un vrai service email)
-    console.log(`OTP Code for ${user.email}: ${code}`);
-
-    // Alternative: utiliser le système de notification Supabase ou un webhook
-    // Pour le moment, on renvoie un succès et le code sera affiché dans les logs
+    // NOTE: Le SMTP Supabase par défaut ne supporte pas l'envoi de codes personnalisés
+    // Le code est retourné au frontend pour affichage (mode dev/test)
+    // En production, configurer Resend ou un autre service email
     
     return new Response(JSON.stringify({ 
       success: true, 
-      message: 'Code envoyé',
-      // En dev, on peut retourner le code pour faciliter les tests
-      ...(Deno.env.get('ENVIRONMENT') === 'development' ? { code } : {})
+      message: 'Code généré',
+      code: code
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Erreur send-otp:', error);
+    console.error('send-otp: Erreur:', error);
     return new Response(JSON.stringify({ error: 'Erreur serveur' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
