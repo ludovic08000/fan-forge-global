@@ -1,9 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 Deno.serve(async (req) => {
   console.log('send-otp: Requête reçue');
@@ -65,7 +68,7 @@ Deno.serve(async (req) => {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    console.log('send-otp: Code généré pour', user.email, ':', code);
+    console.log('send-otp: Code généré pour', user.email);
 
     // Supprimer les anciens codes non vérifiés
     await supabaseAdmin
@@ -92,16 +95,62 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log('send-otp: Code enregistré avec succès');
+    console.log('send-otp: Code enregistré, envoi email...');
 
-    // NOTE: Le SMTP Supabase par défaut ne supporte pas l'envoi de codes personnalisés
-    // Le code est retourné au frontend pour affichage (mode dev/test)
-    // En production, configurer Resend ou un autre service email
+    // Envoyer l'email via Resend
+    const { data: emailData, error: emailError } = await resend.emails.send({
+      from: 'Sécurité <onboarding@resend.dev>',
+      to: [user.email!],
+      subject: 'Votre code de vérification',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
+          <div style="max-width: 500px; margin: 0 auto; background: white; border-radius: 12px; padding: 40px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h1 style="color: #333; margin: 0 0 20px; font-size: 24px; text-align: center;">
+              🔐 Code de vérification
+            </h1>
+            <p style="color: #666; font-size: 16px; line-height: 1.5; text-align: center;">
+              Voici votre code de vérification à usage unique :
+            </p>
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; padding: 20px; margin: 24px 0; text-align: center;">
+              <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: white; font-family: monospace;">
+                ${code}
+              </span>
+            </div>
+            <p style="color: #999; font-size: 14px; text-align: center; margin: 0;">
+              Ce code expire dans 10 minutes.<br>
+              Si vous n'avez pas demandé ce code, ignorez cet email.
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+
+    if (emailError) {
+      console.error('send-otp: Erreur envoi email:', emailError);
+      // On retourne quand même le code pour le mode dev/test
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: 'Code généré (email non envoyé)',
+        code: code,
+        emailError: emailError.message
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('send-otp: Email envoyé avec succès:', emailData);
     
     return new Response(JSON.stringify({ 
       success: true, 
-      message: 'Code généré',
-      code: code
+      message: 'Code envoyé par email'
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
