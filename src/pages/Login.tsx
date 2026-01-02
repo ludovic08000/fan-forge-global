@@ -88,13 +88,8 @@ const Login = () => {
           return;
         }
 
-        // NOUVEAU: Toujours déconnecter et rediriger vers /verify-otp pour la vérification 2FA obligatoire
-        await supabase.auth.signOut();
-        
-        // Stocker l'email pour la page de vérification OTP
+        // Rediriger vers la page de vérification OTP (garder la session active)
         sessionStorage.setItem('pending_otp_email', validatedData.email);
-        
-        // Rediriger vers la page de vérification OTP
         navigate('/verify-otp');
       } else {
         navigate('/login');
