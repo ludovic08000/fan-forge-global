@@ -24,26 +24,36 @@ const VerifyOtp = () => {
   // Récupérer l'email depuis la session ou le sessionStorage
   const pendingEmail = sessionStorage.getItem('pending_otp_email') || user?.email || '';
 
-  // Attendre que la session soit prête
+  // Envoyer l'OTP dès que possible
   useEffect(() => {
-    if (!loading && session) {
-      setSessionReady(true);
-    }
+    const initOtp = async () => {
+      if (hasSentOtp.current) return;
+      
+      // Si pas d'email et pas de session en chargement, rediriger
+      if (!loading && !pendingEmail && !session) {
+        navigate('/login');
+        return;
+      }
+
+      // Attendre que le chargement soit terminé
+      if (loading) return;
+
+      // Essayer d'obtenir une session valide
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (currentSession) {
+        hasSentOtp.current = true;
+        setSessionReady(true);
+        sendOtp();
+      } else if (!loading) {
+        // Pas de session après chargement, retourner au login
+        console.log('Pas de session trouvée, redirection vers login');
+        navigate('/login');
+      }
+    };
+
+    initOtp();
   }, [loading, session]);
-
-  useEffect(() => {
-    // Si pas d'email en attente et pas en chargement, rediriger vers login
-    if (!loading && !pendingEmail) {
-      navigate('/login');
-      return;
-    }
-
-    // Envoyer automatiquement l'OTP une seule fois quand la session est prête
-    if (sessionReady && !hasSentOtp.current) {
-      hasSentOtp.current = true;
-      sendOtp();
-    }
-  }, [loading, pendingEmail, sessionReady]);
 
   useEffect(() => {
     if (otpCountdown > 0) {
