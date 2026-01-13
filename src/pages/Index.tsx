@@ -6,8 +6,11 @@ import LiveNowSection from "@/components/LiveNowSection";
 import Footer from "@/components/Footer";
 import AgeVerificationGate from "@/components/AgeVerificationGate";
 import SEOHead from "@/components/SEOHead";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
+  const { user } = useAuth();
+
   return (
     <AgeVerificationGate>
       <SEOHead 
@@ -20,13 +23,19 @@ const Index = () => {
         <main className="flex-1">
           <HeroSection />
           
-          <section className="py-8 bg-muted/20">
-            <div className="container mx-auto px-4 flex justify-center">
-              <SearchBar />
-            </div>
-          </section>
+          {/* Recherche et créateurs visibles uniquement pour les utilisateurs connectés */}
+          {user && (
+            <>
+              <section className="py-8 bg-muted/20">
+                <div className="container mx-auto px-4 flex justify-center">
+                  <SearchBar />
+                </div>
+              </section>
 
-          <PopularCreators />
+              <PopularCreators />
+            </>
+          )}
+          
           <LiveNowSection />
         </main>
 
