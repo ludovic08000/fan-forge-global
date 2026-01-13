@@ -1,9 +1,7 @@
-import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import SearchBar from "@/components/SearchBar";
 import PopularCreators from "@/components/PopularCreators";
 import LiveNowSection from "@/components/LiveNowSection";
-import Footer from "@/components/Footer";
 import AgeVerificationGate from "@/components/AgeVerificationGate";
 import SEOHead from "@/components/SEOHead";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,8 +16,6 @@ const Index = () => {
         description="Créez votre espace sur Crub pour partager du contenu exclusif."
       />
       <div className="min-h-screen flex flex-col bg-background">
-        <Header />
-        
         <main className="flex-1">
           <HeroSection />
           
@@ -38,8 +34,6 @@ const Index = () => {
           
           <LiveNowSection />
         </main>
-
-        <Footer />
       </div>
     </AgeVerificationGate>
   );
