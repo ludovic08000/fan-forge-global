@@ -43,7 +43,7 @@ const HeroSection = () => {
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
             
-            {!user && (
+            {user && (
               <Button
                 variant="outline"
                 size="lg"

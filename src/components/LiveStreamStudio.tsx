@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera, Send, Shield, MessageCircle, ImageIcon, Clock } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera, Send, Shield, MessageCircle, ImageIcon, Clock, Copy, Eye, EyeOff } from 'lucide-react';
 import { LiveTimer } from '@/components/live/LiveTimer';
 import { EmojiPicker } from '@/components/live/EmojiPicker';
 import { PaidMediaUpload } from '@/components/live/PaidMediaUpload';
@@ -54,6 +54,11 @@ export const LiveStreamStudio = () => {
   const [chatMessage, setChatMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [creatorId, setCreatorId] = useState<string | null>(null);
+  const [streamKey, setStreamKey] = useState<string | null>(null);
+  const [showStreamKey, setShowStreamKey] = useState(false);
+
+  // URL RTMP pour OBS
+  const RTMP_URL = "rtmp://live.crub.app/live";
 
   // Récupérer l'ID du créateur
   useEffect(() => {
@@ -376,6 +381,19 @@ export const LiveStreamStudio = () => {
 
       setCurrentStream(stream);
 
+      // Récupérer la clé de stream pour OBS
+      try {
+        const { data: key } = await supabase.rpc('get_own_stream_key', { 
+          _live_stream_id: stream.id 
+        });
+        if (key) {
+          setStreamKey(key);
+          console.log('[Studio] Stream key retrieved for OBS');
+        }
+      } catch (keyError) {
+        console.error('[Studio] Error fetching stream key:', keyError);
+      }
+
       // Démarrer le live
       await startLiveStream(stream.id);
       setIsLive(true);
@@ -464,6 +482,8 @@ export const LiveStreamStudio = () => {
       
       // Réinitialiser
       setCurrentStream(null);
+      setStreamKey(null);
+      setShowStreamKey(false);
       setTitle('');
       setDescription('');
 
@@ -1077,6 +1097,72 @@ export const LiveStreamStudio = () => {
                   disabled={isLive}
                 />
               </div>
+
+              {/* Section OBS - Clé de stream */}
+              {currentStream && streamKey && (
+                <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
+                  <div className="flex items-center gap-2">
+                    <Video className="h-4 w-4 text-primary" />
+                    <Label className="font-medium">Diffusion OBS</Label>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">URL du serveur</Label>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          value={RTMP_URL} 
+                          readOnly 
+                          className="text-xs font-mono bg-background"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            navigator.clipboard.writeText(RTMP_URL);
+                            toast.success('URL copiée');
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Clé de stream</Label>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          type={showStreamKey ? "text" : "password"}
+                          value={streamKey} 
+                          readOnly 
+                          className="text-xs font-mono bg-background"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setShowStreamKey(!showStreamKey)}
+                        >
+                          {showStreamKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            navigator.clipboard.writeText(streamKey);
+                            toast.success('Clé copiée');
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground">
+                    Utilisez ces informations dans OBS Studio (Paramètres → Stream → Personnalisé)
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
