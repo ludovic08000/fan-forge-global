@@ -55,20 +55,6 @@ const HeroSection = () => {
             )}
           </div>
 
-          <div className="flex flex-wrap justify-center gap-6 pt-8 text-sm text-muted-foreground">
-            <span className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-              Gratuit pour démarrer
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-              Paiements sécurisés
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-              Votre contenu protégé
-            </span>
-          </div>
         </div>
       </div>
     </section>
