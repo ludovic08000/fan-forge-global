@@ -17,6 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LiveStream } from '@/hooks/useLiveStream';
 import { LiveTimer } from '@/components/live/LiveTimer';
+import { useCsrfToken } from '@/hooks/useCsrfToken';
 
 interface Subscription {
   id: string;
@@ -596,6 +597,7 @@ const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
   const [isCanceling, setIsCanceling] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
+  const { generateToken } = useCsrfToken();
   const creator = subscription.creator;
   const profile = creator.profile;
   const displayName = creator.stage_name || profile?.display_name || profile?.username || 'Créateur';
@@ -604,8 +606,14 @@ const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
   const handleCancelSubscription = async () => {
     setIsCanceling(true);
     try {
+      // Récupérer le token CSRF
+      const csrfToken = await generateToken();
+      
       const { data, error } = await supabase.functions.invoke('cancel-subscription', {
-        body: { subscriptionId: subscription.id }
+        body: { 
+          subscriptionId: subscription.id,
+          csrfToken
+        }
       });
       
       if (error) throw error;
