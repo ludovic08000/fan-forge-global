@@ -143,28 +143,32 @@ const ContentCard: React.FC<ContentCardProps> = ({
         )}
 
         {/* Media */}
-        {content.content_type === 'video' ? (
-          <div className="relative w-full h-full">
-            <img
-              src={content.thumbnail_url || content.file_url}
-              alt={content.title}
-              className={`w-full h-full object-cover ${shouldBlur ? 'blur-xl' : ''}`}
-              key={content.updated_at}
-            />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-black/70 rounded-full p-3">
-                <Play className="h-6 w-6 text-white" />
+        {(() => {
+          // Ajouter un cache-buster basé sur updated_at pour forcer le rechargement
+          const cacheBuster = content.updated_at ? `?t=${new Date(content.updated_at).getTime()}` : '';
+          const imageUrl = (content.thumbnail_url || content.file_url) + cacheBuster;
+          
+          return content.content_type === 'video' ? (
+            <div className="relative w-full h-full">
+              <img
+                src={imageUrl}
+                alt={content.title}
+                className={`w-full h-full object-cover ${shouldBlur ? 'blur-xl' : ''}`}
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="bg-black/70 rounded-full p-3">
+                  <Play className="h-6 w-6 text-white" />
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <img
-            src={content.thumbnail_url || content.file_url}
-            alt={content.title}
-            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${shouldBlur ? 'blur-xl' : ''}`}
-            key={content.updated_at}
-          />
-        )}
+          ) : (
+            <img
+              src={imageUrl}
+              alt={content.title}
+              className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${shouldBlur ? 'blur-xl' : ''}`}
+            />
+          );
+        })()}
 
         {/* Premium Badge */}
         {content.is_premium && (
