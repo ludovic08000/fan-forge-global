@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight } from "lucide-react";
 import { memo } from "react";
+import splashPortrait from "@/assets/splash-portrait.jpg";
 
 const HeroSection = memo(() => {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ const HeroSection = memo(() => {
 
   return (
     <section 
-      className="relative min-h-[70vh] flex items-center justify-center overflow-hidden"
+      className="relative flex flex-col items-center justify-center overflow-hidden"
       aria-labelledby="hero-heading"
     >
       {/* Background decorations - hidden from accessibility tree */}
@@ -26,7 +27,7 @@ const HeroSection = memo(() => {
       <div className="absolute top-20 right-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl" aria-hidden="true" />
       <div className="absolute bottom-20 left-10 w-96 h-96 bg-accent/5 rounded-full blur-3xl" aria-hidden="true" />
 
-      <div className="relative z-10 container mx-auto px-4 py-16 md:py-24">
+      <div className="relative z-10 container mx-auto px-4 py-16 md:py-20">
         <div className="max-w-3xl mx-auto text-center space-y-8">
           <h1 
             id="hero-heading"
@@ -64,7 +65,22 @@ const HeroSection = memo(() => {
               </Button>
             )}
           </div>
+        </div>
+      </div>
 
+      {/* Premium portrait image */}
+      <div className="relative z-10 w-full max-w-md mx-auto px-4 pb-8">
+        <div className="relative overflow-hidden rounded-2xl shadow-2xl">
+          <img 
+            src={splashPortrait} 
+            alt="Créateurs Crub" 
+            className="w-full h-auto object-cover"
+            style={{ 
+              filter: 'brightness(0.95) contrast(1.05)',
+            }}
+          />
+          {/* Subtle gradient overlay at bottom */}
+          <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent pointer-events-none" />
         </div>
       </div>
     </section>

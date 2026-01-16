@@ -5,7 +5,6 @@ import LiveNowSection from "@/components/LiveNowSection";
 import AgeVerificationGate from "@/components/AgeVerificationGate";
 import SEOHead from "@/components/SEOHead";
 import { useAuth } from "@/contexts/AuthContext";
-import splashPortrait from "@/assets/splash-portrait.jpg";
 
 const Index = () => {
   const { user } = useAuth();
@@ -16,35 +15,14 @@ const Index = () => {
         title="Crub - Partagez votre contenu"
         description="Créez votre espace sur Crub pour partager du contenu exclusif."
       />
-      <div className="min-h-screen flex flex-col bg-background relative">
-        {/* Background image with premium overlay */}
-        <div 
-          className="fixed inset-0 z-0"
-          style={{
-            backgroundImage: `url(${splashPortrait})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center top',
-            backgroundRepeat: 'no-repeat',
-          }}
-        >
-          {/* Subtle gradient overlay for readability */}
-          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/60 to-background/95" />
-          {/* Soft vignette effect */}
-          <div 
-            className="absolute inset-0"
-            style={{
-              background: 'radial-gradient(ellipse at center top, transparent 30%, hsl(var(--background) / 0.7) 100%)',
-            }}
-          />
-        </div>
-
-        <main className="flex-1 relative z-10">
+      <div className="min-h-screen flex flex-col bg-background">
+        <main className="flex-1">
           <HeroSection />
           
           {/* Recherche et créateurs visibles uniquement pour les utilisateurs connectés */}
           {user && (
             <>
-              <section className="py-8 bg-muted/20 backdrop-blur-sm">
+              <section className="py-8 bg-muted/20">
                 <div className="container mx-auto px-4 flex justify-center">
                   <SearchBar />
                 </div>
