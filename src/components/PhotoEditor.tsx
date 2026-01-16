@@ -152,11 +152,30 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
     if (!ctx) return;
 
     const img = imageRef.current;
+    
+    // S'assurer que l'image est bien chargée
+    if (!img.complete || img.naturalWidth === 0) {
+      toast.error('Image non chargée');
+      return;
+    }
+    
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
 
-    ctx.filter = getFilterStyle().filter || 'none';
+    // Nettoyer le canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Appliquer les filtres CSS au canvas
+    const filterStyle = getFilterStyle();
+    const filterValue = filterStyle.filter || 'none';
+    console.log('Applying filter to canvas:', filterValue);
+    ctx.filter = filterValue;
+    
+    // Dessiner l'image avec les filtres
     ctx.drawImage(img, 0, 0);
+    
+    // Réinitialiser le filtre après le dessin
+    ctx.filter = 'none';
 
     setIsSaving(true);
 
