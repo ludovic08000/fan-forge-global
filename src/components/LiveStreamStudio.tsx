@@ -65,7 +65,7 @@ export const LiveStreamStudio = () => {
 
   /**
    * Générer une clé de stream OBS pour le créateur
-   * Cette clé est persistante et réutilisable
+   * Crée un live "brouillon" persistant pour OBS
    */
   const generateObsStreamKey = async () => {
     if (!creatorId) {
@@ -75,39 +75,57 @@ export const LiveStreamStudio = () => {
 
     setIsGeneratingKey(true);
     try {
-      // Créer un live stream temporaire pour obtenir la clé
-      const { data: tempStream, error: createError } = await supabase
+      // Vérifier s'il existe déjà un live brouillon pour OBS
+      const { data: existingDraft } = await supabase
         .from('live_streams')
-        .insert({
-          creator_id: creatorId,
-          title: 'Configuration OBS',
-          status: 'scheduled',
-          is_premium: true,
-        })
-        .select('id, stream_key')
-        .single();
+        .select('id')
+        .eq('creator_id', creatorId)
+        .eq('status', 'scheduled')
+        .eq('title', 'Configuration OBS')
+        .maybeSingle();
 
-      if (createError) throw createError;
-      
-      if (tempStream) {
+      let streamId = existingDraft?.id;
+
+      // Créer un nouveau brouillon si aucun n'existe
+      if (!streamId) {
+        const { data: newStream, error: createError } = await supabase
+          .from('live_streams')
+          .insert({
+            creator_id: creatorId,
+            title: 'Configuration OBS',
+            status: 'scheduled',
+            is_premium: true,
+          })
+          .select('id')
+          .single();
+
+        if (createError) throw createError;
+        streamId = newStream?.id;
+      }
+
+      if (streamId) {
         // Récupérer la clé via RPC sécurisé
         const { data: key, error: keyError } = await supabase.rpc('get_own_stream_key', { 
-          _live_stream_id: tempStream.id 
+          _live_stream_id: streamId 
         });
         
-        if (keyError) throw keyError;
+        if (keyError) {
+          console.error('Erreur RPC get_own_stream_key:', keyError);
+          throw keyError;
+        }
         
         if (key) {
           setObsStreamKey(key);
-          toast.success('Clé de stream générée');
+          toast.success('Clé de stream générée !');
+          console.log('[OBS] Stream key generated successfully');
+        } else {
+          toast.error('Clé non trouvée');
+          console.error('[OBS] No key returned from RPC');
         }
-        
-        // Supprimer le stream temporaire
-        await supabase.from('live_streams').delete().eq('id', tempStream.id);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur génération clé OBS:', error);
-      toast.error('Erreur lors de la génération de la clé');
+      toast.error(error?.message || 'Erreur lors de la génération de la clé');
     } finally {
       setIsGeneratingKey(false);
     }
