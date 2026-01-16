@@ -154,3 +154,14 @@ verify_jwt = true
 
 [functions.verify-otp-status]
 verify_jwt = true
+
+# LiveKit Recording
+[functions.start-live-recording]
+verify_jwt = true
+
+[functions.stop-live-recording]
+verify_jwt = true
+
+# LiveKit Recording Webhook - DOIT être false car LiveKit ne peut pas envoyer de JWT
+[functions.livekit-recording-webhook]
+verify_jwt = false

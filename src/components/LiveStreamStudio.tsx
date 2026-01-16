@@ -244,7 +244,7 @@ export const LiveStreamStudio = () => {
   }, []);
   
   // LiveKit broadcast hook
-  const { isStreaming, isConnecting: isLiveKitConnecting, connectedViewers, error: liveKitError, startBroadcast, stopBroadcast, replaceVideoTrack } = useLiveKitBroadcast();
+  const { isStreaming, isConnecting: isLiveKitConnecting, isRecording, connectedViewers, error: liveKitError, startBroadcast, stopBroadcast, replaceVideoTrack } = useLiveKitBroadcast();
 
   // Référence pour stocker l'ID du stream actuel pour le cleanup
   const currentStreamIdRef = useRef<string | null>(null);
@@ -565,9 +565,9 @@ export const LiveStreamStudio = () => {
       await startLiveStream(stream.id);
       setIsLive(true);
       
-      // Démarrer la diffusion LiveKit avec le streamId
-      await startBroadcast(stream.id, streamRef.current);
-      console.log('[Studio] LiveKit broadcast started for stream:', stream.id);
+      // Démarrer la diffusion LiveKit avec le streamId et option d'enregistrement
+      await startBroadcast(stream.id, streamRef.current, enableRecording);
+      console.log('[Studio] Broadcast started for stream:', stream.id, 'recording:', enableRecording);
       
       // Démarrer le tracking des revenus par minute
       const revenueInterval = setInterval(async () => {
@@ -824,6 +824,12 @@ export const LiveStreamStudio = () => {
                     <Wifi className="h-4 w-4" />
                   </div>
                 ) : null}
+                {isRecording && (
+                  <div className="bg-red-600/90 text-white px-3 py-1 rounded-full flex items-center gap-2 animate-pulse">
+                    <Circle className="h-3 w-3 fill-current" />
+                    <span className="text-xs">REC</span>
+                  </div>
+                )}
               </div>
             )}
             
