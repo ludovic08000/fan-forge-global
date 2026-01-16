@@ -81,14 +81,6 @@ const HeroSection = memo(() => {
             }}
           />
           
-          {/* Center dividing line like splash */}
-          <div
-            className="absolute left-1/2 top-0 bottom-0 w-[2px] -translate-x-1/2 opacity-60"
-            style={{
-              background: 'linear-gradient(to bottom, transparent, hsl(var(--primary)), transparent)',
-            }}
-          />
-          
           {/* Vignette overlay like splash */}
           <div 
             className="absolute inset-0 pointer-events-none"
