@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { 
   Play, Pause, Volume2, VolumeX, Maximize2, Minimize2, 
   SkipBack, SkipForward, PictureInPicture2, Loader2,
-  RotateCcw, RotateCw
+  RotateCcw, RotateCw, X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
@@ -13,6 +13,7 @@ interface PremiumVideoPlayerProps {
   className?: string;
   autoPlay?: boolean;
   onEnded?: () => void;
+  onClose?: () => void;
 }
 
 export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
@@ -20,7 +21,8 @@ export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
   poster,
   className,
   autoPlay = false,
-  onEnded
+  onEnded,
+  onClose
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -413,6 +415,20 @@ export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
           {Math.round((isMuted ? 0 : volume) * 100)}%
         </span>
       </div>
+
+      {/* Close button */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          className={cn(
+            "absolute top-4 left-4 z-20 p-2 rounded-full bg-black/60 hover:bg-black/80 transition-all text-white",
+            showControls || !isPlaying ? "opacity-100" : "opacity-0"
+          )}
+          aria-label="Fermer la vidéo"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      )}
 
       {/* Loading spinner */}
       {isLoading && (
