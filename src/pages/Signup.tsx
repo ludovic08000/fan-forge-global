@@ -13,18 +13,33 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { PasswordRequirements } from '@/components/PasswordRequirements';
 
-// Fonction pour calculer l'âge - retourne null si date invalide
+// Fonction pour calculer l'âge - retourne null si date invalide ou incomplète
 const calculateAge = (birthdate: string): number | null => {
   if (!birthdate) return null;
-  const birthDate = new Date(birthdate);
-  // Vérifier que la date est valide
-  if (isNaN(birthDate.getTime())) return null;
-  // Vérifier que la date n'est pas dans le futur
+  
+  // Vérifier que le format est complet (YYYY-MM-DD)
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(birthdate)) return null;
+  
+  const [yearStr, monthStr, dayStr] = birthdate.split('-');
+  const year = parseInt(yearStr, 10);
+  const month = parseInt(monthStr, 10);
+  const day = parseInt(dayStr, 10);
+  
+  // Vérifier que les valeurs sont valides
+  if (year < 1900 || year > new Date().getFullYear()) return null;
+  if (month < 1 || month > 12) return null;
+  if (day < 1 || day > 31) return null;
+  
+  const birthDate = new Date(year, month - 1, day);
+  // Vérifier que la date créée correspond bien aux valeurs entrées (évite les dates invalides comme 31 février)
+  if (birthDate.getFullYear() !== year || birthDate.getMonth() !== month - 1 || birthDate.getDate() !== day) {
+    return null;
+  }
+  
   const today = new Date();
+  // Vérifier que la date n'est pas dans le futur
   if (birthDate > today) return null;
-  // Vérifier que l'année a 4 chiffres (date complète)
-  const year = birthDate.getFullYear();
-  if (year < 1900 || year > today.getFullYear()) return null;
   
   const age = today.getFullYear() - birthDate.getFullYear();
   const monthDiff = today.getMonth() - birthDate.getMonth();
