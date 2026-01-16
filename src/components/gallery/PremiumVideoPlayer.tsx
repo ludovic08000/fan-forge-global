@@ -514,7 +514,7 @@ export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
               {/* Skip backward */}
               <button
                 onClick={() => skip(-10)}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors text-white hidden sm:block"
+                className="p-2 rounded-full hover:bg-white/10 transition-colors text-white"
                 aria-label="Reculer de 10 secondes"
               >
                 <SkipBack className="h-5 w-5" />
@@ -523,7 +523,7 @@ export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
               {/* Skip forward */}
               <button
                 onClick={() => skip(10)}
-                className="p-2 rounded-full hover:bg-white/10 transition-colors text-white hidden sm:block"
+                className="p-2 rounded-full hover:bg-white/10 transition-colors text-white"
                 aria-label="Avancer de 10 secondes"
               >
                 <SkipForward className="h-5 w-5" />
