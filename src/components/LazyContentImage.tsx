@@ -1,5 +1,4 @@
-import React, { useState, useCallback, memo } from 'react';
-import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import React, { useState, useCallback, memo, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ImageOff } from 'lucide-react';
 
@@ -9,7 +8,19 @@ interface LazyContentImageProps {
   className?: string;
   blurred?: boolean;
   onLoad?: () => void;
+  priority?: boolean; // Pour les images visibles immédiatement
 }
+
+// Cache global des images chargées - persistant
+const loadedImagesCache = new Set<string>();
+
+// Précharger une image en background
+export const preloadImageFast = (url: string): void => {
+  if (!url || loadedImagesCache.has(url)) return;
+  const img = new Image();
+  img.src = url;
+  img.onload = () => loadedImagesCache.add(url);
+};
 
 const LazyContentImage: React.FC<LazyContentImageProps> = memo(({
   src,
@@ -17,76 +28,62 @@ const LazyContentImage: React.FC<LazyContentImageProps> = memo(({
   className = '',
   blurred = false,
   onLoad,
+  priority = false,
 }) => {
-  const [ref, isVisible] = useIntersectionObserver<HTMLDivElement>({
-    rootMargin: '100px', // Précharger 100px avant d'être visible
-    freezeOnceVisible: true,
-  });
-  
-  const [imageLoaded, setImageLoaded] = useState(false);
+  // Si l'image est déjà dans le cache, afficher immédiatement
+  const [imageLoaded, setImageLoaded] = useState(() => loadedImagesCache.has(src));
   const [imageError, setImageError] = useState(false);
 
+  // Précharger au montage si priority
+  useEffect(() => {
+    if (priority && src) {
+      preloadImageFast(src);
+    }
+  }, [src, priority]);
+
   const handleLoad = useCallback(() => {
+    loadedImagesCache.add(src);
     setImageLoaded(true);
     onLoad?.();
-  }, [onLoad]);
+  }, [onLoad, src]);
 
   const handleError = useCallback(() => {
     setImageError(true);
   }, []);
 
   return (
-    <div ref={ref} className="relative w-full h-full">
-      {/* Skeleton pendant le chargement */}
+    <div className="relative w-full h-full">
+      {/* Skeleton seulement si pas déjà en cache */}
       {!imageLoaded && !imageError && (
-        <div className="absolute inset-0 overflow-hidden">
-          <Skeleton className="w-full h-full" />
-          {/* Effet shimmer */}
-          <div 
-            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-            style={{ 
-              animation: 'shimmer 1.5s infinite',
-              transform: 'translateX(-100%)'
-            }}
-          />
-        </div>
+        <div className="absolute inset-0 bg-muted animate-pulse" />
       )}
 
-      {/* Erreur de chargement */}
+      {/* Erreur */}
       {imageError && (
         <div className="absolute inset-0 flex items-center justify-center bg-muted">
-          <div className="text-center text-muted-foreground">
-            <ImageOff className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <span className="text-xs">Image non disponible</span>
-          </div>
+          <ImageOff className="h-6 w-6 opacity-40" />
         </div>
       )}
 
-      {/* Image - chargée seulement quand visible */}
-      {isVisible && !imageError && (
+      {/* Image - toujours rendue pour chargement immédiat */}
+      {!imageError && (
         <img
           src={src}
           alt={alt}
-          loading="lazy"
-          decoding="async"
+          loading={priority ? 'eager' : 'lazy'}
+          decoding="sync"
+          fetchPriority={priority ? 'high' : 'auto'}
           className={`
-            w-full h-full object-cover transition-all duration-300
+            w-full h-full object-cover
             ${imageLoaded ? 'opacity-100' : 'opacity-0'}
             ${blurred ? 'blur-xl' : ''}
             ${className}
           `}
+          style={{ transition: 'opacity 0.15s ease-out' }}
           onLoad={handleLoad}
           onError={handleError}
         />
       )}
-
-      {/* CSS pour l'animation shimmer */}
-      <style>{`
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-      `}</style>
     </div>
   );
 });
