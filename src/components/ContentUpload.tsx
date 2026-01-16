@@ -6,11 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Image, Video, X, Euro, Shield, AlertTriangle, Bug } from 'lucide-react';
+import { Upload, Image, Video, X, Shield, AlertTriangle, Bug, CheckCircle, XCircle, Clock, Brain } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useContentUpload } from '@/hooks/useContentUpload';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
 import { useVirusScan } from '@/hooks/useVirusScan';
+import { useContentModeration } from '@/hooks/useContentModeration';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { contentUploadSchema } from '@/lib/validations';
@@ -26,6 +27,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const { uploadContent, uploading, progress } = useContentUpload();
   const { checkRateLimit } = useRateLimitServer();
   const { scanFile, scanning } = useVirusScan();
+  const { moderateContent, moderating } = useContentModeration();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
@@ -40,6 +42,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const [isValidating, setIsValidating] = useState(false);
   const [validationStatus, setValidationStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [virusScanStatus, setVirusScanStatus] = useState<'idle' | 'scanning' | 'clean' | 'infected' | 'skipped'>('idle');
+  const [moderationStatus, setModerationStatus] = useState<'idle' | 'moderating' | 'approved' | 'review' | 'rejected'>('idle');
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -48,6 +51,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
     setIsValidating(true);
     setValidationStatus('idle');
     setVirusScanStatus('idle');
+    setModerationStatus('idle');
 
     try {
       // Validation sécurisée complète du fichier
@@ -101,11 +105,40 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
 
+      // Modération IA du contenu (images uniquement)
+      if (file.type.startsWith('image/')) {
+        setModerationStatus('moderating');
+        toast.info('Analyse IA en cours...', { duration: 10000 });
+        
+        const modResult = await moderateContent(file);
+        
+        if (modResult) {
+          if (modResult.recommendation === 'reject') {
+            setModerationStatus('rejected');
+            setSelectedFile(null);
+            setPreviewUrl('');
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
+            return;
+          } else if (modResult.recommendation === 'manual_review') {
+            setModerationStatus('review');
+          } else {
+            setModerationStatus('approved');
+            toast.success('Contenu approuvé par l\'IA');
+          }
+        }
+      } else {
+        // Vidéos passent en review manuelle
+        setModerationStatus('review');
+      }
+
     } catch (error) {
       console.error('Erreur de validation:', error);
       toast.error('Erreur lors de la validation du fichier');
       setValidationStatus('error');
       setVirusScanStatus('idle');
+      setModerationStatus('idle');
     }
   };
 
@@ -119,6 +152,11 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
 
     if (!user) {
       toast.error('Vous devez être connecté');
+      return;
+    }
+
+    if (moderationStatus === 'rejected') {
+      toast.error('Ce contenu a été rejeté par la modération');
       return;
     }
 
@@ -160,6 +198,13 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
         file: selectedFile
       }, creatorData.id, user.id);
 
+      // Show appropriate message based on moderation status
+      if (moderationStatus === 'review') {
+        toast.info('Contenu soumis pour vérification', {
+          description: 'Un modérateur examinera votre contenu sous peu'
+        });
+      }
+
       // Reset form
       setFormData({
         title: '',
@@ -169,6 +214,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
       });
       setSelectedFile(null);
       setPreviewUrl('');
+      setModerationStatus('idle');
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -191,12 +237,42 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
     setPreviewUrl('');
     setValidationStatus('idle');
     setVirusScanStatus('idle');
+    setModerationStatus('idle');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
   const isVideo = selectedFile?.type.startsWith('video/');
+
+  // Helper to get moderation status badge
+  const getModerationBadge = () => {
+    switch (moderationStatus) {
+      case 'approved':
+        return (
+          <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+            <CheckCircle className="h-3 w-3" />
+            IA Approuvé
+          </span>
+        );
+      case 'review':
+        return (
+          <span className="inline-flex items-center gap-1 text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">
+            <Clock className="h-3 w-3" />
+            Vérification requise
+          </span>
+        );
+      case 'rejected':
+        return (
+          <span className="inline-flex items-center gap-1 text-xs text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
+            <XCircle className="h-3 w-3" />
+            Rejeté
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
@@ -231,6 +307,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
                   Scan ignoré
                 </span>
               )}
+              {getModerationBadge()}
             </Label>
             
             {/* Info sur la sécurité et le filigrane */}
@@ -253,24 +330,34 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
                   <strong>Scan antivirus :</strong> Chaque fichier est scanné via MetaDefender Cloud pour détecter les menaces.
                 </span>
               </p>
+              <p className="text-sm text-primary flex items-center gap-2">
+                <Brain className="h-4 w-4 flex-shrink-0" />
+                <span>
+                  <strong>Modération IA :</strong> Les images sont analysées automatiquement pour détecter les contenus non autorisés.
+                </span>
+              </p>
             </div>
             
-            {(isValidating || virusScanStatus === 'scanning') && (
+            {(isValidating || virusScanStatus === 'scanning' || moderationStatus === 'moderating') && (
               <div className="border-2 border-dashed border-primary/50 rounded-lg p-8 text-center bg-primary/5">
                 <div className="animate-spin h-12 w-12 mx-auto mb-4 border-4 border-primary border-t-transparent rounded-full" />
                 <p className="text-lg font-medium mb-2">
-                  {isValidating ? 'Validation du fichier en cours...' : 'Scan antivirus en cours...'}
+                  {isValidating ? 'Validation du fichier en cours...' : 
+                   virusScanStatus === 'scanning' ? 'Scan antivirus en cours...' : 
+                   'Modération IA en cours...'}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {isValidating 
                     ? 'Vérification du type, de l\'intégrité et de la sécurité'
-                    : 'Analyse du fichier pour détecter d\'éventuelles menaces'
+                    : virusScanStatus === 'scanning'
+                    ? 'Analyse du fichier pour détecter d\'éventuelles menaces'
+                    : 'Analyse du contenu par intelligence artificielle'
                   }
                 </p>
               </div>
             )}
 
-            {!selectedFile && !isValidating && virusScanStatus !== 'scanning' ? (
+            {!selectedFile && !isValidating && virusScanStatus !== 'scanning' && moderationStatus !== 'moderating' ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
                 className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
@@ -421,11 +508,15 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
           {/* Submit Button */}
           <Button
             type="submit"
-            disabled={uploading || scanning || !selectedFile || !formData.title.trim() || virusScanStatus === 'infected'}
+            disabled={uploading || scanning || moderating || !selectedFile || !formData.title.trim() || virusScanStatus === 'infected' || moderationStatus === 'rejected'}
             className="w-full"
             variant="premium"
           >
-            {uploading ? 'Upload en cours...' : scanning ? 'Scan en cours...' : 'Publier le contenu'}
+            {uploading ? 'Upload en cours...' : 
+             scanning ? 'Scan en cours...' : 
+             moderating ? 'Modération IA...' :
+             moderationStatus === 'review' ? 'Publier (vérification requise)' :
+             'Publier le contenu'}
           </Button>
         </form>
       </CardContent>
