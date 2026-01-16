@@ -104,23 +104,46 @@ export const LiveStreamStudio = () => {
       }
 
       if (streamId) {
-        // Récupérer la clé via RPC sécurisé
-        const { data: key, error: keyError } = await supabase.rpc('get_own_stream_key', { 
-          _live_stream_id: streamId 
-        });
+        // Vérifier si la clé existe, sinon la générer
+        const { data: streamData } = await supabase
+          .from('live_streams')
+          .select('stream_key')
+          .eq('id', streamId)
+          .single();
         
-        if (keyError) {
-          console.error('Erreur RPC get_own_stream_key:', keyError);
-          throw keyError;
+        let finalKey = streamData?.stream_key;
+        
+        // Si pas de clé, en générer une via SQL
+        if (!finalKey) {
+          const { error: updateError } = await supabase
+            .from('live_streams')
+            .update({ stream_key: crypto.randomUUID().replace(/-/g, '') })
+            .eq('id', streamId);
+          
+          if (updateError) {
+            console.error('Erreur update stream_key:', updateError);
+            throw updateError;
+          }
+          
+          // Récupérer la clé générée via RPC sécurisé
+          const { data: key, error: keyError } = await supabase.rpc('get_own_stream_key', { 
+            _live_stream_id: streamId 
+          });
+          
+          if (keyError) {
+            console.error('Erreur RPC get_own_stream_key:', keyError);
+            throw keyError;
+          }
+          finalKey = key;
         }
         
-        if (key) {
-          setObsStreamKey(key);
+        if (finalKey) {
+          setObsStreamKey(finalKey);
           toast.success('Clé de stream générée !');
           console.log('[OBS] Stream key generated successfully');
         } else {
-          toast.error('Clé non trouvée');
-          console.error('[OBS] No key returned from RPC');
+          toast.error('Impossible de générer la clé');
+          console.error('[OBS] No key generated');
         }
       }
     } catch (error: any) {
