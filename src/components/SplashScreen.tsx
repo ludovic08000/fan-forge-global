@@ -65,16 +65,6 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
                   }}
                 />
                 
-                {/* Center dividing line */}
-                <motion.div
-                  className="absolute left-1/2 top-0 bottom-0 w-[2px] -translate-x-1/2"
-                  style={{
-                    background: 'linear-gradient(to bottom, transparent, hsl(var(--primary)), transparent)',
-                  }}
-                  initial={{ scaleY: 0, opacity: 0 }}
-                  animate={{ scaleY: 1, opacity: 0.6 }}
-                  transition={{ duration: 1, delay: 0.8 }}
-                />
               </motion.div>
               
               {/* Vignette overlay */}
