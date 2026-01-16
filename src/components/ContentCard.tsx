@@ -12,7 +12,7 @@ import { ReportContentDialog } from '@/components/ReportContentDialog';
 import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { supabase } from '@/integrations/supabase/client';
 import { preloadImage } from '@/components/ImageLightbox';
-import LazyContentImage from '@/components/LazyContentImage';
+import LazyContentImage, { preloadImageFast } from '@/components/LazyContentImage';
 
 interface ContentCardProps {
   content: Content;
@@ -111,14 +111,19 @@ const ContentCard: React.FC<ContentCardProps> = ({
 
   const creatorInitials = creatorName.charAt(0).toUpperCase();
 
-  // Précharger l'image au hover pour un affichage instantané dans le lightbox
+  // URL avec cache-buster - mémorisée
+  const imageUrl = useMemo(() => {
+    const cacheBuster = content.updated_at ? `?t=${new Date(content.updated_at).getTime()}` : '';
+    return (content.thumbnail_url || content.file_url) + cacheBuster;
+  }, [content.thumbnail_url, content.file_url, content.updated_at]);
+
+  // Précharger agressivement au hover pour affichage instantané
   const handleMouseEnter = useCallback(() => {
     if (!content.is_premium || isSubscribed) {
-      const cacheBuster = content.updated_at ? `?t=${new Date(content.updated_at).getTime()}` : '';
-      const imageUrl = (content.thumbnail_url || content.file_url) + cacheBuster;
-      preloadImage(imageUrl);
+      preloadImage(imageUrl); // Cache lightbox
+      preloadImageFast(imageUrl); // Cache lazy image
     }
-  }, [content, isSubscribed]);
+  }, [content.is_premium, isSubscribed, imageUrl]);
 
   return (
     <Card 
@@ -156,34 +161,28 @@ const ContentCard: React.FC<ContentCardProps> = ({
           </div>
         )}
 
-        {/* Media avec lazy loading */}
-        {(() => {
-          // Ajouter un cache-buster basé sur updated_at pour forcer le rechargement
-          const cacheBuster = content.updated_at ? `?t=${new Date(content.updated_at).getTime()}` : '';
-          const imageUrl = (content.thumbnail_url || content.file_url) + cacheBuster;
-          
-          return content.content_type === 'video' ? (
-            <div className="relative w-full h-full">
-              <LazyContentImage
-                src={imageUrl}
-                alt={content.title}
-                blurred={shouldBlur}
-              />
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="bg-black/70 rounded-full p-3">
-                  <Play className="h-6 w-6 text-white" />
-                </div>
-              </div>
-            </div>
-          ) : (
+        {/* Media - chargement optimisé */}
+        {content.content_type === 'video' ? (
+          <div className="relative w-full h-full">
             <LazyContentImage
               src={imageUrl}
               alt={content.title}
-              className="group-hover:scale-105"
               blurred={shouldBlur}
             />
-          );
-        })()}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="bg-black/70 rounded-full p-3">
+                <Play className="h-6 w-6 text-white" />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <LazyContentImage
+            src={imageUrl}
+            alt={content.title}
+            className="group-hover:scale-105"
+            blurred={shouldBlur}
+          />
+        )}
 
         {/* Premium Badge */}
         {content.is_premium && (
