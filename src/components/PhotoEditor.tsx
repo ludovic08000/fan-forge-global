@@ -218,6 +218,17 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
 
       const newFileUrl = urlData.publicUrl;
 
+      // Supprimer l'ancienne image du storage
+      const oldUrl = content.file_url;
+      if (oldUrl) {
+        const oldPathMatch = oldUrl.match(/\/storage\/v1\/object\/public\/content\/(.+)/);
+        if (oldPathMatch && oldPathMatch[1]) {
+          const oldPath = decodeURIComponent(oldPathMatch[1]);
+          console.log('Suppression de l\'ancienne image:', oldPath);
+          await supabase.storage.from('content').remove([oldPath]);
+        }
+      }
+
       // Mettre à jour le contenu avec la nouvelle URL
       const { error: updateError } = await supabase
         .from('content')
