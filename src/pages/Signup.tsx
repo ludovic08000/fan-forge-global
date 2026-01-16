@@ -13,11 +13,19 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { PasswordRequirements } from '@/components/PasswordRequirements';
 
-// Fonction pour calculer l'âge
-const calculateAge = (birthdate: string): number => {
-  if (!birthdate) return 0;
+// Fonction pour calculer l'âge - retourne null si date invalide
+const calculateAge = (birthdate: string): number | null => {
+  if (!birthdate) return null;
   const birthDate = new Date(birthdate);
+  // Vérifier que la date est valide
+  if (isNaN(birthDate.getTime())) return null;
+  // Vérifier que la date n'est pas dans le futur
   const today = new Date();
+  if (birthDate > today) return null;
+  // Vérifier que l'année a 4 chiffres (date complète)
+  const year = birthDate.getFullYear();
+  if (year < 1900 || year > today.getFullYear()) return null;
+  
   const age = today.getFullYear() - birthDate.getFullYear();
   const monthDiff = today.getMonth() - birthDate.getMonth();
   const dayDiff = today.getDate() - birthDate.getDate();
@@ -49,9 +57,9 @@ const Signup = () => {
 
   const [signUpErrors, setSignUpErrors] = useState<Record<string, string>>({});
 
-  // Vérification d'âge en temps réel
+  // Vérification d'âge en temps réel - seulement si l'âge est calculable (date valide)
   const userAge = useMemo(() => calculateAge(signUpForm.birthdate), [signUpForm.birthdate]);
-  const isMinor = useMemo(() => signUpForm.birthdate && userAge < 18, [signUpForm.birthdate, userAge]);
+  const isMinor = useMemo(() => userAge !== null && userAge < 18, [userAge]);
 
   useEffect(() => {
     if (user) {
@@ -373,7 +381,7 @@ const Signup = () => {
                     <AlertTriangle className="h-3 w-3" />
                     <span>Vous devez avoir au moins 18 ans pour vous inscrire</span>
                   </div>
-                ) : signUpForm.birthdate && userAge >= 18 ? (
+                ) : userAge !== null && userAge >= 18 ? (
                   <p className="text-xs text-green-500">
                     ✓ Vous avez {userAge} ans - Éligible à l'inscription
                   </p>
