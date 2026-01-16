@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 interface ImageLightboxProps {
@@ -13,6 +13,24 @@ interface ImageLightboxProps {
   hasPrevious?: boolean;
   hasNext?: boolean;
 }
+
+// Cache global pour les images préchargées
+const preloadedImages = new Map<string, HTMLImageElement>();
+
+// Fonction pour précharger une image
+export const preloadImage = (url: string): Promise<void> => {
+  if (preloadedImages.has(url)) return Promise.resolve();
+  
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      preloadedImages.set(url, img);
+      resolve();
+    };
+    img.onerror = () => resolve(); // Ne pas bloquer en cas d'erreur
+    img.src = url;
+  });
+};
 
 const ImageLightbox: React.FC<ImageLightboxProps> = ({
   isOpen,
@@ -29,56 +47,74 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
   const { signedUrl, loading: urlLoading, error: urlError } = useSignedUrl(imageUrl, { enabled: isOpen && !!imageUrl });
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [showContent, setShowContent] = useState(false);
 
   // L'URL effective à utiliser - fallback à l'URL originale si pas de signed URL
   const effectiveUrl = signedUrl || imageUrl;
 
-  // Log pour debug
-  React.useEffect(() => {
-    if (isOpen && imageUrl) {
-      console.log('ImageLightbox debug:', { 
-        imageUrl, 
-        signedUrl, 
-        effectiveUrl, 
-        urlLoading, 
-        urlError 
+  // Vérifier si l'image est déjà préchargée
+  const isPreloaded = effectiveUrl ? preloadedImages.has(effectiveUrl) : false;
+
+  // Animation d'entrée fluide
+  useEffect(() => {
+    if (isOpen) {
+      // Délai court pour l'animation
+      const timer = setTimeout(() => setShowContent(true), 50);
+      return () => clearTimeout(timer);
+    } else {
+      setShowContent(false);
+    }
+  }, [isOpen]);
+
+  // Reset loading state when image changes
+  useEffect(() => {
+    if (isOpen) {
+      setImageError(false);
+      // Si l'image est déjà préchargée, marquer comme chargée immédiatement
+      if (isPreloaded) {
+        setImageLoaded(true);
+      } else {
+        setImageLoaded(false);
+      }
+    }
+  }, [isOpen, imageUrl, isPreloaded]);
+
+  // Précharger l'image dès que l'URL signée arrive
+  useEffect(() => {
+    if (effectiveUrl && isOpen && !isPreloaded) {
+      preloadImage(effectiveUrl).then(() => {
+        setImageLoaded(true);
       });
     }
-  }, [isOpen, imageUrl, signedUrl, effectiveUrl, urlLoading, urlError]);
+  }, [effectiveUrl, isOpen, isPreloaded]);
 
-  // Reset loading state when image changes or when signed URL arrives
-  React.useEffect(() => {
-    if (isOpen) {
-      setImageLoaded(false);
-      setImageError(false);
-    }
-  }, [isOpen, imageUrl]);
-
-  // Reset error when signed URL arrives (new URL to try)
-  React.useEffect(() => {
+  // Reset error when signed URL arrives
+  useEffect(() => {
     if (signedUrl && imageError) {
       setImageError(false);
       setImageLoaded(false);
     }
-  }, [signedUrl]);
+  }, [signedUrl, imageError]);
 
-  if (!isOpen) return null;
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
+  const handleBackdropClick = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
-  };
+  }, [onClose]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
     if (e.key === 'ArrowLeft' && hasPrevious && onPrevious) onPrevious();
     if (e.key === 'ArrowRight' && hasNext && onNext) onNext();
-  };
+  }, [onClose, hasPrevious, hasNext, onPrevious, onNext]);
+
+  if (!isOpen) return null;
+
+  const isLoading = urlLoading || (!imageLoaded && !imageError && !isPreloaded);
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-sm animate-in fade-in duration-200"
+      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-sm transition-opacity duration-200 ${showContent ? 'opacity-100' : 'opacity-0'}`}
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
       tabIndex={0}
@@ -117,12 +153,13 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
       )}
 
       {/* Contenu */}
-      <div className="flex flex-col items-center max-w-[95vw] max-h-[95vh]">
-        {/* Loader */}
-        {(urlLoading || (!imageLoaded && !imageError)) && (
-          <div className="flex flex-col items-center gap-3 text-white/70">
-            <Loader2 className="w-10 h-10 animate-spin" />
-            <span>Chargement...</span>
+      <div className={`flex flex-col items-center max-w-[95vw] max-h-[95vh] transition-all duration-300 ${showContent ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+        {/* Skeleton loader animé */}
+        {isLoading && (
+          <div className="relative w-[80vw] max-w-2xl aspect-square rounded-lg overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-white/5 via-white/10 to-white/5 animate-pulse" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-[shimmer_1.5s_infinite]" 
+                 style={{ transform: 'translateX(-100%)', animation: 'shimmer 1.5s infinite' }} />
           </div>
         )}
 
@@ -136,6 +173,7 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
               onClick={() => {
                 setImageError(false);
                 setImageLoaded(false);
+                if (effectiveUrl) preloadedImages.delete(effectiveUrl);
               }}
               className="text-sm text-white/70 underline hover:text-white"
             >
@@ -149,21 +187,31 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({
           <img
             src={effectiveUrl}
             alt={title || 'Image en plein écran'}
-            className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
-            style={{ display: imageLoaded && !urlLoading ? 'block' : 'none' }}
+            className={`max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl transition-opacity duration-300 ${imageLoaded && !isLoading ? 'opacity-100' : 'opacity-0 absolute'}`}
             onClick={(e) => e.stopPropagation()}
-            onLoad={() => setImageLoaded(true)}
+            onLoad={() => {
+              setImageLoaded(true);
+              if (effectiveUrl) preloadImage(effectiveUrl);
+            }}
             onError={() => setImageError(true)}
           />
         )}
         
-        {(title || description) && imageLoaded && (
-          <div className="mt-4 text-center px-4">
+        {(title || description) && imageLoaded && !isLoading && (
+          <div className="mt-4 text-center px-4 transition-opacity duration-300">
             {title && <h3 className="text-white text-xl font-bold">{title}</h3>}
             {description && <p className="text-white/70 text-sm mt-1">{description}</p>}
           </div>
         )}
       </div>
+
+      {/* CSS pour l'animation shimmer */}
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
     </div>
   );
 };

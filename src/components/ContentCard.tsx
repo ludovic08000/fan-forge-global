@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { ReportContentDialog } from '@/components/ReportContentDialog';
 import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { supabase } from '@/integrations/supabase/client';
+import { preloadImage } from '@/components/ImageLightbox';
 
 interface ContentCardProps {
   content: Content;
@@ -109,8 +110,20 @@ const ContentCard: React.FC<ContentCardProps> = ({
 
   const creatorInitials = creatorName.charAt(0).toUpperCase();
 
+  // Précharger l'image au hover pour un affichage instantané dans le lightbox
+  const handleMouseEnter = useCallback(() => {
+    if (!content.is_premium || isSubscribed) {
+      const cacheBuster = content.updated_at ? `?t=${new Date(content.updated_at).getTime()}` : '';
+      const imageUrl = (content.thumbnail_url || content.file_url) + cacheBuster;
+      preloadImage(imageUrl);
+    }
+  }, [content, isSubscribed]);
+
   return (
-    <Card className="group cursor-pointer hover:shadow-lg transition-all duration-300 overflow-hidden">
+    <Card 
+      className="group cursor-pointer hover:shadow-lg transition-all duration-300 overflow-hidden"
+      onMouseEnter={handleMouseEnter}
+    >
       {/* Media Container */}
       <ProtectedMedia 
         className="relative aspect-square bg-muted overflow-hidden cursor-pointer"
