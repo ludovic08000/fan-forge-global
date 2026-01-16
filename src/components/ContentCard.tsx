@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -12,6 +12,7 @@ import { ReportContentDialog } from '@/components/ReportContentDialog';
 import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { supabase } from '@/integrations/supabase/client';
 import { preloadImage } from '@/components/ImageLightbox';
+import LazyContentImage from '@/components/LazyContentImage';
 
 interface ContentCardProps {
   content: Content;
@@ -155,7 +156,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
           </div>
         )}
 
-        {/* Media */}
+        {/* Media avec lazy loading */}
         {(() => {
           // Ajouter un cache-buster basé sur updated_at pour forcer le rechargement
           const cacheBuster = content.updated_at ? `?t=${new Date(content.updated_at).getTime()}` : '';
@@ -163,22 +164,23 @@ const ContentCard: React.FC<ContentCardProps> = ({
           
           return content.content_type === 'video' ? (
             <div className="relative w-full h-full">
-              <img
+              <LazyContentImage
                 src={imageUrl}
                 alt={content.title}
-                className={`w-full h-full object-cover ${shouldBlur ? 'blur-xl' : ''}`}
+                blurred={shouldBlur}
               />
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="bg-black/70 rounded-full p-3">
                   <Play className="h-6 w-6 text-white" />
                 </div>
               </div>
             </div>
           ) : (
-            <img
+            <LazyContentImage
               src={imageUrl}
               alt={content.title}
-              className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${shouldBlur ? 'blur-xl' : ''}`}
+              className="group-hover:scale-105"
+              blurred={shouldBlur}
             />
           );
         })()}
