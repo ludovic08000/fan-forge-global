@@ -914,6 +914,18 @@ export const LiveStreamStudio = () => {
                   <Switch checked={isPremium} onCheckedChange={setIsPremium} />
                 </div>
                 
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-sm">🎬 Enregistrer le live</span>
+                    <p className="text-xs text-muted-foreground">
+                      Le replay sera disponible après
+                    </p>
+                  </div>
+                  <Switch 
+                    checked={enableRecording} 
+                    onCheckedChange={setEnableRecording} 
+                  />
+                </div>
                 {/* Section OBS Mobile */}
                 <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
                   <div className="flex items-center justify-between">
