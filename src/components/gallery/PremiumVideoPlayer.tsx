@@ -372,11 +372,10 @@ export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
         onContextMenu={(e) => e.preventDefault()}
       />
 
-      {/* Click overlay for play/pause & double-tap skip */}
+      {/* Click overlay for play/pause & double-tap skip - excludes bottom controls area */}
       <div 
-        className="absolute inset-0 cursor-pointer"
+        className="absolute inset-0 bottom-24 cursor-pointer"
         onClick={handleVideoClick}
-        onDoubleClick={toggleFullscreen}
       />
 
       {/* Skip indicator - Left */}
@@ -464,8 +463,26 @@ export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
           {/* Progress bar */}
           <div 
             ref={progressRef}
-            className="relative h-1 hover:h-2 bg-white/20 rounded-full cursor-pointer transition-all group/progress"
+            className="relative h-2 sm:h-1 sm:hover:h-2 bg-white/20 rounded-full cursor-pointer transition-all group/progress touch-none"
             onClick={handleProgressClick}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+              const touch = e.touches[0];
+              const rect = progressRef.current?.getBoundingClientRect();
+              if (rect && videoRef.current) {
+                const percent = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+                videoRef.current.currentTime = percent * duration;
+              }
+            }}
+            onTouchMove={(e) => {
+              e.stopPropagation();
+              const touch = e.touches[0];
+              const rect = progressRef.current?.getBoundingClientRect();
+              if (rect && videoRef.current) {
+                const percent = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+                videoRef.current.currentTime = percent * duration;
+              }
+            }}
             onMouseMove={handleProgressHover}
             onMouseLeave={() => setHoverTime(null)}
           >
