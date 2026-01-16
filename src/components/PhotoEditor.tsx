@@ -88,6 +88,85 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
     };
   }, [selectedFilter, brightness, contrast, saturation, blur]);
 
+  // Appliquer les filtres manuellement sur l'ImageData (pour Safari/iOS)
+  const applyFiltersToImageData = useCallback((imageData: ImageData) => {
+    const data = imageData.data;
+    const filter = FILTERS.find(f => f.id === selectedFilter);
+    
+    // Déterminer si on doit appliquer le grayscale
+    const isGrayscale = filter?.style.filter?.includes('grayscale(1)');
+    const isSepia = filter?.style.filter?.includes('sepia');
+    
+    // Extraire les valeurs du filtre de base
+    let baseContrast = 1;
+    let baseBrightness = 1;
+    let baseSaturation = 1;
+    
+    if (filter?.style.filter) {
+      const contrastMatch = filter.style.filter.match(/contrast\(([0-9.]+)\)/);
+      const brightnessMatch = filter.style.filter.match(/brightness\(([0-9.]+)\)/);
+      const saturateMatch = filter.style.filter.match(/saturate\(([0-9.]+)\)/);
+      
+      if (contrastMatch) baseContrast = parseFloat(contrastMatch[1]);
+      if (brightnessMatch) baseBrightness = parseFloat(brightnessMatch[1]);
+      if (saturateMatch) baseSaturation = parseFloat(saturateMatch[1]);
+    }
+    
+    // Combiner avec les ajustements utilisateur
+    const finalBrightness = baseBrightness * (brightness / 100);
+    const finalContrast = baseContrast * (contrast / 100);
+    const finalSaturation = baseSaturation * (saturation / 100);
+    
+    for (let i = 0; i < data.length; i += 4) {
+      let r = data[i];
+      let g = data[i + 1];
+      let b = data[i + 2];
+      
+      // Appliquer grayscale
+      if (isGrayscale) {
+        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+        r = g = b = gray;
+      }
+      
+      // Appliquer sepia
+      if (isSepia) {
+        const sepiaMatch = filter?.style.filter?.match(/sepia\(([0-9.]+)\)/);
+        const sepiaAmount = sepiaMatch ? parseFloat(sepiaMatch[1]) : 0.5;
+        const tr = 0.393 * r + 0.769 * g + 0.189 * b;
+        const tg = 0.349 * r + 0.686 * g + 0.168 * b;
+        const tb = 0.272 * r + 0.534 * g + 0.131 * b;
+        r = r + (tr - r) * sepiaAmount;
+        g = g + (tg - g) * sepiaAmount;
+        b = b + (tb - b) * sepiaAmount;
+      }
+      
+      // Appliquer saturation
+      if (finalSaturation !== 1) {
+        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+        r = gray + (r - gray) * finalSaturation;
+        g = gray + (g - gray) * finalSaturation;
+        b = gray + (b - gray) * finalSaturation;
+      }
+      
+      // Appliquer brightness
+      r *= finalBrightness;
+      g *= finalBrightness;
+      b *= finalBrightness;
+      
+      // Appliquer contrast
+      r = ((r / 255 - 0.5) * finalContrast + 0.5) * 255;
+      g = ((g / 255 - 0.5) * finalContrast + 0.5) * 255;
+      b = ((b / 255 - 0.5) * finalContrast + 0.5) * 255;
+      
+      // Clamper les valeurs
+      data[i] = Math.max(0, Math.min(255, r));
+      data[i + 1] = Math.max(0, Math.min(255, g));
+      data[i + 2] = Math.max(0, Math.min(255, b));
+    }
+    
+    return imageData;
+  }, [selectedFilter, brightness, contrast, saturation]);
+
   const handleReset = () => {
     setSelectedFilter('normal');
     setBrightness(100);
@@ -165,17 +244,14 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
     // Nettoyer le canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Appliquer les filtres CSS au canvas
-    const filterStyle = getFilterStyle();
-    const filterValue = filterStyle.filter || 'none';
-    console.log('Applying filter to canvas:', filterValue);
-    ctx.filter = filterValue;
-    
-    // Dessiner l'image avec les filtres
+    // Dessiner l'image originale
     ctx.drawImage(img, 0, 0);
     
-    // Réinitialiser le filtre après le dessin
-    ctx.filter = 'none';
+    // Appliquer les filtres manuellement (compatible Safari/iOS)
+    console.log('Applying manual filters for Safari compatibility');
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const filteredData = applyFiltersToImageData(imageData);
+    ctx.putImageData(filteredData, 0, 0);
 
     setIsSaving(true);
 
