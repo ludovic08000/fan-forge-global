@@ -113,15 +113,11 @@ export const LiveStreamStudio = () => {
         
         let finalKey = streamData?.stream_key;
         
-        // Si pas de clé, en générer une via la fonction SQL sécurisée
         if (!finalKey) {
-          // Générer une clé unique côté serveur (cryptographiquement sécurisée)
-          const { data: newKey, error: genError } = await supabase.rpc('generate_stream_key');
-          
-          if (genError || !newKey) {
-            console.error('Erreur génération clé:', genError);
-            throw new Error('Impossible de générer une clé unique');
-          }
+          // Générer une clé unique (64 caractères hex, crypto-sécurisé)
+          const newKey = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
           
           // Mettre à jour le stream avec la nouvelle clé
           const { error: updateError } = await supabase
@@ -190,13 +186,10 @@ export const LiveStreamStudio = () => {
         return;
       }
 
-      // Générer une nouvelle clé unique côté serveur
-      const { data: newKey, error: genError } = await supabase.rpc('generate_stream_key');
-      
-      if (genError || !newKey) {
-        console.error('Erreur génération clé:', genError);
-        throw new Error('Impossible de générer une nouvelle clé');
-      }
+      // Générer une nouvelle clé unique (64 caractères hex)
+      const newKey = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
       
       // Mettre à jour le stream avec la nouvelle clé
       const { error: updateError } = await supabase
