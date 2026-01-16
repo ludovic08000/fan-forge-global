@@ -67,46 +67,35 @@ const VerifyOtp = () => {
 
     setIsLoading(true);
     try {
-      // Attendre un peu pour s'assurer que la session est bien établie
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const emailToUse = pendingEmail || user?.email;
       
-      if (!currentSession) {
-        console.log('Pas de session, attente...');
-        // Réessayer après un court délai
-        setTimeout(() => {
-          setIsLoading(false);
-          sendOtp();
-        }, 1000);
+      if (!emailToUse) {
+        console.log('Pas d\'email disponible');
+        toast.error('Email non disponible');
+        navigate('/login');
         return;
       }
 
-      console.log('Session trouvée, envoi OTP pour:', currentSession.user.email);
+      console.log('Envoi OTP Supabase pour:', emailToUse);
 
-      const { data, error } = await supabase.functions.invoke('send-otp', {
-        headers: {
-          Authorization: `Bearer ${currentSession.access_token}`,
+      // Utiliser l'OTP natif de Supabase (gratuit)
+      const { error } = await supabase.auth.signInWithOtp({
+        email: emailToUse,
+        options: {
+          shouldCreateUser: false,
         },
       });
 
       if (error) {
-        console.error('Erreur send-otp:', error);
+        console.error('Erreur Supabase OTP:', error);
         throw new Error(error.message || 'Erreur lors de l\'envoi du code');
-      }
-
-      if (data?.error) {
-        throw new Error(data.error);
       }
 
       setOtpSent(true);
       setOtpCountdown(60);
+      setDevCode(null); // Pas de code en dev, Supabase envoie vraiment l'email
       
-      // Afficher le code (mode dev - pas d'envoi email sans Resend)
-      if (data?.code) {
-        setDevCode(data.code);
-        console.log('Code OTP:', data.code);
-      }
-      
-      toast.success('Code de vérification généré !');
+      toast.success('Code envoyé par email !');
     } catch (error: any) {
       console.error('Erreur sendOtp:', error);
       toast.error(error.message || 'Erreur lors de l\'envoi du code');
@@ -121,32 +110,33 @@ const VerifyOtp = () => {
       return;
     }
 
+    const emailToUse = pendingEmail || user?.email;
+    if (!emailToUse) {
+      toast.error('Email non disponible');
+      navigate('/login');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast.error('Session expirée. Veuillez vous reconnecter.');
-        navigate('/login');
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke('verify-otp-code', {
-        body: { code: otpCode },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+      // Vérifier l'OTP avec Supabase natif
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: emailToUse,
+        token: otpCode,
+        type: 'email',
       });
 
       if (error) {
         console.error('Erreur verify-otp:', error);
-        throw new Error(error.message || 'Erreur de vérification');
+        throw new Error(error.message || 'Code invalide');
       }
 
-      if (data?.error) {
-        toast.error(data.error);
-        setIsLoading(false);
-        return;
+      // Mettre à jour le profil pour marquer l'OTP comme vérifié
+      if (data.user) {
+        await supabase
+          .from('profiles')
+          .update({ otp_verified: true })
+          .eq('user_id', data.user.id);
       }
 
       // Nettoyer le sessionStorage
@@ -155,19 +145,24 @@ const VerifyOtp = () => {
       toast.success('Vérification réussie !');
 
       // Rediriger vers le dashboard approprié
-      const { data: creatorData } = await supabase
-        .from('creators')
-        .select('id')
-        .eq('user_id', session.user.id)
-        .maybeSingle();
+      const userId = data.user?.id || user?.id;
+      if (userId) {
+        const { data: creatorData } = await supabase
+          .from('creators')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
 
-      if (creatorData) {
-        navigate('/dashboard');
+        if (creatorData) {
+          navigate('/dashboard');
+        } else {
+          navigate('/subscriptions');
+        }
       } else {
-        navigate('/subscriptions');
+        navigate('/dashboard');
       }
     } catch (error: any) {
-      toast.error(error.message || 'Erreur de vérification');
+      toast.error(error.message || 'Code invalide. Réessayez.');
     } finally {
       setIsLoading(false);
     }
@@ -203,20 +198,20 @@ const VerifyOtp = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {devCode && (
-              <Alert className="bg-primary/10 border-primary">
-                <Shield className="h-4 w-4 text-primary" />
-                <AlertDescription className="font-mono text-lg font-bold text-primary">
-                  Code: {devCode}
+            {otpSent && (
+              <Alert className="bg-green-500/10 border-green-500">
+                <Mail className="h-4 w-4 text-green-500" />
+                <AlertDescription>
+                  Code envoyé à <strong>{pendingEmail}</strong>. Vérifiez votre boîte de réception et vos spams.
                 </AlertDescription>
               </Alert>
             )}
             
-            {!devCode && (
+            {!otpSent && (
               <Alert>
                 <Mail className="h-4 w-4" />
                 <AlertDescription>
-                  Chargement du code...
+                  Envoi du code en cours...
                 </AlertDescription>
               </Alert>
             )}
