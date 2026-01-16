@@ -33,6 +33,7 @@ import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import CreatorMessages from '@/components/CreatorMessages';
 import ImageLightbox from '@/components/ImageLightbox';
 import PhotoEditor from '@/components/PhotoEditor';
+import { PremiumVideoPlayer } from '@/components/gallery/PremiumVideoPlayer';
 import {
   Dialog,
   DialogContent,
@@ -939,22 +940,22 @@ const Dashboard = () => {
         {/* Lecteur vidéo plein écran */}
         {selectedContent && selectedContent.content_type === 'video' && (
           <div 
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-sm"
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black"
             onClick={() => setSelectedContent(null)}
           >
-            <button
-              onClick={() => setSelectedContent(null)}
-              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-            >
-              <span className="text-white text-2xl">×</span>
-            </button>
-            <video
-              src={selectedContent.file_url}
-              controls
-              autoPlay
-              className="max-w-[95vw] max-h-[90vh] rounded-lg"
+            <div 
+              className="w-full h-full max-w-[95vw] max-h-[95vh] m-auto"
               onClick={(e) => e.stopPropagation()}
-            />
+            >
+              <PremiumVideoPlayer
+                src={selectedContent.file_url}
+                poster={selectedContent.thumbnail_url || undefined}
+                autoPlay
+                onClose={() => setSelectedContent(null)}
+                onEnded={() => setSelectedContent(null)}
+                className="w-full h-full"
+              />
+            </div>
           </div>
         )}
 
