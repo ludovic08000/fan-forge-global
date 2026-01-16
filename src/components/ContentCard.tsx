@@ -149,6 +149,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
               src={content.thumbnail_url || content.file_url}
               alt={content.title}
               className={`w-full h-full object-cover ${shouldBlur ? 'blur-xl' : ''}`}
+              key={content.updated_at}
             />
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="bg-black/70 rounded-full p-3">
@@ -161,6 +162,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
             src={content.thumbnail_url || content.file_url}
             alt={content.title}
             className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${shouldBlur ? 'blur-xl' : ''}`}
+            key={content.updated_at}
           />
         )}
 
