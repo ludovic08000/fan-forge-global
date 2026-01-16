@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera, Send, Shield, MessageCircle, ImageIcon, Clock, Copy, Eye, EyeOff } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera, Send, Shield, MessageCircle, ImageIcon, Clock, Copy, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { LiveTimer } from '@/components/live/LiveTimer';
 import { EmojiPicker } from '@/components/live/EmojiPicker';
 import { PaidMediaUpload } from '@/components/live/PaidMediaUpload';
@@ -158,6 +158,77 @@ export const LiveStreamStudio = () => {
     } catch (error: any) {
       console.error('Erreur génération clé OBS:', error);
       toast.error(error?.message || 'Erreur lors de la génération de la clé');
+    } finally {
+      setIsGeneratingKey(false);
+    }
+  };
+
+  /**
+   * Régénérer une nouvelle clé de stream OBS
+   * Force la génération d'une nouvelle clé même si une existe déjà
+   */
+  const regenerateObsStreamKey = async () => {
+    if (!creatorId) {
+      toast.error('Impossible de régénérer la clé');
+      return;
+    }
+
+    setIsGeneratingKey(true);
+    try {
+      // Trouver le live brouillon existant
+      const { data: existingDraft } = await supabase
+        .from('live_streams')
+        .select('id')
+        .eq('creator_id', creatorId)
+        .eq('status', 'scheduled')
+        .eq('title', 'Configuration OBS')
+        .maybeSingle();
+
+      if (!existingDraft?.id) {
+        // Si pas de brouillon, utiliser la fonction de génération normale
+        await generateObsStreamKey();
+        return;
+      }
+
+      // Générer une nouvelle clé unique côté serveur
+      const { data: newKey, error: genError } = await supabase.rpc('generate_stream_key');
+      
+      if (genError || !newKey) {
+        console.error('Erreur génération clé:', genError);
+        throw new Error('Impossible de générer une nouvelle clé');
+      }
+      
+      // Mettre à jour le stream avec la nouvelle clé
+      const { error: updateError } = await supabase
+        .from('live_streams')
+        .update({ stream_key: newKey })
+        .eq('id', existingDraft.id);
+      
+      if (updateError) {
+        console.error('Erreur update stream_key:', updateError);
+        throw updateError;
+      }
+      
+      // Récupérer la clé via RPC sécurisé
+      const { data: key, error: keyError } = await supabase.rpc('get_own_stream_key', { 
+        _live_stream_id: existingDraft.id 
+      });
+      
+      if (keyError) {
+        console.error('Erreur RPC get_own_stream_key:', keyError);
+        throw keyError;
+      }
+      
+      if (key) {
+        setObsStreamKey(key);
+        toast.success('Nouvelle clé générée !');
+        console.log('[OBS] Stream key regenerated successfully');
+      } else {
+        toast.error('Impossible de régénérer la clé');
+      }
+    } catch (error: any) {
+      console.error('Erreur régénération clé OBS:', error);
+      toast.error(error?.message || 'Erreur lors de la régénération');
     } finally {
       setIsGeneratingKey(false);
     }
@@ -869,7 +940,23 @@ export const LiveStreamStudio = () => {
                     
                     {(obsStreamKey || streamKey) ? (
                       <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground">Clé de stream</Label>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs text-muted-foreground">Clé de stream</Label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-xs text-muted-foreground hover:text-primary"
+                            onClick={regenerateObsStreamKey}
+                            disabled={isGeneratingKey}
+                          >
+                            {isGeneratingKey ? (
+                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            ) : (
+                              <RefreshCw className="h-3 w-3 mr-1" />
+                            )}
+                            Régénérer
+                          </Button>
+                        </div>
                         <div className="flex items-center gap-2">
                           <Input 
                             type={showObsKey || showStreamKey ? "text" : "password"}
@@ -1337,7 +1424,23 @@ export const LiveStreamStudio = () => {
                   
                   {(obsStreamKey || streamKey) ? (
                     <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Clé de stream</Label>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-muted-foreground">Clé de stream</Label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs text-muted-foreground hover:text-primary"
+                          onClick={regenerateObsStreamKey}
+                          disabled={isGeneratingKey}
+                        >
+                          {isGeneratingKey ? (
+                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          ) : (
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                          )}
+                          Régénérer
+                        </Button>
+                      </div>
                       <div className="flex items-center gap-2">
                         <Input 
                           type={showObsKey || showStreamKey ? "text" : "password"}
