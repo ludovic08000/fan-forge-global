@@ -137,7 +137,7 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
     onClose();
   };
 
-  // Sauvegarder sur le serveur
+  // Sauvegarder sur le serveur - Upload direct vers Storage (plus rapide)
   const handleServerSave = async () => {
     if (!imageRef.current || !canvasRef.current || !contentId) {
       toast.error('Impossible de sauvegarder: données manquantes');
@@ -155,35 +155,81 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
     ctx.filter = getFilterStyle().filter || 'none';
     ctx.drawImage(img, 0, 0);
 
-    const dataUrl = canvas.toDataURL('image/png');
-    
     setIsSaving(true);
 
     try {
-      const session = await supabase.auth.getSession();
-      if (!session.data.session) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         throw new Error('Non authentifié');
       }
 
-      const { data, error } = await supabase.functions.invoke('save-edited-image', {
-        body: { 
-          imageData: dataUrl,
-          contentId: contentId
-        },
-        headers: {
-          Authorization: `Bearer ${session.data.session.access_token}`,
-        },
+      // Vérifier que l'utilisateur est le propriétaire du contenu
+      const { data: content, error: contentError } = await supabase
+        .from('content')
+        .select('id, creator_id, file_url')
+        .eq('id', contentId)
+        .single();
+
+      if (contentError || !content) {
+        throw new Error('Contenu non trouvé');
+      }
+
+      // Vérifier que l'utilisateur est le créateur
+      const { data: creator, error: creatorError } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('id', content.creator_id)
+        .single();
+
+      if (creatorError || !creator) {
+        throw new Error('Non autorisé à modifier ce contenu');
+      }
+
+      // Convertir le canvas en Blob (beaucoup plus rapide que base64)
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((b) => {
+          if (b) resolve(b);
+          else reject(new Error('Impossible de créer le blob'));
+        }, 'image/png', 0.9);
       });
 
-      if (error) throw error;
+      // Upload direct vers Storage
+      const timestamp = Date.now();
+      const fileName = `edited_${timestamp}.png`;
+      const filePath = `${user.id}/${fileName}`;
 
-      if (data?.success) {
-        toast.success('Photo sauvegardée sur le serveur!');
-        onServerSave?.();
-        onClose();
-      } else {
-        throw new Error(data?.error || 'Erreur inconnue');
-      }
+      const { error: uploadError } = await supabase.storage
+        .from('content')
+        .upload(filePath, blob, {
+          contentType: 'image/png',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Obtenir l'URL publique
+      const { data: urlData } = supabase.storage
+        .from('content')
+        .getPublicUrl(filePath);
+
+      const newFileUrl = urlData.publicUrl;
+
+      // Mettre à jour le contenu avec la nouvelle URL
+      const { error: updateError } = await supabase
+        .from('content')
+        .update({ 
+          file_url: newFileUrl,
+          thumbnail_url: newFileUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', contentId);
+
+      if (updateError) throw updateError;
+
+      toast.success('Photo sauvegardée!');
+      onServerSave?.();
+      onClose();
     } catch (error: any) {
       console.error('Error saving to server:', error);
       toast.error(`Erreur: ${error.message || 'Impossible de sauvegarder'}`);
