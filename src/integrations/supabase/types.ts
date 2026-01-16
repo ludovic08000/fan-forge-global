@@ -126,6 +126,13 @@ export type Database = {
             referencedRelation: "public_creators"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "content_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       content_leaks: {
@@ -391,6 +398,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "creator_invoices_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "creator_invoices_payment_request_id_fkey"
             columns: ["payment_request_id"]
             isOneToOne: false
@@ -458,6 +472,13 @@ export type Database = {
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_payment_requests_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -602,6 +623,13 @@ export type Database = {
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follows_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -854,6 +882,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "live_stream_revenue_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "live_stream_revenue_live_stream_id_fkey"
             columns: ["live_stream_id"]
             isOneToOne: false
@@ -1044,6 +1079,13 @@ export type Database = {
             referencedRelation: "public_creators"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "live_streams_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       login_attempts: {
@@ -1207,6 +1249,13 @@ export type Database = {
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_commissions_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
             referencedColumns: ["id"]
           },
           {
@@ -1453,6 +1502,13 @@ export type Database = {
             referencedRelation: "public_creators"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "referral_codes_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       referral_uses: {
@@ -1588,6 +1644,13 @@ export type Database = {
             referencedRelation: "public_creators"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "subscriptions_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       tips: {
@@ -1644,6 +1707,13 @@ export type Database = {
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tips_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -1877,6 +1947,63 @@ export type Database = {
         }
         Relationships: []
       }
+      public_creators_safe: {
+        Row: {
+          category: string | null
+          content_type: string[] | null
+          created_at: string | null
+          currency: string | null
+          featured_until: string | null
+          gender: string | null
+          id: string | null
+          is_accepting_tips: boolean | null
+          is_featured: boolean | null
+          is_paused: boolean | null
+          orientation: string | null
+          stage_name: string | null
+          subscription_price: number | null
+          total_content: number | null
+          total_subscribers: number | null
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          content_type?: string[] | null
+          created_at?: string | null
+          currency?: string | null
+          featured_until?: string | null
+          gender?: string | null
+          id?: string | null
+          is_accepting_tips?: boolean | null
+          is_featured?: boolean | null
+          is_paused?: boolean | null
+          orientation?: string | null
+          stage_name?: string | null
+          subscription_price?: number | null
+          total_content?: number | null
+          total_subscribers?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          content_type?: string[] | null
+          created_at?: string | null
+          currency?: string | null
+          featured_until?: string | null
+          gender?: string | null
+          id?: string | null
+          is_accepting_tips?: boolean | null
+          is_featured?: boolean | null
+          is_paused?: boolean | null
+          orientation?: string | null
+          stage_name?: string | null
+          subscription_price?: number | null
+          total_content?: number | null
+          total_subscribers?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       public_live_streams: {
         Row: {
           created_at: string | null
@@ -1910,7 +2037,59 @@ export type Database = {
             referencedRelation: "public_creators"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "live_streams_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      public_profiles_safe: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          cover_url: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string | null
+          is_identity_verified: boolean | null
+          is_verified: boolean | null
+          location: string | null
+          user_id: string | null
+          username: string | null
+          website: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          cover_url?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          is_identity_verified?: boolean | null
+          is_verified?: boolean | null
+          location?: string | null
+          user_id?: string | null
+          username?: string | null
+          website?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          cover_url?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string | null
+          is_identity_verified?: boolean | null
+          is_verified?: boolean | null
+          location?: string | null
+          user_id?: string | null
+          username?: string | null
+          website?: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -2044,6 +2223,10 @@ export type Database = {
       is_blocked: { Args: { check_identifier: string }; Returns: boolean }
       is_creator_owner: {
         Args: { _creator_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_creator_owner_by_user_id: {
+        Args: { _creator_user_id: string }
         Returns: boolean
       }
       is_live_stream_creator: {
