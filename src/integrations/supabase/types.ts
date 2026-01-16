@@ -2162,6 +2162,19 @@ export type Database = {
           total_earnings: number
         }[]
       }
+      get_my_identity_documents: {
+        Args: never
+        Returns: {
+          birthdate: string
+          document_type: string
+          full_name: string
+          id: string
+          rejection_reason: string
+          reviewed_at: string
+          status: string
+          submitted_at: string
+        }[]
+      }
       get_own_stream_key: { Args: { _live_stream_id: string }; Returns: string }
       get_public_creator_data: {
         Args: { creator_uuid: string }
@@ -2179,6 +2192,23 @@ export type Database = {
           subscription_price: number
           total_content: number
           total_subscribers: number
+        }[]
+      }
+      get_public_creator_profile: {
+        Args: { _user_id: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          cover_url: string
+          created_at: string
+          display_name: string
+          id: string
+          is_identity_verified: boolean
+          is_verified: boolean
+          location: string
+          user_id: string
+          username: string
+          website: string
         }[]
       }
       get_public_profile: {
