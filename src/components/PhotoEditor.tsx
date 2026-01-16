@@ -262,6 +262,7 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
             ref={imageRef}
             src={effectiveUrl}
             alt="Photo à éditer"
+            crossOrigin="anonymous"
             style={{
               ...getFilterStyle(),
               display: imageLoaded && !urlLoading ? 'block' : 'none',
