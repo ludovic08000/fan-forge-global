@@ -1,3 +1,4 @@
+import React from 'react';
 import { useMessageNotifications } from '@/hooks/useMessageNotifications';
 
 /**
