@@ -770,6 +770,92 @@ export const LiveStreamStudio = () => {
                   <span className="text-sm">🔒 Réservé aux abonnés</span>
                   <Switch checked={isPremium} onCheckedChange={setIsPremium} />
                 </div>
+                
+                {/* Section OBS Mobile */}
+                <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Video className="h-4 w-4 text-primary" />
+                      <Label className="font-medium text-sm">Diffusion OBS</Label>
+                    </div>
+                    {!obsStreamKey && !streamKey && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={generateObsStreamKey}
+                        disabled={isGeneratingKey || !creatorId}
+                      >
+                        {isGeneratingKey ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          'Générer ma clé'
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">URL du serveur</Label>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          value={RTMP_URL} 
+                          readOnly 
+                          className="text-xs font-mono bg-background flex-1"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0"
+                          onClick={() => {
+                            navigator.clipboard.writeText(RTMP_URL);
+                            toast.success('URL copiée');
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {(obsStreamKey || streamKey) ? (
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Clé de stream</Label>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            type={showObsKey || showStreamKey ? "text" : "password"}
+                            value={streamKey || obsStreamKey || ''} 
+                            readOnly 
+                            className="text-xs font-mono bg-background flex-1"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="shrink-0"
+                            onClick={() => streamKey ? setShowStreamKey(!showStreamKey) : setShowObsKey(!showObsKey)}
+                          >
+                            {(showObsKey || showStreamKey) ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="shrink-0"
+                            onClick={() => {
+                              navigator.clipboard.writeText(streamKey || obsStreamKey || '');
+                              toast.success('Clé copiée');
+                            }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">
+                        Cliquez sur "Générer ma clé" pour votre clé unique
+                      </p>
+                    )}
+                  </div>
+                </div>
+                
                 <Button 
                   onClick={handleStartLive} 
                   className="w-full h-14 text-lg" 
