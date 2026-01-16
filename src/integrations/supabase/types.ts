@@ -958,6 +958,7 @@ export type Database = {
           created_at: string | null
           creator_id: string
           description: string | null
+          egress_id: string | null
           enable_recording: boolean
           ended_at: string | null
           id: string
@@ -965,6 +966,9 @@ export type Database = {
           last_heartbeat: string | null
           peak_viewer_count: number | null
           price: number | null
+          recording_completed_at: string | null
+          recording_error: string | null
+          recording_started_at: string | null
           recording_url: string | null
           scheduled_at: string | null
           started_at: string | null
@@ -979,6 +983,7 @@ export type Database = {
           created_at?: string | null
           creator_id: string
           description?: string | null
+          egress_id?: string | null
           enable_recording?: boolean
           ended_at?: string | null
           id?: string
@@ -986,6 +991,9 @@ export type Database = {
           last_heartbeat?: string | null
           peak_viewer_count?: number | null
           price?: number | null
+          recording_completed_at?: string | null
+          recording_error?: string | null
+          recording_started_at?: string | null
           recording_url?: string | null
           scheduled_at?: string | null
           started_at?: string | null
@@ -1000,6 +1008,7 @@ export type Database = {
           created_at?: string | null
           creator_id?: string
           description?: string | null
+          egress_id?: string | null
           enable_recording?: boolean
           ended_at?: string | null
           id?: string
@@ -1007,6 +1016,9 @@ export type Database = {
           last_heartbeat?: string | null
           peak_viewer_count?: number | null
           price?: number | null
+          recording_completed_at?: string | null
+          recording_error?: string | null
+          recording_started_at?: string | null
           recording_url?: string | null
           scheduled_at?: string | null
           started_at?: string | null

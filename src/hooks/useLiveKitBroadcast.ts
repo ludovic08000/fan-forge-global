@@ -51,9 +51,11 @@ export const useLiveKitBroadcast = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedViewers, setConnectedViewers] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
   
   const roomRef = useRef<any>(null);
   const currentStreamIdRef = useRef<string | null>(null);
+  const recordingEnabledRef = useRef<boolean>(false);
 
   /**
    * Obtenir un token LiveKit depuis l'edge function
@@ -119,9 +121,75 @@ export const useLiveKitBroadcast = () => {
   }, []);
 
   /**
+   * Démarrer l'enregistrement LiveKit via l'edge function
+   */
+  const startRecording = useCallback(async (streamId: string) => {
+    try {
+      console.log('[LiveKit Broadcast] Starting recording for stream:', streamId);
+      
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session?.access_token) {
+        throw new Error('Session expirée');
+      }
+      
+      const { data, error } = await supabase.functions.invoke('start-live-recording', {
+        body: { streamId },
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('[LiveKit Broadcast] Recording start error:', error);
+        toast.error('Impossible de démarrer l\'enregistrement');
+        return false;
+      }
+
+      console.log('[LiveKit Broadcast] Recording started:', data);
+      setIsRecording(true);
+      toast.success('Enregistrement démarré');
+      return true;
+    } catch (err: any) {
+      console.error('[LiveKit Broadcast] Recording error:', err);
+      toast.error(err?.message || 'Erreur d\'enregistrement');
+      return false;
+    }
+  }, []);
+
+  /**
+   * Arrêter l'enregistrement LiveKit
+   */
+  const stopRecording = useCallback(async (streamId: string) => {
+    try {
+      console.log('[LiveKit Broadcast] Stopping recording for stream:', streamId);
+      
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session?.access_token) return;
+      
+      const { error } = await supabase.functions.invoke('stop-live-recording', {
+        body: { streamId },
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('[LiveKit Broadcast] Recording stop error:', error);
+      } else {
+        console.log('[LiveKit Broadcast] Recording stopped successfully');
+        toast.success('Enregistrement terminé - le replay sera disponible dans quelques instants');
+      }
+      
+      setIsRecording(false);
+    } catch (err) {
+      console.error('[LiveKit Broadcast] Stop recording error:', err);
+    }
+  }, []);
+
+  /**
    * Démarrer la diffusion LiveKit
    */
-  const startBroadcast = useCallback(async (streamId: string, mediaStream?: MediaStream | null) => {
+  const startBroadcast = useCallback(async (streamId: string, mediaStream?: MediaStream | null, enableRecording?: boolean) => {
     if (!streamId) {
       console.error('[LiveKit Broadcast] No streamId provided');
       toast.error('ID du stream manquant');
@@ -133,8 +201,9 @@ export const useLiveKitBroadcast = () => {
       return;
     }
 
-    console.log('[LiveKit Broadcast] Starting broadcast for stream:', streamId);
+    console.log('[LiveKit Broadcast] Starting broadcast for stream:', streamId, 'recording:', enableRecording);
     currentStreamIdRef.current = streamId;
+    recordingEnabledRef.current = enableRecording || false;
     setIsConnecting(true);
     setError(null);
 
@@ -222,15 +291,24 @@ export const useLiveKitBroadcast = () => {
       setIsConnecting(false);
       setConnectedViewers(room.remoteParticipants.size);
       
-      toast.success('Diffusion LiveKit démarrée!');
+      toast.success('Diffusion démarrée!');
+
+      // Démarrer l'enregistrement automatiquement si activé
+      if (recordingEnabledRef.current) {
+        console.log('[LiveKit Broadcast] Auto-starting recording...');
+        // Petit délai pour s'assurer que le stream est bien établi
+        setTimeout(() => {
+          startRecording(streamId);
+        }, 2000);
+      }
 
     } catch (err: any) {
       console.error('[LiveKit Broadcast] Error:', err);
-      setError(err?.message || 'Erreur de connexion LiveKit');
+      setError(err?.message || 'Erreur de connexion');
       setIsConnecting(false);
-      toast.error(err?.message || 'Erreur de connexion LiveKit');
+      toast.error(err?.message || 'Erreur de connexion');
     }
-  }, [isConnecting, isStreaming, getToken]);
+  }, [isConnecting, isStreaming, getToken, startRecording]);
 
   /**
    * Remplacer le track vidéo sans déconnecter (pour switch caméra)
@@ -275,15 +353,22 @@ export const useLiveKitBroadcast = () => {
   const stopBroadcast = useCallback(async () => {
     console.log('[LiveKit Broadcast] Stopping broadcast');
     
+    // Arrêter l'enregistrement si actif
+    if (isRecording && currentStreamIdRef.current) {
+      await stopRecording(currentStreamIdRef.current);
+    }
+    
     if (roomRef.current) {
       await roomRef.current.disconnect();
       roomRef.current = null;
     }
 
     currentStreamIdRef.current = null;
+    recordingEnabledRef.current = false;
     setIsStreaming(false);
+    setIsRecording(false);
     setConnectedViewers(0);
-  }, []);
+  }, [isRecording, stopRecording]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -297,10 +382,13 @@ export const useLiveKitBroadcast = () => {
   return {
     isStreaming,
     isConnecting,
+    isRecording,
     connectedViewers,
     error,
     startBroadcast,
     stopBroadcast,
+    startRecording,
+    stopRecording,
     replaceVideoTrack,
   };
 };
