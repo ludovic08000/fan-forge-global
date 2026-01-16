@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -16,7 +17,9 @@ import {
   AlertTriangle, 
   Clock,
   Shield,
-  X
+  X,
+  Bot,
+  Loader2
 } from 'lucide-react';
 
 interface IdentityVerificationFormProps {
@@ -25,12 +28,29 @@ interface IdentityVerificationFormProps {
 
 type VerificationStatus = 'none' | 'pending' | 'approved' | 'rejected';
 
+interface AIVerificationResult {
+  extracted_birthdate?: string;
+  extracted_name?: string;
+  calculated_age?: number;
+  is_adult?: boolean;
+  birthdate_matches_declared?: boolean;
+  document_appears_authentic?: boolean;
+  confidence_level?: 'high' | 'medium' | 'low';
+  issues?: string[];
+  recommendation?: 'approve' | 'manual_review' | 'reject';
+  rejection_reason?: string;
+  status?: string;
+}
+
 const IdentityVerificationForm: React.FC<IdentityVerificationFormProps> = ({ onComplete }) => {
   const { user } = useAuth();
   const [status, setStatus] = useState<VerificationStatus>('none');
   const [rejectionReason, setRejectionReason] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [aiVerifying, setAiVerifying] = useState(false);
+  const [aiResult, setAiResult] = useState<AIVerificationResult | null>(null);
+  const [verificationStep, setVerificationStep] = useState<'form' | 'ai_check' | 'result'>('form');
 
   // Form state
   const [fullName, setFullName] = useState('');
@@ -93,6 +113,46 @@ const IdentityVerificationForm: React.FC<IdentityVerificationFormProps> = ({ onC
     return fileName;
   };
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const runAIVerification = async () => {
+    if (!idFrontFile) return null;
+    
+    setAiVerifying(true);
+    setVerificationStep('ai_check');
+    
+    try {
+      const imageBase64 = await fileToBase64(idFrontFile);
+      
+      const { data, error } = await supabase.functions.invoke('verify-id-age', {
+        body: {
+          imageBase64,
+          documentType,
+          declaredBirthdate: birthdate,
+          userId: user?.id
+        }
+      });
+
+      if (error) throw error;
+      
+      setAiResult(data);
+      return data as AIVerificationResult;
+    } catch (error) {
+      console.error('AI verification error:', error);
+      // En cas d'erreur, on continue avec la vérification manuelle
+      return { recommendation: 'manual_review' as const, confidence_level: 'low' as const };
+    } finally {
+      setAiVerifying(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -104,12 +164,34 @@ const IdentityVerificationForm: React.FC<IdentityVerificationFormProps> = ({ onC
     setIsSubmitting(true);
 
     try {
-      // Upload documents
+      // Étape 1: Vérification IA
+      const aiVerification = await runAIVerification();
+      
+      // Si l'IA rejette directement (mineur détecté avec haute confiance ou document frauduleux)
+      if (aiVerification?.recommendation === 'reject') {
+        setVerificationStep('result');
+        setStatus('rejected');
+        setRejectionReason(aiVerification.rejection_reason || 'Document non valide ou âge insuffisant');
+        toast.error('Vérification échouée: ' + (aiVerification.rejection_reason || 'Document non valide'));
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Étape 2: Upload des documents
       const idFrontUrl = await uploadFile(idFrontFile, 'id-front');
       const idBackUrl = idBackFile ? await uploadFile(idBackFile, 'id-back') : null;
       const selfieUrl = await uploadFile(selfieFile, 'selfie');
 
-      // Create verification request
+      // Déterminer le statut en fonction de la recommandation IA
+      let verificationStatus: 'pending' | 'approved' = 'pending';
+      
+      if (aiVerification?.recommendation === 'approve' && 
+          aiVerification.is_adult === true && 
+          aiVerification.confidence_level === 'high') {
+        verificationStatus = 'approved';
+      }
+
+      // Créer la demande de vérification avec les résultats IA
       const { error } = await supabase
         .from('identity_verifications')
         .upsert({
@@ -120,18 +202,38 @@ const IdentityVerificationForm: React.FC<IdentityVerificationFormProps> = ({ onC
           id_front_url: idFrontUrl,
           id_back_url: idBackUrl,
           selfie_with_id_url: selfieUrl,
-          status: 'pending',
-          submitted_at: new Date().toISOString()
+          status: verificationStatus,
+          submitted_at: new Date().toISOString(),
+          // Si auto-approuvé, marquer comme traité par l'IA
+          ...(verificationStatus === 'approved' && {
+            reviewed_at: new Date().toISOString(),
+            reviewed_by: 'ai-verification'
+          })
         });
 
       if (error) throw error;
 
-      setStatus('pending');
-      toast.success('Votre demande de vérification a été soumise');
+      // Mettre à jour le profil si auto-approuvé
+      if (verificationStatus === 'approved') {
+        await supabase
+          .from('profiles')
+          .update({ is_identity_verified: true })
+          .eq('user_id', user.id);
+        
+        setStatus('approved');
+        setVerificationStep('result');
+        toast.success('🎉 Identité vérifiée automatiquement !');
+      } else {
+        setStatus('pending');
+        setVerificationStep('result');
+        toast.success('Demande soumise - vérification manuelle requise');
+      }
+      
       onComplete?.();
     } catch (error: any) {
       console.error('Verification submission error:', error);
       toast.error(error.message || 'Erreur lors de la soumission');
+      setVerificationStep('form');
     } finally {
       setIsSubmitting(false);
     }
@@ -212,6 +314,64 @@ const IdentityVerificationForm: React.FC<IdentityVerificationFormProps> = ({ onC
           <div className="flex justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // AI Verification in progress
+  if (verificationStep === 'ai_check' && aiVerifying) {
+    return (
+      <Card className="border-primary/50">
+        <CardContent className="py-12">
+          <div className="text-center space-y-6">
+            <div className="relative w-20 h-20 mx-auto">
+              <Bot className="w-20 h-20 text-primary animate-pulse" />
+              <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-1">
+                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold">Vérification IA en cours</h3>
+              <p className="text-muted-foreground">
+                Analyse de votre document d'identité...
+              </p>
+            </div>
+            <Progress value={66} className="w-64 mx-auto" />
+            <p className="text-sm text-muted-foreground">
+              Cette opération prend généralement quelques secondes
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // AI Result display (for approved case, other cases are handled by existing status cards)
+  if (verificationStep === 'result' && aiResult && status === 'approved') {
+    return (
+      <Card className="border-green-500/50 bg-green-500/5">
+        <CardContent className="py-8 text-center space-y-4">
+          <div className="relative w-20 h-20 mx-auto">
+            <CheckCircle className="h-20 w-20 text-green-500" />
+            <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-1">
+              <Bot className="w-6 h-6 text-primary" />
+            </div>
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-green-500">Identité vérifiée automatiquement</h3>
+            <p className="text-muted-foreground mt-2">
+              Notre IA a vérifié votre document avec succès. Vous disposez du badge vérifié.
+            </p>
+          </div>
+          {aiResult.extracted_name && (
+            <div className="bg-muted/50 p-4 rounded-lg text-sm">
+              <p><strong>Nom détecté:</strong> {aiResult.extracted_name}</p>
+              {aiResult.calculated_age && (
+                <p><strong>Âge vérifié:</strong> {aiResult.calculated_age} ans ✓</p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     );
