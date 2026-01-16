@@ -6,6 +6,7 @@ import { Banknote, Clock, CheckCircle, XCircle, AlertCircle, ExternalLink } from
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCsrfToken } from '@/hooks/useCsrfToken';
 
 interface PaymentRequest {
   id: string;
@@ -31,6 +32,7 @@ interface RevenueBreakdown {
 
 const PaymentRequest: React.FC = () => {
   const { user } = useAuth();
+  const { token: csrfToken, generateToken } = useCsrfToken();
   const [loading, setLoading] = useState(false);
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [revenueBreakdown, setRevenueBreakdown] = useState<RevenueBreakdown | null>(null);
@@ -138,8 +140,17 @@ const PaymentRequest: React.FC = () => {
 
     setLoading(true);
     try {
-      console.log('🚀 Requesting payment...');
-      const { data, error } = await supabase.functions.invoke('request-creator-payment');
+      // Obtenir un token CSRF valide
+      const token = csrfToken || await generateToken();
+      if (!token) {
+        toast.error('Erreur de sécurité. Veuillez rafraîchir la page.');
+        return;
+      }
+
+      console.log('🚀 Requesting payment with CSRF protection...');
+      const { data, error } = await supabase.functions.invoke('request-creator-payment', {
+        body: { csrfToken: token }
+      });
 
       if (error) {
         console.error('❌ Payment request error:', error);

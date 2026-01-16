@@ -1,14 +1,15 @@
 /**
  * Edge Function pour notifier un créateur du changement de son IBAN
- * SECURISE: validation d'entrée, rate limiting, authentification stricte
+ * SECURISE: validation d'entrée, rate limiting, authentification stricte, CSRF
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import { validateCsrfFromRequest, csrfErrorResponse } from "../_shared/csrf.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-csrf-token',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
@@ -60,6 +61,7 @@ interface NotifyIbanChangeRequest {
   newIban: string;
   oldBic?: string;
   newBic: string;
+  csrfToken?: string;
 }
 
 serve(async (req) => {
@@ -130,6 +132,14 @@ serve(async (req) => {
         status: 400,
       });
     }
+
+    // Vérification CSRF pour cette action sensible
+    const csrfResult = await validateCsrfFromRequest(req, user.id, body);
+    if (!csrfResult.valid) {
+      logStep("CSRF validation failed", { reason: csrfResult.reason, user_id: user.id });
+      return csrfErrorResponse(csrfResult.reason || "Invalid CSRF token", corsHeaders);
+    }
+    logStep("CSRF token validated", { user_id: user.id });
 
     const { oldIban, newIban, oldBic, newBic } = body;
 

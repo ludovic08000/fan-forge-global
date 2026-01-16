@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { validateCsrfFromRequest, csrfErrorResponse } from "../_shared/csrf.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-csrf-token",
 };
 
 const logStep = (step: string, details?: any) => {
@@ -38,6 +39,15 @@ serve(async (req) => {
       throw new Error("Non authentifié");
     }
     logStep("Utilisateur authentifié", { userId: user.id });
+
+    // Vérification CSRF pour cette action sensible
+    const body = await req.json().catch(() => ({}));
+    const csrfResult = await validateCsrfFromRequest(req, user.id, body);
+    if (!csrfResult.valid) {
+      logStep("CSRF validation failed", { reason: csrfResult.reason });
+      return csrfErrorResponse(csrfResult.reason || "Invalid CSRF token", corsHeaders);
+    }
+    logStep("CSRF token validated");
 
     // Récupérer le créateur
     const { data: creator, error: creatorError } = await supabaseClient
