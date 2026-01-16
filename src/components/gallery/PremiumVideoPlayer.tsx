@@ -167,32 +167,38 @@ export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
     }
   }, [duration]);
 
-  // Handle double tap for mobile skip
+  // Handle click for play/pause - double tap on sides for skip (mobile)
   const handleVideoClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const side = x < rect.width / 2 ? 'left' : 'right';
+    const width = rect.width;
     const now = Date.now();
     
-    if (now - lastTapTime.current < 300 && lastTapSide.current === side) {
-      // Double tap detected
+    // Zones latérales (20% de chaque côté) pour le double-tap skip
+    const isLeftZone = x < width * 0.2;
+    const isRightZone = x > width * 0.8;
+    
+    if ((isLeftZone || isRightZone) && now - lastTapTime.current < 300 && lastTapSide.current === (isLeftZone ? 'left' : 'right')) {
+      // Double tap sur les côtés - skip
       e.preventDefault();
       e.stopPropagation();
-      skip(side === 'right' ? 10 : -10);
+      skip(isRightZone ? 10 : -10);
       lastTapTime.current = 0;
       lastTapSide.current = null;
-    } else {
+      if (doubleTapTimeout.current) clearTimeout(doubleTapTimeout.current);
+    } else if (isLeftZone || isRightZone) {
+      // Premier tap sur les côtés - attendre double tap
       lastTapTime.current = now;
-      lastTapSide.current = side;
-      // Single tap - toggle play after short delay
-      if (doubleTapTimeout.current) {
-        clearTimeout(doubleTapTimeout.current);
-      }
+      lastTapSide.current = isLeftZone ? 'left' : 'right';
+      if (doubleTapTimeout.current) clearTimeout(doubleTapTimeout.current);
       doubleTapTimeout.current = setTimeout(() => {
         if (lastTapTime.current === now) {
-          togglePlay();
+          togglePlay(); // Simple tap = play/pause
         }
-      }, 300);
+      }, 250);
+    } else {
+      // Clic au centre - play/pause immédiat
+      togglePlay();
     }
   }, [skip, togglePlay]);
 
