@@ -27,13 +27,13 @@ const Index = () => {
             backgroundRepeat: 'no-repeat',
           }}
         >
-          {/* Dark gradient overlay for readability */}
-          <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/90 to-background" />
-          {/* Vignette effect */}
+          {/* Subtle gradient overlay for readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/60 to-background/95" />
+          {/* Soft vignette effect */}
           <div 
             className="absolute inset-0"
             style={{
-              background: 'radial-gradient(ellipse at center, transparent 20%, hsl(var(--background)) 80%)',
+              background: 'radial-gradient(ellipse at center top, transparent 30%, hsl(var(--background) / 0.7) 100%)',
             }}
           />
         </div>
