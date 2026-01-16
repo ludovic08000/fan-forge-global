@@ -1,15 +1,18 @@
 import { Crown } from "lucide-react";
 import { Link } from "react-router-dom";
+import { memo } from "react";
 
-const Footer = () => {
+const Footer = memo(() => {
+  const currentYear = new Date().getFullYear();
+  
   return (
-    <footer className="bg-card/50 backdrop-blur-sm border-t border-border">
+    <footer className="bg-card/50 backdrop-blur-sm border-t border-border" role="contentinfo">
       <div className="container mx-auto px-4 lg:px-8 py-12">
         <div className="flex flex-col lg:flex-row justify-between items-start gap-8 mb-8">
           {/* Brand */}
           <div className="max-w-md">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="bg-gradient-to-r from-primary via-primary-glow to-primary p-2 rounded-lg">
+              <div className="bg-gradient-to-r from-primary via-primary-glow to-primary p-2 rounded-lg" aria-hidden="true">
                 <Crown className="h-6 w-6 text-primary-foreground" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent">
@@ -25,42 +28,42 @@ const Footer = () => {
           </div>
 
           {/* Legal Links */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Informations légales</h3>
+          <nav aria-label="Liens légaux">
+            <h2 className="text-lg font-semibold mb-4">Informations légales</h2>
             <ul className="space-y-2 text-muted-foreground">
               <li>
-                <Link to="/terms" className="hover:text-primary transition-colors">
+                <Link to="/terms" className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded">
                   Conditions d'Utilisation
                 </Link>
               </li>
               <li>
-                <Link to="/privacy" className="hover:text-primary transition-colors">
+                <Link to="/privacy" className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded">
                   Politique de Confidentialité
                 </Link>
               </li>
               <li>
-                <Link to="/cookies" className="hover:text-primary transition-colors">
+                <Link to="/cookies" className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded">
                   Politique des Cookies
                 </Link>
               </li>
               <li>
-                <Link to="/legal" className="hover:text-primary transition-colors">
+                <Link to="/legal" className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded">
                   Mentions Légales
                 </Link>
               </li>
             </ul>
-          </div>
+          </nav>
         </div>
 
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-muted-foreground text-sm">
-              © {new Date().getFullYear()} Crub. Tous droits réservés.
+              © {currentYear} Crub. Tous droits réservés.
             </div>
             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
               <span>Conforme RGPD</span>
-              <span>•</span>
+              <span aria-hidden="true">•</span>
               <span>Plateforme 18+</span>
             </div>
           </div>
@@ -68,6 +71,8 @@ const Footer = () => {
       </div>
     </footer>
   );
-};
+});
+
+Footer.displayName = 'Footer';
 
 export default Footer;

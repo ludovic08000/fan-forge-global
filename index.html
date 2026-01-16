@@ -2,7 +2,15 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    
+    <!-- DNS Prefetch & Preconnect for Performance -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <link rel="dns-prefetch" href="https://usjxcgauyvdocngfkhys.supabase.co" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://usjxcgauyvdocngfkhys.supabase.co" crossorigin />
     
     <!-- Primary Meta Tags -->
     <title>Crub – Plateforme Créateurs Premium | Contenus Exclusifs et Communauté Privée</title>
@@ -10,21 +18,22 @@
     <meta name="description" content="Découvrez Crub, la plateforme moderne dédiée aux créateurs et à leurs communautés. Partage privé, contenus exclusifs, espace sécurisé et expérience premium." />
     <meta name="keywords" content="Crub, plateforme Crub, réseau Crub, Crub créateurs, plateforme créateurs premium, contenu exclusif en ligne, communauté créative privée, plateforme créateurs sécurisée, réseau social premium pour créateurs, espace privé pour créateurs, alternative moderne aux plateformes premium, hub digital pour créateurs, monétisation de contenu exclusif" />
     <meta name="author" content="Crub" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="language" content="French" />
     <meta name="revisit-after" content="7 days" />
     <meta name="rating" content="adult" />
+    <meta name="format-detection" content="telephone=no" />
     
     <!-- Canonical URL -->
-    <link rel="canonical" href="https://crub.com" />
+    <link rel="canonical" href="https://crub.fr" />
     
-    <!-- Fonts with preload - Premium Typography -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Fonts with preload - Premium Typography (optimized with display=swap) -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" as="style" />
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
     
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#9b87f5" />
+    <meta name="theme-color" content="#9b87f5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1e1b4b" media="(prefers-color-scheme: dark)" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -33,29 +42,31 @@
     
     <!-- Favicons -->
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/pwa-icon-192.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/pwa-icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/pwa-icon-512.png" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://crub.com/" />
+    <meta property="og:url" content="https://crub.fr/" />
     <meta property="og:title" content="Crub – Plateforme Créateurs Premium | Contenus Exclusifs et Communauté Privée" />
     <meta property="og:description" content="Découvrez Crub, la plateforme moderne dédiée aux créateurs et à leurs communautés. Partage privé, contenus exclusifs, espace sécurisé et expérience premium." />
-    <meta property="og:image" content="https://crub.com/og-image.jpg" />
+    <meta property="og:image" content="https://crub.fr/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Crub - Plateforme Premium pour Créateurs" />
     <meta property="og:locale" content="fr_FR" />
     <meta property="og:site_name" content="Crub" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://crub.com/" />
+    <meta name="twitter:url" content="https://crub.fr/" />
     <meta name="twitter:title" content="Crub – Plateforme Créateurs Premium | Contenus Exclusifs et Communauté Privée" />
     <meta name="twitter:description" content="Découvrez Crub, la plateforme moderne dédiée aux créateurs et à leurs communautés. Partage privé, contenus exclusifs, espace sécurisé et expérience premium." />
-    <meta name="twitter:image" content="https://crub.com/og-image.jpg" />
-    <meta name="twitter:site" content="@crub" />
-    <meta name="twitter:creator" content="@crub" />
+    <meta name="twitter:image" content="https://crub.fr/og-image.jpg" />
+    <meta name="twitter:site" content="@CrubFr" />
+    <meta name="twitter:creator" content="@CrubFr" />
 
     <!-- Geo Tags for France -->
     <meta name="geo.region" content="FR" />
@@ -67,8 +78,8 @@
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "Crub",
-      "url": "https://crub.com",
-      "logo": "https://crub.com/pwa-icon-512.png",
+      "url": "https://crub.fr",
+      "logo": "https://crub.fr/pwa-icon-512.png",
       "description": "Crub est une plateforme premium dédiée aux créateurs et à leur communauté. Un hub moderne, sécurisé et conçu pour la création de contenu exclusif.",
       "foundingDate": "2024",
       "address": {
@@ -78,13 +89,12 @@
       "contactPoint": {
         "@type": "ContactPoint",
         "contactType": "customer service",
-        "email": "contact@crub.com",
+        "email": "contact@crub.fr",
         "availableLanguage": ["French", "English"]
       },
       "sameAs": [
-        "https://twitter.com/crub",
-        "https://instagram.com/crub",
-        "https://facebook.com/crub"
+        "https://twitter.com/CrubFr",
+        "https://instagram.com/crub.fr"
       ]
     }
     </script>
@@ -95,12 +105,13 @@
       "@context": "https://schema.org",
       "@type": "WebSite",
       "name": "Crub",
-      "url": "https://crub.com",
+      "alternateName": "Crub Plateforme Créateurs",
+      "url": "https://crub.fr",
       "potentialAction": {
         "@type": "SearchAction",
         "target": {
           "@type": "EntryPoint",
-          "urlTemplate": "https://crub.com/search?q={search_term_string}"
+          "urlTemplate": "https://crub.fr/search?q={search_term_string}"
         },
         "query-input": "required name=search_term_string"
       }
@@ -123,10 +134,22 @@
       "aggregateRating": {
         "@type": "AggregateRating",
         "ratingValue": "4.8",
-        "ratingCount": "1250"
+        "ratingCount": "1250",
+        "bestRating": "5",
+        "worstRating": "1"
       }
     }
     </script>
+    
+    <!-- Critical CSS inline for faster first paint -->
+    <style>
+      /* Critical CSS for above-the-fold content */
+      *{box-sizing:border-box;margin:0;padding:0}
+      html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+      body{font-family:'Sora',system-ui,-apple-system,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+      #root{min-height:100vh;display:flex;flex-direction:column}
+      .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0}
+    </style>
   </head>
 
   <body>

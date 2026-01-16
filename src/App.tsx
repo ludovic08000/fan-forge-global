@@ -3,14 +3,13 @@
  * Configure tous les providers et le routing
  */
 
-import React, { Suspense, lazy, useState, useEffect } from "react";
+import React, { Suspense, lazy, useState, useEffect, memo } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-// import { HelmetProvider } from "react-helmet-async"; // Désactivé temporairement
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -21,6 +20,7 @@ import { useContentProtection } from "@/hooks/useContentProtection";
 import CookieConsent from "@/components/CookieConsent";
 import { MessageNotificationProvider } from "@/components/MessageNotificationProvider";
 import SplashScreen from "@/components/SplashScreen";
+import SkipToContent from "@/components/SkipToContent";
 
 
 // Lazy loading des pages pour améliorer les performances
@@ -52,15 +52,16 @@ const Messages = lazy(() => import("./pages/Messages"));
 const VerifyOtp = lazy(() => import("./pages/VerifyOtp"));
 
 
-// Composant de chargement pour le Suspense
-const PageLoader = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
+// Composant de chargement optimisé avec skeleton
+const PageLoader = memo(() => (
+  <div className="min-h-screen bg-background flex items-center justify-center" role="status" aria-label="Chargement">
     <div className="flex flex-col items-center space-y-4">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" aria-hidden="true"></div>
       <p className="text-muted-foreground">Chargement...</p>
     </div>
   </div>
-);
+));
+PageLoader.displayName = 'PageLoader';
 
 // Configuration du client React Query avec mise en cache optimisée
 const queryClient = new QueryClient({
@@ -101,9 +102,11 @@ const AppRoutes = () => {
   
   return (
     <>
+      <SkipToContent />
       <Header />
       <PWAInstallPrompt />
       {/* Suspense pour le lazy loading des pages */}
+      <main id="main-content" className="flex-1">
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Index />} />
@@ -175,6 +178,7 @@ const AppRoutes = () => {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
+      </main>
       <Footer />
     </>
   );

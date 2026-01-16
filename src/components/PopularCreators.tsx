@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import CreatorSearchCard from './CreatorSearchCard';
@@ -65,15 +65,15 @@ const PopularCreators = () => {
 
   if (isLoading) {
     return (
-      <section className="py-12 bg-background">
+      <section className="py-12 bg-background" aria-label="Chargement des créateurs populaires">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
-              <TrendingUp className="h-6 w-6 text-primary" />
+              <TrendingUp className="h-6 w-6 text-primary" aria-hidden="true" />
               <h2 className="text-2xl md:text-3xl font-bold">Créateurs populaires</h2>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="status" aria-label="Chargement">
             {[...Array(6)].map((_, i) => (
               <Skeleton key={i} className="h-48 rounded-xl" />
             ))}
@@ -88,15 +88,15 @@ const PopularCreators = () => {
   }
 
   return (
-    <section className="py-12 bg-background">
+    <section className="py-12 bg-background" aria-labelledby="popular-creators-heading">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
+            <div className="p-2 bg-primary/10 rounded-lg" aria-hidden="true">
               <TrendingUp className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold">Créateurs populaires</h2>
+              <h2 id="popular-creators-heading" className="text-2xl md:text-3xl font-bold">Créateurs populaires</h2>
               <p className="text-muted-foreground text-sm mt-1">
                 Découvrez les créateurs les plus suivis de la plateforme
               </p>
@@ -104,22 +104,28 @@ const PopularCreators = () => {
           </div>
           <Link to="/search">
             <Button variant="outline" className="hidden sm:flex items-center gap-2">
-              <Users className="h-4 w-4" />
+              <Users className="h-4 w-4" aria-hidden="true" />
               Voir tous
             </Button>
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          role="list"
+          aria-label="Liste des créateurs populaires"
+        >
           {creators.map((creator) => (
-            <CreatorSearchCard key={creator.id} creator={creator} />
+            <div key={creator.id} role="listitem">
+              <CreatorSearchCard creator={creator} />
+            </div>
           ))}
         </div>
 
         <div className="mt-8 text-center sm:hidden">
           <Link to="/search">
             <Button variant="outline" className="w-full">
-              <Users className="h-4 w-4 mr-2" />
+              <Users className="h-4 w-4 mr-2" aria-hidden="true" />
               Voir tous les créateurs
             </Button>
           </Link>
@@ -129,4 +135,4 @@ const PopularCreators = () => {
   );
 };
 
-export default PopularCreators;
+export default memo(PopularCreators);
