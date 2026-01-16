@@ -4,6 +4,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '@/integrations/supabase/client';
 import { PromoCodeInput } from '@/components/PromoCodeInput';
 import { Separator } from '@/components/ui/separator';
+import { useCsrfToken } from '@/hooks/useCsrfToken';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -20,6 +21,7 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
   const [discount, setDiscount] = useState<{ type: 'percentage' | 'fixed'; value: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [promoCodeChecked, setPromoCodeChecked] = useState(false);
+  const { generateToken } = useCsrfToken();
 
   // Décoder le clientSecret si nécessaire (URL encoded)
   const decodeSecret = (secret: string): string => {
@@ -38,10 +40,14 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
       setIsLoading(true);
       console.log('[EmbeddedCheckout] Fetching checkout session with referralCode:', referralCode);
       
+      // Récupérer le token CSRF
+      const csrfToken = await generateToken();
+      
       const { data, error } = await supabase.functions.invoke('create-creator-checkout', {
         body: { 
           creatorId,
-          referralCode: referralCode || undefined
+          referralCode: referralCode || undefined,
+          csrfToken
         },
         headers: {
           Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,

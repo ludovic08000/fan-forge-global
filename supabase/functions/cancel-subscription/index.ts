@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { validateCsrfFromRequest, csrfErrorResponse } from "../_shared/csrf.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-csrf-token",
 };
 
 const logStep = (step: string, details?: any) => {
@@ -42,9 +43,18 @@ serve(async (req) => {
     logStep("User authenticated", { userId: user.id });
 
     // Récupérer l'ID de l'abonnement depuis le body
-    const { subscriptionId } = await req.json();
+    const body = await req.json();
+    const { subscriptionId, csrfToken } = body;
     if (!subscriptionId) throw new Error("Subscription ID is required");
     logStep("Subscription ID received", { subscriptionId });
+
+    // Valider le token CSRF
+    const csrfValidation = await validateCsrfFromRequest(req, user.id, { csrfToken });
+    if (!csrfValidation.valid) {
+      logStep("CSRF validation failed", { reason: csrfValidation.reason });
+      return csrfErrorResponse(csrfValidation.reason || "Invalid CSRF token", corsHeaders);
+    }
+    logStep("CSRF token validated");
 
     // Vérifier que l'abonnement appartient à l'utilisateur
     const { data: subscription, error: subError } = await supabaseClient

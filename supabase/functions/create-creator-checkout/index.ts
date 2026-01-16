@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { validateCsrfFromRequest, csrfErrorResponse } from "../_shared/csrf.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-csrf-token",
 };
 
 const logStep = (step: string, details?: any) => {
@@ -47,9 +48,18 @@ serve(async (req) => {
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     // Récupérer les données de la requête
-    const { creatorId, referralCode } = await req.json();
+    const body = await req.json();
+    const { creatorId, referralCode, csrfToken } = body;
     if (!creatorId) throw new Error("Creator ID is required");
     logStep("Creator ID received", { creatorId, referralCode });
+
+    // Valider le token CSRF
+    const csrfValidation = await validateCsrfFromRequest(req, user.id, { csrfToken });
+    if (!csrfValidation.valid) {
+      logStep("CSRF validation failed", { reason: csrfValidation.reason });
+      return csrfErrorResponse(csrfValidation.reason || "Invalid CSRF token", corsHeaders);
+    }
+    logStep("CSRF token validated");
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
