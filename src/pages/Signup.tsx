@@ -52,6 +52,7 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isMinorBlocked, setIsMinorBlocked] = useState(false);
+  const [birthdateTouched, setBirthdateTouched] = useState(false);
   const { signUp, signInWithGoogle, signInWithFacebook, user } = useAuth();
   const { checkRateLimit } = useRateLimitServer();
   const navigate = useNavigate();
@@ -72,10 +73,10 @@ const Signup = () => {
 
   const [signUpErrors, setSignUpErrors] = useState<Record<string, string>>({});
 
-  // Vérification d'âge en temps réel - seulement si l'âge est calculable (date valide)
+  // Vérification d'âge - seulement après que l'utilisateur ait fini de sélectionner (onBlur)
   const userAge = useMemo(() => calculateAge(signUpForm.birthdate), [signUpForm.birthdate]);
-  const isMinor = useMemo(() => userAge !== null && userAge < 18, [userAge]);
-
+  // Afficher l'erreur mineur uniquement si le champ a été "touché" (blur) ET l'âge est < 18
+  const isMinor = useMemo(() => birthdateTouched && userAge !== null && userAge < 18, [birthdateTouched, userAge]);
   useEffect(() => {
     if (user) {
       navigate('/');
@@ -387,6 +388,7 @@ const Signup = () => {
                     setSignUpForm({ ...signUpForm, birthdate: e.target.value });
                     if (signUpErrors.birthdate) setSignUpErrors(prev => ({ ...prev, birthdate: '' }));
                   }}
+                  onBlur={() => setBirthdateTouched(true)}
                   max={new Date().toISOString().split('T')[0]}
                 />
                 {signUpErrors.birthdate ? (
