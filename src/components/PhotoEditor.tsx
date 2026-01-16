@@ -5,6 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface Filter {
   id: string;
@@ -45,6 +46,8 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
   onSave,
   onServerSave,
 }) => {
+  const queryClient = useQueryClient();
+  
   // Utiliser l'URL signée pour accéder à l'image
   const { signedUrl, loading: urlLoading } = useSignedUrl(imageUrl, { enabled: isOpen && !!imageUrl });
   
@@ -226,6 +229,11 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
         .eq('id', contentId);
 
       if (updateError) throw updateError;
+
+      // Invalider le cache React Query pour rafraîchir la galerie
+      queryClient.invalidateQueries({ queryKey: ['contents'] });
+      queryClient.invalidateQueries({ queryKey: ['my-content'] });
+      queryClient.invalidateQueries({ queryKey: ['creator-content'] });
 
       toast.success('Photo sauvegardée!');
       onServerSave?.();
