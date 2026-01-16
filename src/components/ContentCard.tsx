@@ -20,6 +20,7 @@ interface ContentCardProps {
   isLiked?: boolean;
   showCreatorInfo?: boolean;
   onOpenFreeImage?: (content: Content) => void;
+  onOpenFreeVideo?: (content: Content) => void;
 }
 
 const ContentCard: React.FC<ContentCardProps> = ({ 
@@ -28,6 +29,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
   isLiked = false,
   showCreatorInfo = true,
   onOpenFreeImage,
+  onOpenFreeVideo,
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -62,14 +64,18 @@ const ContentCard: React.FC<ContentCardProps> = ({
       return;
     }
 
-    if (content.is_premium) {
-      // Vérifier si l'utilisateur est abonné au créateur
-      // Pour l'instant, on redirige vers la page d'abonnement
+    if (content.is_premium && !isSubscribed) {
+      // Rediriger vers la page d'abonnement
       navigate(`/creator/${content.creators?.user_id}/subscribe`);
       return;
     }
 
-    // Contenu gratuit
+    // Contenu gratuit ou abonné
+    if (content.content_type === 'video' && onOpenFreeVideo) {
+      onOpenFreeVideo(content);
+      return;
+    }
+    
     if (content.content_type !== 'video' && onOpenFreeImage) {
       onOpenFreeImage(content);
       return;
