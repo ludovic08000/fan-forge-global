@@ -273,25 +273,30 @@ const MySubscriptions = () => {
   const { data: activeCreators, isLoading: creatorsLoading } = useQuery({
     queryKey: ['active-creators'],
     queryFn: async () => {
+      // Utiliser la vue sécurisée public_creators au lieu de la table creators
       const { data: creators, error } = await supabase
-        .from('creators')
+        .from('public_creators')
         .select('id, stage_name, subscription_price, total_content, total_subscribers, user_id')
         .order('total_content', { ascending: false })
         .limit(6);
 
       if (error) throw error;
 
-      // Fetch profiles for each creator
-      const creatorsWithProfiles = await Promise.all(
-        (creators || []).map(async (creator) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('username, display_name, avatar_url')
-            .eq('user_id', creator.user_id)
-            .single();
-          return { ...creator, profile };
-        })
-      );
+      // Fetch profiles from public view
+      const userIds = (creators || []).map(c => c.user_id).filter(Boolean) as string[];
+      const { data: profiles } = await supabase
+        .from('public_creator_profiles')
+        .select('user_id, username, display_name, avatar_url')
+        .in('user_id', userIds);
+
+      // Join data
+      const creatorsWithProfiles = (creators || []).map(creator => {
+        const profile = profiles?.find(p => p.user_id === creator.user_id);
+        return { 
+          ...creator, 
+          profile: profile || null 
+        };
+      });
 
       return creatorsWithProfiles;
     }
