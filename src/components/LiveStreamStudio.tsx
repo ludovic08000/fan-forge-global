@@ -227,9 +227,9 @@ export const LiveStreamStudio = () => {
     }
   };
 
-  // Récupérer l'ID du créateur
+  // Récupérer l'ID du créateur et charger la clé OBS existante
   useEffect(() => {
-    const fetchCreatorId = async () => {
+    const fetchCreatorIdAndStreamKey = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: creator } = await supabase
@@ -237,10 +237,33 @@ export const LiveStreamStudio = () => {
           .select('id')
           .eq('user_id', user.id)
           .single();
-        if (creator) setCreatorId(creator.id);
+        
+        if (creator) {
+          setCreatorId(creator.id);
+          
+          // Charger la clé OBS existante si elle existe
+          const { data: existingDraft } = await supabase
+            .from('live_streams')
+            .select('id, stream_key')
+            .eq('creator_id', creator.id)
+            .eq('status', 'scheduled')
+            .eq('title', 'Configuration OBS')
+            .maybeSingle();
+          
+          if (existingDraft?.stream_key) {
+            // Récupérer la clé via RPC sécurisé pour valider l'ownership
+            const { data: key } = await supabase.rpc('get_own_stream_key', { 
+              _live_stream_id: existingDraft.id 
+            });
+            if (key) {
+              setObsStreamKey(key);
+              console.log('[OBS] Existing stream key loaded from database');
+            }
+          }
+        }
       }
     };
-    fetchCreatorId();
+    fetchCreatorIdAndStreamKey();
   }, []);
   
   // LiveKit broadcast hook
