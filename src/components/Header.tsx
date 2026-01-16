@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,10 +12,18 @@ import { Menu, X, User, LogOut, Settings, Crown, MessageCircle } from 'lucide-re
 import { useAuth } from '@/contexts/AuthContext';
 import { NotificationBell } from '@/components/NotificationBell';
 
-const Header: React.FC = () => {
+const Header = memo(() => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, signOut, userRole, userProfile } = useAuth();
   const navigate = useNavigate();
+
+  const toggleMenu = useCallback(() => {
+    setIsMenuOpen(prev => !prev);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    setIsMenuOpen(false);
+  }, []);
 
   // Déterminer la destination du logo selon le rôle
   const getHomeDestination = () => {
@@ -44,19 +52,20 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60" role="banner">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center">
           <Link 
             to={getHomeDestination()} 
-            className="font-bold text-xl bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent hover:scale-105 transition-transform"
+            className="font-bold text-xl bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent hover:scale-105 transition-transform focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
+            aria-label="Crub - Accueil"
           >
             Crub
           </Link>
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-6">
+        <nav className="hidden md:flex items-center space-x-6" aria-label="Navigation principale">
           {user && <NotificationBell />}
           {user ? (
             <DropdownMenu>
@@ -64,6 +73,7 @@ const Header: React.FC = () => {
                 <Button 
                   variant="ghost" 
                   className="relative h-14 w-14 rounded-full p-0 ring-2 ring-primary/50 hover:ring-primary hover:ring-offset-2 hover:ring-offset-background transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary/40"
+                  aria-label="Menu utilisateur"
                 >
                   <Avatar className="h-14 w-14 border-2 border-primary/30 shadow-xl">
                     <AvatarImage 
@@ -80,25 +90,25 @@ const Header: React.FC = () => {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuItem asChild>
                   <Link to="/dashboard" className="flex items-center">
-                    <User className="mr-2 h-4 w-4" />
+                    <User className="mr-2 h-4 w-4" aria-hidden="true" />
                     <span>Tableau de bord</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/profile" className="flex items-center">
-                    <Settings className="mr-2 h-4 w-4" />
+                    <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
                     <span>Mon profil</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/messages" className="flex items-center">
-                    <MessageCircle className="mr-2 h-4 w-4" />
+                    <MessageCircle className="mr-2 h-4 w-4" aria-hidden="true" />
                     <span>Messages</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/subscriptions" className="flex items-center">
-                    <Crown className="mr-2 h-4 w-4" />
+                    <Crown className="mr-2 h-4 w-4" aria-hidden="true" />
                     <span>Mes abonnements</span>
                   </Link>
                 </DropdownMenuItem>
@@ -106,7 +116,7 @@ const Header: React.FC = () => {
                   await signOut();
                   navigate('/');
                 }}>
-                  <LogOut className="mr-2 h-4 w-4" />
+                  <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
                   <span>Se déconnecter</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -127,25 +137,27 @@ const Header: React.FC = () => {
         <Button
           variant="ghost"
           className="md:hidden h-9 w-9 p-0"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          onClick={toggleMenu}
+          aria-label={isMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          aria-expanded={isMenuOpen}
         >
           {isMenuOpen ? (
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           ) : (
-            <Menu className="h-4 w-4" />
+            <Menu className="h-4 w-4" aria-hidden="true" />
           )}
         </Button>
       </div>
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden border-t bg-background">
+        <nav className="md:hidden border-t bg-background" aria-label="Navigation mobile">
           <div className="container mx-auto px-4 py-4">
             <div className="space-y-2">
               <Link 
                 to="/" 
-                className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
-                onClick={() => setIsMenuOpen(false)}
+                className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                onClick={closeMenu}
               >
                 Accueil
               </Link>
@@ -153,15 +165,15 @@ const Header: React.FC = () => {
                 <>
                   <Link 
                     to="/login" 
-                    className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
+                    className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                    onClick={closeMenu}
                   >
                     Connexion
                   </Link>
                   <Link 
                     to="/signup" 
-                    className="block px-3 py-2 text-primary hover:text-primary/80 transition-colors font-medium"
-                    onClick={() => setIsMenuOpen(false)}
+                    className="block px-3 py-2 text-primary hover:text-primary/80 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                    onClick={closeMenu}
                   >
                     Inscription
                   </Link>
@@ -170,22 +182,22 @@ const Header: React.FC = () => {
                 <>
                   <Link 
                     to="/dashboard" 
-                    className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
+                    className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                    onClick={closeMenu}
                   >
                     Tableau de bord
                   </Link>
                   <Link 
                     to="/profile" 
-                    className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
+                    className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                    onClick={closeMenu}
                   >
                     Mon profil
                   </Link>
                   <Link 
                     to="/subscriptions" 
-                    className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={() => setIsMenuOpen(false)}
+                    className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                    onClick={closeMenu}
                   >
                     Mes abonnements
                   </Link>
@@ -193,9 +205,9 @@ const Header: React.FC = () => {
                     onClick={async () => {
                       await signOut();
                       navigate('/');
-                      setIsMenuOpen(false);
+                      closeMenu();
                     }}
-                    className="block w-full text-left px-3 py-2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="block w-full text-left px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
                   >
                     Déconnexion
                   </button>
@@ -203,10 +215,12 @@ const Header: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
+        </nav>
       )}
     </header>
   );
-};
+});
+
+Header.displayName = 'Header';
 
 export default Header;
