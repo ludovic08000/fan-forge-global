@@ -129,27 +129,33 @@ const ContentGallery: React.FC = () => {
         </div>
       )}
 
-      {/* Lightbox pour contenu gratuit (images) */}
+      {/* Lightbox pour contenu gratuit (images) - utilise l'URL avec cache-buster déjà en cache */}
       <Dialog open={!!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}>
         <DialogContent className="z-[1000] w-[95vw] max-w-none h-[90vh] p-0 overflow-hidden bg-black/95" aria-describedby="gallery-image-description">
           <DialogHeader className="sr-only">
             <DialogTitle>{selected?.title || 'Image'}</DialogTitle>
           </DialogHeader>
-          {selected && (
-            <div className="relative w-full h-full flex items-center justify-center p-4">
-              <img
-                src={selected.thumbnail_url || selected.file_url}
-                alt={selected.title}
-                className="max-w-full max-h-full object-contain"
-              />
-              <div id="gallery-image-description" className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">
-                <h3 className="text-white text-xl font-bold mb-2">{selected.title}</h3>
-                {selected.description && (
-                  <p className="text-white/80 text-sm mb-3">{selected.description}</p>
-                )}
+          {selected && (() => {
+            // Utiliser exactement la même URL que la carte pour bénéficier du cache navigateur
+            const cacheBuster = selected.updated_at ? `?t=${new Date(selected.updated_at).getTime()}` : '';
+            const cachedImageUrl = (selected.thumbnail_url || selected.file_url) + cacheBuster;
+            
+            return (
+              <div className="relative w-full h-full flex items-center justify-center p-4">
+                <img
+                  src={cachedImageUrl}
+                  alt={selected.title}
+                  className="max-w-full max-h-full object-contain animate-scale-in"
+                />
+                <div id="gallery-image-description" className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6">
+                  <h3 className="text-white text-xl font-bold mb-2">{selected.title}</h3>
+                  {selected.description && (
+                    <p className="text-white/80 text-sm mb-3">{selected.description}</p>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
