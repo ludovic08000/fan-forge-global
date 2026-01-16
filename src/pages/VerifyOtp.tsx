@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, Mail, Loader2, ArrowLeft } from 'lucide-react';
+import { Shield, Mail, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,22 +15,21 @@ const VerifyOtp = () => {
   const [otpCode, setOtpCode] = useState('');
   const [otpCountdown, setOtpCountdown] = useState(0);
   const [otpSent, setOtpSent] = useState(false);
-  const [sessionReady, setSessionReady] = useState(false);
-  const [devCode, setDevCode] = useState<string | null>(null);
+  const [isNewSignup, setIsNewSignup] = useState(false);
   const { user, session, loading } = useAuth();
   const navigate = useNavigate();
   const hasSentOtp = useRef(false);
 
-  // Récupérer l'email depuis la session ou le sessionStorage
+  // Récupérer l'email depuis le sessionStorage (défini à l'inscription ou connexion)
   const pendingEmail = sessionStorage.getItem('pending_otp_email') || user?.email || '';
 
-  // Envoyer l'OTP dès que possible
+  // Détecter si c'est une nouvelle inscription ou une connexion
   useEffect(() => {
-    const initOtp = async () => {
+    const checkSignupStatus = async () => {
       if (hasSentOtp.current) return;
       
-      // Si pas d'email et pas de session en chargement, rediriger
-      if (!loading && !pendingEmail && !session) {
+      // Si pas d'email, rediriger vers login
+      if (!loading && !pendingEmail) {
         navigate('/login');
         return;
       }
@@ -38,22 +37,45 @@ const VerifyOtp = () => {
       // Attendre que le chargement soit terminé
       if (loading) return;
 
-      // Essayer d'obtenir une session valide
+      // Vérifier s'il y a une session existante (connexion) ou non (inscription)
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       
       if (currentSession) {
+        // Connexion existante - vérifier si email déjà confirmé
+        if (currentSession.user.email_confirmed_at) {
+          // Email déjà confirmé, juste mettre à jour otp_verified et rediriger
+          await supabase
+            .from('profiles')
+            .update({ otp_verified: true })
+            .eq('user_id', currentSession.user.id);
+          
+          // Rediriger vers le dashboard approprié
+          const { data: creatorData } = await supabase
+            .from('creators')
+            .select('id')
+            .eq('user_id', currentSession.user.id)
+            .maybeSingle();
+          
+          navigate(creatorData ? '/dashboard' : '/subscriptions');
+          return;
+        }
+        
+        // Email pas encore confirmé, envoyer OTP
         hasSentOtp.current = true;
-        setSessionReady(true);
+        setIsNewSignup(false);
         sendOtp();
-      } else if (!loading) {
-        // Pas de session après chargement, retourner au login
-        console.log('Pas de session trouvée, redirection vers login');
+      } else if (pendingEmail) {
+        // Nouvelle inscription - envoyer OTP pour vérification email
+        hasSentOtp.current = true;
+        setIsNewSignup(true);
+        sendOtp();
+      } else {
         navigate('/login');
       }
     };
 
-    initOtp();
-  }, [loading, session]);
+    checkSignupStatus();
+  }, [loading]);
 
   useEffect(() => {
     if (otpCountdown > 0) {
@@ -78,24 +100,36 @@ const VerifyOtp = () => {
 
       console.log('Envoi OTP Supabase pour:', emailToUse);
 
-      // Utiliser l'OTP natif de Supabase (gratuit)
-      const { error } = await supabase.auth.signInWithOtp({
+      // Utiliser l'OTP natif de Supabase - type "signup" pour vérification email
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
         email: emailToUse,
-        options: {
-          shouldCreateUser: false,
-        },
       });
 
       if (error) {
-        console.error('Erreur Supabase OTP:', error);
-        throw new Error(error.message || 'Erreur lors de l\'envoi du code');
+        // Si l'utilisateur est déjà confirmé, essayer avec signInWithOtp
+        if (error.message.includes('already confirmed') || error.message.includes('already registered')) {
+          const { error: otpError } = await supabase.auth.signInWithOtp({
+            email: emailToUse,
+            options: {
+              shouldCreateUser: false,
+            },
+          });
+          
+          if (otpError) {
+            console.error('Erreur Supabase OTP:', otpError);
+            throw new Error(otpError.message || 'Erreur lors de l\'envoi du code');
+          }
+        } else {
+          console.error('Erreur Supabase resend:', error);
+          throw new Error(error.message || 'Erreur lors de l\'envoi du code');
+        }
       }
 
       setOtpSent(true);
       setOtpCountdown(60);
-      setDevCode(null); // Pas de code en dev, Supabase envoie vraiment l'email
       
-      toast.success('Code envoyé par email !');
+      toast.success('Code de vérification envoyé par email !');
     } catch (error: any) {
       console.error('Erreur sendOtp:', error);
       toast.error(error.message || 'Erreur lors de l\'envoi du code');
@@ -119,17 +153,34 @@ const VerifyOtp = () => {
 
     setIsLoading(true);
     try {
-      // Vérifier l'OTP avec Supabase natif
-      const { data, error } = await supabase.auth.verifyOtp({
+      // Essayer d'abord avec type "signup" pour les nouvelles inscriptions
+      let verifyResult = await supabase.auth.verifyOtp({
         email: emailToUse,
         token: otpCode,
-        type: 'email',
+        type: 'signup',
       });
 
-      if (error) {
-        console.error('Erreur verify-otp:', error);
-        throw new Error(error.message || 'Code invalide');
+      // Si erreur, essayer avec type "email" pour les utilisateurs existants
+      if (verifyResult.error) {
+        verifyResult = await supabase.auth.verifyOtp({
+          email: emailToUse,
+          token: otpCode,
+          type: 'email',
+        });
       }
+
+      if (verifyResult.error) {
+        console.error('Erreur verify-otp:', verifyResult.error);
+        
+        if (verifyResult.error.message.includes('expired')) {
+          throw new Error('Code expiré. Demandez un nouveau code.');
+        } else if (verifyResult.error.message.includes('invalid')) {
+          throw new Error('Code invalide. Vérifiez le code et réessayez.');
+        }
+        throw new Error(verifyResult.error.message || 'Code invalide');
+      }
+
+      const { data } = verifyResult;
 
       // Mettre à jour le profil pour marquer l'OTP comme vérifié
       if (data.user) {
@@ -142,7 +193,7 @@ const VerifyOtp = () => {
       // Nettoyer le sessionStorage
       sessionStorage.removeItem('pending_otp_email');
 
-      toast.success('Vérification réussie !');
+      toast.success(isNewSignup ? 'Compte activé avec succès !' : 'Vérification réussie !');
 
       // Rediriger vers le dashboard approprié
       const userId = data.user?.id || user?.id;
@@ -153,11 +204,7 @@ const VerifyOtp = () => {
           .eq('user_id', userId)
           .maybeSingle();
 
-        if (creatorData) {
-          navigate('/dashboard');
-        } else {
-          navigate('/subscriptions');
-        }
+        navigate(creatorData ? '/dashboard' : '/subscriptions');
       } else {
         navigate('/dashboard');
       }
@@ -180,18 +227,25 @@ const VerifyOtp = () => {
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-            Vérification en 2 étapes
+            {isNewSignup ? 'Validez votre compte' : 'Vérification en 2 étapes'}
           </h1>
           <p className="text-muted-foreground mt-2">
-            Un code de vérification est requis pour accéder à l'application
+            {isNewSignup 
+              ? 'Un code de vérification a été envoyé pour activer votre compte'
+              : 'Un code de vérification est requis pour accéder à l\'application'
+            }
           </p>
         </div>
 
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
-              Code de vérification
+              {isNewSignup ? (
+                <CheckCircle className="h-5 w-5 text-primary" />
+              ) : (
+                <Shield className="h-5 w-5 text-primary" />
+              )}
+              {isNewSignup ? 'Activez votre compte' : 'Code de vérification'}
             </CardTitle>
             <CardDescription>
               Entrez le code à 6 chiffres envoyé à {pendingEmail}
@@ -202,7 +256,10 @@ const VerifyOtp = () => {
               <Alert className="bg-green-500/10 border-green-500">
                 <Mail className="h-4 w-4 text-green-500" />
                 <AlertDescription>
-                  Code envoyé à <strong>{pendingEmail}</strong>. Vérifiez votre boîte de réception et vos spams.
+                  {isNewSignup 
+                    ? <>Code d'activation envoyé à <strong>{pendingEmail}</strong>. Vérifiez votre boîte de réception et vos spams.</>
+                    : <>Code envoyé à <strong>{pendingEmail}</strong>. Vérifiez votre boîte de réception et vos spams.</>
+                  }
                 </AlertDescription>
               </Alert>
             )}

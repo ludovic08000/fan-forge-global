@@ -92,19 +92,10 @@ const Signup = () => {
       );
       
       if (!error) {
-        setSignUpForm({
-          email: '',
-          password: '',
-          confirmPassword: '',
-          firstName: '',
-          lastName: '',
-          username: '',
-          role: 'subscriber',
-          birthdate: '',
-          gender: '',
-          stageName: '',
-          category: ''
-        });
+        // Stocker l'email pour la page OTP
+        sessionStorage.setItem('pending_otp_email', validatedData.email);
+        // Rediriger vers la page de vérification OTP
+        navigate('/verify-otp');
       } else {
         const msg = (error?.message || '').toLowerCase();
         if (msg.includes('already') || msg.includes('registered')) {
