@@ -24,13 +24,16 @@ const VerifyOtp = () => {
   // Récupérer l'email depuis le sessionStorage (défini à l'inscription ou connexion)
   const pendingEmail = sessionStorage.getItem('pending_otp_email') || user?.email || '';
 
-  // Détecter si c'est une nouvelle inscription ou une connexion
+  // Détecter si c'est une nouvelle inscription ou une connexion existante
   useEffect(() => {
     const checkSignupStatus = async () => {
       if (hasSentOtp.current) return;
       
-      // Si pas d'email, rediriger vers login
-      if (!loading && !pendingEmail) {
+      // Vérifier si c'est une nouvelle inscription via sessionStorage
+      const isFromSignup = sessionStorage.getItem('pending_otp_email');
+      
+      // Si pas d'email et pas de session, rediriger vers login
+      if (!loading && !pendingEmail && !isFromSignup) {
         console.log('Pas d\'email trouvé, redirection vers login');
         navigate('/login');
         return;
@@ -40,22 +43,33 @@ const VerifyOtp = () => {
       if (loading) return;
 
       console.log('Email trouvé:', pendingEmail);
+      console.log('Nouvelle inscription:', !!isFromSignup);
 
-      // Vérifier s'il y a une session existante (connexion) ou non (inscription)
+      // Si c'est une nouvelle inscription (venant de signup), toujours envoyer l'OTP
+      if (isFromSignup) {
+        console.log('Nouvelle inscription détectée, envoi OTP');
+        hasSentOtp.current = true;
+        setIsNewSignup(true);
+        sendOtp();
+        return;
+      }
+
+      // Vérifier s'il y a une session existante (connexion)
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       
       if (currentSession) {
         console.log('Session existante trouvée');
-        // Connexion existante - vérifier si email déjà confirmé
-        if (currentSession.user.email_confirmed_at) {
-          console.log('Email déjà confirmé, mise à jour otp_verified');
-          // Email déjà confirmé, juste mettre à jour otp_verified et rediriger
-          await supabase
-            .from('profiles')
-            .update({ otp_verified: true })
-            .eq('user_id', currentSession.user.id);
-          
-          // Rediriger vers le dashboard approprié
+        
+        // Vérifier si otp_verified est déjà true dans le profil
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('otp_verified')
+          .eq('user_id', currentSession.user.id)
+          .maybeSingle();
+        
+        if (profile?.otp_verified === true) {
+          console.log('OTP déjà vérifié, redirection');
+          // Déjà vérifié, rediriger vers le dashboard
           const { data: creatorData } = await supabase
             .from('creators')
             .select('id')
@@ -66,18 +80,14 @@ const VerifyOtp = () => {
           return;
         }
         
-        // Email pas encore confirmé, envoyer OTP
-        console.log('Email non confirmé, envoi OTP');
+        // OTP pas encore vérifié, envoyer un nouveau code
+        console.log('OTP non vérifié, envoi OTP');
         hasSentOtp.current = true;
         setIsNewSignup(false);
         sendOtp();
-      } else if (pendingEmail) {
-        // Nouvelle inscription - envoyer OTP pour vérification email
-        console.log('Nouvelle inscription, envoi OTP');
-        hasSentOtp.current = true;
-        setIsNewSignup(true);
-        sendOtp();
       } else {
+        // Pas de session, rediriger vers login
+        console.log('Pas de session, redirection vers login');
         navigate('/login');
       }
     };
