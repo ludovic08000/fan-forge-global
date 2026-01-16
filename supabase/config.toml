@@ -165,3 +165,7 @@ verify_jwt = true
 # LiveKit Recording Webhook - DOIT être false car LiveKit ne peut pas envoyer de JWT
 [functions.livekit-recording-webhook]
 verify_jwt = false
+
+# AI Content Moderation
+[functions.moderate-content]
+verify_jwt = true
