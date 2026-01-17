@@ -397,20 +397,28 @@ export const LiveStreamStudio = () => {
         throw new Error('Votre navigateur ne supporte pas l\'accès à la caméra');
       }
 
-      // Détecter si mobile
+      // Détecter si mobile et le type de navigateur
       const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isChromeOnIOS = isIOS && /CriOS/i.test(navigator.userAgent);
+      const isFirefoxOnIOS = isIOS && /FxiOS/i.test(navigator.userAgent);
+      const isThirdPartyBrowserOnIOS = isChromeOnIOS || isFirefoxOnIOS;
       
-      // Sur iOS, demander les permissions une à une peut être plus fiable
+      // Sur iOS avec Chrome/Firefox, indiquer d'utiliser Safari si problème
+      if (isThirdPartyBrowserOnIOS) {
+        console.warn('Navigateur tiers détecté sur iOS. Safari est recommandé pour l\'accès caméra.');
+      }
+      
+      // Sur iOS, vérifier les périphériques
       if (isIOS) {
         try {
-          // D'abord vérifier les permissions
           const permissions = await navigator.mediaDevices.enumerateDevices();
           const hasVideoInput = permissions.some(d => d.kind === 'videoinput');
           const hasAudioInput = permissions.some(d => d.kind === 'audioinput');
           
           if (!hasVideoInput) {
-            throw new Error('Aucune caméra détectée. Vérifiez les permissions dans Réglages > Safari');
+            const browserName = isChromeOnIOS ? 'Chrome' : isFirefoxOnIOS ? 'Firefox' : 'Safari';
+            throw new Error(`Aucune caméra détectée. Vérifiez les permissions dans Réglages > ${browserName} > Caméra`);
           }
           if (!hasAudioInput) {
             console.warn('Aucun microphone détecté');
@@ -420,14 +428,26 @@ export const LiveStreamStudio = () => {
         }
       }
       
-      // Contraintes optimisées pour mobile
-      const constraints: MediaStreamConstraints = {
-        video: isMobileDevice ? {
+      // Contraintes optimisées - plus simples sur iOS avec navigateurs tiers
+      const constraints: MediaStreamConstraints = isThirdPartyBrowserOnIOS ? {
+        // Contraintes très basiques pour Chrome/Firefox sur iOS
+        video: { facingMode: 'user' },
+        audio: true,
+      } : isMobileDevice ? {
+        video: {
           facingMode: { ideal: 'user' },
           width: { min: 640, ideal: 1280, max: 1920 },
           height: { min: 480, ideal: 720, max: 1080 },
           aspectRatio: { ideal: 16/9 },
-        } : {
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: { ideal: 44100 },
+        },
+      } : {
+        video: {
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
@@ -435,7 +455,6 @@ export const LiveStreamStudio = () => {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-          sampleRate: { ideal: 44100 },
         },
       };
 
@@ -446,6 +465,8 @@ export const LiveStreamStudio = () => {
           videoRef.current.srcObject = stream;
           // Sur iOS, déclencher la lecture après l'assignation
           if (isIOS) {
+            videoRef.current.setAttribute('playsinline', 'true');
+            videoRef.current.setAttribute('webkit-playsinline', 'true');
             await videoRef.current.play().catch(() => {});
           }
         }
@@ -463,7 +484,10 @@ export const LiveStreamStudio = () => {
           streamRef.current = simpleStream;
           if (videoRef.current) {
             videoRef.current.srcObject = simpleStream;
-            if (isIOS) await videoRef.current.play().catch(() => {});
+            if (isIOS) {
+              videoRef.current.setAttribute('playsinline', 'true');
+              await videoRef.current.play().catch(() => {});
+            }
           }
           setIsMediaReady(true);
         } catch (simpleError) {
@@ -478,7 +502,10 @@ export const LiveStreamStudio = () => {
           streamRef.current = basicStream;
           if (videoRef.current) {
             videoRef.current.srcObject = basicStream;
-            if (isIOS) await videoRef.current.play().catch(() => {});
+            if (isIOS) {
+              videoRef.current.setAttribute('playsinline', 'true');
+              await videoRef.current.play().catch(() => {});
+            }
           }
           setIsMediaReady(true);
         }
@@ -486,20 +513,41 @@ export const LiveStreamStudio = () => {
     } catch (error: any) {
       console.error('Erreur accès média:', error);
       
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isChromeOnIOS = isIOS && /CriOS/i.test(navigator.userAgent);
+      const isFirefoxOnIOS = isIOS && /FxiOS/i.test(navigator.userAgent);
+      
       let errorMessage = 'Erreur inconnue';
       
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-        errorMessage = 'Permission refusée. Autorisez l\'accès à la caméra dans les paramètres de votre navigateur.';
+        if (isChromeOnIOS) {
+          errorMessage = 'Permission refusée. Sur iOS, allez dans Réglages > Chrome > Caméra et activez l\'accès. Si ça ne fonctionne pas, utilisez Safari.';
+        } else if (isFirefoxOnIOS) {
+          errorMessage = 'Permission refusée. Sur iOS, allez dans Réglages > Firefox > Caméra et activez l\'accès. Si ça ne fonctionne pas, utilisez Safari.';
+        } else if (isIOS) {
+          errorMessage = 'Permission refusée. Allez dans Réglages > Safari > Caméra et activez l\'accès.';
+        } else {
+          errorMessage = 'Permission refusée. Autorisez l\'accès à la caméra dans les paramètres de votre navigateur.';
+        }
       } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
         errorMessage = 'Aucune caméra ou microphone trouvé sur cet appareil.';
       } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-        errorMessage = 'La caméra est peut-être utilisée par une autre application.';
+        if (isChromeOnIOS || isFirefoxOnIOS) {
+          errorMessage = 'La caméra n\'est pas accessible. Sur iOS, essayez avec Safari pour une meilleure compatibilité.';
+        } else {
+          errorMessage = 'La caméra est peut-être utilisée par une autre application.';
+        }
       } else if (error.name === 'OverconstrainedError') {
         errorMessage = 'Votre caméra ne supporte pas les paramètres demandés.';
       } else if (error.name === 'TypeError') {
         errorMessage = 'Erreur de configuration. Rechargez la page.';
       } else if (error.message) {
         errorMessage = error.message;
+      }
+      
+      // Ajouter une suggestion Safari si sur navigateur tiers iOS
+      if ((isChromeOnIOS || isFirefoxOnIOS) && !errorMessage.includes('Safari')) {
+        errorMessage += ' Pour les lives, Safari offre une meilleure compatibilité sur iOS.';
       }
       
       setMediaError(errorMessage);
