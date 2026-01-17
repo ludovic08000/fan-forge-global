@@ -404,62 +404,95 @@ export const LiveStreamStudio = () => {
       const isFirefoxOnIOS = isIOS && /FxiOS/i.test(navigator.userAgent);
       const isThirdPartyBrowserOnIOS = isChromeOnIOS || isFirefoxOnIOS;
       
-      // Sur iOS avec Chrome/Firefox, indiquer d'utiliser Safari si problème
+      // Sur iOS avec Chrome/Firefox, afficher un avertissement clair
       if (isThirdPartyBrowserOnIOS) {
-        console.warn('Navigateur tiers détecté sur iOS. Safari est recommandé pour l\'accès caméra.');
+        console.warn('[Camera] Navigateur tiers détecté sur iOS - accès caméra limité');
+        toast.info('Sur iPhone, Safari offre un meilleur accès caméra. Si vous avez des problèmes, essayez avec Safari.', { duration: 6000 });
       }
       
-      // Sur iOS, vérifier les périphériques
-      if (isIOS) {
+      // Fonction pour tenter getUserMedia avec différentes contraintes
+      const tryGetUserMedia = async (constraints: MediaStreamConstraints): Promise<MediaStream> => {
         try {
-          const permissions = await navigator.mediaDevices.enumerateDevices();
-          const hasVideoInput = permissions.some(d => d.kind === 'videoinput');
-          const hasAudioInput = permissions.some(d => d.kind === 'audioinput');
-          
-          if (!hasVideoInput) {
-            const browserName = isChromeOnIOS ? 'Chrome' : isFirefoxOnIOS ? 'Firefox' : 'Safari';
-            throw new Error(`Aucune caméra détectée. Vérifiez les permissions dans Réglages > ${browserName} > Caméra`);
-          }
-          if (!hasAudioInput) {
-            console.warn('Aucun microphone détecté');
-          }
-        } catch (enumError) {
-          console.warn('Impossible d\'énumérer les périphériques:', enumError);
+          return await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (error) {
+          console.warn('[Camera] getUserMedia failed with constraints:', constraints, error);
+          throw error;
         }
-      }
-      
-      // Contraintes optimisées - plus simples sur iOS avec navigateurs tiers
-      const constraints: MediaStreamConstraints = isThirdPartyBrowserOnIOS ? {
-        // Contraintes très basiques pour Chrome/Firefox sur iOS
-        video: { facingMode: 'user' },
-        audio: true,
-      } : isMobileDevice ? {
-        video: {
-          facingMode: { ideal: 'user' },
-          width: { min: 640, ideal: 1280, max: 1920 },
-          height: { min: 480, ideal: 720, max: 1080 },
-          aspectRatio: { ideal: 16/9 },
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: { ideal: 44100 },
-        },
-      } : {
-        video: {
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
       };
+      
+      let stream: MediaStream | null = null;
+      
+      // Sur iOS avec navigateurs tiers, essayer plusieurs approches
+      if (isThirdPartyBrowserOnIOS) {
+        const constraintsList = [
+          // Tentative 1: Contraintes minimales
+          { video: true, audio: true },
+          // Tentative 2: Seulement vidéo
+          { video: true, audio: false },
+          // Tentative 3: facingMode explicite
+          { video: { facingMode: 'user' }, audio: true },
+          // Tentative 4: Contraintes encore plus basiques
+          { video: { width: 640, height: 480 }, audio: true },
+        ];
+        
+        for (const constraints of constraintsList) {
+          try {
+            console.log('[Camera] Trying constraints for iOS third-party browser:', constraints);
+            stream = await tryGetUserMedia(constraints);
+            console.log('[Camera] Success with constraints:', constraints);
+            break;
+          } catch (e) {
+            console.warn('[Camera] Failed with constraints:', constraints, e);
+          }
+        }
+        
+        if (!stream) {
+          const browserName = isChromeOnIOS ? 'Chrome' : 'Firefox';
+          throw new Error(
+            `Impossible d'accéder à la caméra avec ${browserName}. ` +
+            `Sur iPhone, ${browserName} a des limitations pour l'accès caméra. ` +
+            `Essayez avec Safari pour une meilleure compatibilité, ou vérifiez: ` +
+            `Réglages iOS > ${browserName} > Caméra (activé)`
+          );
+        }
+      } else if (isMobileDevice) {
+        // Mobile standard (Android ou Safari iOS)
+        const mobileConstraints: MediaStreamConstraints = {
+          video: {
+            facingMode: { ideal: 'user' },
+            width: { min: 640, ideal: 1280, max: 1920 },
+            height: { min: 480, ideal: 720, max: 1080 },
+            aspectRatio: { ideal: 16/9 },
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: { ideal: 44100 },
+          },
+        };
+        stream = await tryGetUserMedia(mobileConstraints);
+      } else {
+        // Desktop
+        const desktopConstraints: MediaStreamConstraints = {
+          video: {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        };
+        stream = await tryGetUserMedia(desktopConstraints);
+      }
+
+      if (!stream) {
+        throw new Error('Impossible d\'obtenir un flux vidéo');
+      }
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
