@@ -1,3 +1,7 @@
+/**
+ * Point d'entrée de l'application
+ * @version 2.0.1
+ */
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
