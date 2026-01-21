@@ -170,7 +170,6 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
           loop
           playsInline
           preload="metadata"
-          crossOrigin="anonymous"
           onLoadedData={() => setVideoLoaded(true)}
           onError={(e) => {
             console.warn('Main video error:', e, 'URL:', secureVideoUrl?.substring(0, 100));
@@ -207,7 +206,6 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
             muted
             playsInline
             preload="metadata"
-            crossOrigin="anonymous"
             controlsList="nodownload noplaybackrate"
             disablePictureInPicture
             onContextMenu={(e) => e.preventDefault()}
