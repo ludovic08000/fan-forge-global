@@ -465,6 +465,8 @@ const Dashboard = () => {
               mediaUrl={selectedContent.file_url}
               mediaType={selectedContent.content_type === 'video' ? 'video' : 'image'}
               title={selectedContent.title}
+              contentId={selectedContent.id}
+              isPremium={selectedContent.is_premium === true}
               onPrevious={lightboxIndex > 0 ? handlePreviousImage : undefined}
               onNext={myContent && lightboxIndex < myContent.length - 1 ? handleNextImage : undefined}
             />

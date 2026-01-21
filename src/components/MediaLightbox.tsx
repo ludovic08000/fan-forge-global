@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Shield, Loader2 } from 'lucide-react';
+import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
+import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 interface MediaLightboxProps {
   isOpen: boolean;
@@ -12,6 +14,8 @@ interface MediaLightboxProps {
   onNext?: () => void;
   hasPrevious?: boolean;
   hasNext?: boolean;
+  contentId?: string;
+  isPremium?: boolean;
 }
 
 // Détecter le type de média basé sur l'extension
@@ -32,12 +36,42 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
   onNext,
   hasPrevious = false,
   hasNext = false,
+  contentId,
+  isPremium = false,
 }) => {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const resolvedMediaType = mediaType || detectMediaType(mediaUrl);
+  const isExternalR2 = isR2Url(mediaUrl);
+  const isVideo = resolvedMediaType === 'video';
+
+  // Hook pour URLs R2 sécurisées (replays Cloudflare)
+  const { secureUrl: r2SecureUrl, loading: r2Loading, error: r2Error } = useSecureR2Url(
+    isOpen && isExternalR2 ? mediaUrl : null,
+    {
+      contentId,
+      enabled: isOpen && isExternalR2
+    }
+  );
+
+  // Hook pour URLs Supabase signées (contenu stocké sur Supabase)
+  const { signedUrl: supabaseSignedUrl, loading: supabaseLoading } = useSignedUrl(
+    isOpen && !isExternalR2 && isPremium ? mediaUrl : null,
+    {
+      bucket: 'content',
+      contentId,
+      enabled: isOpen && !isExternalR2 && isPremium
+    }
+  );
+
+  // URL sécurisée finale à utiliser
+  const secureMediaUrl = isExternalR2 
+    ? (r2SecureUrl || mediaUrl)
+    : (isPremium ? (supabaseSignedUrl || mediaUrl) : mediaUrl);
+  
+  const urlLoading = isExternalR2 ? r2Loading : (isPremium ? supabaseLoading : false);
 
   // Reset quand le média change
   useEffect(() => {
@@ -58,6 +92,14 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
       }
     }
   }, [isOpen]);
+
+  // Handle R2 URL error
+  useEffect(() => {
+    if (r2Error && isExternalR2) {
+      console.error('[MediaLightbox] R2 URL error:', r2Error);
+      setError(true);
+    }
+  }, [r2Error, isExternalR2]);
 
   const handleBackdropClick = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose();
@@ -89,6 +131,16 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
         <X className="w-6 h-6 text-white" />
       </button>
 
+      {/* Badge sécurisé */}
+      {(isExternalR2 || isPremium) && !urlLoading && !error && (
+        <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 bg-green-500/90 px-3 py-1.5 rounded-full">
+          <Shield className="h-4 w-4 text-white" />
+          <span className="text-sm font-medium text-white">
+            {isExternalR2 ? 'R2 Sécurisé' : 'Sécurisé'}
+          </span>
+        </div>
+      )}
+
       {/* Navigation précédent */}
       {hasPrevious && onPrevious && (
         <button
@@ -113,8 +165,16 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
 
       {/* Contenu */}
       <div className="flex flex-col items-center max-w-[95vw] max-h-[95vh]">
-        {/* Loader */}
-        {!loaded && !error && (
+        {/* Loader pour URL sécurisée */}
+        {urlLoading && (
+          <div className="flex flex-col items-center gap-3 text-white">
+            <Loader2 className="w-10 h-10 animate-spin" />
+            <span className="text-sm">Chargement sécurisé...</span>
+          </div>
+        )}
+
+        {/* Loader pour média */}
+        {!urlLoading && !loaded && !error && (
           <div className="w-[60vw] max-w-xl aspect-video bg-white/5 animate-pulse rounded-lg" />
         )}
 
@@ -123,13 +183,14 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
           <div className="flex flex-col items-center gap-3 text-red-400">
             <X className="w-12 h-12" />
             <span>Impossible de charger le média</span>
+            {r2Error && <span className="text-xs text-red-300">{r2Error}</span>}
           </div>
         )}
 
         {/* Image */}
-        {mediaUrl && !error && resolvedMediaType === 'image' && (
+        {!urlLoading && secureMediaUrl && !error && resolvedMediaType === 'image' && (
           <img
-            src={mediaUrl}
+            src={secureMediaUrl}
             alt={title || 'Image'}
             decoding="sync"
             fetchPriority="high"
@@ -137,15 +198,17 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
             onClick={(e) => e.stopPropagation()}
             onLoad={() => setLoaded(true)}
             onError={() => setError(true)}
+            onContextMenu={(e) => e.preventDefault()}
+            draggable={false}
           />
         )}
 
         {/* Video */}
-        {mediaUrl && !error && resolvedMediaType === 'video' && (
+        {!urlLoading && secureMediaUrl && !error && resolvedMediaType === 'video' && (
           <video
-            key={mediaUrl}
+            key={secureMediaUrl}
             ref={videoRef}
-            src={mediaUrl}
+            src={secureMediaUrl}
             controls
             autoPlay
             playsInline
@@ -162,6 +225,9 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
               console.error('[MediaLightbox] Video error:', video.error?.message, video.error?.code);
               setError(true);
             }}
+            onContextMenu={(e) => e.preventDefault()}
+            controlsList="nodownload noplaybackrate"
+            disablePictureInPicture
           />
         )}
         
