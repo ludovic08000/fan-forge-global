@@ -27,9 +27,10 @@ const HeroSection = memo(() => {
         <img 
           src={splashPortrait} 
           alt="" 
-          className="w-full h-full object-cover object-top"
+          className="w-full h-full object-cover"
           style={{ 
             filter: 'brightness(1.1) contrast(1.05) saturate(1.1)',
+            objectPosition: 'center 20%',
           }}
         />
         {/* Overlay gradient pour lisibilité du texte */}
