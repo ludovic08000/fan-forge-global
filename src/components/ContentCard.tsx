@@ -3,7 +3,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Heart, Eye, Play, Lock, Euro } from 'lucide-react';
+import { Heart, Eye, Lock, Euro } from 'lucide-react';
 import { Content } from '@/hooks/useContent';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +13,7 @@ import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { supabase } from '@/integrations/supabase/client';
 import { preloadImage } from '@/components/ImageLightbox';
 import LazyContentImage, { preloadImageFast } from '@/components/LazyContentImage';
+import { VideoPreviewCard } from '@/components/VideoPreviewCard';
 
 interface ContentCardProps {
   content: Content;
@@ -172,18 +173,13 @@ const ContentCard: React.FC<ContentCardProps> = ({
 
         {/* Media - chargement optimisé */}
         {content.content_type === 'video' ? (
-          <div className="relative w-full h-full">
-            <LazyContentImage
-              src={imageUrl}
-              alt={content.title}
-              blurred={shouldBlur}
-            />
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="bg-black/70 rounded-full p-3">
-                <Play className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          </div>
+          <VideoPreviewCard
+            src={imageUrl}
+            poster={content.thumbnail_url || undefined}
+            className="w-full h-full"
+            blurred={shouldBlur}
+            showPlayButton={!shouldBlur}
+          />
         ) : (
           <LazyContentImage
             src={imageUrl}
