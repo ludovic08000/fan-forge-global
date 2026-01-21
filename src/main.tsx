@@ -37,9 +37,6 @@ if (sentryDsn) {
     ],
   });
   console.log('Sentry initialized for error monitoring');
-  
-  // Test Sentry - À SUPPRIMER après vérification
-  Sentry.captureMessage("🎉 Sentry test depuis Lovable - Intégration réussie!", "info");
 }
 
 // Enregistrer le Service Worker
