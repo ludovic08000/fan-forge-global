@@ -10,38 +10,34 @@ import "./index.css";
 import { registerSW } from 'virtual:pwa-register';
 
 // Initialiser Sentry pour le monitoring d'erreurs
-const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
-console.log('🔍 Sentry DSN:', sentryDsn ? 'FOUND' : 'NOT FOUND');
+// DSN hardcodé car les VITE_* ne sont pas toujours rechargées dans le preview
+const sentryDsn = "https://73507cd4af60b43e0223b2923e254ac9@o4510748031844352.ingest.de.sentry.io/4510748042461264";
 
-if (sentryDsn) {
-  Sentry.init({
-    dsn: sentryDsn,
-    integrations: [
-      Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration({
-        maskAllText: true,
-        blockAllMedia: true,
-      }),
-    ],
-    // Performance Monitoring
-    tracesSampleRate: 0.1, // 10% des transactions
-    // Session Replay
-    replaysSessionSampleRate: 0.1, // 10% des sessions
-    replaysOnErrorSampleRate: 1.0, // 100% des sessions avec erreur
-    // Environment
-    environment: import.meta.env.MODE,
-    // Ignorer certaines erreurs courantes non critiques
-    ignoreErrors: [
-      'ResizeObserver loop',
-      'Network request failed',
-      'Load failed',
-      'ChunkLoadError',
-    ],
-  });
-  console.log('✅ Sentry initialized for error monitoring');
-} else {
-  console.warn('⚠️ VITE_SENTRY_DSN not found - Sentry disabled');
-}
+Sentry.init({
+  dsn: sentryDsn,
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration({
+      maskAllText: true,
+      blockAllMedia: true,
+    }),
+  ],
+  // Performance Monitoring
+  tracesSampleRate: 0.1, // 10% des transactions
+  // Session Replay
+  replaysSessionSampleRate: 0.1, // 10% des sessions
+  replaysOnErrorSampleRate: 1.0, // 100% des sessions avec erreur
+  // Environment
+  environment: import.meta.env.MODE,
+  // Ignorer certaines erreurs courantes non critiques
+  ignoreErrors: [
+    'ResizeObserver loop',
+    'Network request failed',
+    'Load failed',
+    'ChunkLoadError',
+  ],
+});
+console.log('✅ Sentry initialized for error monitoring');
 
 // Enregistrer le Service Worker
 const updateSW = registerSW({
