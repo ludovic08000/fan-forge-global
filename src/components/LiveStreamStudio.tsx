@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera, Send, Shield, MessageCircle, ImageIcon, Clock, Copy, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera, Send, Shield, MessageCircle, ImageIcon } from 'lucide-react';
 import { LiveTimer } from '@/components/live/LiveTimer';
 import { EmojiPicker } from '@/components/live/EmojiPicker';
 import { PaidMediaUpload } from '@/components/live/PaidMediaUpload';
@@ -54,182 +54,10 @@ export const LiveStreamStudio = () => {
   const [chatMessage, setChatMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [creatorId, setCreatorId] = useState<string | null>(null);
-  const [streamKey, setStreamKey] = useState<string | null>(null);
-  const [showStreamKey, setShowStreamKey] = useState(false);
-  const [isGeneratingKey, setIsGeneratingKey] = useState(false);
-  const [obsStreamKey, setObsStreamKey] = useState<string | null>(null);
-  const [showObsKey, setShowObsKey] = useState(false);
 
-  // URL RTMP pour OBS
-  const RTMP_URL = "rtmp://live.crub.app/live";
-
-  /**
-   * Générer une clé de stream OBS pour le créateur
-   * Crée un live "brouillon" persistant pour OBS
-   */
-  const generateObsStreamKey = async () => {
-    if (!creatorId) {
-      toast.error('Impossible de générer la clé');
-      return;
-    }
-
-    setIsGeneratingKey(true);
-    try {
-      // Vérifier s'il existe déjà un live brouillon pour OBS
-      const { data: existingDraft } = await supabase
-        .from('live_streams')
-        .select('id')
-        .eq('creator_id', creatorId)
-        .eq('status', 'scheduled')
-        .eq('title', 'Configuration OBS')
-        .maybeSingle();
-
-      let streamId = existingDraft?.id;
-
-      // Créer un nouveau brouillon si aucun n'existe
-      if (!streamId) {
-        const { data: newStream, error: createError } = await supabase
-          .from('live_streams')
-          .insert({
-            creator_id: creatorId,
-            title: 'Configuration OBS',
-            status: 'scheduled',
-            is_premium: true,
-          })
-          .select('id')
-          .single();
-
-        if (createError) throw createError;
-        streamId = newStream?.id;
-      }
-
-      if (streamId) {
-        // Vérifier si la clé existe, sinon la générer
-        const { data: streamData } = await supabase
-          .from('live_streams')
-          .select('stream_key')
-          .eq('id', streamId)
-          .single();
-        
-        let finalKey = streamData?.stream_key;
-        
-        if (!finalKey) {
-          // Générer une clé unique (64 caractères hex, crypto-sécurisé)
-          const newKey = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
-          
-          // Mettre à jour le stream avec la nouvelle clé
-          const { error: updateError } = await supabase
-            .from('live_streams')
-            .update({ stream_key: newKey })
-            .eq('id', streamId);
-          
-          if (updateError) {
-            console.error('Erreur update stream_key:', updateError);
-            throw updateError;
-          }
-          
-          // Récupérer la clé via RPC sécurisé (validation ownership)
-          const { data: key, error: keyError } = await supabase.rpc('get_own_stream_key', { 
-            _live_stream_id: streamId 
-          });
-          
-          if (keyError) {
-            console.error('Erreur RPC get_own_stream_key:', keyError);
-            throw keyError;
-          }
-          finalKey = key;
-        }
-        
-        if (finalKey) {
-          setObsStreamKey(finalKey);
-          toast.success('Clé de stream générée !');
-          console.log('[OBS] Stream key generated successfully');
-        } else {
-          toast.error('Impossible de générer la clé');
-          console.error('[OBS] No key generated');
-        }
-      }
-    } catch (error: any) {
-      console.error('Erreur génération clé OBS:', error);
-      toast.error(error?.message || 'Erreur lors de la génération de la clé');
-    } finally {
-      setIsGeneratingKey(false);
-    }
-  };
-
-  /**
-   * Régénérer une nouvelle clé de stream OBS
-   * Force la génération d'une nouvelle clé même si une existe déjà
-   */
-  const regenerateObsStreamKey = async () => {
-    if (!creatorId) {
-      toast.error('Impossible de régénérer la clé');
-      return;
-    }
-
-    setIsGeneratingKey(true);
-    try {
-      // Trouver le live brouillon existant
-      const { data: existingDraft } = await supabase
-        .from('live_streams')
-        .select('id')
-        .eq('creator_id', creatorId)
-        .eq('status', 'scheduled')
-        .eq('title', 'Configuration OBS')
-        .maybeSingle();
-
-      if (!existingDraft?.id) {
-        // Si pas de brouillon, utiliser la fonction de génération normale
-        await generateObsStreamKey();
-        return;
-      }
-
-      // Générer une nouvelle clé unique (64 caractères hex)
-      const newKey = Array.from(crypto.getRandomValues(new Uint8Array(32)))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-      
-      // Mettre à jour le stream avec la nouvelle clé
-      const { error: updateError } = await supabase
-        .from('live_streams')
-        .update({ stream_key: newKey })
-        .eq('id', existingDraft.id);
-      
-      if (updateError) {
-        console.error('Erreur update stream_key:', updateError);
-        throw updateError;
-      }
-      
-      // Récupérer la clé via RPC sécurisé
-      const { data: key, error: keyError } = await supabase.rpc('get_own_stream_key', { 
-        _live_stream_id: existingDraft.id 
-      });
-      
-      if (keyError) {
-        console.error('Erreur RPC get_own_stream_key:', keyError);
-        throw keyError;
-      }
-      
-      if (key) {
-        setObsStreamKey(key);
-        toast.success('Nouvelle clé générée !');
-        console.log('[OBS] Stream key regenerated successfully');
-      } else {
-        toast.error('Impossible de régénérer la clé');
-      }
-    } catch (error: any) {
-      console.error('Erreur régénération clé OBS:', error);
-      toast.error(error?.message || 'Erreur lors de la régénération');
-    } finally {
-      setIsGeneratingKey(false);
-    }
-  };
-
-  // Récupérer l'ID du créateur et charger la clé OBS existante
+  // Récupérer l'ID du créateur
   useEffect(() => {
-    const fetchCreatorIdAndStreamKey = async () => {
+    const fetchCreatorId = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: creator } = await supabase
@@ -240,30 +68,10 @@ export const LiveStreamStudio = () => {
         
         if (creator) {
           setCreatorId(creator.id);
-          
-          // Charger la clé OBS existante si elle existe
-          const { data: existingDraft } = await supabase
-            .from('live_streams')
-            .select('id, stream_key')
-            .eq('creator_id', creator.id)
-            .eq('status', 'scheduled')
-            .eq('title', 'Configuration OBS')
-            .maybeSingle();
-          
-          if (existingDraft?.stream_key) {
-            // Récupérer la clé via RPC sécurisé pour valider l'ownership
-            const { data: key } = await supabase.rpc('get_own_stream_key', { 
-              _live_stream_id: existingDraft.id 
-            });
-            if (key) {
-              setObsStreamKey(key);
-              console.log('[OBS] Existing stream key loaded from database');
-            }
-          }
         }
       }
     };
-    fetchCreatorIdAndStreamKey();
+    fetchCreatorId();
   }, []);
   
   // LiveKit broadcast hook
@@ -652,19 +460,6 @@ export const LiveStreamStudio = () => {
 
       setCurrentStream(stream);
 
-      // Récupérer la clé de stream pour OBS
-      try {
-        const { data: key } = await supabase.rpc('get_own_stream_key', { 
-          _live_stream_id: stream.id 
-        });
-        if (key) {
-          setStreamKey(key);
-          console.log('[Studio] Stream key retrieved for OBS');
-        }
-      } catch (keyError) {
-        console.error('[Studio] Error fetching stream key:', keyError);
-      }
-
       // Démarrer le live
       await startLiveStream(stream.id);
       setIsLive(true);
@@ -753,8 +548,6 @@ export const LiveStreamStudio = () => {
       
       // Réinitialiser
       setCurrentStream(null);
-      setStreamKey(null);
-      setShowStreamKey(false);
       setTitle('');
       setDescription('');
 
@@ -1007,107 +800,6 @@ export const LiveStreamStudio = () => {
                     onCheckedChange={setEnableRecording} 
                   />
                 </div>
-                {/* Section OBS Mobile */}
-                <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Video className="h-4 w-4 text-primary" />
-                      <Label className="font-medium text-sm">Diffusion OBS</Label>
-                    </div>
-                    {!obsStreamKey && !streamKey && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={generateObsStreamKey}
-                        disabled={isGeneratingKey || !creatorId}
-                      >
-                        {isGeneratingKey ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          'Générer ma clé'
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">URL du serveur</Label>
-                      <div className="flex items-center gap-2">
-                        <Input 
-                          value={RTMP_URL} 
-                          readOnly 
-                          className="text-xs font-mono bg-background flex-1"
-                        />
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="shrink-0"
-                          onClick={() => {
-                            navigator.clipboard.writeText(RTMP_URL);
-                            toast.success('URL copiée');
-                          }}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    {(obsStreamKey || streamKey) ? (
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs text-muted-foreground">Clé de stream</Label>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 text-xs text-muted-foreground hover:text-primary"
-                            onClick={regenerateObsStreamKey}
-                            disabled={isGeneratingKey}
-                          >
-                            {isGeneratingKey ? (
-                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                            ) : (
-                              <RefreshCw className="h-3 w-3 mr-1" />
-                            )}
-                            Régénérer
-                          </Button>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Input 
-                            type={showObsKey || showStreamKey ? "text" : "password"}
-                            value={streamKey || obsStreamKey || ''} 
-                            readOnly 
-                            className="text-xs font-mono bg-background flex-1"
-                          />
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="shrink-0"
-                            onClick={() => streamKey ? setShowStreamKey(!showStreamKey) : setShowObsKey(!showObsKey)}
-                          >
-                            {(showObsKey || showStreamKey) ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="shrink-0"
-                            onClick={() => {
-                              navigator.clipboard.writeText(streamKey || obsStreamKey || '');
-                              toast.success('Clé copiée');
-                            }}
-                          >
-                            <Copy className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">
-                        Cliquez sur "Générer ma clé" pour votre clé unique
-                      </p>
-                    )}
-                  </div>
-                </div>
-                
                 <Button 
                   onClick={handleStartLive} 
                   className="w-full h-14 text-lg" 
@@ -1489,110 +1181,6 @@ export const LiveStreamStudio = () => {
                 />
               </div>
 
-              {/* Section OBS - Configuration permanente */}
-              <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Video className="h-4 w-4 text-primary" />
-                    <Label className="font-medium">Diffusion OBS</Label>
-                  </div>
-                  {!obsStreamKey && !streamKey && (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={generateObsStreamKey}
-                      disabled={isGeneratingKey || !creatorId}
-                    >
-                      {isGeneratingKey ? (
-                        <>
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          Génération...
-                        </>
-                      ) : (
-                        'Générer ma clé'
-                      )}
-                    </Button>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">URL du serveur</Label>
-                    <div className="flex items-center gap-2">
-                      <Input 
-                        value={RTMP_URL} 
-                        readOnly 
-                        className="text-xs font-mono bg-background"
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          navigator.clipboard.writeText(RTMP_URL);
-                          toast.success('URL copiée');
-                        }}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  {(obsStreamKey || streamKey) ? (
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs text-muted-foreground">Clé de stream</Label>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 text-xs text-muted-foreground hover:text-primary"
-                          onClick={regenerateObsStreamKey}
-                          disabled={isGeneratingKey}
-                        >
-                          {isGeneratingKey ? (
-                            <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                          ) : (
-                            <RefreshCw className="h-3 w-3 mr-1" />
-                          )}
-                          Régénérer
-                        </Button>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Input 
-                          type={showObsKey || showStreamKey ? "text" : "password"}
-                          value={streamKey || obsStreamKey || ''} 
-                          readOnly 
-                          className="text-xs font-mono bg-background"
-                        />
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => streamKey ? setShowStreamKey(!showStreamKey) : setShowObsKey(!showObsKey)}
-                        >
-                          {(showObsKey || showStreamKey) ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            navigator.clipboard.writeText(streamKey || obsStreamKey || '');
-                            toast.success('Clé copiée');
-                          }}
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">
-                      Cliquez sur "Générer ma clé" pour obtenir votre clé de stream unique
-                    </p>
-                  )}
-                </div>
-                
-                <p className="text-xs text-muted-foreground">
-                  Utilisez ces informations dans OBS Studio (Paramètres → Stream → Personnalisé)
-                </p>
-              </div>
             </CardContent>
           </Card>
 
