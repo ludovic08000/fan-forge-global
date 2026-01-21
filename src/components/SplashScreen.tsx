@@ -11,25 +11,23 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
 
   useEffect(() => {
     const textTimer = setTimeout(() => setPhase('text'), 1500);
-    const taglineTimer = setTimeout(() => setPhase('tagline'), 3500);
-    const exitTimer = setTimeout(() => setPhase('exit'), 5000);
-    const completeTimer = setTimeout(() => onComplete(), 5800);
+    const taglineTimer = setTimeout(() => setPhase('tagline'), 3000);
+    const exitTimer = setTimeout(() => setPhase('exit'), 4000);
 
     return () => {
       clearTimeout(textTimer);
       clearTimeout(taglineTimer);
       clearTimeout(exitTimer);
-      clearTimeout(completeTimer);
     };
-  }, [onComplete]);
+  }, []);
 
   const letters = ['C', 'r', 'u', 'b'];
   const showText = phase === 'text' || phase === 'tagline' || phase === 'exit';
   const showTagline = phase === 'tagline' || phase === 'exit';
 
   return (
-    <AnimatePresence>
-      {phase !== 'exit' ? (
+    <AnimatePresence onExitComplete={onComplete}>
+      {phase !== 'exit' && (
         <motion.div
           className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-black"
           initial={{ opacity: 1 }}
@@ -64,7 +62,6 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
                     filter: 'brightness(0.9) contrast(1.1)',
                   }}
                 />
-                
               </motion.div>
               
               {/* Vignette overlay */}
@@ -186,7 +183,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
             <div className="absolute bottom-0 right-0 w-[1px] h-full bg-gradient-to-t from-white/30 to-transparent" />
           </motion.div>
         </motion.div>
-      ) : null}
+      )}
     </AnimatePresence>
   );
 };
