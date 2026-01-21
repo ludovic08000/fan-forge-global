@@ -97,7 +97,21 @@ serve(async (req) => {
     
     console.log('[Stop Live Recording] Stopping egress:', stream.egress_id);
 
-    await egressClient.stopEgress(stream.egress_id);
+    let egressAlreadyStopped = false;
+    
+    try {
+      await egressClient.stopEgress(stream.egress_id);
+      console.log('[Stop Live Recording] Egress stopped successfully');
+    } catch (egressError: any) {
+      // 412 Precondition Failed = egress already stopped/completed
+      // This is not an error - just means recording already finished
+      if (egressError.message?.includes('412') || egressError.message?.includes('Precondition Failed')) {
+        console.log('[Stop Live Recording] Egress already stopped or completed - continuing');
+        egressAlreadyStopped = true;
+      } else {
+        throw egressError;
+      }
+    }
 
     // Mettre à jour la DB pour indiquer que l'arrêt a été demandé
     await supabaseAdmin
@@ -108,17 +122,18 @@ serve(async (req) => {
       })
       .eq('id', streamId);
 
-    console.log('[Stop Live Recording] Egress stopped successfully');
-
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Enregistrement arrêté - le fichier sera disponible dans quelques instants'
+        alreadyStopped: egressAlreadyStopped,
+        message: egressAlreadyStopped 
+          ? 'Enregistrement déjà terminé' 
+          : 'Enregistrement arrêté - le fichier sera disponible dans quelques instants'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Stop Live Recording] Error:', error.message, error.stack);
     return new Response(
       JSON.stringify({ error: error.message }),
