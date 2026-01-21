@@ -16,6 +16,7 @@ import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
 import SEOHead from '@/components/SEOHead';
 import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { useContentProtection } from '@/hooks/useContentProtection';
+import { VideoPreviewCard } from '@/components/VideoPreviewCard';
 
 const CreatorPublicPage = () => {
   const { username } = useParams<{ username: string }>();
@@ -579,22 +580,12 @@ const CreatorPublicPage = () => {
                     }}
                   >
                     {item.content_type === 'video' ? (
-                      <>
-                        <video
-                          src={item.file_url}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                          muted
-                          playsInline
-                          preload="metadata"
-                          poster={item.thumbnail_url !== item.file_url ? item.thumbnail_url : undefined}
-                        />
-                        {/* Icône Play pour les vidéos */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                          <div className="bg-black/50 rounded-full p-3">
-                            <Play className="h-8 w-8 text-white fill-white" />
-                          </div>
-                        </div>
-                      </>
+                      <VideoPreviewCard
+                        src={item.file_url}
+                        poster={item.thumbnail_url !== item.file_url ? item.thumbnail_url : undefined}
+                        className="w-full h-full"
+                        showPlayButton={true}
+                      />
                     ) : (
                       <OptimizedImage
                         src={item.thumbnail_url || item.file_url}
@@ -662,24 +653,13 @@ const CreatorPublicPage = () => {
                     }}
                   >
                     {item.content_type === 'video' ? (
-                      <>
-                        <video
-                          src={item.file_url}
-                          className={`w-full h-full object-cover ${!isSubscribed ? 'blur-lg' : 'group-hover:scale-105 transition-transform'}`}
-                          muted
-                          playsInline
-                          preload="metadata"
-                          poster={item.thumbnail_url !== item.file_url ? item.thumbnail_url : undefined}
-                        />
-                        {/* Icône Play pour les vidéos */}
-                        {isSubscribed && (
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                            <div className="bg-black/50 rounded-full p-3">
-                              <Play className="h-8 w-8 text-white fill-white" />
-                            </div>
-                          </div>
-                        )}
-                      </>
+                      <VideoPreviewCard
+                        src={item.file_url}
+                        poster={item.thumbnail_url !== item.file_url ? item.thumbnail_url : undefined}
+                        className="w-full h-full"
+                        blurred={!isSubscribed}
+                        showPlayButton={isSubscribed}
+                      />
                     ) : (
                       <OptimizedImage
                         src={item.thumbnail_url || item.file_url}
