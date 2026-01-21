@@ -263,7 +263,7 @@ const MySubscriptions = () => {
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   const activeSubscriptions = subscriptions.filter(s => s.status === 'active');
@@ -550,7 +550,7 @@ const MySubscriptions = () => {
               {activeCreators.map((creator) => (
                 <Link
                   key={creator.id}
-                  to={creator.profile?.username ? `/${creator.profile.username}` : '#'}
+                  to={creator.profile?.username ? `/${creator.profile.username}` : `/creator/${creator.user_id}`}
                   className="group"
                 >
                   <Card className="overflow-hidden hover:shadow-xl transition-all hover:scale-[1.03] h-full border-primary/10 hover:border-primary/30">
@@ -657,7 +657,7 @@ const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
       <Card className="overflow-hidden hover:shadow-lg transition-shadow">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <Link to={username ? `/${username}` : '#'} className="flex-shrink-0">
+            <Link to={username ? `/${username}` : `/creator/${creator.id}`} className="flex-shrink-0">
               <Avatar className="h-16 w-16 ring-2 ring-primary/20 hover:ring-primary/50 hover:ring-4 transition-all duration-300 shadow-lg">
                 <AvatarImage src={profile?.avatar_url || undefined} className="object-cover" />
                 <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary/20 to-primary-glow/20 text-primary">
@@ -669,7 +669,7 @@ const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <Link 
-                  to={username ? `/${username}` : '#'}
+                  to={username ? `/${username}` : `/creator/${creator.id}`}
                   className="font-semibold text-lg hover:text-primary transition-colors line-clamp-1"
                 >
                   {displayName}
