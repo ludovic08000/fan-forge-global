@@ -1,11 +1,10 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Crown, Users, Image, TrendingUp, Lock, CheckCircle2 } from 'lucide-react';
 import { SearchCreator } from '@/hooks/useSearch';
-import { cn } from '@/lib/utils';
 
 interface CreatorSearchCardProps {
   creator: SearchCreator;
@@ -13,10 +12,13 @@ interface CreatorSearchCardProps {
 }
 
 const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact = false }) => {
-  const navigate = useNavigate();
-  
   const creatorName = creator.stage_name || creator.display_name || creator.username || 'Créateur';
   const creatorInitials = creatorName.charAt(0).toUpperCase();
+
+  // Construire le chemin vers le profil
+  const profilePath = creator.username 
+    ? `/${creator.username}` 
+    : `/creator/${creator.user_id}`;
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -25,24 +27,11 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
     }).format(price);
   };
 
-  const handleViewProfile = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Utiliser username si disponible, sinon user_id via la route /creator/
-    const targetPath = creator.username 
-      ? `/${creator.username}` 
-      : `/creator/${creator.user_id}`;
-    
-    console.log('[CreatorSearchCard] Navigation vers:', targetPath, { username: creator.username, user_id: creator.user_id });
-    navigate(targetPath);
-  };
-
   if (compact) {
     return (
-      <div
-        onClick={handleViewProfile}
-        className="flex items-center gap-4 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-primary/30 hover:bg-card/80 cursor-pointer transition-all duration-300 group"
+      <Link
+        to={profilePath}
+        className="flex items-center gap-4 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-primary/30 hover:bg-card/80 cursor-pointer transition-all duration-300 group block"
       >
         <div className="relative flex-shrink-0">
           <Avatar className="h-14 w-14 ring-2 ring-border group-hover:ring-primary/50 transition-all">
@@ -95,14 +84,14 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
             </Badge>
           )}
         </div>
-      </div>
+      </Link>
     );
   }
 
   return (
-    <div 
-      onClick={handleViewProfile}
-      className="group relative overflow-hidden rounded-2xl bg-card border border-border/50 hover:border-primary/40 transition-all duration-500 cursor-pointer hover:shadow-[var(--shadow-premium)]"
+    <Link 
+      to={profilePath}
+      className="group relative overflow-hidden rounded-2xl bg-card border border-border/50 hover:border-primary/40 transition-all duration-500 cursor-pointer hover:shadow-[var(--shadow-premium)] block"
     >
       {/* Cover/Background gradient */}
       <div className="h-24 bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10 relative overflow-hidden">
@@ -196,17 +185,13 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
             </Badge>
           )}
           
-          <Button 
-            size="sm"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all"
-            onClick={handleViewProfile}
-          >
-            <Crown className="h-4 w-4 mr-1.5" />
+          <span className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-md shadow-md group-hover:shadow-lg transition-all">
+            <Crown className="h-4 w-4" />
             Voir
-          </Button>
+          </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 
