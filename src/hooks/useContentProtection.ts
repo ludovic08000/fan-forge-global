@@ -4,10 +4,18 @@ import { toast } from 'sonner';
 /**
  * Hook pour la protection anti-capture du contenu
  * Protection renforcée contre le partage non autorisé
+ * 
+ * IMPORTANT: Ce hook ne bloque PAS les clics normaux sur les boutons.
+ * Il protège uniquement contre:
+ * - Print Screen, Ctrl+S, Ctrl+P
+ * - Clic droit sur les médias
+ * - Drag & drop des images
+ * - Perte de focus (flou du contenu)
  */
 export const useContentProtection = (enabled: boolean = true) => {
   const lastWarningTimeRef = useRef(0);
   const [isBlurred, setIsBlurred] = useState(false);
+  const isDialogOpenRef = useRef(false);
 
   /**
    * Afficher un avertissement avec rate limiting (30 secondes minimum entre les messages)
@@ -23,8 +31,22 @@ export const useContentProtection = (enabled: boolean = true) => {
   useEffect(() => {
     if (!enabled) return;
 
+    // Observer les changements de dialogues pour désactiver le flou
+    const observeDialogs = () => {
+      const hasOpenDialog = document.querySelector('[role="dialog"][data-state="open"]') !== null ||
+                           document.querySelector('[data-radix-portal]') !== null;
+      isDialogOpenRef.current = hasOpenDialog;
+    };
+
+    // MutationObserver pour détecter l'ouverture/fermeture de dialogues
+    const observer = new MutationObserver(observeDialogs);
+    observer.observe(document.body, { childList: true, subtree: true });
+
     // Bloquer les raccourcis clavier de capture
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ne pas interférer si un dialogue est ouvert
+      if (isDialogOpenRef.current) return;
+      
       // Print Screen
       if (e.key === 'PrintScreen') {
         e.preventDefault();
@@ -32,10 +54,13 @@ export const useContentProtection = (enabled: boolean = true) => {
         return false;
       }
 
-      // Ctrl+S / Cmd+S (Enregistrer)
+      // Ctrl+S / Cmd+S (Enregistrer) - sauf dans les champs de saisie
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        return false;
+        const target = e.target as HTMLElement;
+        if (target?.tagName !== 'INPUT' && target?.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          return false;
+        }
       }
 
       // Ctrl+P / Cmd+P (Imprimer)
@@ -51,73 +76,72 @@ export const useContentProtection = (enabled: boolean = true) => {
         return false;
       }
 
-      // Ctrl+Shift+I / F12 (DevTools)
-      if ((e.ctrlKey && e.shiftKey && e.key === 'i') || e.key === 'F12') {
-        e.preventDefault();
-        showWarning('Les outils de développement sont restreints');
-        return false;
-      }
-
-      // Ctrl+U (View source)
-      if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
-        e.preventDefault();
-        return false;
-      }
+      // NE PAS bloquer F12/DevTools en dev - cela empêche le debugging
     };
 
-    // Désactiver le menu contextuel (clic droit) sur les médias
+    // Désactiver le menu contextuel (clic droit) sur les médias UNIQUEMENT
     const handleContextMenu = (e: MouseEvent) => {
-      const targetNode = e.target as Node | null;
-      if (!targetNode) return;
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
 
-      let el: HTMLElement | null = null;
-      if (targetNode instanceof HTMLElement) el = targetNode;
-      else if ((targetNode as any)?.parentElement) el = (targetNode as any).parentElement as HTMLElement;
-
-      // Ne pas bloquer les boutons et les éléments interactifs
-      if (el?.tagName === 'BUTTON' || el?.closest('button') || el?.closest('[role="dialog"]') || el?.closest('[data-radix-portal]')) {
-        return;
+      // JAMAIS bloquer sur les éléments interactifs
+      if (
+        target.tagName === 'BUTTON' ||
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.tagName === 'A' ||
+        target.closest('button') ||
+        target.closest('input') ||
+        target.closest('[role="dialog"]') ||
+        target.closest('[role="menu"]') ||
+        target.closest('[role="menuitem"]') ||
+        target.closest('[data-radix-portal]') ||
+        target.closest('[data-radix-collection-item]') ||
+        target.closest('form')
+      ) {
+        return; // Laisser passer le clic droit
       }
 
-      const isMedia = el?.tagName === 'IMG' || el?.tagName === 'VIDEO';
-      const isInsideMedia = el instanceof Element && (!!el.closest('video') || !!el.closest('img'));
-      const isProtected = !!el?.classList && el.classList.contains('protected-content');
+      // Bloquer uniquement sur les médias et éléments protégés
+      const isMedia = target.tagName === 'IMG' || target.tagName === 'VIDEO';
+      const isInsideMedia = !!target.closest('video') || !!target.closest('img');
+      const isProtected = target.classList?.contains('protected-content') || 
+                         !!target.closest('.protected-content');
 
       if (isMedia || isInsideMedia || isProtected) {
         e.preventDefault();
         showWarning('Le contenu est protégé contre le téléchargement');
-        return false;
       }
     };
 
-    // Bloquer le glisser-déposer d'images
+    // Bloquer le glisser-déposer d'images UNIQUEMENT
     const handleDragStart = (e: DragEvent) => {
-      const targetNode = e.target as Node | null;
-      if (!targetNode) return;
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
 
-      let el: HTMLElement | null = null;
-      if (targetNode instanceof HTMLElement) el = targetNode;
-      else if ((targetNode as any)?.parentElement) el = (targetNode as any).parentElement as HTMLElement;
-
-      if (el?.tagName === 'IMG' || el?.tagName === 'VIDEO' || el?.classList?.contains('protected-content')) {
+      // Ne bloquer que les médias
+      if (target.tagName === 'IMG' || target.tagName === 'VIDEO') {
         e.preventDefault();
-        showWarning('Le glisser-déposer est désactivé');
-        return false;
       }
     };
 
-    // Détection de perte de focus (changement d'onglet, alt-tab, etc.)
+    // Détection de perte de focus - DÉSACTIVÉ si dialogue ouvert
     const handleVisibilityChange = () => {
+      // Ne pas flouter si un dialogue Stripe/Radix est ouvert
+      if (isDialogOpenRef.current) return;
+      
       if (document.hidden) {
         setIsBlurred(true);
       } else {
-        // Petit délai avant de retirer le flou pour éviter les captures rapides
         setTimeout(() => setIsBlurred(false), 300);
       }
     };
 
-    // Détection de blur de la fenêtre
+    // Blur de fenêtre - DÉSACTIVÉ si dialogue ouvert
     const handleWindowBlur = () => {
+      // L'iframe Stripe peut déclencher un blur, ne pas réagir si dialogue ouvert
+      if (isDialogOpenRef.current) return;
       setIsBlurred(true);
     };
 
@@ -125,11 +149,10 @@ export const useContentProtection = (enabled: boolean = true) => {
       setTimeout(() => setIsBlurred(false), 200);
     };
 
-    // Bloquer la copie d'images
+    // Bloquer la copie d'images (pas le texte)
     const handleCopy = (e: ClipboardEvent) => {
       const selection = window.getSelection();
       if (selection && selection.toString().length === 0) {
-        // Pas de texte sélectionné, peut-être une tentative de copier une image
         const target = e.target as HTMLElement;
         if (target?.closest('.protected-content') || target?.tagName === 'IMG' || target?.tagName === 'VIDEO') {
           e.preventDefault();
@@ -138,17 +161,18 @@ export const useContentProtection = (enabled: boolean = true) => {
       }
     };
 
-    // Attacher les événements
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('contextmenu', handleContextMenu);
-    document.addEventListener('dragstart', handleDragStart);
+    // Attacher les événements avec capture: false pour permettre la propagation normale
+    document.addEventListener('keydown', handleKeyDown, { capture: false });
+    document.addEventListener('contextmenu', handleContextMenu, { capture: false });
+    document.addEventListener('dragstart', handleDragStart, { capture: false });
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    document.addEventListener('copy', handleCopy);
+    document.addEventListener('copy', handleCopy, { capture: false });
     window.addEventListener('blur', handleWindowBlur);
     window.addEventListener('focus', handleWindowFocus);
 
     // Cleanup
     return () => {
+      observer.disconnect();
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('dragstart', handleDragStart);
