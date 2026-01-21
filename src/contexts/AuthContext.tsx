@@ -21,7 +21,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, firstName?: string, lastName?: string, username?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
-  signInWithFacebook: () => Promise<{ error: any }>;
+  signUpWithGoogle: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -525,17 +525,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   /**
-   * Connexion avec Facebook OAuth
+   * Inscription avec Google OAuth (nouveau compte)
    * @returns Objet contenant l'erreur éventuelle
    */
-  const signInWithFacebook = async () => {
+  const signUpWithGoogle = async () => {
     try {
       // URL de redirection après authentification OAuth - vers l'espace personnel
       const redirectUrl = `${window.location.origin}/subscriptions`;
       
-      // Appel à l'API Supabase pour connexion OAuth Facebook
+      // Appel à l'API Supabase pour inscription OAuth Google
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'facebook',
+        provider: 'google',
         options: {
           redirectTo: redirectUrl,
         }
@@ -547,7 +547,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       return { error };
     } catch (error: any) {
-      toast.error('Une erreur est survenue lors de la connexion avec Facebook');
+      toast.error('Une erreur est survenue lors de l\'inscription avec Google');
       return { error };
     }
   };
@@ -576,7 +576,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signIn,
     signInWithGoogle,
-    signInWithFacebook,
+    signUpWithGoogle,
     signOut,
     refreshProfile,
   };
