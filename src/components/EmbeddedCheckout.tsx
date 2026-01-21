@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout as StripeEmbeddedCheckout } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,11 +18,11 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
   const [error, setError] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasFetched, setHasFetched] = useState(false);
   const { generateToken } = useCsrfToken();
-  const hasFetched = useRef(false);
 
   // Décoder le clientSecret si nécessaire (URL encoded)
-  const decodeSecret = (secret: string): string => {
+  const decodeSecret = useCallback((secret: string): string => {
     try {
       if (secret.includes('%')) {
         return decodeURIComponent(secret);
@@ -31,12 +31,13 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
     } catch {
       return secret;
     }
-  };
+  }, []);
 
-  const fetchCheckoutSession = async (referralCode?: string | null) => {
+  const fetchCheckoutSession = useCallback(async (referralCode?: string | null) => {
     try {
       setIsLoading(true);
-      console.log('[EmbeddedCheckout] Fetching checkout session with referralCode:', referralCode);
+      setError(null);
+      console.log('[EmbeddedCheckout] Fetching checkout session for creator:', creatorId, 'with referralCode:', referralCode);
       
       let csrfToken = await generateToken();
       
@@ -54,7 +55,7 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
         throw new Error('Session expirée. Veuillez vous reconnecter.');
       }
       
-      const { data, error } = await supabase.functions.invoke('create-creator-checkout', {
+      const { data, error: fnError } = await supabase.functions.invoke('create-creator-checkout', {
         body: { 
           creatorId,
           referralCode: referralCode || undefined,
@@ -62,27 +63,30 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
         },
       });
 
-      if (error) throw error;
-      if (data.clientSecret) {
-        console.log('[EmbeddedCheckout] Got clientSecret');
-        setClientSecret(decodeSecret(data.clientSecret));
-      } else if (data.error) {
+      if (fnError) throw fnError;
+      if (data?.clientSecret) {
+        console.log('[EmbeddedCheckout] Got clientSecret successfully');
+        const decodedSecret = decodeSecret(data.clientSecret);
+        setClientSecret(decodedSecret);
+      } else if (data?.error) {
         throw new Error(data.error);
       } else {
         throw new Error('Aucun clientSecret reçu');
       }
     } catch (err: any) {
-      console.error('Checkout error:', err);
+      console.error('[EmbeddedCheckout] Checkout error:', err);
       setError(err.message || 'Erreur lors du chargement du paiement');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [creatorId, generateToken, decodeSecret]);
 
-  // Initialisation unique au montage
+  // Initialisation au montage
   useEffect(() => {
-    if (hasFetched.current) return;
-    hasFetched.current = true;
+    if (hasFetched) return;
+    setHasFetched(true);
+    
+    console.log('[EmbeddedCheckout] Initializing for creator:', creatorId);
     
     // Vérifier s'il y a un code promo sauvegardé
     const savedCode = localStorage.getItem('crub_promo_code');
@@ -107,25 +111,26 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
     } else if (preloadedSecret) {
       // Pas de code promo, utiliser le secret préchargé
       console.log('[EmbeddedCheckout] Using preloaded secret');
-      setClientSecret(decodeSecret(preloadedSecret));
+      const decodedSecret = decodeSecret(preloadedSecret);
+      setClientSecret(decodedSecret);
       setIsLoading(false);
     } else {
       // Pas de préchargé, fetch maintenant
       console.log('[EmbeddedCheckout] No preloaded secret, fetching now');
       fetchCheckoutSession(null);
     }
-  }, []); // Dépendances vides = exécution unique
+  }, [creatorId, preloadedSecret, hasFetched, fetchCheckoutSession, decodeSecret]);
 
-  const handlePromoCodeValidated = (code: string | null, discountInfo: { type: 'percentage' | 'fixed'; value: number } | null) => {
+  const handlePromoCodeValidated = useCallback((code: string | null, discountInfo: { type: 'percentage' | 'fixed'; value: number } | null) => {
     console.log('[EmbeddedCheckout] Promo code validated:', code, discountInfo);
     
     // Si le code change, refetch la session checkout
-    if (code !== promoCode && code) {
+    if (code && code !== promoCode) {
       setPromoCode(code);
       setClientSecret('');
       fetchCheckoutSession(code);
     }
-  };
+  }, [promoCode, fetchCheckoutSession]);
 
   if (error) {
     return (
