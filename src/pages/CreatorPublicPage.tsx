@@ -532,7 +532,7 @@ const CreatorPublicPage = () => {
                 )}
                 
                 {isSubscribed && (
-                  <Button variant="outline" onClick={() => navigate(`/chat/${creator.id}`)}>
+                  <Button variant="outline" onClick={() => setShowChat(true)}>
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Message privé
                   </Button>
