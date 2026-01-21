@@ -122,10 +122,18 @@ const ContentCard: React.FC<ContentCardProps> = ({
   const creatorInitials = creatorName.charAt(0).toUpperCase();
 
   // URL avec cache-buster - mémorisée
+  const cacheBuster = useMemo(() => {
+    return content.updated_at ? `?t=${new Date(content.updated_at).getTime()}` : '';
+  }, [content.updated_at]);
+  
   const imageUrl = useMemo(() => {
-    const cacheBuster = content.updated_at ? `?t=${new Date(content.updated_at).getTime()}` : '';
     return (content.thumbnail_url || content.file_url) + cacheBuster;
-  }, [content.thumbnail_url, content.file_url, content.updated_at]);
+  }, [content.thumbnail_url, content.file_url, cacheBuster]);
+
+  // URL vidéo séparée (utilise file_url, pas thumbnail)
+  const videoUrl = useMemo(() => {
+    return content.file_url + cacheBuster;
+  }, [content.file_url, cacheBuster]);
 
   // Précharger agressivement au hover pour affichage instantané
   const handleMouseEnter = useCallback(() => {
@@ -174,8 +182,8 @@ const ContentCard: React.FC<ContentCardProps> = ({
         {/* Media - chargement optimisé */}
         {content.content_type === 'video' ? (
           <VideoPreviewCard
-            src={imageUrl}
-            poster={content.thumbnail_url || undefined}
+            src={videoUrl}
+            poster={content.thumbnail_url ? content.thumbnail_url + cacheBuster : undefined}
             className="w-full h-full"
             blurred={shouldBlur}
             showPlayButton={!shouldBlur}
