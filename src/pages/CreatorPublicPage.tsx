@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, MessageCircle, UserMinus, Play } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
-// Private chat is now a dedicated page (/chat/:creatorId)
+// Private messaging is now a dedicated page (/messagerie/:creatorId)
 import SEOHead from '@/components/SEOHead';
 import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { useContentProtection } from '@/hooks/useContentProtection';
@@ -532,7 +532,7 @@ const CreatorPublicPage = () => {
                 )}
                 
                 {isSubscribed && (
-                  <Button variant="outline" onClick={() => navigate(`/chat/${creator.id}`)}>
+                  <Button variant="outline" onClick={() => navigate(`/messagerie/${creator.id}`)}>
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Message privé
                   </Button>
