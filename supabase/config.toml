@@ -196,3 +196,7 @@ verify_jwt = true
 # Cleanup old replays (7 days) - cron job, no JWT
 [functions.cleanup-old-replays]
 verify_jwt = false
+
+# Cleanup old private messages (30 days) - cron job, no JWT
+[functions.cleanup-old-messages]
+verify_jwt = false
