@@ -45,17 +45,35 @@ const MySubscriptions = () => {
   const [creatorInfos, setCreatorInfos] = useState<Record<string, CreatorInfo>>({});
   const [userSubscriptionIds, setUserSubscriptionIds] = useState<string[]>([]);
 
-  // Filtrer les lives fantômes (heartbeat > 2 minutes)
+  // Filtrer les lives fantômes (heartbeat > 2 minutes pour live, ou scheduled vieux sans date)
   const filterGhostLives = useCallback((streams: any[]): LiveStream[] => {
     const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    
     return streams.filter((stream: any) => {
-      if (stream.status !== 'live') return true;
-      if (!stream.started_at) return false;
-      if (stream.last_heartbeat) {
-        const lastHeartbeat = new Date(stream.last_heartbeat);
-        if (lastHeartbeat < twoMinutesAgo) return false;
+      // Pour les lives actifs, vérifier le heartbeat
+      if (stream.status === 'live') {
+        if (!stream.started_at) return false;
+        if (stream.last_heartbeat) {
+          const lastHeartbeat = new Date(stream.last_heartbeat);
+          if (lastHeartbeat < twoMinutesAgo) return false;
+        }
+        return true;
       }
-      return true;
+      
+      // Pour les scheduled, exclure ceux sans scheduled_at créés il y a plus de 24h
+      if (stream.status === 'scheduled') {
+        // S'il a une date programmée dans le futur, le garder
+        if (stream.scheduled_at) {
+          const scheduledDate = new Date(stream.scheduled_at);
+          return scheduledDate > new Date();
+        }
+        // Sinon, exclure si créé il y a plus de 24h (probablement abandonné)
+        const createdAt = new Date(stream.created_at);
+        return createdAt > oneDayAgo;
+      }
+      
+      return false;
     }) as LiveStream[];
   }, []);
 
