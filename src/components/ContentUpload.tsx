@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Image, Video, X, Shield, AlertTriangle, Bug, CheckCircle, XCircle, Clock, Brain } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Upload, Image, Video, X, Shield, AlertTriangle, Bug, CheckCircle, XCircle, Clock, Brain, Scissors } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useContentUpload } from '@/hooks/useContentUpload';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
@@ -17,6 +18,8 @@ import { toast } from 'sonner';
 import { contentUploadSchema } from '@/lib/validations';
 import { validateFile } from '@/lib/fileValidation';
 import { z } from 'zod';
+import { VideoEditor } from '@/components/video-editor';
+import { VideoEditSettings } from '@/hooks/useVideoEditor';
 
 interface ContentUploadProps {
   onUploadComplete?: () => void;
@@ -43,6 +46,11 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const [validationStatus, setValidationStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [virusScanStatus, setVirusScanStatus] = useState<'idle' | 'scanning' | 'clean' | 'infected' | 'skipped'>('idle');
   const [moderationStatus, setModerationStatus] = useState<'idle' | 'moderating' | 'approved' | 'review' | 'rejected'>('idle');
+  
+  // Video editor state
+  const [showVideoEditor, setShowVideoEditor] = useState(false);
+  const [videoEditSettings, setVideoEditSettings] = useState<VideoEditSettings | null>(null);
+  const [coverBlob, setCoverBlob] = useState<Blob | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -238,12 +246,29 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
     setValidationStatus('idle');
     setVirusScanStatus('idle');
     setModerationStatus('idle');
+    setVideoEditSettings(null);
+    setCoverBlob(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
   const isVideo = selectedFile?.type.startsWith('video/');
+
+  // Handle video editor save
+  const handleVideoEditorSave = async (settings: VideoEditSettings, cover: Blob | null) => {
+    setVideoEditSettings(settings);
+    setCoverBlob(cover);
+    setShowVideoEditor(false);
+    toast.success('Paramètres vidéo enregistrés');
+  };
+
+  // Open video editor
+  const openVideoEditor = () => {
+    if (selectedFile && isVideo) {
+      setShowVideoEditor(true);
+    }
+  };
 
   // Helper to get moderation status badge
   const getModerationBadge = () => {
@@ -416,6 +441,22 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
                       />
                     )}
                   </div>
+
+                  {/* Video Editor Button */}
+                  {isVideo && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full mt-3"
+                      onClick={openVideoEditor}
+                    >
+                      <Scissors className="h-4 w-4 mr-2" />
+                      Éditer la vidéo (trim, cover, filtres...)
+                      {videoEditSettings && (
+                        <CheckCircle className="h-4 w-4 ml-2 text-green-500" />
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
@@ -519,6 +560,19 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
              'Publier le contenu'}
           </Button>
         </form>
+
+        {/* Video Editor Dialog */}
+        <Dialog open={showVideoEditor} onOpenChange={setShowVideoEditor}>
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
+            {selectedFile && isVideo && (
+              <VideoEditor
+                videoFile={selectedFile}
+                onSave={handleVideoEditorSave}
+                onCancel={() => setShowVideoEditor(false)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
