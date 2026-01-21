@@ -32,7 +32,7 @@ export const NotificationBell = () => {
         navigate(`/messages/${notification.data.subscriber_id}`);
       } else if (notification.data?.creator_id) {
         // Abonné: aller vers la conversation avec le créateur
-        navigate(`/chat/${notification.data.creator_id}`);
+        navigate(`/messagerie/${notification.data.creator_id}`);
       } else {
         // Fallback vers la liste des messages
         navigate('/messages');
