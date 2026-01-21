@@ -1,23 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Crown, Calendar, ExternalLink, Settings, Loader2, RefreshCw, Search, TrendingUp, Radio, Users, Lock, Play, Circle, Clock } from 'lucide-react';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import { toast } from 'sonner';
-import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
-import SearchBar from '@/components/SearchBar';
 import { useQuery } from '@tanstack/react-query';
-import { Skeleton } from '@/components/ui/skeleton';
 import { LiveStream } from '@/hooks/useLiveStream';
-import { LiveTimer } from '@/components/live/LiveTimer';
-import { useCsrfToken } from '@/hooks/useCsrfToken';
+import SearchBar from '@/components/SearchBar';
+import { MySubscriptionsSection } from '@/components/subscriptions/MySubscriptionsSection';
+import { LiveStreamsSection } from '@/components/subscriptions/LiveStreamsSection';
+import { ActiveCreatorsSection } from '@/components/subscriptions/ActiveCreatorsSection';
+import { Loader2 } from 'lucide-react';
 
 interface Subscription {
   id: string;
@@ -47,58 +38,37 @@ interface CreatorInfo {
 }
 
 const MySubscriptions = () => {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingSubs, setIsLoadingSubs] = useState(true);
   const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
-  const [livesLoading, setLivesLoading] = useState(true);
   const [creatorInfos, setCreatorInfos] = useState<Record<string, CreatorInfo>>({});
-  const [userSubscriptions, setUserSubscriptions] = useState<string[]>([]);
+  const [userSubscriptionIds, setUserSubscriptionIds] = useState<string[]>([]);
 
-  /**
-   * Filtrer les lives fantômes (heartbeat > 2 minutes)
-   */
-  const filterGhostLives = (streams: any[]): LiveStream[] => {
+  // Filtrer les lives fantômes (heartbeat > 2 minutes)
+  const filterGhostLives = useCallback((streams: any[]): LiveStream[] => {
     const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-    
     return streams.filter((stream: any) => {
       if (stream.status !== 'live') return true;
       if (!stream.started_at) return false;
-      
-      // Exclure si heartbeat trop vieux
       if (stream.last_heartbeat) {
         const lastHeartbeat = new Date(stream.last_heartbeat);
-        if (lastHeartbeat < twoMinutesAgo) {
-          return false;
-        }
+        if (lastHeartbeat < twoMinutesAgo) return false;
       }
       return true;
     }) as LiveStream[];
-  };
+  }, []);
 
-  /**
-   * Nettoyer les lives fantômes en background
-   */
-  const cleanupGhostLives = async () => {
-    try {
-      await fetch('https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/cleanup-stale-lives', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-    } catch (error) {
-      console.error('[MySubscriptions] Cleanup error:', error);
-    }
-  };
-
-  // Charger les lives et écouter en temps réel + polling de secours
+  // Charger les lives
   useEffect(() => {
     let isMounted = true;
 
     const fetchLives = async () => {
-      if (!isMounted) return;
-      
-      // Lancer cleanup en background (ne bloque pas)
-      cleanupGhostLives();
+      // Cleanup en background
+      fetch('https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/cleanup-stale-lives', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      }).catch(() => {});
       
       const { data, error } = await supabase
         .from('public_live_streams')
@@ -107,49 +77,28 @@ const MySubscriptions = () => {
         .order('created_at', { ascending: false });
       
       if (!error && data && isMounted) {
-        // Filtrer les lives fantômes immédiatement côté client
-        const validLives = filterGhostLives(data);
-        setLiveStreams(validLives);
-        setLivesLoading(false);
+        setLiveStreams(filterGhostLives(data));
       }
     };
 
-    // Charger immédiatement
-    setLivesLoading(true);
     fetchLives();
 
-    // Écouter les changements en temps réel
+    // Realtime + polling
     const channel = supabase
-      .channel('mysubscriptions-lives-realtime-v4')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'live_streams',
-        },
-        (payload) => {
-          console.log('[MySubscriptions] Realtime event:', payload.eventType);
-          fetchLives();
-        }
-      )
-      .subscribe((status) => {
-        console.log('[MySubscriptions] Realtime status:', status);
-      });
+      .channel('subscriptions-lives')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, fetchLives)
+      .subscribe();
 
-    // Polling de secours toutes les 3 secondes
-    const pollInterval = setInterval(() => {
-      fetchLives();
-    }, 3000);
+    const pollInterval = setInterval(fetchLives, 5000);
 
     return () => {
       isMounted = false;
       supabase.removeChannel(channel);
       clearInterval(pollInterval);
     };
-  }, []);
+  }, [filterGhostLives]);
 
-  // Charger les infos des créateurs pour les lives
+  // Charger les infos créateurs pour les lives
   useEffect(() => {
     const loadCreatorInfos = async () => {
       if (liveStreams.length === 0) return;
@@ -185,96 +134,64 @@ const MySubscriptions = () => {
     loadCreatorInfos();
   }, [liveStreams]);
 
-  useEffect(() => {
-    const loadSubscriptions = async () => {
-      if (!user) return;
+  // Charger les abonnements
+  const loadSubscriptions = useCallback(async () => {
+    if (!user) return;
 
-      try {
-        const { data, error } = await supabase
-          .from('subscriptions')
-          .select(`
-            id,
-            status,
-            start_date,
-            end_date,
-            price,
-            currency,
-            creator:creators!subscriptions_creator_id_fkey (
-              id,
-              stage_name,
-              subscription_price,
-              user_id
-            )
-          `)
-          .eq('subscriber_id', user.id)
-          .order('created_at', { ascending: false });
+    try {
+      setIsLoadingSubs(true);
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select(`
+          id, status, start_date, end_date, price, currency,
+          creator:creators!subscriptions_creator_id_fkey (
+            id, stage_name, subscription_price, user_id
+          )
+        `)
+        .eq('subscriber_id', user.id)
+        .order('created_at', { ascending: false });
 
-        if (error) throw error;
+      if (error) throw error;
 
-        // Fetch profiles for each creator
-        const subscriptionsWithProfiles = await Promise.all(
-          (data || []).map(async (sub: any) => {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('username, display_name, avatar_url')
-              .eq('user_id', sub.creator.user_id)
-              .single();
+      // Fetch profiles
+      const subscriptionsWithProfiles = await Promise.all(
+        (data || []).map(async (sub: any) => {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('username, display_name, avatar_url')
+            .eq('user_id', sub.creator.user_id)
+            .single();
 
-            return {
-              ...sub,
-              creator: {
-                ...sub.creator,
-                profile: profileData
-              }
-            };
-          })
-        );
+          return { ...sub, creator: { ...sub.creator, profile: profileData } };
+        })
+      );
 
-        setSubscriptions(subscriptionsWithProfiles);
-        // Stocker les IDs des créateurs auxquels l'utilisateur est abonné
-        setUserSubscriptions(subscriptionsWithProfiles.filter(s => s.status === 'active').map(s => s.creator.id));
-      } catch (error) {
-        console.error('Error loading subscriptions:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadSubscriptions();
+      setSubscriptions(subscriptionsWithProfiles);
+      setUserSubscriptionIds(
+        subscriptionsWithProfiles.filter(s => s.status === 'active').map(s => s.creator.id)
+      );
+    } catch (error) {
+      console.error('Error loading subscriptions:', error);
+    } finally {
+      setIsLoadingSubs(false);
+    }
   }, [user]);
 
-  // Vérifier si l'utilisateur a accès à un live premium
-  const hasAccess = (stream: LiveStream) => {
-    // Live gratuit = accessible à tous (is_premium false OU prix = 0)
+  useEffect(() => {
+    loadSubscriptions();
+  }, [loadSubscriptions]);
+
+  // Vérifier accès aux lives premium
+  const hasAccess = useCallback((stream: LiveStream) => {
     if (!stream.is_premium || stream.price === 0 || stream.price === null) return true;
     if (!user) return false;
-    return userSubscriptions.includes(stream.creator_id);
-  };
+    return userSubscriptionIds.includes(stream.creator_id);
+  }, [user, userSubscriptionIds]);
 
-  // Filtrer les lives en cours
-  const liveNow = liveStreams.filter((s) => s.status === 'live');
-  const upcomingLives = liveStreams.filter((s) => s.status === 'scheduled').slice(0, 3);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  const activeSubscriptions = subscriptions.filter(s => s.status === 'active');
-  const expiredSubscriptions = subscriptions.filter(s => s.status !== 'active');
-
-  // Fetch most active creators
+  // Créateurs actifs
   const { data: activeCreators, isLoading: creatorsLoading } = useQuery({
     queryKey: ['active-creators'],
     queryFn: async () => {
-      // Utiliser la vue sécurisée public_creators au lieu de la table creators
       const { data: creators, error } = await supabase
         .from('public_creators')
         .select('id, stage_name, subscription_price, total_content, total_subscribers, user_id')
@@ -283,523 +200,73 @@ const MySubscriptions = () => {
 
       if (error) throw error;
 
-      // Fetch profiles from public view
       const userIds = (creators || []).map(c => c.user_id).filter(Boolean) as string[];
       const { data: profiles } = await supabase
         .from('public_creator_profiles')
         .select('user_id, username, display_name, avatar_url')
         .in('user_id', userIds);
 
-      // Join data
-      const creatorsWithProfiles = (creators || []).map(creator => {
-        const profile = profiles?.find(p => p.user_id === creator.user_id);
-        return { 
-          ...creator, 
-          profile: profile || null 
-        };
-      });
-
-      return creatorsWithProfiles;
+      return (creators || []).map(creator => ({
+        ...creator,
+        profile: profiles?.find(p => p.user_id === creator.user_id) || null
+      }));
     }
   });
 
+  // Loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const liveNow = liveStreams.filter(s => s.status === 'live');
+  const upcomingLives = liveStreams.filter(s => s.status === 'scheduled').slice(0, 3);
+
   return (
-    <div className="min-h-screen bg-background pt-20">
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        {/* My Subscriptions Section - EN HAUT */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold flex items-center gap-2 mb-2">
-            <Crown className="h-6 w-6 text-primary" />
-            Mes abonnements
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            Les créateurs auxquels vous êtes abonné
+    <div className="min-h-screen bg-background pt-20 pb-12">
+      <div className="container mx-auto px-4 max-w-4xl">
+        {/* Header simple */}
+        <div className="text-center mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Mon espace</h1>
+          <p className="text-muted-foreground text-sm">
+            Gérez vos abonnements et découvrez des créateurs
           </p>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          ) : subscriptions.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Crown className="h-16 w-16 text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Aucun abonnement</h3>
-                <p className="text-muted-foreground text-center mb-4">
-                  Vous n'êtes abonné à aucun créateur pour le moment.
-                </p>
-                <Button asChild>
-                  <Link to="/search">Découvrir des créateurs</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-6">
-              {/* Active Subscriptions */}
-              {activeSubscriptions.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Badge variant="default" className="bg-green-500">Actifs</Badge>
-                    <span>{activeSubscriptions.length} abonnement{activeSubscriptions.length > 1 ? 's' : ''}</span>
-                  </h3>
-                  <div className="grid gap-4">
-                    {activeSubscriptions.map((sub) => (
-                      <SubscriptionCard key={sub.id} subscription={sub} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Expired Subscriptions */}
-              {expiredSubscriptions.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Badge variant="secondary">Expirés</Badge>
-                    <span>{expiredSubscriptions.length} abonnement{expiredSubscriptions.length > 1 ? 's' : ''}</span>
-                  </h3>
-                  <div className="grid gap-4">
-                    {expiredSubscriptions.map((sub) => (
-                      <SubscriptionCard key={sub.id} subscription={sub} />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* Search Section - Centered */}
-        <div className="flex flex-col items-center text-center mb-16 pb-8 border-b border-border/50 relative z-50">
-          <h1 className="text-3xl md:text-4xl font-bold mb-3">
-            Découvrez des créateurs
-          </h1>
-          <p className="text-muted-foreground mb-6 max-w-md">
-            Recherchez parmi nos créateurs et trouvez du contenu exclusif
-          </p>
-          <div className="w-full max-w-xl relative z-50">
-            <SearchBar placeholder="Rechercher un créateur..." />
-          </div>
+        {/* Barre de recherche - Plus compacte */}
+        <div className="max-w-lg mx-auto mb-10">
+          <SearchBar placeholder="Rechercher un créateur..." />
         </div>
 
-        {/* Section Lives en direct */}
-        {(liveNow.length > 0 || upcomingLives.length > 0) && (
-          <div className="mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Radio className="h-6 w-6 text-red-500" />
-                <h2 className="text-2xl font-bold">Lives</h2>
-                {liveNow.length > 0 && (
-                  <Badge variant="destructive" className="animate-pulse">
-                    {liveNow.length} en direct
-                  </Badge>
-                )}
-              </div>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/lives">Voir tous les lives</Link>
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Lives en cours */}
-              {liveNow.map((stream) => {
-                const creatorInfo = creatorInfos[stream.creator_id];
-                const canAccess = hasAccess(stream);
-                const isPremium = stream.is_premium;
+        {/* Mes abonnements */}
+        <MySubscriptionsSection 
+          subscriptions={subscriptions}
+          isLoading={isLoadingSubs}
+          onUpdate={loadSubscriptions}
+        />
 
-                return (
-                  <Card key={stream.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                    <div className="relative aspect-video bg-black">
-                      <img
-                        src={stream.thumbnail_url || '/placeholder.svg'}
-                        alt={stream.title}
-                        className={`w-full h-full object-cover ${
-                          isPremium && !canAccess ? 'blur-lg scale-105' : ''
-                        }`}
-                      />
-                      
-                      {isPremium && !canAccess && (
-                        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
-                          <Lock className="h-6 w-6 text-white mb-1" />
-                          <span className="text-white text-sm font-medium">Premium - {stream.price}€</span>
-                        </div>
-                      )}
-                      
-                      <div className="absolute top-2 left-2 flex items-center gap-1 flex-wrap">
-                        <Badge variant="destructive" className="gap-1 animate-pulse text-xs">
-                          <Circle className="h-2 w-2 fill-current" />
-                          LIVE
-                        </Badge>
-                        {stream.started_at && (
-                          <LiveTimer startedAt={stream.started_at} compact />
-                        )}
-                      </div>
+        {/* Lives en cours */}
+        <LiveStreamsSection
+          liveNow={liveNow}
+          upcomingLives={upcomingLives}
+          creatorInfos={creatorInfos}
+          hasAccess={hasAccess}
+        />
 
-                      <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-0.5 rounded text-xs flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        <span>{stream.viewer_count || 0}</span>
-                      </div>
-                    </div>
-
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Avatar className="h-10 w-10 ring-2 ring-primary/20 shadow-sm flex-shrink-0">
-                          <AvatarImage src={creatorInfo?.avatar_url || ''} className="object-cover" />
-                          <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-primary/20 to-primary-glow/20">
-                            {(creatorInfo?.stage_name || creatorInfo?.display_name || 'C').charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-sm line-clamp-1">{stream.title}</h3>
-                          <p className="text-xs text-muted-foreground">
-                            {creatorInfo?.stage_name || creatorInfo?.display_name || 'Créateur'}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <Button 
-                        className="w-full" 
-                        size="sm"
-                        variant={canAccess || !isPremium ? 'default' : 'secondary'}
-                        asChild
-                      >
-                        <Link to={`/live/${stream.id}`}>
-                          {isPremium && !canAccess ? (
-                            <>
-                              <Lock className="h-3 w-3 mr-1" />
-                              S'abonner
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-3 w-3 mr-1" />
-                              Regarder
-                            </>
-                          )}
-                        </Link>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-
-              {/* Lives à venir */}
-              {upcomingLives.map((stream) => {
-                const creatorInfo = creatorInfos[stream.creator_id];
-                const isPremium = stream.is_premium;
-                const canAccess = hasAccess(stream);
-
-                return (
-                  <Card key={stream.id} className="overflow-hidden hover:shadow-lg transition-shadow opacity-90">
-                    <div className="relative aspect-video bg-muted">
-                      <img
-                        src={stream.thumbnail_url || '/placeholder.svg'}
-                        alt={stream.title}
-                        className={`w-full h-full object-cover ${
-                          isPremium && !canAccess ? 'blur-md' : ''
-                        }`}
-                      />
-                      
-                      <div className="absolute top-2 left-2 flex flex-col gap-1">
-                        <Badge variant="secondary" className="gap-1 text-xs">
-                          <Calendar className="h-3 w-3" />
-                          {stream.scheduled_at ? format(new Date(stream.scheduled_at), 'dd/MM HH:mm', { locale: fr }) : 'Bientôt'}
-                        </Badge>
-                        {stream.scheduled_at && (
-                          <LiveTimer scheduledAt={stream.scheduled_at} compact />
-                        )}
-                      </div>
-                    </div>
-
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Avatar className="h-10 w-10 ring-2 ring-primary/20 shadow-sm flex-shrink-0">
-                          <AvatarImage src={creatorInfo?.avatar_url || ''} className="object-cover" />
-                          <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-primary/20 to-primary-glow/20">
-                            {(creatorInfo?.stage_name || creatorInfo?.display_name || 'C').charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-sm line-clamp-1">{stream.title}</h3>
-                          <p className="text-xs text-muted-foreground">
-                            {creatorInfo?.stage_name || creatorInfo?.display_name || 'Créateur'}
-                            {isPremium && <span className="ml-1">• {stream.price}€</span>}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Active Creators Section */}
-        <div className="mb-12">
-          <div className="flex items-center gap-2 mb-6">
-            <TrendingUp className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-bold">Créateurs les plus actifs</h2>
-          </div>
-          
-          {creatorsLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <Skeleton key={i} className="h-40 rounded-xl" />
-              ))}
-            </div>
-          ) : activeCreators && activeCreators.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {activeCreators.map((creator) => (
-                <Link
-                  key={creator.id}
-                  to={creator.profile?.username ? `/${creator.profile.username}` : `/creator/${creator.user_id}`}
-                  className="group"
-                >
-                  <Card className="overflow-hidden hover:shadow-xl transition-all hover:scale-[1.03] h-full border-primary/10 hover:border-primary/30">
-                    <CardContent className="p-5 flex flex-col items-center text-center">
-                      <Avatar className="h-20 w-20 mb-4 ring-2 ring-primary/20 group-hover:ring-primary/50 group-hover:ring-4 transition-all duration-300 shadow-lg">
-                        <AvatarImage src={creator.profile?.avatar_url || undefined} className="object-cover" />
-                        <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary/20 to-primary-glow/20 text-primary">
-                          {(creator.stage_name || creator.profile?.display_name || 'C').charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <h3 className="font-semibold line-clamp-1 group-hover:text-primary transition-colors">
-                        {creator.stage_name || creator.profile?.display_name || creator.profile?.username || 'Créateur'}
-                      </h3>
-                      {creator.profile?.username && (
-                        <p className="text-sm text-muted-foreground">@{creator.profile.username}</p>
-                      )}
-                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                        <span>{creator.total_content || 0} contenus</span>
-                        <span>{creator.total_subscribers || 0} abonnés</span>
-                      </div>
-                      <Badge variant="secondary" className="mt-2">
-                        {creator.subscription_price > 0 ? `${creator.subscription_price}€/mois` : 'Gratuit'}
-                      </Badge>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                Aucun créateur pour le moment
-              </CardContent>
-            </Card>
-          )}
-          
-          <div className="text-center mt-6">
-            <Button asChild variant="outline">
-              <Link to="/search">Voir tous les créateurs</Link>
-            </Button>
-          </div>
-        </div>
+        {/* Créateurs populaires */}
+        <ActiveCreatorsSection
+          creators={activeCreators}
+          isLoading={creatorsLoading}
+        />
       </div>
     </div>
-  );
-};
-
-const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
-  const [isCanceling, setIsCanceling] = useState(false);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [showConfirmCancel, setShowConfirmCancel] = useState(false);
-  const { generateToken } = useCsrfToken();
-  const creator = subscription.creator;
-  const profile = creator.profile;
-  const displayName = creator.stage_name || profile?.display_name || profile?.username || 'Créateur';
-  const username = profile?.username;
-
-  const handleCancelSubscription = async () => {
-    setIsCanceling(true);
-    try {
-      // Récupérer le token CSRF
-      const csrfToken = await generateToken();
-      
-      const { data, error } = await supabase.functions.invoke('cancel-subscription', {
-        body: { 
-          subscriptionId: subscription.id,
-          csrfToken
-        }
-      });
-      
-      if (error) throw error;
-      
-      if (data?.success) {
-        toast.success('Abonnement annulé avec succès');
-        setShowConfirmCancel(false);
-        // Recharger la page pour mettre à jour la liste
-        window.location.reload();
-      } else {
-        throw new Error(data?.error || 'Erreur lors de l\'annulation');
-      }
-    } catch (error: any) {
-      console.error('Error canceling subscription:', error);
-      toast.error(error.message || 'Impossible d\'annuler l\'abonnement');
-    } finally {
-      setIsCanceling(false);
-    }
-  };
-
-  const handleResubscribe = () => {
-    // Si abonnement gratuit, rediriger vers le profil du créateur
-    if (creator.subscription_price <= 0) {
-      if (username) {
-        window.location.href = `/${username}`;
-      } else {
-        toast.info('Visitez le profil du créateur pour vous réabonner');
-      }
-      return;
-    }
-    setShowCheckout(true);
-  };
-
-  return (
-    <>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <Link to={username ? `/${username}` : `/creator/${creator.id}`} className="flex-shrink-0">
-              <Avatar className="h-16 w-16 ring-2 ring-primary/20 hover:ring-primary/50 hover:ring-4 transition-all duration-300 shadow-lg">
-                <AvatarImage src={profile?.avatar_url || undefined} className="object-cover" />
-                <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary/20 to-primary-glow/20 text-primary">
-                  {displayName.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            </Link>
-            
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <Link 
-                  to={username ? `/${username}` : `/creator/${creator.id}`}
-                  className="font-semibold text-lg hover:text-primary transition-colors line-clamp-1"
-                >
-                  {displayName}
-                </Link>
-                <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
-                  {subscription.status === 'active' ? 'Actif' : 'Expiré'}
-                </Badge>
-              </div>
-              {username && (
-                <p className="text-sm text-muted-foreground mb-2">@{username}</p>
-              )}
-              
-              {/* Dates et prix */}
-              <div className="flex flex-col gap-1 text-sm">
-                <span className="flex items-center gap-1.5 text-muted-foreground">
-                  <Calendar className="h-3.5 w-3.5" />
-                  Abonné depuis le {format(new Date(subscription.start_date), 'dd MMMM yyyy', { locale: fr })}
-                </span>
-                
-                {subscription.end_date && subscription.status === 'active' && (
-                  <span className="flex items-center gap-1.5 font-medium text-primary">
-                    <Clock className="h-3.5 w-3.5" />
-                    Prochain renouvellement : {format(new Date(subscription.end_date), 'dd MMMM yyyy', { locale: fr })}
-                  </span>
-                )}
-                
-                {subscription.end_date && subscription.status !== 'active' && (
-                  <span className="flex items-center gap-1.5 font-medium text-destructive">
-                    <Clock className="h-3.5 w-3.5" />
-                    Expiré le {format(new Date(subscription.end_date), 'dd MMMM yyyy', { locale: fr })}
-                  </span>
-                )}
-                
-                <span className="font-semibold text-foreground mt-1">
-                  {creator.subscription_price > 0 ? `${creator.subscription_price}€/mois` : 'Gratuit'}
-                </span>
-              </div>
-            </div>
-
-            {/* Boutons d'action */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-              {subscription.status === 'active' && (
-                <>
-                  <Button 
-                    variant="destructive" 
-                    size="sm" 
-                    onClick={() => setShowConfirmCancel(true)}
-                    className="w-full sm:w-auto"
-                  >
-                    Se désabonner
-                  </Button>
-                  <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
-                    <Link to={username ? `/${username}` : `/creator/${creator.user_id}`}>
-                      Voir le profil
-                    </Link>
-                  </Button>
-                </>
-              )}
-              {subscription.status !== 'active' && (
-                <>
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    onClick={handleResubscribe}
-                    className="w-full sm:w-auto"
-                  >
-                    <RefreshCw className="h-4 w-4 mr-1" />
-                    Se réabonner
-                  </Button>
-                  <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
-                    <Link to={username ? `/${username}` : `/creator/${creator.user_id}`}>
-                      Voir le profil
-                    </Link>
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Confirmation Dialog */}
-      <Dialog open={showConfirmCancel} onOpenChange={setShowConfirmCancel}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Confirmer le désabonnement</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-muted-foreground">
-              Êtes-vous sûr de vouloir vous désabonner de <span className="font-semibold text-foreground">{displayName}</span> ?
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Vous perdrez l'accès à tout le contenu exclusif de ce créateur.
-            </p>
-          </div>
-          <div className="flex gap-3 justify-end">
-            <Button variant="outline" onClick={() => setShowConfirmCancel(false)}>
-              Annuler
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleCancelSubscription}
-              disabled={isCanceling}
-            >
-              {isCanceling ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              Confirmer le désabonnement
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Checkout Dialog */}
-      <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Se réabonner à {displayName}</DialogTitle>
-          </DialogHeader>
-          <EmbeddedCheckout 
-            creatorId={creator.id} 
-            onClose={() => {
-              setShowCheckout(false);
-              window.location.reload();
-            }} 
-          />
-        </DialogContent>
-      </Dialog>
-    </>
   );
 };
 
