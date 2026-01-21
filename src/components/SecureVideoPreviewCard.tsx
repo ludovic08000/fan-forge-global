@@ -73,22 +73,24 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   );
 
   // URL sécurisée finale à utiliser
-  // IMPORTANT: Pour les previews, on utilise l'URL publique R2 (pub-xxx.r2.dev)
-  // Les URLs signées (r2.cloudflarestorage.com) peuvent avoir des problèmes CORS
-  // L'URL publique est suffisante pour les previews, l'URL signée sera utilisée pour la lecture complète
+  // Pour les URLs R2, utiliser l'URL signée qui passe par l'API S3 avec credentials
   const getSecureVideoUrl = (): string => {
     if (isExternalR2) {
-      // Vidéos R2 (replays) - utiliser l'URL PUBLIQUE pour les previews
-      // L'URL publique (pub-xxx.r2.dev) est accessible sans CORS issues
-      // Cela permet les previews même si le bucket R2 n'a pas de CORS configuré
-      console.log('[SecureVideoPreviewCard] R2 mode - using PUBLIC URL for preview');
-      return src; // Utiliser l'URL publique directement pour les previews
+      // Vidéos R2 (replays) - utiliser l'URL signée pour éviter les problèmes CORS
+      // L'URL signée inclut les credentials dans les query params
+      console.log('[SecureVideoPreviewCard] R2 mode:', { 
+        hasSignedUrl: !!r2SecureUrl, 
+        loading: r2Loading,
+        error: r2Error 
+      });
+      // Utiliser l'URL signée si disponible, sinon fallback à l'URL publique
+      return r2SecureUrl || src;
     } else if (isPremium && supabaseSignedUrl) {
       // Contenu premium Supabase avec URL signée
       console.log('[SecureVideoPreviewCard] Premium signed URL mode');
       return supabaseSignedUrl;
     }
-    // Contenu public Supabase - URL directe (le bucket "content" devrait être public pour ça)
+    // Contenu public Supabase - URL directe
     console.log('[SecureVideoPreviewCard] Public URL mode:', src?.substring(0, 80));
     return src;
   };
@@ -168,9 +170,10 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
           loop
           playsInline
           preload="metadata"
+          crossOrigin="anonymous"
           onLoadedData={() => setVideoLoaded(true)}
           onError={(e) => {
-            console.warn('Main video error:', e, 'URL:', secureVideoUrl);
+            console.warn('Main video error:', e, 'URL:', secureVideoUrl?.substring(0, 100));
             setVideoError(true);
           }}
           controlsList="nodownload noplaybackrate"
@@ -204,6 +207,7 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
             muted
             playsInline
             preload="metadata"
+            crossOrigin="anonymous"
             controlsList="nodownload noplaybackrate"
             disablePictureInPicture
             onContextMenu={(e) => e.preventDefault()}
