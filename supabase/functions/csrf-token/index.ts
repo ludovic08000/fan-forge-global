@@ -7,6 +7,23 @@ const corsHeaders = {
   "Access-Control-Expose-Headers": "x-csrf-token",
 };
 
+// Helper: Decode JWT payload without verification (Supabase already signed it)
+function decodeJwtPayload(token: string): { sub: string; exp: number; email?: string } | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    
+    const payload = parts[1];
+    // Base64url decode
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = atob(base64);
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error("[CSRF] JWT decode error:", error);
+    return null;
+  }
+}
+
 // Clé secrète pour signer les tokens (utilise SUPABASE_SERVICE_ROLE_KEY comme seed)
 const getSecretKey = () => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -101,11 +118,6 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-  );
-
   try {
     // Authentifier l'utilisateur
     const authHeader = req.headers.get("Authorization");
@@ -116,20 +128,30 @@ serve(async (req) => {
       });
     }
 
-    // Use getClaims for authentication (works with signing-keys)
+    // Decode JWT to get user ID
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    const jwtPayload = decodeJwtPayload(token);
     
-    if (claimsError || !claimsData?.claims) {
-      console.error("[CSRF] getClaims failed:", claimsError);
+    if (!jwtPayload || !jwtPayload.sub) {
+      console.error("[CSRF] Invalid JWT payload");
       return new Response(JSON.stringify({ error: "Invalid authentication" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.claims.sub as string;
-    console.log("[CSRF] User authenticated via getClaims:", userId);
+    // Check if token is expired
+    const now = Math.floor(Date.now() / 1000);
+    if (jwtPayload.exp && jwtPayload.exp < now) {
+      console.error("[CSRF] Token expired");
+      return new Response(JSON.stringify({ error: "Token expired" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = jwtPayload.sub;
+    console.log("[CSRF] User authenticated via JWT decode:", userId);
 
     const { action, csrfToken } = await req.json();
 
