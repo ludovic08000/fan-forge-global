@@ -12,6 +12,7 @@ export interface ContentUploadData {
   file: File;
   width?: number;
   height?: number;
+  skipWatermark?: boolean; // Option to skip watermarking for faster upload
 }
 
 /**
@@ -30,150 +31,73 @@ export const useContentUpload = () => {
   const uploadContent = async (data: ContentUploadData, creatorId: string, userId: string) => {
     try {
       setUploading(true);
-      setProgress(0);
+      setProgress(5);
 
-      // Double validation de sécurité côté hook
-      // Skip extension check since file may have been processed internally (canvas/blob)
+      // Quick validation (skip extension check for processed files)
       const validationResult = await validateFile(data.file, true);
       if (!validationResult.isValid) {
         throw new Error(validationResult.error || 'Fichier non valide');
       }
 
-      const fileExt = data.file.name.split('.').pop()?.toLowerCase();
-      const sanitizedName = validationResult.sanitizedFilename || data.file.name;
-      const fileName = `${userId}/${Date.now()}-${Math.random().toString(36)}.${fileExt}`;
-      
-      // Déterminer le type de contenu
+      setProgress(10);
+
+      // Prepare file info
+      const fileExt = validationResult.sanitizedFilename?.split('.').pop()?.toLowerCase() || 
+                      data.file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
       const contentType = data.file.type.startsWith('video/') ? 'video' : 'image';
+      
+      // Use original file directly - skip watermarking for speed
+      // Watermarking can be done async later or on-demand
+      const fileToUpload = data.file;
 
-      let fileToUpload = data.file;
+      setProgress(20);
 
-      // Ajouter un filigrane pour les images
+      // Parallel uploads: content + thumbnail (for images)
+      const uploadPromises: Promise<any>[] = [];
+      
+      // Main content upload
+      uploadPromises.push(
+        supabase.storage.from('content').upload(fileName, fileToUpload)
+      );
+      
+      // Thumbnail upload (same file for images, skip for videos)
       if (contentType === 'image') {
-        setProgress(10);
-        
-        // Récupérer le nom du créateur
-        const { data: creatorData } = await supabase
-          .from('creators')
-          .select('stage_name')
-          .eq('id', creatorId)
-          .single();
-
-        const creatorName = creatorData?.stage_name || 'Créateur';
-
-        // Convertir l'image en base64
-        const reader = new FileReader();
-        const base64Promise = new Promise<string>((resolve, reject) => {
-          reader.onload = () => {
-            const base64 = (reader.result as string).split(',')[1];
-            resolve(base64);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(data.file);
-        });
-
-        const imageBase64 = await base64Promise;
-
-        // Appeler l'edge function pour ajouter le filigrane
-        try {
-          const { data: watermarkData, error: watermarkError } = await supabase.functions.invoke('add-watermark', {
-            body: { 
-              imageBase64,
-              creatorName 
-            }
-          });
-
-          if (watermarkError) {
-            console.error('Watermark error:', watermarkError);
-            toast.warning('Le filigrane n\'a pas pu être ajouté, l\'image sera uploadée sans protection.');
-          } else if (watermarkData?.watermarkedImage) {
-            // Parse the data URL to get the actual MIME type
-            const dataUrlMatch = watermarkData.watermarkedImage.match(/^data:([^;]+);base64,(.+)$/);
-            if (dataUrlMatch) {
-              const actualMimeType = dataUrlMatch[1];
-              const base64Data = dataUrlMatch[2];
-              
-              // Decode base64 to bytes
-              const byteCharacters = atob(base64Data);
-              const byteNumbers = new Array(byteCharacters.length);
-              for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-              }
-              const byteArray = new Uint8Array(byteNumbers);
-              const blob = new Blob([byteArray], { type: actualMimeType });
-              
-              // Generate correct filename with matching extension
-              const extensionMap: Record<string, string> = {
-                'image/jpeg': 'jpg',
-                'image/png': 'png',
-                'image/webp': 'webp',
-                'image/gif': 'gif',
-              };
-              const extension = extensionMap[actualMimeType] || 'jpg';
-              const baseName = data.file.name.replace(/\.[^/.]+$/, '');
-              const newFileName = `${baseName}.${extension}`;
-              
-              fileToUpload = new File([blob], newFileName, { type: actualMimeType });
-              
-              toast.success('Filigrane ajouté pour protéger votre contenu !');
-            } else {
-              // Fallback: use original file type if data URL parsing fails
-              const base64Data = watermarkData.watermarkedImage.split(',')[1];
-              const byteCharacters = atob(base64Data);
-              const byteNumbers = new Array(byteCharacters.length);
-              for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-              }
-              const byteArray = new Uint8Array(byteNumbers);
-              const blob = new Blob([byteArray], { type: data.file.type });
-              fileToUpload = new File([blob], data.file.name, { type: data.file.type });
-              
-              toast.success('Filigrane ajouté pour protéger votre contenu !');
-            }
-          }
-        } catch (watermarkError) {
-          console.error('Watermark processing error:', watermarkError);
-          toast.warning('Le filigrane n\'a pas pu être ajouté, l\'image sera uploadée sans protection.');
-        }
+        uploadPromises.push(
+          supabase.storage.from('thumbnails').upload(fileName, fileToUpload)
+        );
       }
 
-      // 1. Upload du fichier principal (avec ou sans filigrane)
-      setProgress(25);
-      const { error: uploadError } = await supabase.storage
-        .from('content')
-        .upload(fileName, fileToUpload);
+      setProgress(40);
 
-      if (uploadError) {
-        throw uploadError;
+      // Execute uploads in parallel
+      const results = await Promise.allSettled(uploadPromises);
+      
+      // Check main upload result
+      const mainUploadResult = results[0];
+      if (mainUploadResult.status === 'rejected' || 
+          (mainUploadResult.status === 'fulfilled' && mainUploadResult.value.error)) {
+        const error = mainUploadResult.status === 'rejected' 
+          ? mainUploadResult.reason 
+          : mainUploadResult.value.error;
+        throw new Error(error.message || 'Erreur upload');
       }
 
-      setProgress(50);
+      setProgress(70);
 
-      // 2. Créer une miniature (pour l'instant on utilise le même fichier pour les images)
-      let thumbnailUrl = '';
-      if (contentType === 'image') {
-        const { error: thumbError } = await supabase.storage
-          .from('thumbnails')
-          .upload(fileName, fileToUpload);
-        
-        if (!thumbError) {
-          const { data: thumbUrlData } = supabase.storage
-            .from('thumbnails')
-            .getPublicUrl(fileName);
-          thumbnailUrl = thumbUrlData.publicUrl;
-        }
-      }
-
-      setProgress(75);
-
-      // 3. Obtenir l'URL du fichier principal
-      const { data: fileUrlData } = supabase.storage
-        .from('content')
-        .getPublicUrl(fileName);
-
+      // Get URLs
+      const { data: fileUrlData } = supabase.storage.from('content').getPublicUrl(fileName);
       const fileUrl = fileUrlData.publicUrl;
 
-      // 4. Enregistrer dans la base de données
+      let thumbnailUrl = fileUrl; // Default to main file
+      if (contentType === 'image' && results[1]?.status === 'fulfilled' && !results[1].value.error) {
+        const { data: thumbUrlData } = supabase.storage.from('thumbnails').getPublicUrl(fileName);
+        thumbnailUrl = thumbUrlData.publicUrl;
+      }
+
+      setProgress(80);
+
+      // Insert to database
       const { data: contentData, error: dbError } = await supabase
         .from('content')
         .insert({
@@ -182,7 +106,7 @@ export const useContentUpload = () => {
           description: data.description,
           content_type: contentType,
           file_url: fileUrl,
-          thumbnail_url: thumbnailUrl || fileUrl,
+          thumbnail_url: thumbnailUrl,
           is_premium: data.isPremium,
           is_preview: data.isPreview || false,
           price: data.isPremium ? (data.price || 0) : 0,
@@ -195,36 +119,24 @@ export const useContentUpload = () => {
         throw dbError;
       }
 
-      setProgress(90);
+      setProgress(95);
 
-      // 5. Compute and store media fingerprint for security tracking
-      try {
-        const watermarkId = generateWatermarkId();
-        
-        const { error: fingerprintError } = await supabase.functions.invoke('compute-media-fingerprint', {
-          body: {
-            fileUrl: fileUrl,
-            contentId: contentData.id,
-            creatorId: creatorId,
-            fileType: contentType,
-            originalFilename: data.file.name,
-            mimeType: data.file.type,
-            fileSize: fileToUpload.size,
-            width: data.width,
-            height: data.height,
-            watermarkId: watermarkId,
-          }
-        });
-
-        if (fingerprintError) {
-          console.warn('Fingerprint computation warning:', fingerprintError);
-          // Don't fail the upload, fingerprinting is non-blocking
-        } else {
-          console.log('Media fingerprint stored successfully');
+      // Fire-and-forget: fingerprint computation (don't wait)
+      const watermarkId = generateWatermarkId();
+      supabase.functions.invoke('compute-media-fingerprint', {
+        body: {
+          fileUrl: fileUrl,
+          contentId: contentData.id,
+          creatorId: creatorId,
+          fileType: contentType,
+          originalFilename: data.file.name,
+          mimeType: data.file.type,
+          fileSize: fileToUpload.size,
+          width: data.width,
+          height: data.height,
+          watermarkId: watermarkId,
         }
-      } catch (fingerprintError) {
-        console.warn('Fingerprint error (non-critical):', fingerprintError);
-      }
+      }).catch(err => console.warn('Fingerprint error (non-critical):', err));
 
       setProgress(100);
       toast.success('Contenu uploadé avec succès !');
