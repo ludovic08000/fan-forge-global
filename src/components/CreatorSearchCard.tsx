@@ -1,7 +1,6 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Crown, Users, Image, TrendingUp, Lock, CheckCircle2 } from 'lucide-react';
 import { SearchCreator } from '@/hooks/useSearch';
@@ -12,6 +11,7 @@ interface CreatorSearchCardProps {
 }
 
 const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact = false }) => {
+  const navigate = useNavigate();
   const creatorName = creator.stage_name || creator.display_name || creator.username || 'Créateur';
   const creatorInitials = creatorName.charAt(0).toUpperCase();
 
@@ -27,14 +27,26 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
     }).format(price);
   };
 
+  // Handler de navigation fiable pour iOS
+  const handleNavigation = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(profilePath);
+  }, [navigate, profilePath]);
+
   if (compact) {
     return (
-      <Link
-        to={profilePath}
-        className="flex items-center gap-4 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-primary/30 hover:bg-card/80 cursor-pointer transition-all duration-300 group block"
+      <div
+        role="link"
+        tabIndex={0}
+        onClick={handleNavigation}
+        onTouchEnd={handleNavigation}
+        onKeyDown={(e) => e.key === 'Enter' && navigate(profilePath)}
+        className="flex items-center gap-4 p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-primary/30 hover:bg-card/80 cursor-pointer transition-all duration-300 group select-none"
+        style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
       >
         <div className="relative flex-shrink-0">
-          <Avatar className="h-14 w-14 ring-2 ring-border group-hover:ring-primary/50 transition-all">
+          <Avatar className="h-14 w-14 ring-2 ring-border group-hover:ring-primary/50 transition-all pointer-events-none">
             <AvatarImage src={creator.avatar_url || ''} className="object-cover" />
             <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary-glow/20 font-semibold text-lg">
               {creatorInitials}
@@ -47,7 +59,7 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
           )}
         </div>
         
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pointer-events-none">
           <div className="flex items-center gap-2 mb-1">
             <h3 className="font-semibold truncate group-hover:text-primary transition-colors">{creatorName}</h3>
             {creator.is_featured && (
@@ -72,7 +84,7 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
           </div>
         </div>
         
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 pointer-events-none">
           {creator.subscription_price > 0 ? (
             <div className="text-right">
               <span className="font-bold text-primary">{formatPrice(creator.subscription_price)}</span>
@@ -84,17 +96,22 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
             </Badge>
           )}
         </div>
-      </Link>
+      </div>
     );
   }
 
   return (
-    <Link 
-      to={profilePath}
-      className="group relative overflow-hidden rounded-2xl bg-card border border-border/50 hover:border-primary/40 transition-all duration-500 cursor-pointer hover:shadow-[var(--shadow-premium)] block"
+    <div 
+      role="link"
+      tabIndex={0}
+      onClick={handleNavigation}
+      onTouchEnd={handleNavigation}
+      onKeyDown={(e) => e.key === 'Enter' && navigate(profilePath)}
+      className="group relative overflow-hidden rounded-2xl bg-card border border-border/50 hover:border-primary/40 transition-all duration-500 cursor-pointer hover:shadow-[var(--shadow-premium)] select-none"
+      style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
     >
       {/* Cover/Background gradient */}
-      <div className="h-24 bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10 relative overflow-hidden">
+      <div className="h-24 bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10 relative overflow-hidden pointer-events-none">
         {creator.is_featured && (
           <div className="absolute top-3 right-3">
             <Badge className="bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg gap-1 px-2.5">
@@ -108,7 +125,7 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
       </div>
 
       {/* Avatar - positioned over the cover */}
-      <div className="relative px-5 -mt-10">
+      <div className="relative px-5 -mt-10 pointer-events-none">
         <div className="relative inline-block">
           <Avatar className="h-20 w-20 ring-4 ring-background shadow-xl group-hover:scale-105 transition-transform duration-300">
             <AvatarImage src={creator.avatar_url || ''} className="object-cover" />
@@ -125,7 +142,7 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
       </div>
 
       {/* Content */}
-      <div className="p-5 pt-3">
+      <div className="p-5 pt-3 pointer-events-none">
         <div className="mb-3">
           <h3 className="text-lg font-bold truncate group-hover:text-primary transition-colors">
             {creatorName}
@@ -191,7 +208,7 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
           </span>
         </div>
       </div>
-    </Link>
+    </div>
   );
 };
 
