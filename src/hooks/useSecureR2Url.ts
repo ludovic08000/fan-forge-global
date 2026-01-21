@@ -59,9 +59,9 @@ export const useSecureR2Url = (
     enabled?: boolean;
   }
 ) => {
-  const { user } = useAuth();
+  const { session } = useAuth();
   const [secureUrl, setSecureUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const contentId = options?.contentId;
@@ -90,15 +90,17 @@ export const useSecureR2Url = (
    * Obtenir une URL R2 sécurisée
    */
   const fetchSecureUrl = useCallback(async () => {
-    // Si pas d'URL, pas d'utilisateur, ou désactivé
-    if (!originalUrl || !user || !enabled) {
+    // Si pas d'URL ou désactivé
+    if (!originalUrl || !enabled) {
       setSecureUrl(originalUrl || null);
+      setLoading(false);
       return;
     }
 
     // Vérifier si c'est une URL R2
     if (!isR2Url(originalUrl)) {
       setSecureUrl(originalUrl);
+      setLoading(false);
       return;
     }
 
@@ -106,34 +108,41 @@ export const useSecureR2Url = (
     if (!filePath) {
       console.warn('[useSecureR2Url] Could not extract file path from URL:', originalUrl);
       setSecureUrl(originalUrl);
+      setLoading(false);
       return;
     }
 
-    const cacheKey = `r2:${filePath}:${user.id}`;
+    // Si pas de session, on attend qu'elle arrive
+    if (!session) {
+      console.log('[useSecureR2Url] Waiting for session...');
+      setLoading(true);
+      return;
+    }
+
+    const cacheKey = `r2:${filePath}:${session.user.id}`;
     
     // Vérifier le cache
     const cached = getCachedUrl(cacheKey);
     if (cached) {
+      console.log('[useSecureR2Url] Using cached URL');
       setSecureUrl(cached);
+      setLoading(false);
       return;
     }
 
     setLoading(true);
     setError(null);
 
-    try {
-      const session = await supabase.auth.getSession();
-      if (!session.data.session) {
-        throw new Error('No active session');
-      }
+    console.log('[useSecureR2Url] Fetching signed URL for:', filePath);
 
+    try {
       const { data, error: fnError } = await supabase.functions.invoke('get-replay-url', {
         body: { 
           filePath,
           contentId,
         },
         headers: {
-          Authorization: `Bearer ${session.data.session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
 
@@ -145,6 +154,7 @@ export const useSecureR2Url = (
           expiresAt: new Date(data.expiresAt),
         });
         
+        console.log('[useSecureR2Url] Got signed URL successfully');
         setSecureUrl(data.signedUrl);
       } else {
         // Fallback à l'URL originale si pas de signed URL
@@ -159,7 +169,7 @@ export const useSecureR2Url = (
     } finally {
       setLoading(false);
     }
-  }, [originalUrl, user, enabled, contentId, getCachedUrl]);
+  }, [originalUrl, session, enabled, contentId, getCachedUrl]);
 
   useEffect(() => {
     fetchSecureUrl();
@@ -169,14 +179,14 @@ export const useSecureR2Url = (
    * Rafraîchir manuellement l'URL
    */
   const refresh = useCallback(() => {
-    if (originalUrl && user) {
+    if (originalUrl && session) {
       const filePath = extractR2FilePath(originalUrl);
       if (filePath) {
-        r2UrlCache.delete(`r2:${filePath}:${user.id}`);
+        r2UrlCache.delete(`r2:${filePath}:${session.user.id}`);
       }
     }
     fetchSecureUrl();
-  }, [originalUrl, user, fetchSecureUrl]);
+  }, [originalUrl, session, fetchSecureUrl]);
 
   return {
     secureUrl,
