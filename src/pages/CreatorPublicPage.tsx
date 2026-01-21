@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, MessageCircle, UserMinus, Play } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
-import ModernPrivateChat from '@/components/ModernPrivateChat';
+// Private chat is now a dedicated page (/chat/:creatorId)
 import SEOHead from '@/components/SEOHead';
 import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { useContentProtection } from '@/hooks/useContentProtection';
@@ -30,7 +30,7 @@ const CreatorPublicPage = () => {
   const [showCheckout, setShowCheckout] = useState(false);
   const [preloadedSecret, setPreloadedSecret] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<any>(null);
-  const [showChat, setShowChat] = useState(false);
+  // Chat is now a dedicated page, not a dialog
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [likingContent, setLikingContent] = useState<string | null>(null);
   const [heartAnimation, setHeartAnimation] = useState<string | null>(null);
@@ -839,21 +839,6 @@ const CreatorPublicPage = () => {
         </div>
       )}
 
-      {/* Private Chat Dialog */}
-      <Dialog open={showChat} onOpenChange={setShowChat}>
-        <DialogContent className="max-w-lg max-h-[85vh] p-0 overflow-hidden">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Message privé avec {creator?.stage_name || profile?.display_name}</DialogTitle>
-          </DialogHeader>
-          {creator && (
-            <ModernPrivateChat 
-              creatorId={creator.id}
-              creatorName={creator.stage_name || profile?.display_name || profile?.username || 'Créateur'}
-              creatorAvatar={profile?.avatar_url}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
