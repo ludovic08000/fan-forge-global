@@ -211,16 +211,14 @@ const SubscriptionPricing: React.FC<SubscriptionPricingProps> = ({ creatorId }) 
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <Button 
-            onClick={handleUpdatePrice}
-            disabled={loading}
-            className="flex-1"
-            variant="premium"
-          >
-            {loading ? 'Mise à jour...' : 'Enregistrer le prix'}
-          </Button>
-        </div>
+        <Button 
+          onClick={handleUpdatePrice}
+          disabled={loading}
+          size="sm"
+          variant="premium"
+        >
+          {loading ? 'Mise à jour...' : 'Enregistrer'}
+        </Button>
 
         {!hasStripeProduct && currentPrice !== null && currentPrice > 0 && (
           <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-4">
