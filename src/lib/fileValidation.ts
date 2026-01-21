@@ -183,7 +183,7 @@ function hasUnsafeFilename(filename: string): boolean {
 /**
  * Valide complètement un fichier uploadé
  */
-export async function validateFile(file: File): Promise<FileValidationResult> {
+export async function validateFile(file: File, skipExtensionCheck = false): Promise<FileValidationResult> {
   // 1. Vérifier que le fichier existe et a une taille > 0
   if (!file || file.size === 0) {
     return { isValid: false, error: 'Fichier vide ou invalide' };
@@ -202,15 +202,17 @@ export async function validateFile(file: File): Promise<FileValidationResult> {
     };
   }
 
-  // 4. Vérifier l'extension
-  const extension = getFileExtension(file.name);
-  const allowedExtensions = ALLOWED_EXTENSIONS[file.type];
-  
-  if (!allowedExtensions || !allowedExtensions.includes(extension)) {
-    return { 
-      isValid: false, 
-      error: `Extension de fichier (.${extension}) incompatible avec le type ${file.type}` 
-    };
+  // 4. Vérifier l'extension (skip for internally processed files)
+  if (!skipExtensionCheck) {
+    const extension = getFileExtension(file.name);
+    const allowedExtensions = ALLOWED_EXTENSIONS[file.type];
+    
+    if (!allowedExtensions || !allowedExtensions.includes(extension)) {
+      return { 
+        isValid: false, 
+        error: `Extension de fichier (.${extension}) incompatible avec le type ${file.type}` 
+      };
+    }
   }
 
   // 5. Vérifier les magic bytes (le vrai type du fichier)
@@ -249,8 +251,16 @@ export async function validateFile(file: File): Promise<FileValidationResult> {
     };
   }
 
-  // 8. Sanitize le nom de fichier
-  const sanitizedFilename = sanitizeFilename(file.name);
+  // 8. Sanitize le nom de fichier - fix extension if needed
+  let sanitizedFilename = sanitizeFilename(file.name);
+  
+  // If extension doesn't match the actual type, fix it
+  const currentExt = getFileExtension(sanitizedFilename);
+  const correctExtensions = ALLOWED_EXTENSIONS[file.type];
+  if (correctExtensions && !correctExtensions.includes(currentExt)) {
+    const baseName = sanitizedFilename.replace(/\.[^/.]+$/, '');
+    sanitizedFilename = `${baseName}.${correctExtensions[0]}`;
+  }
 
   return { 
     isValid: true, 
