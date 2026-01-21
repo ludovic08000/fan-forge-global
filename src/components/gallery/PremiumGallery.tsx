@@ -297,11 +297,12 @@ const PremiumLightbox: React.FC<PremiumLightboxProps> = ({
   const isSupabasePublicUrl = item.file_url.includes('supabase.co/storage/v1/object/public/');
 
   // Hook pour URLs R2 sécurisées (Cloudflare) - bucket PRIVÉ
+  // IMPORTANT: On garde enabled=true même quand pas ouvert pour pré-charger l'URL depuis le cache
   const { secureUrl: r2SecureUrl, loading: r2Loading, error: r2Error } = useSecureR2Url(
     isExternalR2 ? item.file_url : null,
     {
       contentId: item.id,
-      enabled: isExternalR2 && isOpen
+      enabled: isExternalR2 // Toujours actif pour utiliser le cache
     }
   );
 
@@ -312,17 +313,30 @@ const PremiumLightbox: React.FC<PremiumLightboxProps> = ({
     {
       bucket: 'content',
       contentId: item.id,
-      enabled: needsSignedUrl && isOpen
+      enabled: needsSignedUrl
     }
   );
+
+  // Debug logs
+  console.log('[PremiumLightbox] URL state:', {
+    isExternalR2,
+    r2SecureUrl: r2SecureUrl?.substring(0, 80),
+    r2Loading,
+    r2Error,
+    isOpen
+  });
 
   // URL sécurisée finale
   const getSecureUrl = (): string => {
     if (isExternalR2) {
-      if (r2Loading || !r2SecureUrl) {
-        return ''; // Attendre l'URL signée
+      // Si on a déjà l'URL signée (depuis le cache ou nouvelle), l'utiliser
+      if (r2SecureUrl) {
+        console.log('[PremiumLightbox] Using R2 signed URL');
+        return r2SecureUrl;
       }
-      return r2SecureUrl;
+      // Sinon attendre qu'elle se charge
+      console.log('[PremiumLightbox] Waiting for R2 signed URL, loading:', r2Loading);
+      return '';
     } else if (item.is_premium && supabaseSignedUrl) {
       return supabaseSignedUrl;
     }
@@ -330,7 +344,8 @@ const PremiumLightbox: React.FC<PremiumLightboxProps> = ({
   };
 
   const secureFileUrl = getSecureUrl();
-  const isLoading = isExternalR2 ? r2Loading : (item.is_premium ? supabaseLoading : false);
+  // Loading seulement si on n'a pas encore l'URL
+  const isLoading = isExternalR2 ? (r2Loading && !r2SecureUrl) : (item.is_premium ? supabaseLoading : false);
 
   // Reset zoom on item change
   useEffect(() => {
