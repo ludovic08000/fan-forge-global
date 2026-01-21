@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Heart, Eye, Play, Lock, X, ChevronLeft, ChevronRight, Volume2, VolumeX, Maximize2, Pause } from 'lucide-react';
+import { Heart, Eye, Play, Lock, X, ChevronLeft, ChevronRight, Volume2, VolumeX, Maximize2, Pause, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ProtectedMedia } from '@/components/ProtectedMedia';
-
+import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
+import { useSignedUrl } from '@/hooks/useSignedUrl';
 interface GalleryItem {
   id: string;
   title: string;
@@ -291,6 +292,46 @@ const PremiumLightbox: React.FC<PremiumLightboxProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
+  // Détecter si c'est une URL R2 externe (bucket privé)
+  const isExternalR2 = isR2Url(item.file_url);
+  const isSupabasePublicUrl = item.file_url.includes('supabase.co/storage/v1/object/public/');
+
+  // Hook pour URLs R2 sécurisées (Cloudflare) - bucket PRIVÉ
+  const { secureUrl: r2SecureUrl, loading: r2Loading, error: r2Error } = useSecureR2Url(
+    isExternalR2 ? item.file_url : null,
+    {
+      contentId: item.id,
+      enabled: isExternalR2 && isOpen
+    }
+  );
+
+  // Hook pour URLs Supabase signées (contenu premium)
+  const needsSignedUrl = !isExternalR2 && item.is_premium;
+  const { signedUrl: supabaseSignedUrl, loading: supabaseLoading } = useSignedUrl(
+    needsSignedUrl ? item.file_url : null,
+    {
+      bucket: 'content',
+      contentId: item.id,
+      enabled: needsSignedUrl && isOpen
+    }
+  );
+
+  // URL sécurisée finale
+  const getSecureUrl = (): string => {
+    if (isExternalR2) {
+      if (r2Loading || !r2SecureUrl) {
+        return ''; // Attendre l'URL signée
+      }
+      return r2SecureUrl;
+    } else if (item.is_premium && supabaseSignedUrl) {
+      return supabaseSignedUrl;
+    }
+    return item.file_url;
+  };
+
+  const secureFileUrl = getSecureUrl();
+  const isLoading = isExternalR2 ? r2Loading : (item.is_premium ? supabaseLoading : false);
+
   // Reset zoom on item change
   useEffect(() => {
     setScale(1);
@@ -436,11 +477,26 @@ const PremiumLightbox: React.FC<PremiumLightboxProps> = ({
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
         >
-          {item.content_type === 'video' ? (
+          {/* Loading state for secure URL */}
+          {isLoading && (
+            <div className="flex items-center justify-center">
+              <Loader2 className="h-12 w-12 animate-spin text-white" />
+            </div>
+          )}
+
+          {/* Error state for R2 */}
+          {r2Error && isExternalR2 && (
+            <div className="text-center text-white">
+              <p className="text-red-400">Erreur de chargement</p>
+              <p className="text-sm text-white/60">{r2Error}</p>
+            </div>
+          )}
+
+          {!isLoading && secureFileUrl && item.content_type === 'video' ? (
             <div className="relative max-w-full max-h-full">
               <video
                 ref={videoRef}
-                src={item.file_url}
+                src={secureFileUrl}
                 poster={item.thumbnail_url}
                 className="max-w-full max-h-[90vh] rounded-lg shadow-2xl"
                 muted={isMuted}
@@ -471,9 +527,9 @@ const PremiumLightbox: React.FC<PremiumLightboxProps> = ({
                 </div>
               )}
             </div>
-          ) : (
+          ) : !isLoading && secureFileUrl ? (
             <img
-              src={item.file_url}
+              src={secureFileUrl}
               alt={item.title}
               className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl transition-transform duration-200"
               style={{
@@ -483,7 +539,7 @@ const PremiumLightbox: React.FC<PremiumLightboxProps> = ({
               draggable={false}
               onContextMenu={(e) => e.preventDefault()}
             />
-          )}
+          ) : null}
         </div>
 
         {/* Bottom info */}
