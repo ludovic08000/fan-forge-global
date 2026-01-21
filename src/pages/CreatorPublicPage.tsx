@@ -567,11 +567,22 @@ const CreatorPublicPage = () => {
                       handleLikeContent(item.id);
                     }}
                   >
-                    <OptimizedImage
-                      src={item.thumbnail_url || item.file_url}
-                      alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
+                    {item.content_type === 'video' ? (
+                      <video
+                        src={item.file_url}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        muted
+                        playsInline
+                        preload="metadata"
+                        poster={item.thumbnail_url !== item.file_url ? item.thumbnail_url : undefined}
+                      />
+                    ) : (
+                      <OptimizedImage
+                        src={item.thumbnail_url || item.file_url}
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                    )}
                     
                     {/* Animation cœur Instagram */}
                     {heartAnimation === item.id && (
@@ -631,11 +642,22 @@ const CreatorPublicPage = () => {
                       }
                     }}
                   >
-                    <OptimizedImage
-                      src={item.thumbnail_url || item.file_url}
-                      alt={item.title}
-                      className={`w-full h-full object-cover ${!isSubscribed ? 'blur-lg' : 'group-hover:scale-105 transition-transform'}`}
-                    />
+                    {item.content_type === 'video' ? (
+                      <video
+                        src={item.file_url}
+                        className={`w-full h-full object-cover ${!isSubscribed ? 'blur-lg' : 'group-hover:scale-105 transition-transform'}`}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        poster={item.thumbnail_url !== item.file_url ? item.thumbnail_url : undefined}
+                      />
+                    ) : (
+                      <OptimizedImage
+                        src={item.thumbnail_url || item.file_url}
+                        alt={item.title}
+                        className={`w-full h-full object-cover ${!isSubscribed ? 'blur-lg' : 'group-hover:scale-105 transition-transform'}`}
+                      />
+                    )}
                     
                     {/* Animation cœur Instagram */}
                     {heartAnimation === item.id && (
@@ -731,14 +753,26 @@ const CreatorPublicPage = () => {
             className="relative max-w-[95vw] max-h-[95vh] flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Image - Double-clic pour liker */}
-            <div className="relative">
-              <OptimizedImage
-                src={selectedImage.thumbnail_url || selectedImage.file_url}
-                alt={selectedImage.title}
-                className="max-w-full max-h-[80vh] object-contain rounded-lg cursor-pointer"
-                onDoubleClick={() => handleLikeContent(selectedImage.id)}
-              />
+            {/* Média - Double-clic pour liker */}
+            <div className="relative" onDoubleClick={() => handleLikeContent(selectedImage.id)}>
+              {selectedImage.content_type === 'video' ? (
+                <video
+                  src={selectedImage.file_url}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                  playsInline
+                  controlsList="nodownload noplaybackrate"
+                  disablePictureInPicture
+                  onContextMenu={(e) => e.preventDefault()}
+                />
+              ) : (
+                <OptimizedImage
+                  src={selectedImage.thumbnail_url || selectedImage.file_url}
+                  alt={selectedImage.title}
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg cursor-pointer"
+                />
+              )}
               
               {/* Animation cœur Instagram dans le lightbox */}
               {heartAnimation === selectedImage.id && (
