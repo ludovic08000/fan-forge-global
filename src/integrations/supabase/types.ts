@@ -1056,9 +1056,11 @@ export type Database = {
           egress_id: string | null
           enable_recording: boolean
           ended_at: string | null
+          extension_count: number | null
           id: string
           is_premium: boolean | null
           last_heartbeat: string | null
+          max_duration_minutes: number | null
           peak_viewer_count: number | null
           price: number | null
           recording_completed_at: string | null
@@ -1081,9 +1083,11 @@ export type Database = {
           egress_id?: string | null
           enable_recording?: boolean
           ended_at?: string | null
+          extension_count?: number | null
           id?: string
           is_premium?: boolean | null
           last_heartbeat?: string | null
+          max_duration_minutes?: number | null
           peak_viewer_count?: number | null
           price?: number | null
           recording_completed_at?: string | null
@@ -1106,9 +1110,11 @@ export type Database = {
           egress_id?: string | null
           enable_recording?: boolean
           ended_at?: string | null
+          extension_count?: number | null
           id?: string
           is_premium?: boolean | null
           last_heartbeat?: string | null
+          max_duration_minutes?: number | null
           peak_viewer_count?: number | null
           price?: number | null
           recording_completed_at?: string | null
