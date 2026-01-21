@@ -127,7 +127,7 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({ error: 'Authorization required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -143,13 +143,19 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !user) {
+    // Use getClaims for JWT validation (works with signing-keys)
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims?.sub) {
+      console.error('Claims error:', claimsError);
       return new Response(
         JSON.stringify({ error: 'Invalid user' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    
+    const userId = claimsData.claims.sub;
 
     const body: FingerprintRequest = await req.json();
     const { 
@@ -215,7 +221,7 @@ serve(async (req) => {
           original_fingerprint_id: existingDuplicate[0].fingerprint_id,
           detection_type: 'exact',
           similarity_score: 1.0,
-          notes: `Exact duplicate uploaded by user ${user.id}`
+          notes: `Exact duplicate uploaded by user ${userId}`
         });
       
       if (dupError) {
@@ -277,7 +283,7 @@ serve(async (req) => {
       .insert({
         content_id: contentId || null,
         message_id: messageId || null,
-        uploader_id: user.id,
+        uploader_id: userId,
         creator_id: creatorId || null,
         phash,
         sha256_hash: sha256Hash,
