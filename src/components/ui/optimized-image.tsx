@@ -136,7 +136,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   }
 
   return (
-    <div className="relative overflow-hidden">
+    <>
       {/* Placeholder pendant le chargement */}
       {!isLoaded && (
         <div
@@ -162,7 +162,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         onError={handleError}
         {...props}
       />
-    </div>
+    </>
   );
 };
 

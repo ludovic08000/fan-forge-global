@@ -551,15 +551,15 @@ const CreatorPublicPage = () => {
         {freeContent.length > 0 && (
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-4">Contenu gratuit</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {freeContent.map((item) => (
                 <ProtectedMedia
                   key={item.id}
-                  className="overflow-hidden group cursor-pointer rounded-lg border bg-card"
+                  className="overflow-hidden group cursor-pointer rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow"
                   watermarkText={creator?.stage_name || profile?.username}
                 >
                   <div 
-                    className="aspect-square bg-muted relative overflow-hidden"
+                    className="aspect-square bg-muted relative overflow-hidden w-full"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleOpenImage(item);
@@ -628,17 +628,17 @@ const CreatorPublicPage = () => {
               <Crown className="h-6 w-6 text-primary" />
               Contenu Premium ({premiumContent.length})
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {premiumContent.map((item) => (
                 <ProtectedMedia
                   key={item.id}
-                  className={`overflow-hidden relative rounded-lg border bg-card ${isSubscribed ? 'cursor-pointer group' : ''}`}
+                  className={`overflow-hidden relative rounded-xl border bg-card shadow-sm ${isSubscribed ? 'cursor-pointer group hover:shadow-md transition-shadow' : ''}`}
                   watermarkText={isSubscribed ? (creator?.stage_name || profile?.username) : undefined}
                   enableForensicWatermark={isSubscribed}
                   forensicOpacity={0.04}
                 >
                   <div 
-                    className="aspect-square bg-muted relative overflow-hidden"
+                    className="aspect-square bg-muted relative overflow-hidden w-full"
                     onClick={(e) => {
                       if (isSubscribed) {
                         e.stopPropagation();
