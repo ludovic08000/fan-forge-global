@@ -83,9 +83,9 @@ const CreatorProfile: React.FC = () => {
           return;
         }
 
-        // Charger le profil associé manuellement
+        // Charger le profil associé via la vue publique (sans données sensibles)
         const { data: profileData } = await supabase
-          .from('profiles')
+          .from('public_creator_profiles')
           .select('username, display_name, bio, avatar_url, cover_url, location, website, is_verified')
           .eq('user_id', userId)
           .maybeSingle();
