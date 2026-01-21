@@ -145,9 +145,11 @@ export const useSecureR2Url = (
       console.log('[useSecureR2Url] No session, trying to get one...');
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
-        console.warn('[useSecureR2Url] No session available, cannot sign R2 URL');
-        setError('Authentification requise');
-        setSecureUrl(null); // URL R2 inaccessible sans signature
+        console.warn('[useSecureR2Url] No session available, using public R2 URL as fallback');
+        // Pour les URLs publiques R2 (pub-xxx.r2.dev), elles peuvent être accessibles directement
+        // Fallback à l'URL originale pour tenter un accès public
+        setError('Authentification requise pour contenu premium');
+        setSecureUrl(originalUrl);
         setLoading(false);
         return;
       }
