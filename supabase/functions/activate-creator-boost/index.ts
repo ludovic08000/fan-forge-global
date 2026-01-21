@@ -1,6 +1,6 @@
 /**
  * Edge Function pour activer un boost créateur après paiement Stripe
- * SECURISE: validation d'entrée, vérification session Stripe, logging
+ * SECURISE: validation d'entrée, vérification session Stripe, protection anti-replay
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
@@ -114,6 +114,27 @@ serve(async (req) => {
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
+    // ===== PROTECTION ANTI-REPLAY =====
+    // Vérifier si cette session a déjà été utilisée
+    const { data: existingSession, error: checkError } = await supabaseClient
+      .from('processed_stripe_sessions')
+      .select('id')
+      .eq('session_id', session_id)
+      .maybeSingle();
+
+    if (checkError) {
+      logStep("Error checking processed sessions", { error: checkError.message });
+      // Ne pas bloquer en cas d'erreur DB, mais logger
+    }
+
+    if (existingSession) {
+      logStep("Session already processed (replay attempt blocked)", { session_id });
+      return new Response(JSON.stringify({ error: "Cette session a déjà été utilisée" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+
     logStep("Retrieving Stripe session", { session_id });
 
     // Retrieve the checkout session from Stripe
@@ -170,6 +191,30 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 404,
       });
+    }
+
+    // ===== MARQUER LA SESSION COMME TRAITÉE (idempotence) =====
+    const { error: insertError } = await supabaseClient
+      .from('processed_stripe_sessions')
+      .insert({
+        session_id: session_id,
+        session_type: 'creator_boost',
+        creator_id: creatorId,
+        amount: session.amount_total ? session.amount_total / 100 : 0,
+        metadata: { duration_hours: durationHours, boost_type: metadata.boost_type || 'unknown' }
+      });
+
+    if (insertError) {
+      // Si c'est une erreur de contrainte unique, c'est un replay
+      if (insertError.code === '23505') {
+        logStep("Session already processed (constraint violation)", { session_id });
+        return new Response(JSON.stringify({ error: "Cette session a déjà été utilisée" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+      logStep("Error marking session as processed", { error: insertError.message });
+      // Continuer quand même pour ne pas bloquer le boost
     }
 
     // Calculate boost end time

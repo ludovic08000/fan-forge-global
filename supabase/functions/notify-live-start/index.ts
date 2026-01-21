@@ -1,10 +1,11 @@
 /**
  * Edge Function pour notifier les abonnés du démarrage d'un live
- * SECURISE: validation d'entrée, rate limiting, vérification du créateur
+ * SECURISE: authentification obligatoire, vérification propriétaire
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import { validateJwtAndGetUserId } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,9 +19,31 @@ const isValidUUID = (str: string): boolean => {
   return uuidRegex.test(str);
 };
 
-// Rate limiting - empêcher les notifications spam
+// Rate limiting par utilisateur
+const userRateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 5; // 5 notifications par minute par user
+const RATE_WINDOW = 60000;
+
+const checkUserRateLimit = (userId: string): boolean => {
+  const now = Date.now();
+  const record = userRateLimitMap.get(userId);
+  
+  if (!record || now > record.resetAt) {
+    userRateLimitMap.set(userId, { count: 1, resetAt: now + RATE_WINDOW });
+    return true;
+  }
+  
+  if (record.count >= RATE_LIMIT) {
+    return false;
+  }
+  
+  record.count++;
+  return true;
+};
+
+// Cooldown par live (pour éviter double-notification même en cas de rejeu)
 const notificationCache = new Map<string, number>();
-const NOTIFICATION_COOLDOWN = 60000; // 1 minute entre les notifications pour le même live
+const NOTIFICATION_COOLDOWN = 60000; // 1 minute
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -28,6 +51,27 @@ serve(async (req) => {
   }
 
   try {
+    // ===== AUTHENTIFICATION OBLIGATOIRE =====
+    const authHeader = req.headers.get('Authorization');
+    const { userId, error: authError, statusCode } = await validateJwtAndGetUserId(authHeader);
+    
+    if (authError || !userId) {
+      console.warn('[notify-live-start] Auth failed:', authError);
+      return new Response(
+        JSON.stringify({ error: authError || 'Unauthorized' }),
+        { status: statusCode, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Rate limit par utilisateur
+    if (!checkUserRateLimit(userId)) {
+      console.warn('[notify-live-start] Rate limited user:', userId);
+      return new Response(
+        JSON.stringify({ error: 'Too many notification requests' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -72,7 +116,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('[notify-live-start] Processing:', { live_stream_id, creator_id });
+    console.log('[notify-live-start] Processing:', { live_stream_id, creator_id, userId });
 
     // Vérifier que le live stream existe et appartient au créateur
     const { data: liveStream, error: liveError } = await supabase
@@ -98,7 +142,7 @@ serve(async (req) => {
       );
     }
 
-    // Get creator details
+    // Get creator details et vérifier que l'utilisateur est le propriétaire
     const { data: creator, error: creatorError } = await supabase
       .from('creators')
       .select('stage_name, user_id')
@@ -110,6 +154,15 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Creator not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ===== VÉRIFICATION PROPRIÉTAIRE =====
+    if (creator.user_id !== userId) {
+      console.warn('[notify-live-start] User is not the creator owner:', { userId, creatorUserId: creator.user_id });
+      return new Response(
+        JSON.stringify({ error: 'Not authorized to send notifications for this creator' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
