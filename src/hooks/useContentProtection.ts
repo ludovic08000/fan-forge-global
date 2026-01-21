@@ -1,19 +1,19 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 /**
  * Hook pour la protection anti-capture du contenu
- * Version simplifiée - protection passive sans faux positifs
+ * Protection renforcée contre le partage non autorisé
  */
 export const useContentProtection = (enabled: boolean = true) => {
   const lastWarningTimeRef = useRef(0);
+  const [isBlurred, setIsBlurred] = useState(false);
 
   /**
    * Afficher un avertissement avec rate limiting (30 secondes minimum entre les messages)
    */
   const showWarning = useCallback((message: string) => {
     const now = Date.now();
-    // 30 secondes minimum entre les avertissements
     if (now - lastWarningTimeRef.current > 30000) {
       toast.warning(message);
       lastWarningTimeRef.current = now;
@@ -41,11 +41,25 @@ export const useContentProtection = (enabled: boolean = true) => {
       // Ctrl+P / Cmd+P (Imprimer)
       if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
         e.preventDefault();
+        showWarning('L\'impression est désactivée pour protéger le contenu');
         return false;
       }
 
       // Ctrl+Shift+S / Cmd+Shift+S (Capture Firefox/Chrome)
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 's') {
+        e.preventDefault();
+        return false;
+      }
+
+      // Ctrl+Shift+I / F12 (DevTools)
+      if ((e.ctrlKey && e.shiftKey && e.key === 'i') || e.key === 'F12') {
+        e.preventDefault();
+        showWarning('Les outils de développement sont restreints');
+        return false;
+      }
+
+      // Ctrl+U (View source)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
         e.preventDefault();
         return false;
       }
@@ -66,6 +80,7 @@ export const useContentProtection = (enabled: boolean = true) => {
 
       if (isMedia || isInsideMedia || isProtected) {
         e.preventDefault();
+        showWarning('Le contenu est protégé contre le téléchargement');
         return false;
       }
     };
@@ -81,7 +96,40 @@ export const useContentProtection = (enabled: boolean = true) => {
 
       if (el?.tagName === 'IMG' || el?.tagName === 'VIDEO' || el?.classList?.contains('protected-content')) {
         e.preventDefault();
+        showWarning('Le glisser-déposer est désactivé');
         return false;
+      }
+    };
+
+    // Détection de perte de focus (changement d'onglet, alt-tab, etc.)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setIsBlurred(true);
+      } else {
+        // Petit délai avant de retirer le flou pour éviter les captures rapides
+        setTimeout(() => setIsBlurred(false), 300);
+      }
+    };
+
+    // Détection de blur de la fenêtre
+    const handleWindowBlur = () => {
+      setIsBlurred(true);
+    };
+
+    const handleWindowFocus = () => {
+      setTimeout(() => setIsBlurred(false), 200);
+    };
+
+    // Bloquer la copie d'images
+    const handleCopy = (e: ClipboardEvent) => {
+      const selection = window.getSelection();
+      if (selection && selection.toString().length === 0) {
+        // Pas de texte sélectionné, peut-être une tentative de copier une image
+        const target = e.target as HTMLElement;
+        if (target?.closest('.protected-content') || target?.tagName === 'IMG' || target?.tagName === 'VIDEO') {
+          e.preventDefault();
+          showWarning('La copie de ce contenu est interdite');
+        }
       }
     };
 
@@ -89,12 +137,22 @@ export const useContentProtection = (enabled: boolean = true) => {
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('contextmenu', handleContextMenu);
     document.addEventListener('dragstart', handleDragStart);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('copy', handleCopy);
+    window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('focus', handleWindowFocus);
 
     // Cleanup
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('dragstart', handleDragStart);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('copy', handleCopy);
+      window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('focus', handleWindowFocus);
     };
   }, [enabled, showWarning]);
+
+  return { isBlurred };
 };
