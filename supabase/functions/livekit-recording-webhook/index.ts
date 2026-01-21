@@ -98,7 +98,10 @@ serve(async (req) => {
 
         // Utiliser l'URL location fournie par LiveKit (endpoint S3 direct)
         // ou construire une URL publique R2 si un domaine personnalisé est configuré
-        const r2PublicDomain = Deno.env.get('R2_PUBLIC_DOMAIN');
+        let r2PublicDomain = Deno.env.get('R2_PUBLIC_DOMAIN') || '';
+        
+        // Nettoyer le domaine s'il contient https:// ou http://
+        r2PublicDomain = r2PublicDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
         
         let publicUrl = '';
         if (r2PublicDomain && filepath) {
