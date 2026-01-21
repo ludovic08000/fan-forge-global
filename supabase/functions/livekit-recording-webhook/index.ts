@@ -143,6 +143,7 @@ serve(async (req) => {
             .eq('id', stream.id);
 
           // Créer automatiquement un contenu vidéo dans la galerie du créateur
+          // Note: Les replays expirent automatiquement après 7 jours
           const { error: contentError } = await supabaseAdmin
             .from('content')
             .insert({
@@ -154,7 +155,7 @@ serve(async (req) => {
               status: 'published',
               duration: duration,
               file_size: fileSize,
-              description: `Enregistrement du live "${stream.title}"`,
+              description: `Enregistrement du live "${stream.title}" - ⚠️ Disponible pendant 7 jours uniquement`,
               tags: ['replay', 'live']
             });
 
