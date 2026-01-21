@@ -465,6 +465,10 @@ export const LiveStreamStudio = () => {
 
       // Démarrer le live
       await startLiveStream(stream.id);
+      
+      // Mettre à jour le stream avec started_at pour le timer
+      const startedAt = new Date().toISOString();
+      setCurrentStream({ ...stream, started_at: startedAt, max_duration_minutes: 20 });
       setIsLive(true);
       
       // Démarrer la diffusion LiveKit avec le streamId et option d'enregistrement
