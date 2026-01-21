@@ -34,7 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp, Shield, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp, Shield, ShieldAlert, Brain } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentRequestsManager from '@/components/admin/PaymentRequestsManager';
 import PlatformCommissions from '@/components/admin/PlatformCommissions';
@@ -45,6 +45,7 @@ import AdminLiveManager from '@/components/admin/AdminLiveManager';
 import PopularProfiles from '@/components/admin/PopularProfiles';
 import IdentityVerificationManager from '@/components/admin/IdentityVerificationManager';
 import { QuarantineManager } from '@/components/admin/QuarantineManager';
+import { AIModerationManager } from '@/components/admin/AIModerationManager';
 
 interface ContentReport {
   id: string;
@@ -418,7 +419,16 @@ const AdminDashboard = () => {
             <ShieldAlert className="h-3 w-3" />
             Quarantaine
           </TabsTrigger>
+          <TabsTrigger value="ai-moderation" className="flex items-center gap-1">
+            <Brain className="h-3 w-3" />
+            IA Modération
+          </TabsTrigger>
         </TabsList>
+
+        {/* Onglet IA Modération */}
+        <TabsContent value="ai-moderation" className="space-y-4">
+          <AIModerationManager />
+        </TabsContent>
 
         {/* Onglet Quarantaine */}
         <TabsContent value="quarantine" className="space-y-4">

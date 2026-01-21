@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateJwtAndGetUserId } from "../_shared/auth.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -201,6 +202,38 @@ Tu dois répondre UNIQUEMENT avec un JSON valide, sans texte avant ou après.`
     }
 
     console.log(`Moderation result for content ${contentId}:`, moderationResult);
+
+    // If manual review is needed, add to moderation queue
+    if (moderationResult.recommendation === 'manual_review' || moderationResult.recommendation === 'reject') {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        
+        if (supabaseUrl && supabaseServiceKey) {
+          const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+          
+          await supabaseAdmin.from('ai_moderation_queue').insert({
+            content_id: contentId || null,
+            user_id: userId,
+            content_type: contentType || 'image',
+            file_url: imageUrl.substring(0, 500), // Truncate base64
+            ai_category: moderationResult.category,
+            ai_confidence: moderationResult.confidence,
+            ai_recommendation: moderationResult.recommendation,
+            ai_reason: moderationResult.reason,
+            ai_flags: moderationResult.flags,
+            ai_issues: moderationResult.issues,
+            ai_model: "google/gemini-3-flash-preview",
+            analyzed_at: new Date().toISOString()
+          });
+          
+          console.log(`Added content ${contentId} to moderation queue`);
+        }
+      } catch (queueError) {
+        console.error('Failed to add to moderation queue:', queueError);
+        // Don't fail the request, just log the error
+      }
+    }
 
     const result = {
       ...moderationResult,
