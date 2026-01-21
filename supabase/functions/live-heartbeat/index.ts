@@ -1,9 +1,15 @@
+/**
+ * Edge Function pour gérer les heartbeat des lives
+ * SECURISE: authentification obligatoire pour end, cron secret pour cleanup
+ */
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateJwtAndGetUserId, verifyCronSecret } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 };
 
 // Rate limiting en mémoire (simple pour heartbeat)
@@ -90,11 +96,50 @@ serve(async (req) => {
       );
     }
 
+    // ===== HEARTBEAT: Auth required, verify ownership =====
     if (action === 'heartbeat') {
       if (!liveStreamId) {
         return new Response(
           JSON.stringify({ error: 'liveStreamId required for heartbeat' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Vérifier l'authentification
+      const authHeader = req.headers.get('Authorization');
+      const { userId, error: authError, statusCode } = await validateJwtAndGetUserId(authHeader);
+      
+      if (authError || !userId) {
+        console.warn('[Heartbeat] Auth failed:', authError);
+        return new Response(
+          JSON.stringify({ error: authError || 'Unauthorized' }),
+          { status: statusCode, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Vérifier que l'utilisateur est propriétaire du live
+      const { data: liveStream, error: streamError } = await supabase
+        .from('live_streams')
+        .select('id, creator_id, creators!inner(user_id)')
+        .eq('id', liveStreamId)
+        .eq('status', 'live')
+        .single();
+
+      if (streamError || !liveStream) {
+        console.warn('[Heartbeat] Stream not found or not live:', liveStreamId);
+        return new Response(
+          JSON.stringify({ error: 'Live stream not found or not active' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Vérifier ownership
+      const creatorUserId = (liveStream as any).creators?.user_id;
+      if (creatorUserId !== userId) {
+        console.warn('[Heartbeat] Ownership mismatch:', { userId, creatorUserId });
+        return new Response(
+          JSON.stringify({ error: 'Not authorized to update this stream' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -117,11 +162,49 @@ serve(async (req) => {
       );
     }
 
+    // ===== END: Auth required, verify ownership =====
     if (action === 'end') {
       if (!liveStreamId) {
         return new Response(
           JSON.stringify({ error: 'liveStreamId required for end' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Vérifier l'authentification
+      const authHeader = req.headers.get('Authorization');
+      const { userId, error: authError, statusCode } = await validateJwtAndGetUserId(authHeader);
+      
+      if (authError || !userId) {
+        console.warn('[End] Auth failed:', authError);
+        return new Response(
+          JSON.stringify({ error: authError || 'Unauthorized' }),
+          { status: statusCode, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Vérifier que l'utilisateur est propriétaire du live
+      const { data: liveStream, error: streamError } = await supabase
+        .from('live_streams')
+        .select('id, creator_id, creators!inner(user_id)')
+        .eq('id', liveStreamId)
+        .single();
+
+      if (streamError || !liveStream) {
+        console.warn('[End] Stream not found:', liveStreamId);
+        return new Response(
+          JSON.stringify({ error: 'Live stream not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Vérifier ownership
+      const creatorUserId = (liveStream as any).creators?.user_id;
+      if (creatorUserId !== userId) {
+        console.warn('[End] Ownership mismatch:', { userId, creatorUserId });
+        return new Response(
+          JSON.stringify({ error: 'Not authorized to end this stream' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -146,7 +229,17 @@ serve(async (req) => {
       );
     }
 
+    // ===== CLEANUP: Cron secret required =====
     if (action === 'cleanup') {
+      // Vérifier le secret cron
+      if (!verifyCronSecret(req)) {
+        console.warn('[Cleanup] Invalid or missing cron secret');
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       console.log('[Cleanup] Checking for stale live streams...');
       
       const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();

@@ -1,15 +1,16 @@
 /**
  * Edge Function pour tracker les revenus par minute des lives
  * Appelé chaque minute pendant qu'un live est actif
- * SECURISE: validation d'entrée, rate limiting, authentification
+ * SECURISE: cron secret obligatoire (appel interne uniquement)
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { verifyCronSecret } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 // Validation UUID
@@ -19,28 +20,6 @@ const isValidUUID = (str: string): boolean => {
   return uuidRegex.test(str);
 };
 
-// Rate limiting en mémoire
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 10; // 10 requêtes par minute par stream
-const RATE_WINDOW = 60000;
-
-const checkRateLimit = (identifier: string): boolean => {
-  const now = Date.now();
-  const record = rateLimitMap.get(identifier);
-  
-  if (!record || now > record.resetAt) {
-    rateLimitMap.set(identifier, { count: 1, resetAt: now + RATE_WINDOW });
-    return true;
-  }
-  
-  if (record.count >= RATE_LIMIT) {
-    return false;
-  }
-  
-  record.count++;
-  return true;
-};
-
 serve(async (req) => {
   // Handle CORS
   if (req.method === "OPTIONS") {
@@ -48,6 +27,15 @@ serve(async (req) => {
   }
 
   try {
+    // ===== CRON SECRET OBLIGATOIRE =====
+    if (!verifyCronSecret(req)) {
+      console.warn('[track-live-revenue] Invalid or missing cron secret');
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Parser et valider le body
     let body;
     try {
@@ -75,15 +63,6 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Invalid minuteNumber" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Rate limiting par stream
-    if (!checkRateLimit(liveStreamId)) {
-      console.warn(`[track-live-revenue] Rate limited for stream: ${liveStreamId}`);
-      return new Response(
-        JSON.stringify({ error: "Too many requests for this stream" }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
