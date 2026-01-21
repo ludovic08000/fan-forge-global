@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Eye, Heart, Wand2, Plus, Upload, Trash2, Play, Video, Crown } from 'lucide-react';
+import { Loader2, Eye, Heart, Wand2, Plus, Upload, Trash2, Play, Video, Crown, Volume2, VolumeX } from 'lucide-react';
 
 interface Content {
   id: string;
@@ -23,6 +23,171 @@ interface DashboardContentGridProps {
   onDeleteContent: (contentId: string) => void;
   onNewContent: () => void;
 }
+
+// Composant pour une carte de contenu avec preview vidéo
+const ContentCard: React.FC<{
+  item: Content;
+  index: number;
+  onOpenLightbox: (content: Content, index: number) => void;
+  onEditContent: (content: Content) => void;
+  onDeleteContent: (contentId: string) => void;
+}> = ({ item, index, onOpenLightbox, onEditContent, onDeleteContent }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isHovering, setIsHovering] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  
+  const isVideo = item.content_type === 'video';
+  const isReplay = item.title?.toLowerCase().includes('replay');
+  const hasValidThumbnail = item.thumbnail_url && !item.thumbnail_url.includes('undefined');
+
+  const handleMouseEnter = () => {
+    setIsHovering(true);
+    if (videoRef.current && isVideo) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.currentTime = 0;
+    }
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMuted(!isMuted);
+  };
+
+  return (
+    <Card className="overflow-hidden group card-premium">
+      <div 
+        className="aspect-square bg-muted overflow-hidden relative cursor-pointer"
+        onClick={() => onOpenLightbox(item, index)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {/* Video player pour les vidéos */}
+        {isVideo && (
+          <>
+            {/* Video element - toujours présent mais caché quand pas en hover */}
+            <video
+              ref={videoRef}
+              src={item.file_url}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+                isHovering ? 'opacity-100' : 'opacity-0'
+              }`}
+              muted={isMuted}
+              loop
+              playsInline
+              preload="metadata"
+            />
+            
+            {/* Overlay statique quand pas en hover */}
+            <div className={`absolute inset-0 w-full h-full bg-gradient-to-br from-primary/20 via-background to-primary/10 flex flex-col items-center justify-center transition-opacity duration-300 ${
+              isHovering ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            }`}>
+              {/* Background pattern */}
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute inset-0" style={{
+                  backgroundImage: 'radial-gradient(circle at 25% 25%, hsl(var(--primary)) 2px, transparent 2px)',
+                  backgroundSize: '20px 20px'
+                }} />
+              </div>
+              
+              {/* Play button premium */}
+              <div className="relative z-10 flex flex-col items-center gap-3">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform">
+                  <Play className="h-7 w-7 text-primary-foreground ml-1" fill="currentColor" />
+                </div>
+                
+                {isReplay && (
+                  <div className="flex items-center gap-1.5 bg-background/80 backdrop-blur-sm px-3 py-1 rounded-full">
+                    <Video className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-xs font-medium text-foreground">Replay Live</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Mute button pendant le hover */}
+            {isHovering && (
+              <button
+                onClick={toggleMute}
+                className="absolute bottom-2 left-2 z-20 p-2 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
+              >
+                {isMuted ? (
+                  <VolumeX className="h-4 w-4 text-white" />
+                ) : (
+                  <Volume2 className="h-4 w-4 text-white" />
+                )}
+              </button>
+            )}
+
+            {/* Premium badge overlay */}
+            {item.is_premium && !isHovering && (
+              <div className="absolute top-2 left-2 flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 rounded-full z-10">
+                <Crown className="h-3 w-3 text-white" />
+                <span className="text-[10px] font-semibold text-white">Premium</span>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Image pour les contenus non-vidéo */}
+        {!isVideo && (
+          <img
+            src={item.thumbnail_url || item.file_url}
+            alt={item.title}
+            className="w-full h-full object-cover"
+          />
+        )}
+        
+        {/* Action buttons */}
+        <div className="absolute top-2 right-2 flex gap-1 z-20">
+          {item.content_type === 'image' && (
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditContent(item);
+              }}
+            >
+              <Wand2 className="h-4 w-4 text-primary" />
+            </Button>
+          )}
+          <Button
+            variant="destructive"
+            size="icon"
+            className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteContent(item.id);
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      <CardContent className="p-3">
+        <h3 className="font-medium text-sm line-clamp-1">{item.title}</h3>
+        <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{item.view_count || 0}</span>
+            <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{item.like_count || 0}</span>
+          </div>
+          <Badge variant={item.is_premium ? "default" : "secondary"} className="text-[10px]">
+            {item.is_premium ? 'Premium' : 'Gratuit'}
+          </Badge>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 export const DashboardContentGrid: React.FC<DashboardContentGridProps> = ({
   content,
@@ -45,109 +210,16 @@ export const DashboardContentGrid: React.FC<DashboardContentGridProps> = ({
         </div>
       ) : content && content.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-{content.map((item, index) => {
-            const isVideo = item.content_type === 'video';
-            const isReplay = item.title?.toLowerCase().includes('replay');
-            const hasValidThumbnail = item.thumbnail_url && !item.thumbnail_url.includes('undefined');
-            
-            return (
-            <Card key={item.id} className="overflow-hidden group card-premium">
-              <div 
-                className="aspect-square bg-muted overflow-hidden relative cursor-pointer"
-                onClick={() => onOpenLightbox(item, index)}
-              >
-                {/* Affichage premium pour les vidéos/replays sans thumbnail */}
-                {isVideo && !hasValidThumbnail ? (
-                  <div className="w-full h-full bg-gradient-to-br from-primary/20 via-background to-primary/10 flex flex-col items-center justify-center relative">
-                    {/* Background pattern */}
-                    <div className="absolute inset-0 opacity-10">
-                      <div className="absolute inset-0" style={{
-                        backgroundImage: 'radial-gradient(circle at 25% 25%, hsl(var(--primary)) 2px, transparent 2px)',
-                        backgroundSize: '20px 20px'
-                      }} />
-                    </div>
-                    
-                    {/* Play button premium */}
-                    <div className="relative z-10 flex flex-col items-center gap-3">
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform">
-                        <Play className="h-7 w-7 text-primary-foreground ml-1" fill="currentColor" />
-                      </div>
-                      
-                      {isReplay && (
-                        <div className="flex items-center gap-1.5 bg-background/80 backdrop-blur-sm px-3 py-1 rounded-full">
-                          <Video className="h-3.5 w-3.5 text-primary" />
-                          <span className="text-xs font-medium text-foreground">Replay Live</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Premium badge overlay */}
-                    {item.is_premium && (
-                      <div className="absolute top-2 left-2 flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 rounded-full">
-                        <Crown className="h-3 w-3 text-white" />
-                        <span className="text-[10px] font-semibold text-white">Premium</span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <img
-                    src={item.thumbnail_url || item.file_url}
-                    alt={item.title}
-                    className="w-full h-full object-cover"
-                  />
-                )}
-                
-                {/* Video overlay pour les vidéos avec thumbnail */}
-                {isVideo && hasValidThumbnail && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-                      <Play className="h-5 w-5 text-primary ml-0.5" fill="currentColor" />
-                    </div>
-                  </div>
-                )}
-                
-                <div className="absolute top-2 right-2 flex gap-1">
-                  {item.content_type === 'image' && (
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEditContent(item);
-                      }}
-                    >
-                      <Wand2 className="h-4 w-4 text-primary" />
-                    </Button>
-                  )}
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteContent(item.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <CardContent className="p-3">
-                <h3 className="font-medium text-sm line-clamp-1">{item.title}</h3>
-                <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{item.view_count || 0}</span>
-                    <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{item.like_count || 0}</span>
-                  </div>
-                  <Badge variant={item.is_premium ? "default" : "secondary"} className="text-[10px]">
-                    {item.is_premium ? 'Premium' : 'Gratuit'}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-            );
-          })}
+          {content.map((item, index) => (
+            <ContentCard
+              key={item.id}
+              item={item}
+              index={index}
+              onOpenLightbox={onOpenLightbox}
+              onEditContent={onEditContent}
+              onDeleteContent={onDeleteContent}
+            />
+          ))}
         </div>
       ) : (
         <div className="text-center py-12">
