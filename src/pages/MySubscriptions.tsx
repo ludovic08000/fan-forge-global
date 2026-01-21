@@ -82,12 +82,6 @@ const MySubscriptions = () => {
     let isMounted = true;
 
     const fetchLives = async () => {
-      // Cleanup en background
-      fetch('https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/cleanup-stale-lives', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      }).catch(() => {});
-      
       const { data, error } = await supabase
         .from('public_live_streams')
         .select('*')
