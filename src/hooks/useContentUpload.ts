@@ -33,7 +33,8 @@ export const useContentUpload = () => {
       setProgress(0);
 
       // Double validation de sécurité côté hook
-      const validationResult = await validateFile(data.file);
+      // Skip extension check since file may have been processed internally (canvas/blob)
+      const validationResult = await validateFile(data.file, true);
       if (!validationResult.isValid) {
         throw new Error(validationResult.error || 'Fichier non valide');
       }
