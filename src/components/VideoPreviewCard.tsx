@@ -27,6 +27,10 @@ export const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
   const [isMuted, setIsMuted] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [posterError, setPosterError] = useState(false);
+
+  // Utiliser le poster fourni, ou extraire une frame de la vidéo
+  const effectivePoster = poster && poster.trim() !== '' ? poster : undefined;
 
   const handleMouseEnter = () => {
     setIsHovering(true);
@@ -56,6 +60,7 @@ export const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
   useEffect(() => {
     setVideoError(false);
     setVideoLoaded(false);
+    setPosterError(false);
   }, [src]);
 
   return (
@@ -75,7 +80,6 @@ export const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
         loop
         playsInline
         preload="metadata"
-        poster={poster || undefined}
         onLoadedData={() => setVideoLoaded(true)}
         onError={() => setVideoError(true)}
         controlsList="nodownload noplaybackrate"
@@ -84,22 +88,38 @@ export const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
         style={{ pointerEvents: isHovering ? 'auto' : 'none' }}
       />
 
-      {/* Thumbnail/poster quand pas en hover */}
+      {/* Thumbnail/poster quand pas en hover - utilise une vidéo avec poster natif si pas de poster fourni */}
       <div
         className={`absolute inset-0 w-full h-full transition-opacity duration-300 ${
           isHovering && !videoError && !blurred ? 'opacity-0' : 'opacity-100'
         }`}
       >
-        {poster ? (
+        {effectivePoster && !posterError ? (
           <img
-            src={poster}
+            src={effectivePoster}
             alt=""
             className={`w-full h-full object-cover ${blurred ? 'blur-lg' : ''}`}
             draggable={false}
             onContextMenu={(e) => e.preventDefault()}
+            onError={() => setPosterError(true)}
           />
         ) : (
-          <div className={`w-full h-full bg-gradient-to-br from-muted to-muted/50 ${blurred ? 'blur-lg' : ''}`} />
+          /* Si pas de poster, afficher une video statique avec preload metadata pour avoir la première frame */
+          <video
+            src={src}
+            className={`w-full h-full object-cover ${blurred ? 'blur-lg' : ''}`}
+            muted
+            playsInline
+            preload="metadata"
+            controlsList="nodownload noplaybackrate"
+            disablePictureInPicture
+            onContextMenu={(e) => e.preventDefault()}
+            onLoadedMetadata={(e) => {
+              // Seek to 0.5s to get a frame (not black screen)
+              const video = e.currentTarget;
+              video.currentTime = 0.5;
+            }}
+          />
         )}
       </div>
 

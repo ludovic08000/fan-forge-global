@@ -582,7 +582,7 @@ const CreatorPublicPage = () => {
                     {item.content_type === 'video' ? (
                       <VideoPreviewCard
                         src={item.file_url}
-                        poster={item.thumbnail_url !== item.file_url ? item.thumbnail_url : undefined}
+                        poster={item.thumbnail_url && item.thumbnail_url !== item.file_url ? item.thumbnail_url : null}
                         className="w-full h-full"
                         showPlayButton={true}
                       />
@@ -655,7 +655,7 @@ const CreatorPublicPage = () => {
                     {item.content_type === 'video' ? (
                       <VideoPreviewCard
                         src={item.file_url}
-                        poster={item.thumbnail_url !== item.file_url ? item.thumbnail_url : undefined}
+                        poster={item.thumbnail_url && item.thumbnail_url !== item.file_url ? item.thumbnail_url : null}
                         className="w-full h-full"
                         blurred={!isSubscribed}
                         showPlayButton={isSubscribed}
