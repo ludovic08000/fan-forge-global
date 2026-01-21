@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Eye, Heart, Wand2, Plus, Upload, Trash2 } from 'lucide-react';
+import { Loader2, Eye, Heart, Wand2, Plus, Upload, Trash2, Play, Video, Crown } from 'lucide-react';
 
 interface Content {
   id: string;
@@ -45,17 +45,67 @@ export const DashboardContentGrid: React.FC<DashboardContentGridProps> = ({
         </div>
       ) : content && content.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {content.map((item, index) => (
-            <Card key={item.id} className="overflow-hidden group">
+{content.map((item, index) => {
+            const isVideo = item.content_type === 'video';
+            const isReplay = item.title?.toLowerCase().includes('replay');
+            const hasValidThumbnail = item.thumbnail_url && !item.thumbnail_url.includes('undefined');
+            
+            return (
+            <Card key={item.id} className="overflow-hidden group card-premium">
               <div 
                 className="aspect-square bg-muted overflow-hidden relative cursor-pointer"
                 onClick={() => onOpenLightbox(item, index)}
               >
-                <img
-                  src={item.thumbnail_url || item.file_url}
-                  alt={item.title}
-                  className="w-full h-full object-cover"
-                />
+                {/* Affichage premium pour les vidéos/replays sans thumbnail */}
+                {isVideo && !hasValidThumbnail ? (
+                  <div className="w-full h-full bg-gradient-to-br from-primary/20 via-background to-primary/10 flex flex-col items-center justify-center relative">
+                    {/* Background pattern */}
+                    <div className="absolute inset-0 opacity-10">
+                      <div className="absolute inset-0" style={{
+                        backgroundImage: 'radial-gradient(circle at 25% 25%, hsl(var(--primary)) 2px, transparent 2px)',
+                        backgroundSize: '20px 20px'
+                      }} />
+                    </div>
+                    
+                    {/* Play button premium */}
+                    <div className="relative z-10 flex flex-col items-center gap-3">
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform">
+                        <Play className="h-7 w-7 text-primary-foreground ml-1" fill="currentColor" />
+                      </div>
+                      
+                      {isReplay && (
+                        <div className="flex items-center gap-1.5 bg-background/80 backdrop-blur-sm px-3 py-1 rounded-full">
+                          <Video className="h-3.5 w-3.5 text-primary" />
+                          <span className="text-xs font-medium text-foreground">Replay Live</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Premium badge overlay */}
+                    {item.is_premium && (
+                      <div className="absolute top-2 left-2 flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 rounded-full">
+                        <Crown className="h-3 w-3 text-white" />
+                        <span className="text-[10px] font-semibold text-white">Premium</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <img
+                    src={item.thumbnail_url || item.file_url}
+                    alt={item.title}
+                    className="w-full h-full object-cover"
+                  />
+                )}
+                
+                {/* Video overlay pour les vidéos avec thumbnail */}
+                {isVideo && hasValidThumbnail && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
+                      <Play className="h-5 w-5 text-primary ml-0.5" fill="currentColor" />
+                    </div>
+                  </div>
+                )}
+                
                 <div className="absolute top-2 right-2 flex gap-1">
                   {item.content_type === 'image' && (
                     <Button
@@ -96,7 +146,8 @@ export const DashboardContentGrid: React.FC<DashboardContentGridProps> = ({
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-12">
