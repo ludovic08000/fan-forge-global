@@ -36,8 +36,9 @@ const CreatorPublicPage = () => {
   const [heartAnimation, setHeartAnimation] = useState<string | null>(null);
   const [unsubscribing, setUnsubscribing] = useState(false);
 
-  // Activer la protection anti-capture sur toute la page
-  useContentProtection(true);
+  // Activer la protection anti-capture seulement quand le checkout n'est pas affiché
+  // Car la protection interfère avec l'iframe Stripe
+  useContentProtection(!showCheckout && !selectedImage);
 
   // Liste des chemins réservés qui ne sont pas des usernames
   const RESERVED_PATHS = ['admin', 'backstage', 'dashboard', 'login', 'signup', 'auth', 'search', 'lives', 'live', 'install', 'terms', 'privacy', 'legal', 'cookies', 'security', 'profile', 'subscriptions', 'reset-password', 'suspended'];
