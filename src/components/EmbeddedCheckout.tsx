@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout as StripeEmbeddedCheckout } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '@/integrations/supabase/client';
 import { PromoCodeInput } from '@/components/PromoCodeInput';
-import { Separator } from '@/components/ui/separator';
 import { useCsrfToken } from '@/hooks/useCsrfToken';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
@@ -18,9 +17,9 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
   const [clientSecret, setClientSecret] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState<string | null>(null);
-  const [discount, setDiscount] = useState<{ type: 'percentage' | 'fixed'; value: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { generateToken } = useCsrfToken();
+  const hasFetched = useRef(false);
 
   // Décoder le clientSecret si nécessaire (URL encoded)
   const decodeSecret = (secret: string): string => {
@@ -37,15 +36,11 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
   const fetchCheckoutSession = async (referralCode?: string | null) => {
     try {
       setIsLoading(true);
-      setClientSecret('');
       console.log('[EmbeddedCheckout] Fetching checkout session with referralCode:', referralCode);
       
-      // Récupérer le token CSRF - attendre qu'il soit disponible
       let csrfToken = await generateToken();
       
-      // Retry si pas de token
       if (!csrfToken) {
-        console.log('[EmbeddedCheckout] No CSRF token, retrying...');
         await new Promise(resolve => setTimeout(resolve, 500));
         csrfToken = await generateToken();
       }
@@ -53,8 +48,6 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
       if (!csrfToken) {
         throw new Error('Impossible de générer le token de sécurité. Veuillez vous reconnecter.');
       }
-      
-      console.log('[EmbeddedCheckout] CSRF token obtained');
       
       const session = await supabase.auth.getSession();
       if (!session.data.session?.access_token) {
@@ -86,8 +79,11 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
     }
   };
 
-  // Initialisation immédiate : utiliser le secret préchargé ou fetch
+  // Initialisation unique au montage
   useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    
     // Vérifier s'il y a un code promo sauvegardé
     const savedCode = localStorage.getItem('crub_promo_code');
     let savedPromoCode: string | null = null;
@@ -118,32 +114,17 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
       console.log('[EmbeddedCheckout] No preloaded secret, fetching now');
       fetchCheckoutSession(null);
     }
-  }, [creatorId]);
+  }, []); // Dépendances vides = exécution unique
 
   const handlePromoCodeValidated = (code: string | null, discountInfo: { type: 'percentage' | 'fixed'; value: number } | null) => {
     console.log('[EmbeddedCheckout] Promo code validated:', code, discountInfo);
-    setDiscount(discountInfo);
     
     // Si le code change, refetch la session checkout
-    if (code !== promoCode) {
+    if (code !== promoCode && code) {
       setPromoCode(code);
-      if (code) {
-        // Nouveau code promo - refetch avec le code
-        fetchCheckoutSession(code);
-      } else if (!preloadedSecret) {
-        // Code supprimé et pas de préchargé - refetch sans code
-        fetchCheckoutSession(null);
-      } else {
-        // Code supprimé mais on a le préchargé - le réutiliser
-        setClientSecret(decodeSecret(preloadedSecret));
-        setIsLoading(false);
-      }
+      setClientSecret('');
+      fetchCheckoutSession(code);
     }
-  };
-
-  // Ce callback n'est plus nécessaire car on initialise directement
-  const handlePromoCodeCheckComplete = () => {
-    // Vide - l'initialisation se fait dans useEffect
   };
 
   if (error) {
@@ -162,7 +143,6 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
         <PromoCodeInput
           creatorId={creatorId}
           onCodeValidated={handlePromoCodeValidated}
-          onInitialCheckComplete={handlePromoCodeCheckComplete}
         />
       </div>
 

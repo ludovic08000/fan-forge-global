@@ -139,17 +139,18 @@ const CreatorPublicPage = () => {
     loadCreator();
   }, [username, user]);
 
-  // Précharger le checkout en arrière-plan pour l'utilisateur connecté non-abonné
+  // Précharger le checkout en arrière-plan - utiliser creator.id comme dépendance stable
   useEffect(() => {
     const preloadCheckout = async () => {
-      if (!user || !creator || isSubscribed || creator.subscription_price <= 0) return;
+      if (!user || !creator?.id || isSubscribed || creator.subscription_price <= 0) return;
+      if (preloadedSecret) return; // Déjà préchargé
       
       try {
+        const session = await supabase.auth.getSession();
+        if (!session.data.session?.access_token) return;
+        
         const { data } = await supabase.functions.invoke('create-creator-checkout', {
           body: { creatorId: creator.id },
-          headers: {
-            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          },
         });
         
         if (data?.clientSecret) {
@@ -162,7 +163,7 @@ const CreatorPublicPage = () => {
     };
 
     preloadCheckout();
-  }, [user, creator, isSubscribed]);
+  }, [user?.id, creator?.id, isSubscribed]); // Utiliser des IDs stables
 
   const handleSubscribe = async () => {
     if (!user) {
