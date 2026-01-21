@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react";
 import HeroSection from "@/components/HeroSection";
 import SearchBar from "@/components/SearchBar";
 import PopularCreators from "@/components/PopularCreators";
@@ -5,6 +6,20 @@ import LiveNowSection from "@/components/LiveNowSection";
 import AgeVerificationGate from "@/components/AgeVerificationGate";
 import SEOHead from "@/components/SEOHead";
 import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+
+// Bouton de test Sentry - À SUPPRIMER après vérification
+const SentryTestButton = () => (
+  <Button
+    variant="destructive"
+    className="fixed bottom-4 right-4 z-50"
+    onClick={() => {
+      throw new Error("This is your first Sentry error!");
+    }}
+  >
+    🔴 Test Sentry Error
+  </Button>
+);
 
 const Index = () => {
   const { user } = useAuth();
@@ -34,6 +49,9 @@ const Index = () => {
           
           <LiveNowSection />
         </main>
+        
+        {/* Bouton de test Sentry - À SUPPRIMER après vérification */}
+        <SentryTestButton />
       </div>
     </AgeVerificationGate>
   );
