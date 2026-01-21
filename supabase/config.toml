@@ -181,3 +181,14 @@ verify_jwt = true
 # Media fingerprinting
 [functions.compute-media-fingerprint]
 verify_jwt = true
+
+# Live extension - requires JWT for creator auth
+[functions.create-live-extension]
+verify_jwt = true
+
+[functions.confirm-live-extension]
+verify_jwt = true
+
+# R2 Signed URLs
+[functions.get-replay-url]
+verify_jwt = true

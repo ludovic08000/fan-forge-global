@@ -11,7 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera, Send, Shield, MessageCircle, ImageIcon } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Users, Circle, BarChart3, Wifi, Loader2, SwitchCamera, Send, Shield, MessageCircle, ImageIcon, Plus, Clock } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LiveTimer } from '@/components/live/LiveTimer';
 import { EmojiPicker } from '@/components/live/EmojiPicker';
 import { PaidMediaUpload } from '@/components/live/PaidMediaUpload';
@@ -45,6 +46,8 @@ export const LiveStreamStudio = () => {
   const [isMediaReady, setIsMediaReady] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
+  const [isExtending, setIsExtending] = useState(false);
+  const [maxDuration, setMaxDuration] = useState(20);
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
   // Mode test désactivé - la caméra est obligatoire
   
@@ -564,6 +567,71 @@ export const LiveStreamStudio = () => {
   };
 
   /**
+   * Acheter une extension de 20 minutes (+5€)
+   */
+  const handleExtendLive = async () => {
+    if (!currentStream || isExtending) return;
+    
+    setIsExtending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-live-extension', {
+        body: { liveStreamId: currentStream.id }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.url) {
+        // Ouvrir Stripe dans un nouvel onglet
+        window.open(data.url, '_blank');
+        toast.info('Finalisez le paiement pour prolonger votre live');
+      }
+    } catch (error: any) {
+      console.error('[Extension] Error:', error);
+      toast.error('Impossible de prolonger le live');
+    } finally {
+      setIsExtending(false);
+    }
+  };
+
+  /**
+   * Vérifier si une extension a été payée (appelé après retour de Stripe)
+   */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const liveExtended = params.get('live_extended');
+    const streamId = params.get('stream_id');
+    
+    if (liveExtended === 'true' && streamId && currentStream?.id === streamId) {
+      // L'extension a été payée, mettre à jour la durée max
+      const confirmExtension = async () => {
+        // Recharger les infos du stream pour avoir la nouvelle durée
+        const { data: updatedStream } = await supabase
+          .from('live_streams')
+          .select('max_duration_minutes, extension_count')
+          .eq('id', streamId)
+          .single();
+        
+        if (updatedStream) {
+          setMaxDuration(updatedStream.max_duration_minutes || 20);
+          toast.success(`Live prolongé ! Nouvelle durée max: ${updatedStream.max_duration_minutes} minutes`);
+        }
+      };
+      
+      confirmExtension();
+      // Nettoyer l'URL
+      window.history.replaceState({}, '', '/dashboard');
+    }
+  }, [currentStream?.id]);
+
+  // Mettre à jour maxDuration quand le stream change
+  useEffect(() => {
+    if (currentStream?.max_duration_minutes) {
+      setMaxDuration(currentStream.max_duration_minutes);
+    }
+  }, [currentStream?.max_duration_minutes]);
+
+
+  /**
    * Basculer la vidéo
    */
   const toggleVideo = () => {
@@ -708,15 +776,34 @@ export const LiveStreamStudio = () => {
             {/* Overlay infos live */}
             {isLive && (
               <div className="absolute top-3 right-3 flex flex-col gap-2">
-                {/* Timer avec limite 20 min */}
+                {/* Timer avec durée dynamique */}
                 <LiveTimer 
                   startedAt={currentStream?.started_at}
-                  maxDuration={20}
+                  maxDuration={maxDuration}
                   onMaxDurationReached={handleStopLive}
                   variant={currentStream?.started_at && 
-                    (Date.now() - new Date(currentStream.started_at).getTime()) > 15 * 60 * 1000 
+                    (Date.now() - new Date(currentStream.started_at).getTime()) > (maxDuration - 5) * 60 * 1000 
                       ? 'warning' : 'default'}
                 />
+                
+                {/* Bouton extension quand on approche de la limite */}
+                {currentStream?.started_at && 
+                  (Date.now() - new Date(currentStream.started_at).getTime()) > (maxDuration - 5) * 60 * 1000 && (
+                  <Button
+                    size="sm"
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 text-xs gap-1"
+                    onClick={handleExtendLive}
+                    disabled={isExtending}
+                  >
+                    {isExtending ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Plus className="h-3 w-3" />
+                    )}
+                    +20min (5€)
+                  </Button>
+                )}
+                
                 <div className="bg-black/70 text-white px-3 py-1 rounded-full flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   <span>{connectedViewers}</span>
@@ -1010,15 +1097,34 @@ export const LiveStreamStudio = () => {
               {/* Timer et compteur de spectateurs LiveKit */}
               {isLive && (
                 <div className="absolute top-4 right-4 flex items-center gap-2">
-                  {/* Timer avec limite 20 min */}
+                  {/* Timer avec durée dynamique */}
                   <LiveTimer 
                     startedAt={currentStream?.started_at}
-                    maxDuration={20}
+                    maxDuration={maxDuration}
                     onMaxDurationReached={handleStopLive}
                     variant={currentStream?.started_at && 
-                      (Date.now() - new Date(currentStream.started_at).getTime()) > 15 * 60 * 1000 
+                      (Date.now() - new Date(currentStream.started_at).getTime()) > (maxDuration - 5) * 60 * 1000 
                         ? 'warning' : 'default'}
                   />
+                  
+                  {/* Bouton extension quand on approche de la limite */}
+                  {currentStream?.started_at && 
+                    (Date.now() - new Date(currentStream.started_at).getTime()) > (maxDuration - 5) * 60 * 1000 && (
+                    <Button
+                      size="sm"
+                      className="bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 text-xs gap-1"
+                      onClick={handleExtendLive}
+                      disabled={isExtending}
+                    >
+                      {isExtending ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Plus className="h-3 w-3" />
+                      )}
+                      +20min (5€)
+                    </Button>
+                  )}
+                  
                   <div className="bg-black/70 text-white px-3 py-1 rounded-full flex items-center gap-2">
                     <Users className="h-4 w-4" />
                     <span>{connectedViewers}</span>
