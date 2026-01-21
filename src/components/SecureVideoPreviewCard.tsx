@@ -73,14 +73,20 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   );
 
   // URL sécurisée finale à utiliser
-  // Pour les previews R2 publiques (pub-xxx.r2.dev), on utilise directement l'URL publique
-  // car le bucket est configuré en public. Pas besoin d'URL signée pour les previews.
+  // Pour les URLs R2 privées, on DOIT utiliser l'URL signée S3
   const getSecureVideoUrl = (): string => {
     if (isExternalR2) {
-      // Vidéos R2 (replays) - le bucket pub-xxx.r2.dev est PUBLIC
-      // On utilise directement l'URL publique pour les previews
-      console.log('[SecureVideoPreviewCard] R2 public URL mode:', src?.substring(0, 80));
-      return src; // URL publique directe
+      // Vidéos R2 (replays) - bucket PRIVÉ, utiliser l'URL signée obligatoirement
+      if (r2Loading) {
+        console.log('[SecureVideoPreviewCard] R2 signed URL loading...');
+        return ''; // Attendre l'URL signée
+      }
+      if (r2Error) {
+        console.error('[SecureVideoPreviewCard] R2 signed URL error:', r2Error);
+        return ''; // Pas de fallback sur URL publique (bucket privé)
+      }
+      console.log('[SecureVideoPreviewCard] R2 signed URL ready:', !!r2SecureUrl);
+      return r2SecureUrl || '';
     } else if (isPremium && supabaseSignedUrl) {
       // Contenu premium Supabase avec URL signée
       console.log('[SecureVideoPreviewCard] Premium signed URL mode');
