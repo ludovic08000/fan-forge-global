@@ -91,12 +91,22 @@ serve(async (req) => {
       );
     }
 
-    // Créer le client Egress et arrêter l'enregistrement
-    const egressClient = new EgressClient(livekitUrl, apiKey, apiSecret);
+    // Créer le client Egress et arrêter l'enregistrement (utiliser HTTPS)
+    const httpUrl = livekitUrl.replace('wss://', 'https://');
+    const egressClient = new EgressClient(httpUrl, apiKey, apiSecret);
     
     console.log('[Stop Live Recording] Stopping egress:', stream.egress_id);
 
     await egressClient.stopEgress(stream.egress_id);
+
+    // Mettre à jour la DB pour indiquer que l'arrêt a été demandé
+    await supabaseAdmin
+      .from('live_streams')
+      .update({ 
+        status: 'ended',
+        ended_at: new Date().toISOString()
+      })
+      .eq('id', streamId);
 
     console.log('[Stop Live Recording] Egress stopped successfully');
 
