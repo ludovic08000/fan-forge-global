@@ -38,23 +38,6 @@ export const useLiveStream = () => {
   const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /**
-   * Nettoyer les lives fantômes en background (heartbeat > 2 minutes)
-   */
-  const cleanupGhostLives = async () => {
-    try {
-      const response = await fetch('https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/cleanup-stale-lives', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      const result = await response.json();
-      if (result.cleaned > 0) {
-        console.log(`[useLiveStream] Cleaned ${result.cleaned} ghost live(s)`);
-      }
-    } catch (error) {
-      console.error('[useLiveStream] Cleanup error:', error);
-    }
-  };
 
   /**
    * Filtrer les lives fantômes côté client (avant que le cleanup serveur ne passe)
@@ -89,9 +72,6 @@ export const useLiveStream = () => {
   const fetchLiveStreams = async (status?: string) => {
     try {
       setLoading(true);
-      
-      // Lancer le cleanup en background (ne bloque pas)
-      cleanupGhostLives();
       
       // Utiliser la vue publique pour récupérer tous les lives visibles
       let query = supabase
