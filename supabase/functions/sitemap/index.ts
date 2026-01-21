@@ -5,13 +5,18 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Content-Type": "application/xml; charset=utf-8",
-  "Cache-Control": "public, max-age=3600", // Cache 1 hour
+  "Cache-Control": "public, max-age=3600, s-maxage=3600",
+  "X-Robots-Tag": "noindex", // Le sitemap lui-même ne doit pas être indexé
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[SITEMAP] ${step}${detailsStr}`);
 };
+
+// URLs supportées pour i18n futur
+const SUPPORTED_LANGUAGES = ['fr', 'en'];
+const DEFAULT_LANGUAGE = 'fr';
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -29,7 +34,7 @@ serve(async (req) => {
     const baseUrl = "https://crub.fr";
     const today = new Date().toISOString().split('T')[0];
 
-    // Fetch all creators with their profiles
+    // Fetch all active creators (non-paused) with their profiles
     const { data: creators, error } = await supabase
       .from('creators')
       .select(`
@@ -37,9 +42,12 @@ serve(async (req) => {
         updated_at,
         user_id,
         category,
-        total_content
+        total_content,
+        total_subscribers,
+        is_paused
       `)
-      .order('total_content', { ascending: false });
+      .or('is_paused.is.null,is_paused.eq.false')
+      .order('total_subscribers', { ascending: false });
 
     if (error) {
       logStep("Error fetching creators", { error: error.message });
@@ -52,24 +60,30 @@ serve(async (req) => {
     const userIds = creators?.map(c => c.user_id) || [];
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('user_id, username, updated_at')
+      .select('user_id, username, display_name, avatar_url, updated_at')
       .in('user_id', userIds);
 
     const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
 
-    // Build sitemap XML
+    // Build sitemap XML with schema for images and hreflang
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
-  <!-- Pages statiques -->
+  <!-- ==================== PAGES STATIQUES ==================== -->
+  
+  <!-- Homepage - priorité maximale -->
   <url>
     <loc>${baseUrl}/</loc>
     <lastmod>${today}</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="${baseUrl}/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="${baseUrl}/" />
   </url>
   
+  <!-- Search - haute priorité, contenu dynamique -->
   <url>
     <loc>${baseUrl}/search</loc>
     <lastmod>${today}</lastmod>
@@ -77,6 +91,7 @@ serve(async (req) => {
     <priority>0.9</priority>
   </url>
   
+  <!-- Lives - très dynamique -->
   <url>
     <loc>${baseUrl}/lives</loc>
     <lastmod>${today}</lastmod>
@@ -84,6 +99,7 @@ serve(async (req) => {
     <priority>0.9</priority>
   </url>
   
+  <!-- Auth pages -->
   <url>
     <loc>${baseUrl}/signup</loc>
     <lastmod>${today}</lastmod>
@@ -98,6 +114,15 @@ serve(async (req) => {
     <priority>0.6</priority>
   </url>
   
+  <!-- Installation PWA -->
+  <url>
+    <loc>${baseUrl}/install</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  
+  <!-- Pages légales -->
   <url>
     <loc>${baseUrl}/terms</loc>
     <lastmod>${today}</lastmod>
@@ -124,26 +149,45 @@ serve(async (req) => {
     <lastmod>${today}</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
-  </url>`;
+  </url>
+  
+  <!-- ==================== PAGES CRÉATEURS ==================== -->`;
 
-    // Add creator profile pages
+    // Add creator profile pages - TOUTES INDEXÉES
     creators?.forEach(creator => {
       const profile = profileMap.get(creator.user_id);
       const username = profile?.username;
       
       if (username) {
         const lastmod = creator.updated_at?.split('T')[0] || profile?.updated_at?.split('T')[0] || today;
-        // Priority based on content count
-        const priority = Math.min(0.8, 0.5 + (creator.total_content || 0) * 0.01).toFixed(1);
+        
+        // Priority based on subscribers and content count
+        const subscriberScore = Math.min((creator.total_subscribers || 0) / 100, 0.2);
+        const contentScore = Math.min((creator.total_content || 0) / 50, 0.1);
+        const priority = Math.min(0.9, 0.6 + subscriberScore + contentScore).toFixed(1);
+        
+        // Changefreq based on content activity
+        const changefreq = (creator.total_content || 0) > 10 ? 'daily' : 'weekly';
         
         xml += `
   
-  <!-- Créateur: ${username} -->
+  <!-- Créateur: ${username} (${creator.total_subscribers || 0} abonnés, ${creator.total_content || 0} contenus) -->
   <url>
     <loc>${baseUrl}/creator/${encodeURIComponent(username)}</loc>
     <lastmod>${lastmod}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>${priority}</priority>
+    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>`;
+        
+        // Add creator avatar as image if available
+        if (profile?.avatar_url) {
+          xml += `
+    <image:image>
+      <image:loc>${profile.avatar_url}</image:loc>
+      <image:title>${profile.display_name || username} - Créateur sur Crub</image:title>
+    </image:image>`;
+        }
+        
+        xml += `
   </url>`;
       }
     });
@@ -151,11 +195,14 @@ serve(async (req) => {
     xml += `
 </urlset>`;
 
-    logStep("Sitemap generated", { 
-      staticPages: 9, 
+    const stats = {
+      staticPages: 10,
       creatorPages: creators?.length || 0,
-      totalUrls: 9 + (creators?.length || 0)
-    });
+      totalUrls: 10 + (creators?.length || 0),
+      generatedAt: new Date().toISOString()
+    };
+
+    logStep("Sitemap generated successfully", stats);
 
     return new Response(xml, {
       headers: corsHeaders,

@@ -10,6 +10,7 @@ interface CreatorData {
   isVerified?: boolean;
   subscriptionPrice?: number;
   currency?: string;
+  avatarUrl?: string;
 }
 
 interface SEOHeadProps {
@@ -24,7 +25,12 @@ interface SEOHeadProps {
   creator?: CreatorData;
   publishedTime?: string;
   modifiedTime?: string;
+  lang?: string;
 }
+
+// Langues supportées avec leurs codes hreflang
+const SUPPORTED_LANGUAGES = ['fr', 'en', 'es', 'de', 'it', 'pt', 'nl'] as const;
+const DEFAULT_LANGUAGE = 'fr';
 
 const SEOHead = ({
   title = "Crub – Plateforme Créateurs Premium | Contenus Exclusifs et Communauté Privée",
@@ -38,9 +44,14 @@ const SEOHead = ({
   creator,
   publishedTime,
   modifiedTime,
+  lang = DEFAULT_LANGUAGE,
 }: SEOHeadProps) => {
   const baseUrl = "https://crub.fr";
   const currentUrl = url || (typeof window !== 'undefined' ? window.location.href : baseUrl);
+  
+  // Nettoyer l'URL (retirer les paramètres de query pour le canonical)
+  const cleanUrl = currentUrl.split('?')[0];
+  
   const fullTitle = title.includes("Crub") ? title : `${title} | Crub`;
   const absoluteImage = image.startsWith('http') ? image : `${baseUrl}${image.startsWith('/') ? '' : '/'}${image}`;
 
@@ -58,22 +69,49 @@ const SEOHead = ({
       meta.content = content;
     };
 
+    const setLink = (rel: string, href: string, hreflang?: string) => {
+      const selector = hreflang 
+        ? `link[rel="${rel}"][hreflang="${hreflang}"]` 
+        : `link[rel="${rel}"]:not([hreflang])`;
+      let link = document.querySelector(selector) as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = rel;
+        if (hreflang) link.hreflang = hreflang;
+        document.head.appendChild(link);
+      }
+      link.href = href;
+    };
+
+    // Update HTML lang attribute
+    document.documentElement.lang = lang;
+
     // Basic meta tags
     setMeta('description', description);
     setMeta('keywords', keywords);
     if (author) setMeta('author', author);
-    setMeta('robots', noindex ? 'noindex, nofollow' : 'index, follow');
+    
+    // Robots - JAMAIS noindex pour les pages créateurs
+    const isCreatorPage = cleanUrl.includes('/creator/');
+    const robotsContent = isCreatorPage ? 'index, follow, max-image-preview:large' : 
+      (noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large');
+    setMeta('robots', robotsContent);
+    setMeta('googlebot', robotsContent);
+    
+    // Additional SEO meta tags
+    setMeta('theme-color', '#000000');
+    setMeta('format-detection', 'telephone=no');
 
     // Open Graph tags
     setMeta('og:type', type === 'profile' ? 'profile' : type, true);
-    setMeta('og:url', currentUrl, true);
+    setMeta('og:url', cleanUrl, true);
     setMeta('og:title', fullTitle, true);
     setMeta('og:description', description, true);
     setMeta('og:image', absoluteImage, true);
     setMeta('og:image:width', '1200', true);
     setMeta('og:image:height', '630', true);
     setMeta('og:image:alt', title, true);
-    setMeta('og:locale', 'fr_FR', true);
+    setMeta('og:locale', `${lang}_${lang === 'en' ? 'US' : lang.toUpperCase()}`, true);
     setMeta('og:site_name', 'Crub', true);
 
     // Profile-specific OG tags
@@ -102,20 +140,19 @@ const SEOHead = ({
     setMeta('twitter:card', 'summary_large_image');
     setMeta('twitter:site', '@CrubFr');
     setMeta('twitter:creator', creator ? `@${creator.username}` : '@CrubFr');
-    setMeta('twitter:url', currentUrl);
+    setMeta('twitter:url', cleanUrl);
     setMeta('twitter:title', fullTitle);
     setMeta('twitter:description', description);
     setMeta('twitter:image', absoluteImage);
     setMeta('twitter:image:alt', title);
 
-    // Canonical URL
-    let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
-    if (!canonical) {
-      canonical = document.createElement('link');
-      canonical.rel = 'canonical';
-      document.head.appendChild(canonical);
-    }
-    canonical.href = currentUrl;
+    // Canonical URL (toujours présent)
+    setLink('canonical', cleanUrl);
+
+    // Hreflang tags pour i18n
+    // x-default pointe vers la version française
+    setLink('alternate', cleanUrl, 'x-default');
+    setLink('alternate', cleanUrl, lang);
 
     // JSON-LD Structured Data
     const existingJsonLd = document.querySelector('script[data-seo="json-ld"]');
@@ -127,10 +164,10 @@ const SEOHead = ({
     jsonLdScript.type = 'application/ld+json';
     jsonLdScript.setAttribute('data-seo', 'json-ld');
 
-    let jsonLdData: any;
+    let jsonLdData: Record<string, unknown>;
 
     if (type === 'profile' && creator) {
-      // JSON-LD for Creator Profile Page
+      // JSON-LD for Creator Profile Page - Schema amélioré
       jsonLdData = {
         "@context": "https://schema.org",
         "@type": "ProfilePage",
@@ -141,29 +178,40 @@ const SEOHead = ({
           "@id": `${baseUrl}/creator/${creator.username}#person`,
           "name": creator.name,
           "alternateName": creator.username,
-          "url": currentUrl,
-          "image": {
+          "url": cleanUrl,
+          "image": creator.avatarUrl ? {
+            "@type": "ImageObject",
+            "url": creator.avatarUrl,
+            "width": 400,
+            "height": 400
+          } : {
             "@type": "ImageObject",
             "url": absoluteImage,
             "width": 400,
             "height": 400
           },
           "description": creator.bio || description,
-          "sameAs": [currentUrl],
+          "sameAs": [cleanUrl],
           ...(creator.isVerified && { "verified": true }),
           "interactionStatistic": [
             {
               "@type": "InteractionCounter",
               "interactionType": "https://schema.org/FollowAction",
               "userInteractionCount": creator.subscriberCount || 0
+            },
+            {
+              "@type": "InteractionCounter",
+              "interactionType": "https://schema.org/CreateAction",
+              "userInteractionCount": creator.contentCount || 0
             }
-          ]
+          ],
+          ...(creator.category && { "knowsAbout": creator.category })
         },
         "potentialAction": {
           "@type": "SubscribeAction",
           "target": {
             "@type": "EntryPoint",
-            "urlTemplate": currentUrl
+            "urlTemplate": cleanUrl
           },
           ...(creator.subscriptionPrice !== undefined && creator.subscriptionPrice > 0 && {
             "priceSpecification": {
@@ -173,13 +221,31 @@ const SEOHead = ({
               "unitCode": "MON"
             }
           })
+        },
+        "breadcrumb": {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Accueil",
+              "item": baseUrl
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Créateurs",
+              "item": `${baseUrl}/search`
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": creator.name || creator.username,
+              "item": cleanUrl
+            }
+          ]
         }
       };
-
-      // Add Category as expertise
-      if (creator.category) {
-        jsonLdData.mainEntity.knowsAbout = creator.category;
-      }
     } else if (type === 'article') {
       // JSON-LD for Article/Content
       jsonLdData = {
@@ -188,7 +254,7 @@ const SEOHead = ({
         "headline": title,
         "description": description,
         "image": absoluteImage,
-        "url": currentUrl,
+        "url": cleanUrl,
         "datePublished": publishedTime || new Date().toISOString(),
         "dateModified": modifiedTime || new Date().toISOString(),
         "author": {
@@ -202,7 +268,8 @@ const SEOHead = ({
             "@type": "ImageObject",
             "url": `${baseUrl}/favicon.png`
           }
-        }
+        },
+        "inLanguage": lang
       };
     } else {
       // JSON-LD for Website (default)
@@ -213,6 +280,7 @@ const SEOHead = ({
         "alternateName": "Crub - Plateforme Créateurs Premium",
         "url": baseUrl,
         "description": "La Plateforme Premium des Créateurs Modernes. Partage privé, contenus exclusifs, espace sécurisé.",
+        "inLanguage": lang,
         "publisher": {
           "@type": "Organization",
           "name": "Crub",
@@ -245,7 +313,7 @@ const SEOHead = ({
         scriptToRemove.remove();
       }
     };
-  }, [fullTitle, description, keywords, absoluteImage, currentUrl, type, author, noindex, creator, publishedTime, modifiedTime]);
+  }, [fullTitle, description, keywords, absoluteImage, cleanUrl, type, author, noindex, creator, publishedTime, modifiedTime, lang]);
 
   return null;
 };
