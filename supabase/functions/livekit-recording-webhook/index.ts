@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { WebhookReceiver } from "npm:livekit-server-sdk@2.6.1";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { S3Client, PutObjectCommand } from "npm:@aws-sdk/client-s3@3.600.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -85,7 +86,7 @@ serve(async (req) => {
 
         // Si on a une URL de téléchargement depuis LiveKit Cloud
         if (downloadUrl) {
-          // Télécharger le fichier depuis LiveKit et l'uploader vers Supabase Storage
+          // Télécharger le fichier depuis LiveKit et l'uploader vers Cloudflare R2
           try {
             console.log('[LiveKit Recording Webhook] Downloading from LiveKit:', downloadUrl);
             
@@ -94,31 +95,42 @@ serve(async (req) => {
               throw new Error(`Failed to download: ${response.status}`);
             }
             
-            const videoBlob = await response.blob();
-            const fileName = `${stream.creator_id}/${stream.id}_${Date.now()}.mp4`;
+            const videoBuffer = await response.arrayBuffer();
+            const fileName = `replays/${stream.creator_id}/${stream.id}_${Date.now()}.mp4`;
             
-            console.log('[LiveKit Recording Webhook] Uploading to Supabase Storage:', fileName);
+            console.log('[LiveKit Recording Webhook] Uploading to Cloudflare R2:', fileName);
             
-            // Upload vers Supabase Storage bucket 'content'
-            const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-              .from('content')
-              .upload(fileName, videoBlob, {
-                contentType: 'video/mp4',
-                upsert: false
-              });
-
-            if (uploadError) {
-              console.error('[LiveKit Recording Webhook] Upload error:', uploadError);
-              throw uploadError;
+            // Configuration R2
+            const r2AccountId = Deno.env.get('R2_ACCOUNT_ID');
+            const r2AccessKeyId = Deno.env.get('R2_ACCESS_KEY_ID');
+            const r2SecretAccessKey = Deno.env.get('R2_SECRET_ACCESS_KEY');
+            const r2BucketName = Deno.env.get('R2_BUCKET_NAME');
+            
+            if (!r2AccountId || !r2AccessKeyId || !r2SecretAccessKey || !r2BucketName) {
+              throw new Error('R2 configuration missing');
             }
-
-            // Obtenir l'URL publique
-            const { data: urlData } = supabaseAdmin.storage
-              .from('content')
-              .getPublicUrl(fileName);
-
-            const publicUrl = urlData.publicUrl;
-            console.log('[LiveKit Recording Webhook] File uploaded:', publicUrl);
+            
+            // Créer le client S3 pour R2
+            const s3Client = new S3Client({
+              region: 'auto',
+              endpoint: `https://${r2AccountId}.r2.cloudflarestorage.com`,
+              credentials: {
+                accessKeyId: r2AccessKeyId,
+                secretAccessKey: r2SecretAccessKey,
+              },
+            });
+            
+            // Upload vers R2
+            await s3Client.send(new PutObjectCommand({
+              Bucket: r2BucketName,
+              Key: fileName,
+              Body: new Uint8Array(videoBuffer),
+              ContentType: 'video/mp4',
+            }));
+            
+            // URL publique R2 (via le domaine public du bucket)
+            const publicUrl = `https://pub-${r2AccountId}.r2.dev/${fileName}`;
+            console.log('[LiveKit Recording Webhook] File uploaded to R2:', publicUrl);
 
             // Mettre à jour le live stream avec l'URL de l'enregistrement
             await supabaseAdmin
@@ -161,11 +173,12 @@ serve(async (req) => {
           } catch (downloadError) {
             console.error('[LiveKit Recording Webhook] Download/upload error:', downloadError);
             
-            // Fallback: stocker l'URL LiveKit directement
+            // Fallback: stocker l'URL LiveKit directement (temporaire)
             await supabaseAdmin
               .from('live_streams')
               .update({ 
                 recording_url: downloadUrl,
+                recording_error: `R2 upload failed: ${downloadError.message}`,
                 recording_completed_at: new Date().toISOString()
               })
               .eq('id', stream.id);
