@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Eye, Heart, Wand2, Plus, Upload, Trash2, Play, Video, Crown, Volume2, VolumeX, Shield } from 'lucide-react';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
+import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
 
 interface Content {
   id: string;
@@ -41,20 +42,33 @@ const SecureContentCard: React.FC<{
   const isVideo = item.content_type === 'video';
   const isReplay = item.title?.toLowerCase().includes('replay');
   const isPremium = item.is_premium === true;
-  const isExternalUrl = item.file_url?.startsWith('https://') && !item.file_url?.includes('supabase.co');
+  const isExternalR2 = isR2Url(item.file_url);
 
-  // Utiliser des URLs signées pour le contenu premium
-  const { signedUrl, loading: urlLoading } = useSignedUrl(
-    isVideo ? item.file_url : null,
+  // Hook pour URLs R2 sécurisées (replays Cloudflare)
+  const { secureUrl: r2SecureUrl, loading: r2Loading } = useSecureR2Url(
+    isVideo && isExternalR2 ? item.file_url : null,
     {
-      bucket: 'content',
       contentId: item.id,
-      enabled: isVideo && isPremium
+      enabled: isVideo && isExternalR2
     }
   );
 
-  // URL sécurisée à utiliser
-  const secureVideoUrl = isPremium ? signedUrl : item.file_url;
+  // Hook pour URLs Supabase signées (contenu stocké sur Supabase)
+  const { signedUrl: supabaseSignedUrl, loading: supabaseLoading } = useSignedUrl(
+    isVideo && !isExternalR2 ? item.file_url : null,
+    {
+      bucket: 'content',
+      contentId: item.id,
+      enabled: isVideo && isPremium && !isExternalR2
+    }
+  );
+
+  // URL sécurisée finale à utiliser
+  const secureVideoUrl = isExternalR2 
+    ? r2SecureUrl 
+    : (isPremium ? supabaseSignedUrl : item.file_url);
+  
+  const urlLoading = isExternalR2 ? r2Loading : supabaseLoading;
 
   const handleMouseEnter = () => {
     setIsHovering(true);
@@ -96,7 +110,7 @@ const SecureContentCard: React.FC<{
         {isVideo && (
           <>
             {/* Loading state pour URL signée */}
-            {urlLoading && isPremium && (
+            {urlLoading && (isExternalR2 || isPremium) && (
               <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/80">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
@@ -115,7 +129,7 @@ const SecureContentCard: React.FC<{
                 playsInline
                 preload="metadata"
                 // crossOrigin seulement pour Supabase, pas pour R2 externe
-                {...(!isExternalUrl && { crossOrigin: "anonymous" })}
+                {...(!isExternalR2 && { crossOrigin: "anonymous" })}
                 onError={() => setVideoError(true)}
                 // Protection contre le téléchargement
                 controlsList="nodownload noplaybackrate"
@@ -152,11 +166,13 @@ const SecureContentCard: React.FC<{
               </div>
             </div>
 
-            {/* Indicateur de contenu sécurisé */}
-            {isPremium && isHovering && !videoError && (
+            {/* Indicateur de contenu sécurisé R2 ou Premium */}
+            {(isExternalR2 || isPremium) && isHovering && !videoError && (
               <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-green-500/90 px-2 py-0.5 rounded-full">
                 <Shield className="h-3 w-3 text-white" />
-                <span className="text-[10px] font-semibold text-white">Sécurisé</span>
+                <span className="text-[10px] font-semibold text-white">
+                  {isExternalR2 ? 'R2 Sécurisé' : 'Sécurisé'}
+                </span>
               </div>
             )}
 
