@@ -20,7 +20,6 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
   const [promoCode, setPromoCode] = useState<string | null>(null);
   const [discount, setDiscount] = useState<{ type: 'percentage' | 'fixed'; value: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [promoCodeChecked, setPromoCodeChecked] = useState(false);
   const { generateToken } = useCsrfToken();
 
   // Décoder le clientSecret si nécessaire (URL encoded)
@@ -38,6 +37,7 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
   const fetchCheckoutSession = async (referralCode?: string | null) => {
     try {
       setIsLoading(true);
+      setClientSecret('');
       console.log('[EmbeddedCheckout] Fetching checkout session with referralCode:', referralCode);
       
       // Récupérer le token CSRF - attendre qu'il soit disponible
@@ -86,43 +86,64 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
     }
   };
 
-  // Un seul effet: attendre que promoCodeChecked soit true, puis fetch
+  // Initialisation immédiate : utiliser le secret préchargé ou fetch
   useEffect(() => {
-    if (!promoCodeChecked) return;
+    // Vérifier s'il y a un code promo sauvegardé
+    const savedCode = localStorage.getItem('crub_promo_code');
+    let savedPromoCode: string | null = null;
     
-    // Si on a un code promo, fetch avec le code
-    if (promoCode) {
-      fetchCheckoutSession(promoCode);
+    if (savedCode) {
+      try {
+        const parsed = JSON.parse(savedCode);
+        if (parsed.creatorId === creatorId && parsed.code) {
+          savedPromoCode = parsed.code;
+        }
+      } catch {
+        localStorage.removeItem('crub_promo_code');
+      }
+    }
+    
+    // Si code promo sauvegardé, on doit fetch avec le code
+    if (savedPromoCode) {
+      console.log('[EmbeddedCheckout] Found saved promo code, fetching with it');
+      setPromoCode(savedPromoCode);
+      fetchCheckoutSession(savedPromoCode);
     } else if (preloadedSecret) {
-      // Pas de code promo et on a un secret préchargé, l'utiliser
+      // Pas de code promo, utiliser le secret préchargé
+      console.log('[EmbeddedCheckout] Using preloaded secret');
       setClientSecret(decodeSecret(preloadedSecret));
       setIsLoading(false);
     } else {
-      // Pas de code promo et pas de préchargé, fetch sans code
+      // Pas de préchargé, fetch maintenant
+      console.log('[EmbeddedCheckout] No preloaded secret, fetching now');
       fetchCheckoutSession(null);
     }
-  }, [promoCodeChecked, promoCode, creatorId]);
+  }, [creatorId]);
 
   const handlePromoCodeValidated = (code: string | null, discountInfo: { type: 'percentage' | 'fixed'; value: number } | null) => {
     console.log('[EmbeddedCheckout] Promo code validated:', code, discountInfo);
     setDiscount(discountInfo);
-    setPromoCode(code);
     
-    // Si le code promo n'a pas encore été vérifié, marquer comme vérifié
-    if (!promoCodeChecked) {
-      setPromoCodeChecked(true);
-    } else if (code !== promoCode) {
-      // Si le code change, refetch
-      setClientSecret('');
-      setIsLoading(true);
+    // Si le code change, refetch la session checkout
+    if (code !== promoCode) {
+      setPromoCode(code);
+      if (code) {
+        // Nouveau code promo - refetch avec le code
+        fetchCheckoutSession(code);
+      } else if (!preloadedSecret) {
+        // Code supprimé et pas de préchargé - refetch sans code
+        fetchCheckoutSession(null);
+      } else {
+        // Code supprimé mais on a le préchargé - le réutiliser
+        setClientSecret(decodeSecret(preloadedSecret));
+        setIsLoading(false);
+      }
     }
   };
 
-  // Callback appelé par PromoCodeInput quand il a fini de vérifier localStorage
+  // Ce callback n'est plus nécessaire car on initialise directement
   const handlePromoCodeCheckComplete = () => {
-    if (!promoCodeChecked) {
-      setPromoCodeChecked(true);
-    }
+    // Vide - l'initialisation se fait dans useEffect
   };
 
   if (error) {
