@@ -5,15 +5,17 @@ import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 import { 
   X, Check, Sun, Contrast, Droplets, Sparkles, Palette, CloudFog, 
   Flame, Snowflake, Moon, Heart, RotateCcw, Scissors, Image as ImageIcon,
   Play, Pause, Loader2, Wand2, CircleDot, Zap, Waves, 
-  Mountain, Sunset, TreePine, Building, Camera, Star, Crown
+  Mountain, Sunset, TreePine, Building, Camera, Star, Crown, 
+  FileDown, TrendingDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-
+import { compressImage, compressVideo, formatFileSize, calculateSavings, type CompressionProgress } from '@/lib/mediaCompression';
 // Premium Instagram-like filters with more variety
 const PHOTO_FILTERS = [
   // Basic
@@ -81,6 +83,8 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
   const [fade, setFade] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState<CompressionProgress | null>(null);
+  const [compressionEnabled, setCompressionEnabled] = useState(true);
   
   // Video specific states
   const [isPlaying, setIsPlaying] = useState(false);
@@ -319,6 +323,7 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
   // Confirm and process
   const handleConfirm = async () => {
     setIsProcessing(true);
+    setCompressionProgress(null);
     
     try {
       const canvas = canvasRef.current;
@@ -333,11 +338,32 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
         ctx.drawImage(img, 0, 0);
         applyFiltersToCanvas(ctx, canvas.width, canvas.height);
         
+        // Create initial blob
         const blob = await new Promise<Blob>((resolve, reject) => {
           canvas.toBlob((b) => b ? resolve(b) : reject(new Error('Blob failed')), 'image/jpeg', 0.92);
         });
         
-        const editedFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.jpg'), { type: 'image/jpeg' });
+        let editedFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.jpg'), { type: 'image/jpeg' });
+        
+        // Apply compression if enabled
+        if (compressionEnabled) {
+          setCompressionProgress({ stage: 'analyzing', progress: 0, message: 'Préparation...' });
+          
+          const result = await compressImage(editedFile, {
+            maxWidth: 2048,
+            maxHeight: 2048,
+            quality: 0.82,
+            targetSizeKB: 800,
+            preferWebP: true,
+          }, setCompressionProgress);
+          
+          if (result.success && result.wasCompressed) {
+            editedFile = result.file;
+            const savings = calculateSavings(result.originalSize, result.compressedSize);
+            toast.success(`Image compressée: -${savings}% (${formatFileSize(result.compressedSize)})`);
+          }
+        }
+        
         onConfirm(editedFile);
         
       } else if (isVideo && videoRef.current) {
@@ -368,13 +394,34 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
           filters: { brightness, contrast, saturation, selectedFilter, warmth, vignette, grain, fade }
         }));
         
-        onConfirm(file, thumbnailBlob);
+        let finalFile = file;
+        
+        // Apply video compression if enabled
+        if (compressionEnabled) {
+          setCompressionProgress({ stage: 'analyzing', progress: 0, message: 'Analyse vidéo...' });
+          
+          const result = await compressVideo(file, {
+            maxWidth: 1920,
+            maxHeight: 1080,
+            videoBitrate: 2500000,
+            frameRate: 30,
+          }, setCompressionProgress);
+          
+          if (result.success && result.wasCompressed) {
+            finalFile = result.file;
+            const savings = calculateSavings(result.originalSize, result.compressedSize);
+            toast.success(`Vidéo compressée: -${savings}% (${formatFileSize(result.compressedSize)})`);
+          }
+        }
+        
+        onConfirm(finalFile, thumbnailBlob);
       }
     } catch (error) {
       console.error('Processing error:', error);
       toast.error('Erreur lors du traitement');
     } finally {
       setIsProcessing(false);
+      setCompressionProgress(null);
     }
   };
 
@@ -426,6 +473,58 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
               Appliquer
             </Button>
           </div>
+        </div>
+
+        {/* Compression Progress Overlay */}
+        <AnimatePresence>
+          {compressionProgress && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="absolute top-20 left-1/2 -translate-x-1/2 z-50"
+            >
+              <div className="bg-black/90 backdrop-blur-lg rounded-xl border border-white/10 p-4 min-w-[280px] shadow-2xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-primary/20">
+                    <FileDown className="w-4 h-4 text-primary animate-pulse" />
+                  </div>
+                  <div>
+                    <p className="text-white text-sm font-medium">{compressionProgress.message}</p>
+                    {compressionProgress.originalSize && compressionProgress.compressedSize && (
+                      <p className="text-white/50 text-xs flex items-center gap-1">
+                        <TrendingDown className="w-3 h-3 text-green-400" />
+                        {formatFileSize(compressionProgress.originalSize)} → {formatFileSize(compressionProgress.compressedSize)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Progress value={compressionProgress.progress} className="h-1.5" />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Compression Toggle */}
+        <div className="absolute top-20 right-4 z-40">
+          <button
+            onClick={() => setCompressionEnabled(!compressionEnabled)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              compressionEnabled 
+                ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                : 'bg-white/5 text-white/50 border border-white/10'
+            }`}
+          >
+            <FileDown className="w-3.5 h-3.5" />
+            {compressionEnabled ? 'Compression ON' : 'Compression OFF'}
+          </button>
+        </div>
+
+        {/* File Size Info */}
+        <div className="absolute bottom-4 left-4 z-40">
+          <Badge variant="outline" className="border-white/20 text-white/60 bg-black/50 backdrop-blur-sm">
+            {formatFileSize(file.size)}
+          </Badge>
         </div>
 
         {/* Preview Area */}
