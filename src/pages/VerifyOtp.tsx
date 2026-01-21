@@ -120,39 +120,34 @@ const VerifyOtp = () => {
 
       console.log('Envoi OTP pour:', emailToUse, 'isNewSignup:', isNewSignup);
 
-      // Toujours utiliser resend qui envoie un code à 6 chiffres (pas un lien magique)
-      // Le type dépend si c'est une nouvelle inscription ou une connexion
-      const { error } = await supabase.auth.resend({
-        type: isNewSignup ? 'signup' : 'email_change',
-        email: emailToUse,
-      });
+      let success = false;
 
-      if (error) {
-        console.error('Erreur resend:', error);
+      // Pour les nouvelles inscriptions, utiliser resend type signup
+      if (isNewSignup) {
+        const { error } = await supabase.auth.resend({
+          type: 'signup',
+          email: emailToUse,
+        });
         
-        // Si l'email_change échoue, essayer avec signup
-        if (!isNewSignup) {
-          console.log('Tentative avec signup...');
-          const { error: signupError } = await supabase.auth.resend({
-            type: 'signup',
-            email: emailToUse,
-          });
-          
-          if (signupError) {
-            console.error('Erreur resend signup:', signupError);
-            // Dernier recours: utiliser signInWithOtp
-            const { error: otpError } = await supabase.auth.signInWithOtp({
-              email: emailToUse,
-              options: {
-                shouldCreateUser: false,
-              },
-            });
-            
-            if (otpError) {
-              throw new Error(otpError.message || 'Erreur lors de l\'envoi du code');
-            }
-          }
+        if (!error) {
+          success = true;
         } else {
+          console.error('Erreur resend signup:', error);
+        }
+      }
+
+      // Pour les connexions existantes ou si resend a échoué, utiliser signInWithOtp
+      if (!success) {
+        console.log('Utilisation de signInWithOtp...');
+        const { error } = await supabase.auth.signInWithOtp({
+          email: emailToUse,
+          options: {
+            shouldCreateUser: false,
+          },
+        });
+        
+        if (error) {
+          console.error('Erreur signInWithOtp:', error);
           throw new Error(error.message || 'Erreur lors de l\'envoi du code');
         }
       }
