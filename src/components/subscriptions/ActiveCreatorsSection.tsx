@@ -5,7 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TrendingUp, Users, FileText, Crown, Sparkles, Star } from 'lucide-react';
+import { TrendingUp, Users, FileText, Crown, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface Creator {
@@ -66,7 +66,7 @@ export const ActiveCreatorsSection = ({ creators, isLoading }: ActiveCreatorsSec
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1, duration: 0.3 }}
             >
-              <CreatorCard creator={creator} rank={index + 1} />
+              <CreatorCard creator={creator} />
             </motion.div>
           ))}
         </div>
@@ -82,30 +82,16 @@ export const ActiveCreatorsSection = ({ creators, isLoading }: ActiveCreatorsSec
   );
 };
 
-const CreatorCard = ({ creator, rank }: { creator: Creator; rank: number }) => {
+const CreatorCard = ({ creator }: { creator: Creator }) => {
   const displayName = creator.stage_name || creator.profile?.display_name || creator.profile?.username || 'Créateur';
   const linkPath = creator.profile?.username 
     ? `/${creator.profile.username}` 
     : `/creator/${creator.user_id}`;
 
-  const isTopThree = rank <= 3;
-  const rankColors = {
-    1: 'from-yellow-400 to-amber-500',
-    2: 'from-slate-300 to-slate-400',
-    3: 'from-amber-600 to-amber-700'
-  };
-
   return (
     <Link to={linkPath} className="group block">
       <Card className="overflow-hidden hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 hover:border-primary/40 h-full bg-gradient-to-b from-card to-card/80 hover:-translate-y-1">
-        <CardContent className="p-5 flex flex-col items-center text-center relative">
-          {/* Rank badge for top 3 */}
-          {isTopThree && (
-            <div className={`absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br ${rankColors[rank as 1 | 2 | 3]} flex items-center justify-center shadow-md`}>
-              <span className="text-xs font-bold text-white">{rank}</span>
-            </div>
-          )}
-          
+        <CardContent className="p-5 flex flex-col items-center text-center">
           {/* Avatar with glow effect */}
           <div className="relative mb-4">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/10 rounded-full blur-xl scale-150 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -115,11 +101,6 @@ const CreatorCard = ({ creator, rank }: { creator: Creator; rank: number }) => {
                 {displayName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            {isTopThree && (
-              <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5">
-                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-              </div>
-            )}
           </div>
           
           {/* Name */}
