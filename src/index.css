@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =====================================================
+   MOBILE TOUCH FIX FOR iOS SAFARI/CHROME
+   ===================================================== */
+
+/* Fix pour les liens sur iOS - éviter les délais de touch */
+a, button, [role="button"], [role="link"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* S'assurer que les cartes cliquables fonctionnent sur mobile */
+.cursor-pointer {
+  touch-action: manipulation;
+}
+
 /* Premium Content Platform Design System */
 
 /* =====================================================
