@@ -118,30 +118,39 @@ const VerifyOtp = () => {
         return;
       }
 
-      console.log('Envoi OTP Supabase pour:', emailToUse);
+      console.log('Envoi OTP pour:', emailToUse, 'isNewSignup:', isNewSignup);
 
-      // Utiliser signInWithOtp qui génère un vrai code OTP
-      const { error } = await supabase.auth.signInWithOtp({
+      // Toujours utiliser resend qui envoie un code à 6 chiffres (pas un lien magique)
+      // Le type dépend si c'est une nouvelle inscription ou une connexion
+      const { error } = await supabase.auth.resend({
+        type: isNewSignup ? 'signup' : 'email_change',
         email: emailToUse,
-        options: {
-          shouldCreateUser: false, // Ne pas créer de nouvel utilisateur
-        },
       });
 
       if (error) {
-        console.error('Erreur Supabase signInWithOtp:', error);
+        console.error('Erreur resend:', error);
         
-        // Si l'utilisateur n'existe pas, essayer avec resend pour signup
-        if (error.message.includes('not found') || error.message.includes('Signups not allowed')) {
-          console.log('Tentative avec resend signup...');
-          const { error: resendError } = await supabase.auth.resend({
+        // Si l'email_change échoue, essayer avec signup
+        if (!isNewSignup) {
+          console.log('Tentative avec signup...');
+          const { error: signupError } = await supabase.auth.resend({
             type: 'signup',
             email: emailToUse,
           });
           
-          if (resendError) {
-            console.error('Erreur resend signup:', resendError);
-            throw new Error(resendError.message || 'Erreur lors de l\'envoi du code');
+          if (signupError) {
+            console.error('Erreur resend signup:', signupError);
+            // Dernier recours: utiliser signInWithOtp
+            const { error: otpError } = await supabase.auth.signInWithOtp({
+              email: emailToUse,
+              options: {
+                shouldCreateUser: false,
+              },
+            });
+            
+            if (otpError) {
+              throw new Error(otpError.message || 'Erreur lors de l\'envoi du code');
+            }
           }
         } else {
           throw new Error(error.message || 'Erreur lors de l\'envoi du code');
@@ -151,7 +160,6 @@ const VerifyOtp = () => {
       setOtpSent(true);
       setOtpCountdown(60);
       
-      // Mode développement: afficher un message pour vérifier les emails
       console.log('✅ Code OTP envoyé avec succès à:', emailToUse);
       toast.success('Code de vérification envoyé par email !');
       
