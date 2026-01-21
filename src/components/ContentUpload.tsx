@@ -155,6 +155,14 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
         setSelectedFile(file);
         const url = URL.createObjectURL(file);
         setPreviewUrl(url);
+        
+        // Avertissement pour les fichiers MOV (non supportés sur Windows)
+        if (file.type === 'video/quicktime' || file.name.toLowerCase().endsWith('.mov')) {
+          toast.warning('Format MOV détecté', {
+            description: 'Ce format peut ne pas être lisible sur Windows/Android. Pour une compatibilité maximale, utilisez MP4.',
+            duration: 8000
+          });
+        }
       }
 
       // Modération IA du contenu (images uniquement)
