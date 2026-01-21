@@ -40,7 +40,16 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   // Détecter si c'est une URL R2 externe (Cloudflare)
   const isExternalR2 = isR2Url(src);
   
-  console.log('[SecureVideoPreviewCard] Rendering:', { src, isExternalR2, contentId, isPremium });
+  // Vérifier si c'est une URL publique Supabase Storage
+  const isSupabasePublicUrl = src.includes('supabase.co/storage/v1/object/public/');
+
+  console.log('[SecureVideoPreviewCard] Rendering:', { 
+    src: src?.substring(0, 80), 
+    isExternalR2, 
+    isSupabasePublicUrl,
+    contentId, 
+    isPremium 
+  });
 
   // Hook pour URLs R2 sécurisées (Cloudflare) - utilise get-replay-url avec clés API
   const { secureUrl: r2SecureUrl, loading: r2Loading, error: r2Error } = useSecureR2Url(
@@ -52,12 +61,14 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   );
 
   // Hook pour URLs Supabase signées (contenu stocké sur Supabase Storage)
+  // Activer pour TOUT contenu premium (pas seulement si isPremium est true)
+  const needsSignedUrl = !isExternalR2 && isPremium;
   const { signedUrl: supabaseSignedUrl, loading: supabaseLoading } = useSignedUrl(
-    !isExternalR2 && isPremium ? src : null,
+    needsSignedUrl ? src : null,
     {
       bucket: 'content',
       contentId,
-      enabled: !isExternalR2 && isPremium
+      enabled: needsSignedUrl
     }
   );
 
@@ -65,12 +76,15 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   const getSecureVideoUrl = (): string => {
     if (isExternalR2) {
       // Vidéos R2 (replays) - utiliser URL signée ou fallback
+      console.log('[SecureVideoPreviewCard] R2 mode:', { r2SecureUrl: !!r2SecureUrl });
       return r2SecureUrl || src;
-    } else if (isPremium) {
-      // Contenu premium Supabase - utiliser URL signée ou fallback
-      return supabaseSignedUrl || src;
+    } else if (isPremium && supabaseSignedUrl) {
+      // Contenu premium Supabase avec URL signée
+      console.log('[SecureVideoPreviewCard] Premium signed URL mode');
+      return supabaseSignedUrl;
     }
-    // Contenu public Supabase - URL directe
+    // Contenu public Supabase - URL directe (le bucket "content" devrait être public pour ça)
+    console.log('[SecureVideoPreviewCard] Public URL mode:', src?.substring(0, 80));
     return src;
   };
 
