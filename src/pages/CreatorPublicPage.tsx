@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, MessageCircle, UserMinus } from 'lucide-react';
+import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, MessageCircle, UserMinus, Play } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
 import ModernPrivateChat from '@/components/ModernPrivateChat';
@@ -568,14 +568,22 @@ const CreatorPublicPage = () => {
                     }}
                   >
                     {item.content_type === 'video' ? (
-                      <video
-                        src={item.file_url}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        muted
-                        playsInline
-                        preload="metadata"
-                        poster={item.thumbnail_url !== item.file_url ? item.thumbnail_url : undefined}
-                      />
+                      <>
+                        <video
+                          src={item.file_url}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          muted
+                          playsInline
+                          preload="metadata"
+                          poster={item.thumbnail_url !== item.file_url ? item.thumbnail_url : undefined}
+                        />
+                        {/* Icône Play pour les vidéos */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                          <div className="bg-black/50 rounded-full p-3">
+                            <Play className="h-8 w-8 text-white fill-white" />
+                          </div>
+                        </div>
+                      </>
                     ) : (
                       <OptimizedImage
                         src={item.thumbnail_url || item.file_url}
@@ -643,14 +651,24 @@ const CreatorPublicPage = () => {
                     }}
                   >
                     {item.content_type === 'video' ? (
-                      <video
-                        src={item.file_url}
-                        className={`w-full h-full object-cover ${!isSubscribed ? 'blur-lg' : 'group-hover:scale-105 transition-transform'}`}
-                        muted
-                        playsInline
-                        preload="metadata"
-                        poster={item.thumbnail_url !== item.file_url ? item.thumbnail_url : undefined}
-                      />
+                      <>
+                        <video
+                          src={item.file_url}
+                          className={`w-full h-full object-cover ${!isSubscribed ? 'blur-lg' : 'group-hover:scale-105 transition-transform'}`}
+                          muted
+                          playsInline
+                          preload="metadata"
+                          poster={item.thumbnail_url !== item.file_url ? item.thumbnail_url : undefined}
+                        />
+                        {/* Icône Play pour les vidéos */}
+                        {isSubscribed && (
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                            <div className="bg-black/50 rounded-full p-3">
+                              <Play className="h-8 w-8 text-white fill-white" />
+                            </div>
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <OptimizedImage
                         src={item.thumbnail_url || item.file_url}
