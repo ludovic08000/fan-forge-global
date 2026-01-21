@@ -338,12 +338,14 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
         ctx.drawImage(img, 0, 0);
         applyFiltersToCanvas(ctx, canvas.width, canvas.height);
         
-        // Create initial blob
+        // Create initial blob as JPEG
         const blob = await new Promise<Blob>((resolve, reject) => {
           canvas.toBlob((b) => b ? resolve(b) : reject(new Error('Blob failed')), 'image/jpeg', 0.92);
         });
         
-        let editedFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.jpg'), { type: 'image/jpeg' });
+        // Get base name without extension
+        const baseName = file.name.replace(/\.[^/.]+$/, '');
+        let editedFile = new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' });
         
         // Apply compression if enabled
         if (compressionEnabled) {
@@ -354,11 +356,15 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
             maxHeight: 2048,
             quality: 0.82,
             targetSizeKB: 800,
-            preferWebP: true,
+            preferWebP: false, // Keep JPEG to avoid extension mismatch
           }, setCompressionProgress);
           
           if (result.success && result.wasCompressed) {
-            editedFile = result.file;
+            // Ensure filename extension matches the actual file type
+            const mimeType = result.file.type;
+            const extension = mimeType === 'image/webp' ? 'webp' : 
+                             mimeType === 'image/png' ? 'png' : 'jpg';
+            editedFile = new File([result.file], `${baseName}.${extension}`, { type: mimeType });
             const savings = calculateSavings(result.originalSize, result.compressedSize);
             toast.success(`Image compressée: -${savings}% (${formatFileSize(result.compressedSize)})`);
           }
