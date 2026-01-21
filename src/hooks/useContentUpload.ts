@@ -86,18 +86,49 @@ export const useContentUpload = () => {
             console.error('Watermark error:', watermarkError);
             toast.warning('Le filigrane n\'a pas pu être ajouté, l\'image sera uploadée sans protection.');
           } else if (watermarkData?.watermarkedImage) {
-            // Convertir le base64 en blob
-            const base64Data = watermarkData.watermarkedImage.split(',')[1];
-            const byteCharacters = atob(base64Data);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            // Parse the data URL to get the actual MIME type
+            const dataUrlMatch = watermarkData.watermarkedImage.match(/^data:([^;]+);base64,(.+)$/);
+            if (dataUrlMatch) {
+              const actualMimeType = dataUrlMatch[1];
+              const base64Data = dataUrlMatch[2];
+              
+              // Decode base64 to bytes
+              const byteCharacters = atob(base64Data);
+              const byteNumbers = new Array(byteCharacters.length);
+              for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+              }
+              const byteArray = new Uint8Array(byteNumbers);
+              const blob = new Blob([byteArray], { type: actualMimeType });
+              
+              // Generate correct filename with matching extension
+              const extensionMap: Record<string, string> = {
+                'image/jpeg': 'jpg',
+                'image/png': 'png',
+                'image/webp': 'webp',
+                'image/gif': 'gif',
+              };
+              const extension = extensionMap[actualMimeType] || 'jpg';
+              const baseName = data.file.name.replace(/\.[^/.]+$/, '');
+              const newFileName = `${baseName}.${extension}`;
+              
+              fileToUpload = new File([blob], newFileName, { type: actualMimeType });
+              
+              toast.success('Filigrane ajouté pour protéger votre contenu !');
+            } else {
+              // Fallback: use original file type if data URL parsing fails
+              const base64Data = watermarkData.watermarkedImage.split(',')[1];
+              const byteCharacters = atob(base64Data);
+              const byteNumbers = new Array(byteCharacters.length);
+              for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+              }
+              const byteArray = new Uint8Array(byteNumbers);
+              const blob = new Blob([byteArray], { type: data.file.type });
+              fileToUpload = new File([blob], data.file.name, { type: data.file.type });
+              
+              toast.success('Filigrane ajouté pour protéger votre contenu !');
             }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: data.file.type });
-            fileToUpload = new File([blob], data.file.name, { type: data.file.type });
-            
-            toast.success('Filigrane ajouté pour protéger votre contenu !');
           }
         } catch (watermarkError) {
           console.error('Watermark processing error:', watermarkError);
