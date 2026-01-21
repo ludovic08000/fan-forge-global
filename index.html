@@ -141,6 +141,22 @@
     }
     </script>
     
+    <!-- SECURITY: Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: blob: https: http:;
+      media-src 'self' blob: https:;
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://ai.gateway.lovable.dev https://livekit.io wss://*.livekit.cloud https://*.r2.cloudflarestorage.com https://*.r2.dev https://pub-70ffb1b2cbbb4074b7c416e5cb63aeeb.r2.dev;
+      frame-src 'self' https://js.stripe.com https://challenges.cloudflare.com;
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+      upgrade-insecure-requests;
+    ">
+    
     <!-- Critical CSS inline for faster first paint -->
     <style>
       /* Critical CSS for above-the-fold content */
