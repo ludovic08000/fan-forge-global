@@ -439,9 +439,14 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
                       {!canViewPaidContent ? (
                         <div className="relative w-48 h-32 bg-muted rounded-lg flex items-center justify-center">
                           <Lock className="h-6 w-6 text-muted-foreground" />
-                          <Button size="sm" className="absolute bottom-2" onClick={() => handlePayForContent(message.id)}>
-                            Débloquer {message.price}€
-                          </Button>
+                          {/* Only subscriber can pay, not the creator who sent it */}
+                          {!isUserCreator ? (
+                            <Button size="sm" className="absolute bottom-2" onClick={() => handlePayForContent(message.id)}>
+                              Débloquer {message.price}€
+                            </Button>
+                          ) : (
+                            <span className="absolute bottom-2 text-xs text-muted-foreground">En attente de paiement</span>
+                          )}
                         </div>
                       ) : (
                         message.message_type === 'video' ? (
