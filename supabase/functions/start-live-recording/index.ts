@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { EgressClient } from "npm:livekit-server-sdk@2.6.1";
+import { EgressClient, EncodedFileOutput, EncodedFileType, S3Upload } from "npm:livekit-server-sdk@2.6.1";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
@@ -116,30 +116,34 @@ serve(async (req) => {
 
     console.log('[Start Live Recording] Starting room composite egress for room:', roomName);
     console.log('[Start Live Recording] Output file:', filePath);
+    console.log('[Start Live Recording] R2 bucket:', r2BucketName);
     console.log('[Start Live Recording] R2 endpoint:', `https://${r2AccountId}.r2.cloudflarestorage.com`);
 
+    // Créer la configuration S3 pour R2 avec les classes SDK v2
+    const s3Config = new S3Upload({
+      accessKey: r2AccessKeyId,
+      secret: r2SecretAccessKey,
+      bucket: r2BucketName,
+      region: 'auto',
+      endpoint: `https://${r2AccountId}.r2.cloudflarestorage.com`,
+      forcePathStyle: true,
+    });
+
+    // Créer l'output fichier avec les classes SDK v2
+    const fileOutput = new EncodedFileOutput({
+      fileType: EncodedFileType.MP4,
+      filepath: filePath,
+      disableManifest: true,
+      output: {
+        case: 's3',
+        value: s3Config,
+      },
+    });
+
     // Démarrer l'enregistrement avec Room Composite Egress vers R2
-    // Utiliser la configuration directe du proto plutôt que les classes wrapper
     const egressInfo = await egressClient.startRoomCompositeEgress(
       roomName,
-      {
-        file: {
-          fileType: 0, // MP4
-          filepath: filePath,
-          disableManifest: true,
-          output: {
-            case: 's3',
-            value: {
-              accessKey: r2AccessKeyId,
-              secret: r2SecretAccessKey,
-              bucket: r2BucketName,
-              region: 'auto',
-              endpoint: `https://${r2AccountId}.r2.cloudflarestorage.com`,
-              forcePathStyle: true,
-            },
-          },
-        },
-      },
+      { file: fileOutput },
       {
         layout: 'speaker',
         audioOnly: false,
