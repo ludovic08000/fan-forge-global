@@ -143,25 +143,26 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
         {/* Video */}
         {mediaUrl && !error && resolvedMediaType === 'video' && (
           <video
+            key={mediaUrl}
             ref={videoRef}
+            src={mediaUrl}
             controls
             autoPlay
             playsInline
-            muted={false}
-            preload="auto"
-            crossOrigin="anonymous"
+            preload="metadata"
             className={`max-w-full max-h-[85vh] rounded-lg transition-opacity ${loaded ? 'opacity-100' : 'opacity-0 absolute'}`}
+            style={{ minWidth: '300px', minHeight: '200px' }}
             onClick={(e) => e.stopPropagation()}
-            onLoadedData={() => setLoaded(true)}
-            onCanPlay={() => setLoaded(true)}
+            onLoadedMetadata={() => {
+              console.log('[MediaLightbox] Video metadata loaded');
+              setLoaded(true);
+            }}
             onError={(e) => {
-              console.error('[MediaLightbox] Video error:', e);
+              const video = e.currentTarget;
+              console.error('[MediaLightbox] Video error:', video.error?.message, video.error?.code);
               setError(true);
             }}
-          >
-            <source src={mediaUrl} type="video/mp4" />
-            Votre navigateur ne supporte pas la lecture vidéo.
-          </video>
+          />
         )}
         
         {(title || description) && loaded && (
