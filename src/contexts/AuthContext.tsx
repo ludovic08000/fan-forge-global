@@ -502,8 +502,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const signInWithGoogle = async () => {
     try {
-      // URL de redirection après authentification OAuth - vers l'espace personnel
-      const redirectUrl = `${window.location.origin}/subscriptions`;
+      // URL de redirection après authentification OAuth - vers la page de vérification d'âge
+      const redirectUrl = `${window.location.origin}/complete-profile`;
       
       // Appel à l'API Supabase pour connexion OAuth Google
       const { error } = await supabase.auth.signInWithOAuth({
@@ -530,8 +530,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const signUpWithGoogle = async () => {
     try {
-      // URL de redirection après authentification OAuth - vers l'espace personnel
-      const redirectUrl = `${window.location.origin}/subscriptions`;
+      // URL de redirection après authentification OAuth - vers la page de vérification d'âge
+      const redirectUrl = `${window.location.origin}/complete-profile`;
       
       // Appel à l'API Supabase pour inscription OAuth Google
       const { error } = await supabase.auth.signInWithOAuth({
