@@ -1,6 +1,7 @@
 import { ReactNode, useMemo } from 'react';
 import { useContentProtection } from '@/hooks/useContentProtection';
 import { useAuth } from '@/contexts/AuthContext';
+import { ShieldAlert } from 'lucide-react';
 
 interface ProtectedMediaProps {
   children: ReactNode;
@@ -42,6 +43,7 @@ const generateForensicPattern = (userId: string, timestamp: number): string => {
  * - Watermark forensique avec ID utilisateur pour tracer les fuites
  * - Protection contre le clic droit, drag-drop, sélection
  * - Styles CSS anti-capture
+ * - Flou automatique lors de perte de focus (anti-capture)
  */
 export const ProtectedMedia = ({ 
   children, 
@@ -53,8 +55,8 @@ export const ProtectedMedia = ({
 }: ProtectedMediaProps) => {
   const { user } = useAuth();
   
-  // Activer la protection clavier si demandé
-  useContentProtection(enableKeyboardProtection);
+  // Activer la protection clavier et récupérer l'état de flou
+  const { isBlurred } = useContentProtection(enableKeyboardProtection);
 
   // Générer le watermark forensique unique pour cet utilisateur
   const forensicData = useMemo(() => {
@@ -91,14 +93,28 @@ export const ProtectedMedia = ({
     >
       {/* Contenu média avec styles de protection */}
       <div 
-        className="protected-media-content relative z-5"
+        className="protected-media-content relative z-5 transition-all duration-300"
+        style={{
+          filter: isBlurred ? 'blur(30px) brightness(0.5)' : 'none',
+        }}
         onContextMenu={(e) => e.preventDefault()}
         onDragStart={(e) => e.preventDefault()}
       >
         {children}
       </div>
+
+      {/* Overlay de protection quand flou activé */}
+      {isBlurred && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="text-center text-white p-6">
+            <ShieldAlert className="h-12 w-12 mx-auto mb-3 text-primary" />
+            <p className="text-lg font-semibold">Contenu protégé</p>
+            <p className="text-sm text-white/70 mt-1">Revenez sur cette page pour voir le contenu</p>
+          </div>
+        </div>
+      )}
       
-      {/* Overlay invisible pour bloquer clic droit et drag seulement - z-index plus bas pour ne pas bloquer les clics */}
+      {/* Overlay invisible pour bloquer clic droit et drag seulement */}
       <div 
         className="absolute inset-0 z-[1]"
         style={{ 
@@ -127,7 +143,7 @@ export const ProtectedMedia = ({
       />
 
       {/* Watermark forensique avec ID utilisateur - Très subtil mais traçable */}
-      {forensicData && (
+      {forensicData && !isBlurred && (
         <div className="absolute inset-0 pointer-events-none z-25 overflow-hidden">
           {/* Pattern de watermarks distribués */}
           {forensicData.positions.map((pos, index) => (
@@ -204,7 +220,7 @@ export const ProtectedMedia = ({
       )}
       
       {/* Filigrane textuel du créateur si fourni */}
-      {watermarkText && (
+      {watermarkText && !isBlurred && (
         <div 
           className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 overflow-hidden"
         >
