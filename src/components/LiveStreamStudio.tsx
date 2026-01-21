@@ -708,6 +708,15 @@ export const LiveStreamStudio = () => {
             {/* Overlay infos live */}
             {isLive && (
               <div className="absolute top-3 right-3 flex flex-col gap-2">
+                {/* Timer avec limite 20 min */}
+                <LiveTimer 
+                  startedAt={currentStream?.started_at}
+                  maxDuration={20}
+                  onMaxDurationReached={handleStopLive}
+                  variant={currentStream?.started_at && 
+                    (Date.now() - new Date(currentStream.started_at).getTime()) > 15 * 60 * 1000 
+                      ? 'warning' : 'default'}
+                />
                 <div className="bg-black/70 text-white px-3 py-1 rounded-full flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   <span>{connectedViewers}</span>
@@ -998,9 +1007,18 @@ export const LiveStreamStudio = () => {
                 </div>
               )}
               
-              {/* Compteur de spectateurs LiveKit */}
+              {/* Timer et compteur de spectateurs LiveKit */}
               {isLive && (
                 <div className="absolute top-4 right-4 flex items-center gap-2">
+                  {/* Timer avec limite 20 min */}
+                  <LiveTimer 
+                    startedAt={currentStream?.started_at}
+                    maxDuration={20}
+                    onMaxDurationReached={handleStopLive}
+                    variant={currentStream?.started_at && 
+                      (Date.now() - new Date(currentStream.started_at).getTime()) > 15 * 60 * 1000 
+                        ? 'warning' : 'default'}
+                  />
                   <div className="bg-black/70 text-white px-3 py-1 rounded-full flex items-center gap-2">
                     <Users className="h-4 w-4" />
                     <span>{connectedViewers}</span>
