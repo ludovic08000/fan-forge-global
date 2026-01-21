@@ -9,17 +9,26 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
 // Bouton de test Sentry - À SUPPRIMER après vérification
-const SentryTestButton = () => (
-  <Button
-    variant="destructive"
-    className="fixed bottom-4 right-4 z-50"
-    onClick={() => {
+const SentryTestButton = () => {
+  const handleTestError = () => {
+    try {
       throw new Error("This is your first Sentry error!");
-    }}
-  >
-    🔴 Test Sentry Error
-  </Button>
-);
+    } catch (error) {
+      Sentry.captureException(error);
+      alert("✅ Erreur envoyée à Sentry! Vérifiez votre dashboard.");
+    }
+  };
+
+  return (
+    <Button
+      variant="destructive"
+      className="fixed bottom-4 right-4 z-50"
+      onClick={handleTestError}
+    >
+      🔴 Test Sentry Error
+    </Button>
+  );
+};
 
 const Index = () => {
   const { user } = useAuth();
