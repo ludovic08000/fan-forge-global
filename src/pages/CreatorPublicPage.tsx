@@ -316,7 +316,7 @@ const CreatorPublicPage = () => {
   const handleLikeContent = async (contentId: string, showAnimation = true) => {
     if (!user) {
       toast.info('Connectez-vous pour liker');
-      navigate('/auth');
+      navigate('/login');
       return;
     }
 
@@ -521,7 +521,7 @@ const CreatorPublicPage = () => {
                     </Button>
                   )
                 ) : (
-                  <Link to="/auth">
+                  <Link to="/login">
                     <Button size="lg" variant="premium">
                       <Crown className="h-4 w-4 mr-2" />
                       S'abonner - {creator.subscription_price}€/mois
