@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ContentCard from '@/components/ContentCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useContent } from '@/hooks/useContent';
 
@@ -17,33 +17,23 @@ export const OptimizedContentGallery = ({
   contentType,
   pageSize = 12,
 }: OptimizedContentGalleryProps) => {
-  const [content, setContent] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [page, setPage] = useState(0);
+  const queryClient = useQueryClient();
+  const { isContentLiked, likeMutation } = useContent();
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const { isContentLiked, likeMutation } = useContent();
 
-  const handleLike = (contentId: string) => {
-    likeMutation.mutate(contentId);
-  };
+  // Query key unique pour cette galerie
+  const queryKey = ['gallery-content', creatorId, contentType];
 
-  const fetchContent = useCallback(async (pageNum: number, append = false) => {
-    try {
-      if (append) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
-      }
-
+  const { data: content = [], isLoading } = useQuery({
+    queryKey,
+    queryFn: async () => {
       let query = supabase
         .from('content')
         .select('*, creator:creator_id(stage_name, user_id)')
         .eq('status', 'published')
         .order('created_at', { ascending: false })
-        .range(pageNum * pageSize, (pageNum + 1) * pageSize - 1);
+        .limit(pageSize);
 
       if (creatorId) {
         query = query.eq('creator_id', creatorId);
@@ -54,55 +44,29 @@ export const OptimizedContentGallery = ({
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000, // 30 secondes
+  });
 
-      if (append) {
-        setContent((prev) => [...prev, ...(data || [])]);
-      } else {
-        setContent(data || []);
+  const handleLike = useCallback((contentId: string) => {
+    likeMutation.mutate(contentId, {
+      onSuccess: (result) => {
+        // Mise à jour optimiste du cache local de la galerie
+        queryClient.setQueryData(queryKey, (oldData: any[] | undefined) => {
+          if (!oldData) return oldData;
+          return oldData.map(item => 
+            item.id === result.contentId 
+              ? { ...item, like_count: result.like_count }
+              : item
+          );
+        });
       }
+    });
+  }, [likeMutation, queryClient, queryKey]);
 
-      setHasMore((data?.length || 0) === pageSize);
-    } catch (error) {
-      console.error('Error fetching content:', error);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [creatorId, contentType, pageSize]);
-
-  useEffect(() => {
-    fetchContent(0, false);
-  }, [fetchContent]);
-
-  // Intersection Observer pour infinite scroll
-  useEffect(() => {
-    if (!hasMore || loadingMore) return;
-
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          const nextPage = page + 1;
-          setPage(nextPage);
-          fetchContent(nextPage, true);
-        }
-      },
-      { threshold: 0.5 }
-    );
-
-    if (loadMoreRef.current) {
-      observerRef.current.observe(loadMoreRef.current);
-    }
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [hasMore, loadingMore, page, fetchContent]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="grid gap-1.5 grid-cols-3">
         {Array.from({ length: 9 }).map((_, i) => (
@@ -134,24 +98,6 @@ export const OptimizedContentGallery = ({
           />
         ))}
       </div>
-
-      {/* Infinite scroll trigger */}
-      {hasMore && (
-        <div ref={loadMoreRef} className="flex justify-center py-8">
-          {loadingMore && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Chargement...</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {!hasMore && content.length > 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          Vous avez tout vu !
-        </div>
-      )}
     </div>
   );
 };
