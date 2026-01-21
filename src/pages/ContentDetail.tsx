@@ -59,9 +59,9 @@ const ContentDetail: React.FC = () => {
           .single();
 
         if (creatorData) {
-          // Fetch profile manually to avoid relation issues
+          // Fetch profile via public view for security (no sensitive data)
           const { data: profileData } = await supabase
-            .from('profiles')
+            .from('public_creator_profiles')
             .select('username, display_name, avatar_url')
             .eq('user_id', creatorData.user_id)
             .single();
