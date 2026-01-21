@@ -49,6 +49,9 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
 
   const loadCodes = async () => {
     try {
+      // First, cleanup expired codes
+      await supabase.functions.invoke('cleanup-expired-codes');
+      
       const { data, error } = await supabase
         .from('referral_codes')
         .select('*')
@@ -56,7 +59,15 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setCodes(data || []);
+      
+      // Filter out expired codes locally as well (in case cleanup hasn't run yet)
+      const now = new Date();
+      const validCodes = (data || []).filter(code => {
+        if (!code.expires_at) return true;
+        return new Date(code.expires_at) > now;
+      });
+      
+      setCodes(validCodes);
     } catch (error) {
       console.error('Error loading referral codes:', error);
       toast.error('Erreur lors du chargement des codes');
