@@ -16,7 +16,7 @@ import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
 import SEOHead from '@/components/SEOHead';
 import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { useContentProtection } from '@/hooks/useContentProtection';
-import { VideoPreviewCard } from '@/components/VideoPreviewCard';
+import { SecureVideoPreviewCard } from '@/components/SecureVideoPreviewCard';
 
 const CreatorPublicPage = () => {
   const { username } = useParams<{ username: string }>();
@@ -580,11 +580,13 @@ const CreatorPublicPage = () => {
                     }}
                   >
                     {item.content_type === 'video' ? (
-                      <VideoPreviewCard
+                      <SecureVideoPreviewCard
                         src={item.file_url}
+                        contentId={item.id}
                         poster={item.thumbnail_url && item.thumbnail_url !== item.file_url ? item.thumbnail_url : null}
                         className="w-full h-full"
                         showPlayButton={true}
+                        isPremium={false}
                       />
                     ) : (
                       <OptimizedImage
@@ -653,12 +655,14 @@ const CreatorPublicPage = () => {
                     }}
                   >
                     {item.content_type === 'video' ? (
-                      <VideoPreviewCard
+                      <SecureVideoPreviewCard
                         src={item.file_url}
+                        contentId={item.id}
                         poster={item.thumbnail_url && item.thumbnail_url !== item.file_url ? item.thumbnail_url : null}
                         className="w-full h-full"
                         blurred={!isSubscribed}
                         showPlayButton={isSubscribed}
+                        isPremium={true}
                       />
                     ) : (
                       <OptimizedImage
