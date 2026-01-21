@@ -523,7 +523,17 @@ const CreatorPublicPage = () => {
                       </AlertDialog>
                     </div>
                   ) : (
-                    <Button size="lg" variant="premium" onClick={handleSubscribe}>
+                    <Button 
+                      size="lg" 
+                      variant="premium" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('[BUTTON] Subscribe button clicked!');
+                        handleSubscribe();
+                      }}
+                      style={{ position: 'relative', zIndex: 100 }}
+                    >
                       <Crown className="h-4 w-4 mr-2" />
                       {creator.subscription_price > 0 ? `S'abonner - ${creator.subscription_price}€/mois` : "S'abonner gratuitement"}
                     </Button>
@@ -743,16 +753,18 @@ const CreatorPublicPage = () => {
         )}
       </div>
 
-      {/* Checkout Embedded Dialog - Rendu en dehors du flux principal */}
-      {/* DEBUG: showCheckout = {String(showCheckout)} */}
-      <Dialog open={showCheckout} onOpenChange={(open) => {
-        console.log('[DIALOG] onOpenChange called with:', open);
-        setShowCheckout(open);
-      }}>
+      {/* Checkout Embedded Dialog */}
+      <Dialog 
+        open={showCheckout} 
+        onOpenChange={(open) => {
+          console.log('[DIALOG] onOpenChange:', open);
+          setShowCheckout(open);
+        }}
+        modal={true}
+      >
         <DialogContent 
-          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          className="max-w-2xl max-h-[90vh] overflow-y-auto z-[10000]"
           aria-describedby="checkout-description"
-          style={{ pointerEvents: 'auto' }}
         >
           <DialogHeader>
             <DialogTitle>
