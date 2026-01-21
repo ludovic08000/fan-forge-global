@@ -40,8 +40,26 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
       setIsLoading(true);
       console.log('[EmbeddedCheckout] Fetching checkout session with referralCode:', referralCode);
       
-      // Récupérer le token CSRF
-      const csrfToken = await generateToken();
+      // Récupérer le token CSRF - attendre qu'il soit disponible
+      let csrfToken = await generateToken();
+      
+      // Retry si pas de token
+      if (!csrfToken) {
+        console.log('[EmbeddedCheckout] No CSRF token, retrying...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        csrfToken = await generateToken();
+      }
+      
+      if (!csrfToken) {
+        throw new Error('Impossible de générer le token de sécurité. Veuillez vous reconnecter.');
+      }
+      
+      console.log('[EmbeddedCheckout] CSRF token obtained');
+      
+      const session = await supabase.auth.getSession();
+      if (!session.data.session?.access_token) {
+        throw new Error('Session expirée. Veuillez vous reconnecter.');
+      }
       
       const { data, error } = await supabase.functions.invoke('create-creator-checkout', {
         body: { 
@@ -49,15 +67,14 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
           referralCode: referralCode || undefined,
           csrfToken
         },
-        headers: {
-          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-        },
       });
 
       if (error) throw error;
       if (data.clientSecret) {
         console.log('[EmbeddedCheckout] Got clientSecret');
         setClientSecret(decodeSecret(data.clientSecret));
+      } else if (data.error) {
+        throw new Error(data.error);
       } else {
         throw new Error('Aucun clientSecret reçu');
       }

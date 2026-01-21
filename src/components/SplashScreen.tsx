@@ -10,16 +10,22 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   const [phase, setPhase] = useState<'reveal' | 'text' | 'tagline' | 'exit'>('reveal');
 
   useEffect(() => {
-    const textTimer = setTimeout(() => setPhase('text'), 1500);
-    const taglineTimer = setTimeout(() => setPhase('tagline'), 3000);
-    const exitTimer = setTimeout(() => setPhase('exit'), 4000);
+    // Reduced timing for better UX
+    const textTimer = setTimeout(() => setPhase('text'), 800);
+    const taglineTimer = setTimeout(() => setPhase('tagline'), 1600);
+    const exitTimer = setTimeout(() => setPhase('exit'), 2200);
+    // Call onComplete after exit animation duration (0.8s = 800ms)
+    const completeTimer = setTimeout(() => {
+      onComplete();
+    }, 3000);
 
     return () => {
       clearTimeout(textTimer);
       clearTimeout(taglineTimer);
       clearTimeout(exitTimer);
+      clearTimeout(completeTimer);
     };
-  }, []);
+  }, [onComplete]);
 
   const letters = ['C', 'r', 'u', 'b'];
   const showText = phase === 'text' || phase === 'tagline' || phase === 'exit';
