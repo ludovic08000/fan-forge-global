@@ -1600,6 +1600,69 @@ export type Database = {
         }
         Relationships: []
       }
+      quarantine_files: {
+        Row: {
+          created_at: string
+          expires_at: string
+          file_size: number
+          id: string
+          mime_type: string | null
+          original_filename: string
+          quarantined_at: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          scan_id: string | null
+          scan_result: Json | null
+          status: string
+          storage_path: string
+          threat_details: string | null
+          threat_type: string | null
+          updated_at: string
+          uploader_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          file_size: number
+          id?: string
+          mime_type?: string | null
+          original_filename: string
+          quarantined_at?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scan_id?: string | null
+          scan_result?: Json | null
+          status?: string
+          storage_path: string
+          threat_details?: string | null
+          threat_type?: string | null
+          updated_at?: string
+          uploader_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          file_size?: number
+          id?: string
+          mime_type?: string | null
+          original_filename?: string
+          quarantined_at?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          scan_id?: string | null
+          scan_result?: Json | null
+          status?: string
+          storage_path?: string
+          threat_details?: string | null
+          threat_type?: string | null
+          updated_at?: string
+          uploader_id?: string | null
+        }
+        Relationships: []
+      }
       rate_limit_logs: {
         Row: {
           created_at: string
@@ -2315,6 +2378,7 @@ export type Database = {
         }[]
       }
       cleanup_expired_otp_codes: { Args: never; Returns: undefined }
+      cleanup_expired_quarantine: { Args: never; Returns: number }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       cleanup_paused_creators: { Args: never; Returns: number }
