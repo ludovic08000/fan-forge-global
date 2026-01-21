@@ -42,8 +42,8 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
             transition: { duration: 0.8, ease: [0.4, 0, 0.2, 1] }
           }}
         >
-          {/* Background gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black via-black/50 to-black pointer-events-none z-10" />
+          {/* Background gradient overlay - plus léger */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40 pointer-events-none z-10" />
           
           {/* Split portrait image with reveal animation */}
           <motion.div
@@ -65,16 +65,16 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
                   alt="" 
                   className="w-full h-full object-cover object-top"
                   style={{ 
-                    filter: 'brightness(0.9) contrast(1.1)',
+                    filter: 'brightness(1.1) contrast(1.05)',
                   }}
                 />
               </motion.div>
               
-              {/* Vignette overlay */}
+              {/* Vignette overlay - beaucoup plus subtile */}
               <div 
                 className="absolute inset-0 pointer-events-none"
                 style={{
-                  background: 'radial-gradient(ellipse at center, transparent 30%, black 100%)',
+                  background: 'radial-gradient(ellipse at center, transparent 60%, black/30 100%)',
                 }}
               />
             </div>
@@ -163,11 +163,11 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
             </motion.div>
           </div>
 
-          {/* Top gradient fade */}
-          <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-black to-transparent z-10" />
+          {/* Top gradient fade - plus léger */}
+          <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/60 to-transparent z-10" />
           
-          {/* Bottom gradient fade */}
-          <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-black via-black/90 to-transparent z-10" />
+          {/* Bottom gradient fade - plus léger */}
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/70 via-black/30 to-transparent z-10" />
 
           {/* Subtle corner accents */}
           <motion.div
