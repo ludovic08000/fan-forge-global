@@ -166,27 +166,19 @@ const CreatorPublicPage = () => {
   }, [user?.id, creator?.id, isSubscribed]); // Utiliser des IDs stables
 
   const handleSubscribe = async () => {
-    console.log('[CreatorPublicPage] handleSubscribe called', { user: !!user, creator: !!creator, price: creator?.subscription_price });
-    
     if (!user) {
       toast.info('Connectez-vous pour vous abonner');
       navigate('/login');
       return;
     }
 
-    if (!creator) {
-      console.log('[CreatorPublicPage] No creator found');
-      return;
-    }
+    if (!creator) return;
 
-    // Vérifier si le prix est défini et > 0
     const price = creator.subscription_price ?? 0;
-    console.log('[CreatorPublicPage] Price check:', price, 'Opening checkout:', price > 0);
 
     if (price <= 0) {
       // Abonnement gratuit
       try {
-        // Vérifier s'il existe déjà un abonnement (même annulé)
         const { data: existingSub } = await supabase
           .from('subscriptions')
           .select('id, status')
@@ -199,7 +191,6 @@ const CreatorPublicPage = () => {
             toast.error('Vous êtes déjà abonné à ce créateur');
             return;
           }
-          // Réactiver l'abonnement existant
           const { error } = await supabase
             .from('subscriptions')
             .update({ status: 'active', updated_at: new Date().toISOString() })
@@ -207,7 +198,6 @@ const CreatorPublicPage = () => {
 
           if (error) throw error;
         } else {
-          // Créer un nouvel abonnement
           const { error } = await supabase
             .from('subscriptions')
             .insert({
@@ -227,7 +217,6 @@ const CreatorPublicPage = () => {
       }
     } else {
       // Abonnement payant - ouvrir le checkout embedded
-      console.log('[CreatorPublicPage] Opening checkout dialog');
       setShowCheckout(true);
     }
   };
@@ -749,11 +738,8 @@ const CreatorPublicPage = () => {
       </div>
 
       {/* Checkout Embedded Dialog */}
-      <Dialog open={showCheckout} onOpenChange={(open) => {
-        console.log('[CreatorPublicPage] Dialog onOpenChange:', open);
-        setShowCheckout(open);
-      }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto z-[100]" aria-describedby="checkout-description">
+      <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="checkout-description">
           <DialogHeader>
             <DialogTitle>
               Abonnement à {creator?.stage_name || 'ce créateur'}
@@ -762,7 +748,13 @@ const CreatorPublicPage = () => {
               Complétez votre paiement pour accéder au contenu premium
             </p>
           </DialogHeader>
-          {creator && <EmbeddedCheckout creatorId={creator.id} onClose={() => setShowCheckout(false)} preloadedSecret={preloadedSecret} />}
+          {creator && showCheckout && (
+            <EmbeddedCheckout 
+              creatorId={creator.id} 
+              onClose={() => setShowCheckout(false)} 
+              preloadedSecret={preloadedSecret} 
+            />
+          )}
         </DialogContent>
       </Dialog>
 
