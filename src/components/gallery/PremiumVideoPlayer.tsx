@@ -43,6 +43,7 @@ export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [hoverPosition, setHoverPosition] = useState(0);
   const [showVolumeToast, setShowVolumeToast] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
   
   const hideControlsTimeout = useRef<ReturnType<typeof setTimeout>>();
   const doubleTapTimeout = useRef<ReturnType<typeof setTimeout>>();
@@ -357,6 +358,24 @@ export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
         setHoverTime(null);
       }}
     >
+      {/* Video Error State */}
+      {videoError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-20 p-6">
+          <div className="text-red-400 mb-4">
+            <svg className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <p className="text-white text-center font-medium mb-2">Impossible de lire cette vidéo</p>
+          <p className="text-gray-400 text-center text-sm max-w-xs">
+            {src.toLowerCase().includes('.mov') 
+              ? 'Le format MOV n\'est pas supporté sur Windows/Android. Essayez depuis un iPhone ou Mac.'
+              : 'Format vidéo non supporté par votre navigateur.'
+            }
+          </p>
+        </div>
+      )}
+
       {/* Video */}
       <video
         ref={videoRef}
@@ -370,6 +389,18 @@ export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
         controlsList="nodownload noplaybackrate"
         disablePictureInPicture={false}
         onContextMenu={(e) => e.preventDefault()}
+        onError={(e) => {
+          console.error('Video error:', e);
+          const isMov = src.toLowerCase().includes('.mov');
+          const isWindows = navigator.userAgent.includes('Windows');
+          const isAndroid = navigator.userAgent.includes('Android');
+          if (isMov && (isWindows || isAndroid)) {
+            setVideoError('Format MOV non supporté sur ce navigateur');
+          } else {
+            setVideoError('Erreur de lecture vidéo');
+          }
+          setIsLoading(false);
+        }}
       />
 
       {/* Click overlay for play/pause & double-tap skip - excludes bottom controls area */}
