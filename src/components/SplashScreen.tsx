@@ -65,7 +65,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
                   alt="" 
                   className="w-full h-full object-cover object-top"
                   style={{ 
-                    filter: 'brightness(1.1) contrast(1.05)',
+                    filter: 'brightness(1.35) contrast(1.1) saturate(1.1)',
                   }}
                 />
               </motion.div>
