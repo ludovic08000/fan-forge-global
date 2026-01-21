@@ -202,7 +202,7 @@ const CreatorSettings: React.FC = () => {
         <Button 
           type="submit" 
           disabled={saving}
-          className="w-full"
+          size="sm"
         >
           <Save className="h-4 w-4 mr-2" />
           {saving ? 'Sauvegarde...' : 'Enregistrer'}
