@@ -209,10 +209,10 @@ const ContentCard: React.FC<ContentCardProps> = ({
       </div>
       </ProtectedMedia>
 
-      {/* Mode compact : overlay avec stats au hover, pas de CardContent */}
-      {compact ? (
+      {/* Mode compact : overlay avec stats toujours visible */}
+      {compact && (
         <div 
-          className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-2 pointer-events-none"
+          className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6"
         >
           <div className="flex items-center justify-between w-full text-white text-xs">
             <div className="flex items-center gap-3">
@@ -229,13 +229,16 @@ const ContentCard: React.FC<ContentCardProps> = ({
               variant="ghost"
               size="icon"
               onClick={handleLike}
-              className={`h-7 w-7 pointer-events-auto ${isLiked ? 'text-red-500 hover:text-red-600' : 'text-white hover:text-red-400'}`}
+              className={`h-7 w-7 ${isLiked ? 'text-red-500 hover:text-red-600' : 'text-white hover:text-red-400 hover:bg-white/20'}`}
             >
               <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
             </Button>
           </div>
         </div>
-      ) : (
+      )}
+
+      {/* Mode normal avec CardContent et CardFooter */}
+      {!compact && (
         <>
           <CardContent className="p-4">
             {/* Creator Info */}
