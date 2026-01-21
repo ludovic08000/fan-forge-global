@@ -23,8 +23,9 @@ import { z } from 'zod';
 import { VideoEditor } from '@/components/video-editor';
 import { VideoEditSettings } from '@/hooks/useVideoEditor';
 
-// Lazy load PhotoEditor
+// Lazy load editors
 const PhotoEditor = lazy(() => import('@/components/PhotoEditor'));
+const MediaPreviewEditor = lazy(() => import('@/components/MediaPreviewEditor'));
 
 interface ContentUploadProps {
   onUploadComplete?: () => void;
@@ -52,12 +53,12 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const [virusScanStatus, setVirusScanStatus] = useState<'idle' | 'scanning' | 'clean' | 'infected' | 'skipped'>('idle');
   const [moderationStatus, setModerationStatus] = useState<'idle' | 'moderating' | 'approved' | 'review' | 'rejected'>('idle');
   
-  // Video editor state
+  // Video editor state (legacy)
   const [showVideoEditor, setShowVideoEditor] = useState(false);
   const [videoEditSettings, setVideoEditSettings] = useState<VideoEditSettings | null>(null);
   const [coverBlob, setCoverBlob] = useState<Blob | null>(null);
 
-  // Photo editor state
+  // Photo editor state (legacy)
   const [showPhotoEditor, setShowPhotoEditor] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [processedImageInfo, setProcessedImageInfo] = useState<ProcessedImage | null>(null);
@@ -66,6 +67,11 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   // Video transcoding state
   const [isTranscoding, setIsTranscoding] = useState(false);
   const [transcodingProgress, setTranscodingProgress] = useState<TranscodingProgress | null>(null);
+
+  // NEW: Media preview editor (Instagram-like automatic opening)
+  const [showMediaPreviewEditor, setShowMediaPreviewEditor] = useState(false);
+  const [rawFileForEditor, setRawFileForEditor] = useState<File | null>(null);
+  const [thumbnailBlob, setThumbnailBlob] = useState<Blob | null>(null);
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -121,42 +127,10 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
         });
       }
 
-      // Process image: strip EXIF, resize, convert to WebP
-      if (file.type.startsWith('image/') && file.type !== 'image/gif') {
-        setIsProcessingImage(true);
-        toast.info('Optimisation de l\'image...', { duration: 3000 });
-        
-        try {
-          const processed = await processImageForUpload(file);
-          setProcessedImageInfo(processed);
-          setSelectedFile(processed.file);
-          
-          // Show optimization info
-          const savedBytes = processed.originalSize - processed.processedSize;
-          const savedPercent = Math.round((savedBytes / processed.originalSize) * 100);
-          
-          if (savedBytes > 0) {
-            toast.success(`Image optimisée!`, {
-              description: `${savedPercent}% plus léger • EXIF supprimé • ${processed.format.split('/')[1].toUpperCase()}`
-            });
-          } else {
-            toast.success('Métadonnées EXIF supprimées');
-          }
-          
-          // Create preview from processed file
-          const url = URL.createObjectURL(processed.file);
-          setPreviewUrl(url);
-        } catch (processError) {
-          console.error('Image processing error:', processError);
-          // Continue with original file
-          setSelectedFile(file);
-          const url = URL.createObjectURL(file);
-          setPreviewUrl(url);
-        } finally {
-          setIsProcessingImage(false);
-        }
-      } else if (file.type.startsWith('video/')) {
-        // Vérifier si la vidéo nécessite une conversion
+      // Handle video transcoding if needed
+      let fileToEdit = file;
+      
+      if (file.type.startsWith('video/')) {
         if (needsTranscoding(file)) {
           setIsTranscoding(true);
           toast.info('Conversion vidéo en cours...', { 
@@ -172,10 +146,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
           setTranscodingProgress(null);
           
           if (result.success) {
-            setSelectedFile(result.file);
-            const url = URL.createObjectURL(result.file);
-            setPreviewUrl(url);
-            
+            fileToEdit = result.file;
             if (result.wasConverted) {
               toast.success('Vidéo convertie!', {
                 description: `${result.originalFormat} → ${result.file.type}`
@@ -191,44 +162,12 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
             }
             return;
           }
-        } else {
-          setSelectedFile(file);
-          const url = URL.createObjectURL(file);
-          setPreviewUrl(url);
         }
-      } else {
-        setSelectedFile(file);
-        const url = URL.createObjectURL(file);
-        setPreviewUrl(url);
       }
 
-      // Modération IA du contenu (images uniquement)
-      if (file.type.startsWith('image/')) {
-        setModerationStatus('moderating');
-        toast.info('Analyse IA en cours...', { duration: 10000 });
-        
-        const modResult = await moderateContent(file);
-        
-        if (modResult) {
-          if (modResult.recommendation === 'reject') {
-            setModerationStatus('rejected');
-            setSelectedFile(null);
-            setPreviewUrl('');
-            if (fileInputRef.current) {
-              fileInputRef.current.value = '';
-            }
-            return;
-          } else if (modResult.recommendation === 'manual_review') {
-            setModerationStatus('review');
-          } else {
-            setModerationStatus('approved');
-            toast.success('Contenu approuvé par l\'IA');
-          }
-        }
-      } else {
-        // Vidéos passent en review manuelle
-        setModerationStatus('review');
-      }
+      // NEW: Open the media preview editor automatically (Instagram-like)
+      setRawFileForEditor(fileToEdit);
+      setShowMediaPreviewEditor(true);
 
     } catch (error) {
       console.error('Erreur de validation:', error);
@@ -236,6 +175,87 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
       setValidationStatus('error');
       setVirusScanStatus('idle');
       setModerationStatus('idle');
+    }
+  };
+
+  // Handle confirmation from MediaPreviewEditor
+  const handleMediaEditorConfirm = async (editedFile: File, thumbnail?: Blob) => {
+    setShowMediaPreviewEditor(false);
+    setRawFileForEditor(null);
+    
+    // Process image: strip EXIF, resize, etc. (if not already processed in editor)
+    if (editedFile.type.startsWith('image/') && editedFile.type !== 'image/gif') {
+      setIsProcessingImage(true);
+      
+      try {
+        const processed = await processImageForUpload(editedFile);
+        setProcessedImageInfo(processed);
+        setSelectedFile(processed.file);
+        
+        const savedBytes = processed.originalSize - processed.processedSize;
+        const savedPercent = Math.round((savedBytes / processed.originalSize) * 100);
+        
+        if (savedBytes > 0) {
+          toast.success(`Image optimisée!`, {
+            description: `${savedPercent}% plus léger • EXIF supprimé • ${processed.format.split('/')[1].toUpperCase()}`
+          });
+        }
+        
+        const url = URL.createObjectURL(processed.file);
+        setPreviewUrl(url);
+      } catch (processError) {
+        console.error('Image processing error:', processError);
+        setSelectedFile(editedFile);
+        const url = URL.createObjectURL(editedFile);
+        setPreviewUrl(url);
+      } finally {
+        setIsProcessingImage(false);
+      }
+    } else {
+      setSelectedFile(editedFile);
+      const url = URL.createObjectURL(editedFile);
+      setPreviewUrl(url);
+      
+      if (thumbnail) {
+        setThumbnailBlob(thumbnail);
+      }
+    }
+
+    // Run AI moderation on images
+    if (editedFile.type.startsWith('image/')) {
+      setModerationStatus('moderating');
+      toast.info('Analyse IA en cours...', { duration: 10000 });
+      
+      const modResult = await moderateContent(editedFile);
+      
+      if (modResult) {
+        if (modResult.recommendation === 'reject') {
+          setModerationStatus('rejected');
+          setSelectedFile(null);
+          setPreviewUrl('');
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+          return;
+        } else if (modResult.recommendation === 'manual_review') {
+          setModerationStatus('review');
+        } else {
+          setModerationStatus('approved');
+          toast.success('Contenu approuvé par l\'IA');
+        }
+      }
+    } else {
+      // Vidéos passent en review manuelle
+      setModerationStatus('review');
+    }
+  };
+
+  // Handle cancel from MediaPreviewEditor
+  const handleMediaEditorCancel = () => {
+    setShowMediaPreviewEditor(false);
+    setRawFileForEditor(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -747,7 +767,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
           </DialogContent>
         </Dialog>
 
-        {/* Photo Editor */}
+        {/* Photo Editor (legacy - for editing after upload) */}
         {isImage && previewUrl && (
           <Suspense fallback={null}>
             <PhotoEditor
@@ -755,6 +775,21 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
               onClose={() => setShowPhotoEditor(false)}
               imageUrl={previewUrl}
               onSave={handlePhotoEditorSave}
+            />
+          </Suspense>
+        )}
+
+        {/* NEW: Media Preview Editor - Opens automatically like Instagram */}
+        {rawFileForEditor && (
+          <Suspense fallback={
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-white" />
+            </div>
+          }>
+            <MediaPreviewEditor
+              file={rawFileForEditor}
+              onConfirm={handleMediaEditorConfirm}
+              onCancel={handleMediaEditorCancel}
             />
           </Suspense>
         )}
