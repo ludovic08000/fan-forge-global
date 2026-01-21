@@ -10,8 +10,6 @@ import {
   Eye, 
   Lock, 
   Play,
-  Download,
-  Share2,
   Calendar
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -111,18 +109,6 @@ const ContentDetail: React.FC = () => {
     }
   };
 
-  const handleShare = async () => {
-    try {
-      await navigator.share({
-        title: content?.title,
-        url: window.location.href
-      });
-    } catch {
-      await navigator.clipboard.writeText(window.location.href);
-      toast.success('Lien copié !');
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background pt-16 flex items-center justify-center">
@@ -173,12 +159,6 @@ const ContentDetail: React.FC = () => {
             <ArrowLeft className="h-4 w-4" />
             Retour
           </Button>
-          
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={handleShare}>
-              <Share2 className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
       </div>
 
@@ -276,10 +256,6 @@ const ContentDetail: React.FC = () => {
               >
                 <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
                 {isLiked ? 'Liké' : 'Liker'}
-              </Button>
-              <Button variant="outline" onClick={handleShare} className="gap-2">
-                <Share2 className="h-4 w-4" />
-                Partager
               </Button>
             </div>
           </div>
