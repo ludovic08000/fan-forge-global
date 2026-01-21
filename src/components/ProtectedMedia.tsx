@@ -91,13 +91,18 @@ export const ProtectedMedia = ({
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      {/* Contenu média avec styles de protection */}
+      {/* Contenu média avec styles de protection - laisser les boutons cliquables */}
       <div 
         className="protected-media-content relative z-5 transition-all duration-300"
         style={{
           filter: isBlurred ? 'blur(30px) brightness(0.5)' : 'none',
         }}
-        onContextMenu={(e) => e.preventDefault()}
+        onContextMenu={(e) => {
+          // Ne pas bloquer les boutons
+          const target = e.target as HTMLElement;
+          if (target?.tagName === 'BUTTON' || target?.closest('button')) return;
+          e.preventDefault();
+        }}
         onDragStart={(e) => e.preventDefault()}
       >
         {children}

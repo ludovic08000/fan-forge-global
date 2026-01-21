@@ -74,6 +74,11 @@ export const useContentProtection = (enabled: boolean = true) => {
       if (targetNode instanceof HTMLElement) el = targetNode;
       else if ((targetNode as any)?.parentElement) el = (targetNode as any).parentElement as HTMLElement;
 
+      // Ne pas bloquer les boutons et les éléments interactifs
+      if (el?.tagName === 'BUTTON' || el?.closest('button') || el?.closest('[role="dialog"]') || el?.closest('[data-radix-portal]')) {
+        return;
+      }
+
       const isMedia = el?.tagName === 'IMG' || el?.tagName === 'VIDEO';
       const isInsideMedia = el instanceof Element && (!!el.closest('video') || !!el.closest('img'));
       const isProtected = !!el?.classList && el.classList.contains('protected-content');
