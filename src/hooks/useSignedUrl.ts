@@ -1,17 +1,53 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { getSessionAsync } from './useSessionPreload';
 
 interface SignedUrlCache {
   url: string;
-  expiresAt: Date;
+  expiresAt: number;
 }
 
 // Cache global pour les URLs signées
 const urlCache = new Map<string, SignedUrlCache>();
 
+// Pending requests to deduplicate
+const pendingRequests = new Map<string, Promise<string | null>>();
+
 /**
- * Hook pour obtenir des URLs signées avec expiration pour le contenu protégé
+ * Extraire le chemin du fichier depuis l'URL
+ */
+const extractFilePath = (url: string): string | null => {
+  try {
+    const match = url.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)/);
+    if (match) return match[2];
+    
+    const urlObj = new URL(url);
+    const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/sign\/([^/]+)\/(.+)/);
+    if (pathMatch) return pathMatch[2];
+
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Vérifier le cache
+ */
+const getCachedUrl = (cacheKey: string): string | null => {
+  const cached = urlCache.get(cacheKey);
+  if (cached) {
+    const now = Date.now();
+    if (now < cached.expiresAt - 300000) {
+      return cached.url;
+    }
+    urlCache.delete(cacheKey);
+  }
+  return null;
+};
+
+/**
+ * Hook optimisé pour URLs signées Supabase
  */
 export const useSignedUrl = (
   originalUrl: string | undefined | null,
@@ -21,146 +57,131 @@ export const useSignedUrl = (
     enabled?: boolean;
   }
 ) => {
-  const { user } = useAuth();
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const bucket = options?.bucket || 'content';
   const contentId = options?.contentId;
   const enabled = options?.enabled !== false;
-
-  /**
-   * Extraire le chemin du fichier depuis l'URL publique
-   */
-  const extractFilePath = useCallback((url: string): string | null => {
-    try {
-      // Format: https://xxx.supabase.co/storage/v1/object/public/bucket/path/to/file
-      const match = url.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)/);
-      if (match) {
-        return match[2]; // Retourne le chemin après le bucket
-      }
-      
-      // Si c'est déjà une URL signée, extraire le chemin
-      const urlObj = new URL(url);
-      const pathMatch = urlObj.pathname.match(/\/storage\/v1\/object\/sign\/([^/]+)\/(.+)/);
-      if (pathMatch) {
-        return pathMatch[2];
-      }
-
-      return null;
-    } catch {
-      return null;
-    }
-  }, []);
-
-  /**
-   * Vérifier si l'URL en cache est encore valide
-   */
-  const getCachedUrl = useCallback((cacheKey: string): string | null => {
-    const cached = urlCache.get(cacheKey);
-    if (cached) {
-      // Vérifier si l'URL n'a pas expiré (avec 5 minutes de marge)
-      const now = new Date();
-      const expiresWithMargin = new Date(cached.expiresAt.getTime() - 5 * 60 * 1000);
-      
-      if (now < expiresWithMargin) {
-        return cached.url;
-      }
-      
-      // URL expirée, la supprimer du cache
-      urlCache.delete(cacheKey);
-    }
-    return null;
-  }, []);
-
-  /**
-   * Obtenir une URL signée
-   */
-  const fetchSignedUrl = useCallback(async () => {
-    if (!originalUrl || !user || !enabled) {
-      setSignedUrl(originalUrl || null);
-      return;
-    }
-
-    const filePath = extractFilePath(originalUrl);
-    if (!filePath) {
-      // Si on ne peut pas extraire le chemin, utiliser l'URL originale
-      setSignedUrl(originalUrl);
-      return;
-    }
-
-    const cacheKey = `${bucket}:${filePath}`;
-    
-    // Vérifier le cache
-    const cachedUrl = getCachedUrl(cacheKey);
-    if (cachedUrl) {
-      setSignedUrl(cachedUrl);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const session = await supabase.auth.getSession();
-      if (!session.data.session) {
-        throw new Error('No active session');
-      }
-
-      const { data, error: fnError } = await supabase.functions.invoke('get-signed-url', {
-        body: { 
-          filePath, 
-          bucket,
-          contentId 
-        },
-        headers: {
-          Authorization: `Bearer ${session.data.session.access_token}`,
-        },
-      });
-
-      if (fnError) {
-        throw fnError;
-      }
-
-      if (data?.signedUrl) {
-        // Mettre en cache
-        urlCache.set(cacheKey, {
-          url: data.signedUrl,
-          expiresAt: new Date(data.expiresAt)
-        });
-        
-        setSignedUrl(data.signedUrl);
-      } else {
-        // Fallback à l'URL originale
-        setSignedUrl(originalUrl);
-      }
-    } catch (err: any) {
-      console.error('Error fetching signed URL:', err);
-      setError(err.message);
-      // En cas d'erreur, utiliser l'URL originale
-      setSignedUrl(originalUrl);
-    } finally {
-      setLoading(false);
-    }
-  }, [originalUrl, user, enabled, bucket, contentId, extractFilePath, getCachedUrl]);
+  
+  const filePath = useMemo(() => 
+    originalUrl ? extractFilePath(originalUrl) : null,
+    [originalUrl]
+  );
+  
+  const cacheKey = useMemo(() => 
+    filePath ? `${bucket}:${filePath}` : null,
+    [bucket, filePath]
+  );
+  
+  const cachedUrl = useMemo(() => 
+    cacheKey ? getCachedUrl(cacheKey) : null,
+    [cacheKey]
+  );
+  
+  const [signedUrl, setSignedUrl] = useState<string | null>(() => {
+    if (!originalUrl || !enabled) return originalUrl || null;
+    return cachedUrl || null;
+  });
+  
+  const [loading, setLoading] = useState(() => enabled && !!originalUrl && !cachedUrl);
+  const [error, setError] = useState<string | null>(null);
+  
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    fetchSignedUrl();
-  }, [fetchSignedUrl]);
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
-  /**
-   * Rafraîchir manuellement l'URL signée
-   */
+  useEffect(() => {
+    if (!originalUrl || !enabled) {
+      setSignedUrl(originalUrl || null);
+      setLoading(false);
+      return;
+    }
+
+    if (!filePath) {
+      setSignedUrl(originalUrl);
+      setLoading(false);
+      return;
+    }
+
+    if (cachedUrl) {
+      setSignedUrl(cachedUrl);
+      setLoading(false);
+      return;
+    }
+
+    const fetchUrl = async () => {
+      const session = await getSessionAsync();
+      
+      if (!session) {
+        if (mountedRef.current) {
+          setError('Auth required');
+          setSignedUrl(originalUrl);
+          setLoading(false);
+        }
+        return;
+      }
+
+      const key = `${bucket}:${filePath}`;
+      
+      const cached = getCachedUrl(key);
+      if (cached) {
+        if (mountedRef.current) {
+          setSignedUrl(cached);
+          setLoading(false);
+        }
+        return;
+      }
+
+      let pending = pendingRequests.get(key);
+      if (!pending) {
+        pending = (async () => {
+          try {
+            const { data, error: fnError } = await supabase.functions.invoke('get-signed-url', {
+              body: { filePath, bucket, contentId },
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+
+            if (fnError) throw fnError;
+
+            if (data?.signedUrl) {
+              urlCache.set(key, {
+                url: data.signedUrl,
+                expiresAt: new Date(data.expiresAt).getTime(),
+              });
+              return data.signedUrl;
+            }
+            return null;
+          } catch (err) {
+            console.error('[useSignedUrl] Error:', err);
+            return null;
+          } finally {
+            pendingRequests.delete(key);
+          }
+        })();
+        pendingRequests.set(key, pending);
+      }
+
+      const signed = await pending;
+      
+      if (mountedRef.current) {
+        setSignedUrl(signed || originalUrl);
+        setLoading(false);
+      }
+    };
+
+    setLoading(true);
+    fetchUrl();
+  }, [originalUrl, enabled, filePath, cachedUrl, bucket, contentId]);
+
   const refresh = useCallback(() => {
     if (originalUrl) {
-      const filePath = extractFilePath(originalUrl);
-      if (filePath) {
-        urlCache.delete(`${bucket}:${filePath}`);
+      const path = extractFilePath(originalUrl);
+      if (path) {
+        urlCache.delete(`${bucket}:${path}`);
       }
     }
-    fetchSignedUrl();
-  }, [originalUrl, bucket, extractFilePath, fetchSignedUrl]);
+  }, [originalUrl, bucket]);
 
   return {
     signedUrl,
@@ -172,7 +193,7 @@ export const useSignedUrl = (
 };
 
 /**
- * Fonction utilitaire pour obtenir une URL signée de manière ponctuelle
+ * Fonction utilitaire pour obtenir une URL signée
  */
 export const getSignedUrl = async (
   filePath: string,

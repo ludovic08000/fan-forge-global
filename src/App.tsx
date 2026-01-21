@@ -21,6 +21,10 @@ import CookieConsent from "@/components/CookieConsent";
 import { MessageNotificationProvider } from "@/components/MessageNotificationProvider";
 import SplashScreen from "@/components/SplashScreen";
 import SkipToContent from "@/components/SkipToContent";
+import { preloadSession } from "@/hooks/useSessionPreload";
+
+// Précharger la session dès le démarrage
+preloadSession();
 
 
 // Lazy loading des pages pour améliorer les performances
