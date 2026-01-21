@@ -95,8 +95,18 @@ const canvasToFile = async (
     canvas.toBlob(
       (blob) => {
         if (blob) {
-          const extension = mimeType.split('/')[1];
-          const newFilename = filename.replace(/\.[^.]+$/, `.${extension}`);
+          // Map MIME type to correct file extension
+          const extensionMap: Record<string, string> = {
+            'image/jpeg': 'jpg',
+            'image/png': 'png',
+            'image/webp': 'webp',
+            'image/avif': 'avif',
+            'image/gif': 'gif',
+          };
+          const extension = extensionMap[mimeType] || mimeType.split('/')[1];
+          // Get base name without any extension
+          const baseName = filename.replace(/\.[^/.]+$/, '');
+          const newFilename = `${baseName}.${extension}`;
           resolve(new File([blob], newFilename, { type: mimeType }));
         } else {
           reject(new Error('Failed to create blob'));
@@ -220,7 +230,7 @@ export const processImageForUpload = async (file: File): Promise<ProcessedImage>
     maxWidth: 2048,
     maxHeight: 2048,
     quality: 0.85,
-    preferWebP: true,
+    preferWebP: false, // Keep JPEG to avoid extension/type mismatch during validation
     stripExif: true,
   });
 };
