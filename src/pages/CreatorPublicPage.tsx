@@ -18,6 +18,7 @@ import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { useContentProtection } from '@/hooks/useContentProtection';
 import { SecureVideoPreviewCard } from '@/components/SecureVideoPreviewCard';
 import { SecureVideoLightbox } from '@/components/SecureVideoLightbox';
+import { PublicReplays } from '@/components/live/PublicReplays';
 
 const CreatorPublicPage = () => {
   const { username } = useParams<{ username: string }>();
@@ -720,6 +721,15 @@ const CreatorPublicPage = () => {
               </div>
             )}
           </div>
+        )}
+
+        {/* Section Replays - visible par tous mais accessible aux abonnés */}
+        {creator && (
+          <PublicReplays 
+            creatorId={creator.id} 
+            isSubscribed={isSubscribed}
+            creatorName={creator.stage_name || profile?.display_name}
+          />
         )}
 
         {content.length === 0 && (
