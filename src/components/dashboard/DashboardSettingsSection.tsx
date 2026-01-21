@@ -1,9 +1,8 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, CreditCard } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
 import CreatorSettings from '@/components/CreatorSettings';
 import StripeConnectSetup from '@/components/creator/StripeConnectSetup';
-import CreatorInvoices from '@/components/creator/CreatorInvoices';
 
 interface DashboardSettingsSectionProps {
   stripeConnected: boolean;
@@ -12,7 +11,6 @@ interface DashboardSettingsSectionProps {
 
 export const DashboardSettingsSection: React.FC<DashboardSettingsSectionProps> = ({
   stripeConnected,
-  creatorId,
 }) => {
   return (
     <div className="space-y-6">
@@ -43,20 +41,6 @@ export const DashboardSettingsSection: React.FC<DashboardSettingsSectionProps> =
         </CardHeader>
         <CardContent>
           <StripeConnectSetup />
-        </CardContent>
-      </Card>
-
-      {/* Invoices */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            <CardTitle>Mes factures</CardTitle>
-          </div>
-          <CardDescription>Historique de vos paiements et factures</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CreatorInvoices creatorId={creatorId} />
         </CardContent>
       </Card>
     </div>
