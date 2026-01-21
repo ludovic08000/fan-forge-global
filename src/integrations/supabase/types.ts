@@ -50,6 +50,96 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_moderation_queue: {
+        Row: {
+          action_taken: string | null
+          admin_notes: string | null
+          ai_category: string | null
+          ai_confidence: number | null
+          ai_flags: Json | null
+          ai_issues: string[] | null
+          ai_model: string | null
+          ai_reason: string | null
+          ai_recommendation: string
+          analyzed_at: string | null
+          content_id: string | null
+          content_type: string
+          created_at: string
+          file_url: string
+          id: string
+          message_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_taken?: string | null
+          admin_notes?: string | null
+          ai_category?: string | null
+          ai_confidence?: number | null
+          ai_flags?: Json | null
+          ai_issues?: string[] | null
+          ai_model?: string | null
+          ai_reason?: string | null
+          ai_recommendation: string
+          analyzed_at?: string | null
+          content_id?: string | null
+          content_type: string
+          created_at?: string
+          file_url: string
+          id?: string
+          message_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_taken?: string | null
+          admin_notes?: string | null
+          ai_category?: string | null
+          ai_confidence?: number | null
+          ai_flags?: Json | null
+          ai_issues?: string[] | null
+          ai_model?: string | null
+          ai_reason?: string | null
+          ai_recommendation?: string
+          analyzed_at?: string | null
+          content_id?: string | null
+          content_type?: string
+          created_at?: string
+          file_url?: string
+          id?: string
+          message_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_moderation_queue_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_moderation_queue_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "private_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content: {
         Row: {
           content_type: Database["public"]["Enums"]["content_type"]
