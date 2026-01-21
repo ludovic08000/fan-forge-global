@@ -1,5 +1,4 @@
-import React, { useState, useCallback, memo, useEffect } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
+import React, { useState, useCallback, memo, useEffect, useRef } from 'react';
 import { ImageOff } from 'lucide-react';
 
 interface LazyContentImageProps {
@@ -8,18 +7,56 @@ interface LazyContentImageProps {
   className?: string;
   blurred?: boolean;
   onLoad?: () => void;
-  priority?: boolean; // Pour les images visibles immédiatement
+  priority?: boolean;
 }
 
-// Cache global des images chargées - persistant
+// Cache global des images chargées
 const loadedImagesCache = new Set<string>();
 
-// Précharger une image en background
+// Queue de préchargement avec limite de concurrence
+const preloadQueue: string[] = [];
+let activePreloads = 0;
+const MAX_CONCURRENT_PRELOADS = 4;
+
+const processPreloadQueue = () => {
+  while (preloadQueue.length > 0 && activePreloads < MAX_CONCURRENT_PRELOADS) {
+    const url = preloadQueue.shift();
+    if (url && !loadedImagesCache.has(url)) {
+      activePreloads++;
+      const img = new Image();
+      img.onload = () => {
+        loadedImagesCache.add(url);
+        activePreloads--;
+        processPreloadQueue();
+      };
+      img.onerror = () => {
+        activePreloads--;
+        processPreloadQueue();
+      };
+      img.src = url;
+    }
+  }
+};
+
+/**
+ * Précharger une image en background avec queue
+ */
 export const preloadImageFast = (url: string): void => {
-  if (!url || loadedImagesCache.has(url)) return;
-  const img = new Image();
-  img.src = url;
-  img.onload = () => loadedImagesCache.add(url);
+  if (!url || loadedImagesCache.has(url) || preloadQueue.includes(url)) return;
+  preloadQueue.push(url);
+  processPreloadQueue();
+};
+
+/**
+ * Précharger plusieurs images en batch
+ */
+export const preloadImagesBatch = (urls: string[]): void => {
+  urls.forEach(url => {
+    if (url && !loadedImagesCache.has(url) && !preloadQueue.includes(url)) {
+      preloadQueue.push(url);
+    }
+  });
+  processPreloadQueue();
 };
 
 const LazyContentImage: React.FC<LazyContentImageProps> = memo(({
@@ -33,11 +70,14 @@ const LazyContentImage: React.FC<LazyContentImageProps> = memo(({
   // Si l'image est déjà dans le cache, afficher immédiatement
   const [imageLoaded, setImageLoaded] = useState(() => loadedImagesCache.has(src));
   const [imageError, setImageError] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   // Précharger au montage si priority
   useEffect(() => {
-    if (priority && src) {
-      preloadImageFast(src);
+    if (priority && src && !loadedImagesCache.has(src)) {
+      // Pour priority, charger immédiatement sans queue
+      const img = new Image();
+      img.src = src;
     }
   }, [src, priority]);
 
@@ -51,11 +91,18 @@ const LazyContentImage: React.FC<LazyContentImageProps> = memo(({
     setImageError(true);
   }, []);
 
+  // Si déjà en cache, marquer comme chargé
+  useEffect(() => {
+    if (loadedImagesCache.has(src) && !imageLoaded) {
+      setImageLoaded(true);
+    }
+  }, [src, imageLoaded]);
+
   return (
     <div className="relative w-full h-full">
-      {/* Skeleton seulement si pas déjà en cache */}
+      {/* Placeholder minimaliste */}
       {!imageLoaded && !imageError && (
-        <div className="absolute inset-0 bg-muted animate-pulse" />
+        <div className="absolute inset-0 bg-muted" />
       )}
 
       {/* Erreur */}
@@ -65,21 +112,21 @@ const LazyContentImage: React.FC<LazyContentImageProps> = memo(({
         </div>
       )}
 
-      {/* Image - toujours rendue pour chargement immédiat */}
+      {/* Image */}
       {!imageError && (
         <img
+          ref={imgRef}
           src={src}
           alt={alt}
           loading={priority ? 'eager' : 'lazy'}
-          decoding="sync"
-          fetchPriority={priority ? 'high' : 'auto'}
+          decoding="async"
           className={`
             w-full h-full object-cover
             ${imageLoaded ? 'opacity-100' : 'opacity-0'}
             ${blurred ? 'blur-xl' : ''}
             ${className}
           `}
-          style={{ transition: 'opacity 0.15s ease-out' }}
+          style={{ transition: 'opacity 0.1s ease-out' }}
           onLoad={handleLoad}
           onError={handleError}
         />

@@ -193,7 +193,6 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
             src={secureMediaUrl}
             alt={title || 'Image'}
             decoding="sync"
-            fetchPriority="high"
             className={`max-w-full max-h-[85vh] object-contain rounded-lg transition-opacity ${loaded ? 'opacity-100' : 'opacity-0 absolute'}`}
             onClick={(e) => e.stopPropagation()}
             onLoad={() => setLoaded(true)}
@@ -216,15 +215,8 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
             className={`max-w-full max-h-[85vh] rounded-lg transition-opacity ${loaded ? 'opacity-100' : 'opacity-0 absolute'}`}
             style={{ minWidth: '300px', minHeight: '200px' }}
             onClick={(e) => e.stopPropagation()}
-            onLoadedMetadata={() => {
-              console.log('[MediaLightbox] Video metadata loaded');
-              setLoaded(true);
-            }}
-            onError={(e) => {
-              const video = e.currentTarget;
-              console.error('[MediaLightbox] Video error:', video.error?.message, video.error?.code);
-              setError(true);
-            }}
+            onLoadedMetadata={() => setLoaded(true)}
+            onError={() => setError(true)}
             onContextMenu={(e) => e.preventDefault()}
             controlsList="nodownload noplaybackrate"
             disablePictureInPicture

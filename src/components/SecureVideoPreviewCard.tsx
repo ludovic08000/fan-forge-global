@@ -43,13 +43,8 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   // Vérifier si c'est une URL publique Supabase Storage
   const isSupabasePublicUrl = src.includes('supabase.co/storage/v1/object/public/');
 
-  console.log('[SecureVideoPreviewCard] Rendering:', { 
-    src: src?.substring(0, 80), 
-    isExternalR2, 
-    isSupabasePublicUrl,
-    contentId, 
-    isPremium 
-  });
+  // Debug désactivé pour performances
+  // console.log('[SecureVideoPreviewCard] Rendering');
 
   // Hook pour URLs R2 sécurisées (Cloudflare) - utilise get-replay-url avec clés API
   const { secureUrl: r2SecureUrl, loading: r2Loading, error: r2Error } = useSecureR2Url(
@@ -72,28 +67,14 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
     }
   );
 
-  // URL sécurisée finale à utiliser
-  // Pour les URLs R2 privées, on DOIT utiliser l'URL signée S3
   const getSecureVideoUrl = (): string => {
     if (isExternalR2) {
-      // Vidéos R2 (replays) - bucket PRIVÉ, utiliser l'URL signée obligatoirement
-      if (r2Loading) {
-        console.log('[SecureVideoPreviewCard] R2 signed URL loading...');
-        return ''; // Attendre l'URL signée
-      }
-      if (r2Error) {
-        console.error('[SecureVideoPreviewCard] R2 signed URL error:', r2Error);
-        return ''; // Pas de fallback sur URL publique (bucket privé)
-      }
-      console.log('[SecureVideoPreviewCard] R2 signed URL ready:', !!r2SecureUrl);
+      if (r2Loading) return '';
+      if (r2Error) return '';
       return r2SecureUrl || '';
     } else if (isPremium && supabaseSignedUrl) {
-      // Contenu premium Supabase avec URL signée
-      console.log('[SecureVideoPreviewCard] Premium signed URL mode');
       return supabaseSignedUrl;
     }
-    // Contenu public Supabase - URL directe
-    console.log('[SecureVideoPreviewCard] Public URL mode:', src?.substring(0, 80));
     return src;
   };
 
@@ -127,25 +108,12 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
     setIsMuted(!isMuted);
   };
 
-  // Reset error state when URL changes
   useEffect(() => {
     setVideoError(false);
     setVideoLoaded(false);
     setPosterError(false);
     setPreviewReady(false);
   }, [secureVideoUrl]);
-
-  // Debug log pour comprendre les URLs
-  useEffect(() => {
-    if (isExternalR2) {
-      console.log('[SecureVideoPreviewCard] R2 URL:', {
-        original: src,
-        secure: r2SecureUrl,
-        loading: r2Loading,
-        error: r2Error
-      });
-    }
-  }, [src, r2SecureUrl, r2Loading, r2Error, isExternalR2]);
 
   return (
     <div
