@@ -11,6 +11,8 @@ import { registerSW } from 'virtual:pwa-register';
 
 // Initialiser Sentry pour le monitoring d'erreurs
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
+console.log('🔍 Sentry DSN:', sentryDsn ? 'FOUND' : 'NOT FOUND');
+
 if (sentryDsn) {
   Sentry.init({
     dsn: sentryDsn,
@@ -36,7 +38,9 @@ if (sentryDsn) {
       'ChunkLoadError',
     ],
   });
-  console.log('Sentry initialized for error monitoring');
+  console.log('✅ Sentry initialized for error monitoring');
+} else {
+  console.warn('⚠️ VITE_SENTRY_DSN not found - Sentry disabled');
 }
 
 // Enregistrer le Service Worker
