@@ -29,7 +29,7 @@ export const OptimizedContentGallery = ({
     queryFn: async () => {
       let query = supabase
         .from('content')
-        .select('*, creator:creator_id(stage_name, user_id)')
+        .select('*, creators:creator_id(stage_name, user_id)')
         .eq('status', 'published')
         .order('created_at', { ascending: false })
         .limit(pageSize);
