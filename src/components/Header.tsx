@@ -195,6 +195,13 @@ const Header = memo(() => {
                     Mon profil
                   </Link>
                   <Link 
+                    to="/messages" 
+                    className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                    onClick={closeMenu}
+                  >
+                    Messages
+                  </Link>
+                  <Link 
                     to="/subscriptions" 
                     className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
                     onClick={closeMenu}
