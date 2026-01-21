@@ -487,64 +487,61 @@ const CreatorPublicPage = () => {
               </div>
 
               <div className="flex flex-col gap-2">
-                {user ? (
-                  isSubscribed ? (
-                    <div className="flex flex-col gap-2">
-                      <Badge variant="default" className="text-base px-4 py-2">
-                        <Crown className="h-4 w-4 mr-2" />
-                        Abonné
-                      </Badge>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                            <UserMinus className="h-4 w-4 mr-2" />
-                            Se désabonner
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Confirmer le désabonnement</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Êtes-vous sûr de vouloir vous désabonner de {creator.stage_name || profile.display_name || profile.username} ? 
-                              Vous perdrez l'accès au contenu premium.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={handleUnsubscribe}
-                              disabled={unsubscribing}
-                              className="bg-destructive hover:bg-destructive/90"
-                            >
-                              {unsubscribing ? 'Désabonnement...' : 'Se désabonner'}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  ) : (
-                    <Button 
-                      size="lg" 
-                      variant="premium" 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log('[BUTTON] Subscribe button clicked!');
-                        handleSubscribe();
-                      }}
-                      style={{ position: 'relative', zIndex: 100 }}
-                    >
-                      <Crown className="h-4 w-4 mr-2" />
-                      {creator.subscription_price > 0 ? `S'abonner - ${creator.subscription_price}€/mois` : "S'abonner gratuitement"}
-                    </Button>
-                  )
-                ) : (
+                {!user ? (
                   <Link to="/login">
                     <Button size="lg" variant="premium">
                       <Crown className="h-4 w-4 mr-2" />
                       S'abonner - {creator.subscription_price}€/mois
                     </Button>
                   </Link>
+                ) : isSubscribed ? (
+                  <div className="flex flex-col gap-2">
+                    <Badge variant="default" className="text-base px-4 py-2">
+                      <Crown className="h-4 w-4 mr-2" />
+                      Abonné
+                    </Badge>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                          <UserMinus className="h-4 w-4 mr-2" />
+                          Se désabonner
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirmer le désabonnement</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Êtes-vous sûr de vouloir vous désabonner de {creator.stage_name || profile.display_name || profile.username} ? 
+                            Vous perdrez l'accès au contenu premium.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={handleUnsubscribe}
+                            disabled={unsubscribing}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            {unsubscribing ? 'Désabonnement...' : 'Se désabonner'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                ) : (
+                  <Button 
+                    size="lg" 
+                    variant="premium" 
+                    type="button"
+                    onClick={() => {
+                      console.log('[CLICK] Subscribe button clicked!');
+                      alert('Bouton cliqué!');
+                      handleSubscribe();
+                    }}
+                  >
+                    <Crown className="h-4 w-4 mr-2" />
+                    {creator.subscription_price > 0 ? `S'abonner - ${creator.subscription_price}€/mois` : "S'abonner gratuitement"}
+                  </Button>
                 )}
                 
                 {isSubscribed && (
