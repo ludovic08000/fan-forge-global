@@ -476,7 +476,7 @@ const CreatorPublicPage = () => {
 
                 <div className="flex items-center gap-6 mt-4 text-sm text-muted-foreground">
                   <span>{creator.total_subscribers} abonnés</span>
-                  <span>{content.length} contenus</span>
+                  <span>{creator.total_content || content.length} contenus</span>
                 </div>
               </div>
 
