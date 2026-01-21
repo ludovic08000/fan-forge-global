@@ -48,7 +48,10 @@ serve(async (req) => {
     // On s'intéresse aux événements d'egress
     if (event.event === 'egress_ended' && event.egressInfo) {
       const egressInfo = event.egressInfo;
-      console.log('[LiveKit Recording Webhook] Egress ended:', egressInfo.egressId, 'Status:', egressInfo.status);
+      console.log('[LiveKit Recording Webhook] Egress ended:', egressInfo.egressId);
+      console.log('[LiveKit Recording Webhook] Status:', egressInfo.status);
+      console.log('[LiveKit Recording Webhook] File results:', JSON.stringify(egressInfo.fileResults || []));
+      console.log('[LiveKit Recording Webhook] Error:', egressInfo.error || 'none');
 
       const supabaseAdmin = createClient(
         Deno.env.get("SUPABASE_URL") ?? "",
@@ -64,16 +67,21 @@ serve(async (req) => {
 
       if (streamError || !stream) {
         console.error('[LiveKit Recording Webhook] Stream not found for egress:', egressInfo.egressId);
+        console.error('[LiveKit Recording Webhook] DB error:', streamError?.message || 'No stream found');
+        // Ne pas retourner 404, juste log et continuer
         return new Response(
-          JSON.stringify({ error: 'Stream not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ success: true, warning: 'Stream not found but webhook processed' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+
+      console.log('[LiveKit Recording Webhook] Found stream:', stream.id, 'creator:', stream.creator_id);
 
       // Vérifier si l'enregistrement a réussi
       // Status: EGRESS_COMPLETE = 3
       if (egressInfo.status === 3 && egressInfo.fileResults?.length > 0) {
         const fileResult = egressInfo.fileResults[0];
+        console.log('[LiveKit Recording Webhook] File result:', JSON.stringify(fileResult));
         const duration = fileResult.duration ? Math.floor(fileResult.duration / 1000000000) : null; // nanoseconds to seconds
         const fileSize = fileResult.size || null;
         
@@ -154,14 +162,27 @@ serve(async (req) => {
             .eq('id', stream.id);
         }
       } else {
-        console.log('[LiveKit Recording Webhook] Recording failed or incomplete, status:', egressInfo.status);
+        // Status: 4 = EGRESS_FAILED, 5 = EGRESS_ABORTED
+        const statusMessages: Record<number, string> = {
+          1: 'Starting',
+          2: 'Active',
+          3: 'Completed',
+          4: 'Failed',
+          5: 'Aborted (live ended too quickly or no media)',
+          6: 'Limit reached',
+        };
+        const statusMessage = statusMessages[egressInfo.status] || `Unknown status ${egressInfo.status}`;
+        const errorDetail = egressInfo.error ? `: ${egressInfo.error}` : '';
         
-        // Marquer l'échec
+        console.log('[LiveKit Recording Webhook] Recording failed:', statusMessage, errorDetail);
+        
+        // Marquer l'échec avec détails
         await supabaseAdmin
           .from('live_streams')
           .update({ 
-            recording_error: `Recording failed with status: ${egressInfo.status}`,
-            egress_id: null
+            recording_error: `${statusMessage}${errorDetail}`,
+            egress_id: null,
+            recording_completed_at: new Date().toISOString()
           })
           .eq('id', stream.id);
       }
