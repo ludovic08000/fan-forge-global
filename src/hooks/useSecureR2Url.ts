@@ -139,10 +139,20 @@ export const useSecureR2Url = (
       return;
     }
 
-    // Si pas de session, on attend qu'elle arrive
+    // Si pas de session après un délai raisonnable, tenter quand même
+    // La session peut arriver après ou l'utilisateur peut être non-connecté
     if (!session) {
-      console.log('[useSecureR2Url] No session yet, waiting...');
-      setLoading(true);
+      console.log('[useSecureR2Url] No session, trying to get one...');
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        console.warn('[useSecureR2Url] No session available, cannot sign R2 URL');
+        setError('Authentification requise');
+        setSecureUrl(null); // URL R2 inaccessible sans signature
+        setLoading(false);
+        return;
+      }
+      setSession(data.session);
+      // La mise à jour de session va relancer fetchSecureUrl via useEffect
       return;
     }
 
