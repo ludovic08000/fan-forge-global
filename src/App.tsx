@@ -48,6 +48,7 @@ const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const Suspended = lazy(() => import("./pages/Suspended"));
 const PrivateChatPage = lazy(() => import("./pages/PrivateChatPage"));
 const CreatorChatPage = lazy(() => import("./pages/CreatorChatPage"));
+const ContentDetail = lazy(() => import("./pages/ContentDetail"));
 const Messages = lazy(() => import("./pages/Messages"));
 const VerifyOtp = lazy(() => import("./pages/VerifyOtp"));
 
@@ -119,6 +120,7 @@ const AppRoutes = () => {
           <Route path="/lives" element={<LiveStreams />} />
           <Route path="/live/:streamId" element={<WatchLive />} />
           <Route path="/creator/:userId" element={<CreatorProfile />} />
+          <Route path="/content/:contentId" element={<ContentDetail />} />
           <Route path="/install" element={<Install />} />
           {/* Pages légales */}
           <Route path="/terms" element={<TermsOfService />} />
