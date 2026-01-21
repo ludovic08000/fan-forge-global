@@ -6,6 +6,7 @@ import { useSignedUrl } from '@/hooks/useSignedUrl';
 interface SecureVideoPreviewCardProps {
   src: string;
   contentId?: string;
+  liveStreamId?: string;
   poster?: string | null;
   className?: string;
   blurred?: boolean;
@@ -21,6 +22,7 @@ interface SecureVideoPreviewCardProps {
 export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   src,
   contentId,
+  liveStreamId,
   poster,
   className = '',
   blurred = false,
@@ -51,6 +53,7 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
     isExternalR2 ? src : null,
     {
       contentId,
+      liveStreamId,
       enabled: isExternalR2
     }
   );

@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import SecureVideoPreviewCard from '@/components/SecureVideoPreviewCard';
+import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
 
 interface Replay {
   id: string;
@@ -184,6 +185,7 @@ export const CreatorReplays = () => {
                 <div className="aspect-video relative">
                   <SecureVideoPreviewCard
                     src={replay.recording_url}
+                    liveStreamId={replay.id}
                     poster={replay.thumbnail_url}
                     isPremium={replay.is_premium}
                     className="w-full h-full"
@@ -239,37 +241,68 @@ export const CreatorReplays = () => {
           </div>
         )}
 
-        {/* Modal lecture (simple pour l'instant) */}
+        {/* Modal lecture avec URL sécurisée */}
         {selectedReplay && (
-          <div 
-            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-            onClick={() => setSelectedReplay(null)}
-          >
-            <div className="max-w-4xl w-full" onClick={e => e.stopPropagation()}>
-              <video
-                src={selectedReplay.recording_url}
-                controls
-                autoPlay
-                className="w-full rounded-lg"
-              />
-              <div className="mt-4 text-white">
-                <h3 className="text-xl font-bold">{selectedReplay.title}</h3>
-                {selectedReplay.description && (
-                  <p className="text-white/70 mt-1">{selectedReplay.description}</p>
-                )}
-              </div>
-              <Button 
-                variant="outline" 
-                className="mt-4"
-                onClick={() => setSelectedReplay(null)}
-              >
-                Fermer
-              </Button>
-            </div>
-          </div>
+          <ReplayModal 
+            replay={selectedReplay} 
+            onClose={() => setSelectedReplay(null)} 
+          />
         )}
       </CardContent>
     </Card>
+  );
+};
+
+/**
+ * Modal de lecture avec URL sécurisée
+ */
+const ReplayModal = ({ replay, onClose }: { replay: Replay; onClose: () => void }) => {
+  const isR2 = isR2Url(replay.recording_url);
+  
+  const { secureUrl, loading } = useSecureR2Url(
+    isR2 ? replay.recording_url : null,
+    { liveStreamId: replay.id, enabled: isR2 }
+  );
+  
+  const videoUrl = isR2 ? secureUrl : replay.recording_url;
+  
+  return (
+    <div 
+      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div className="max-w-4xl w-full" onClick={e => e.stopPropagation()}>
+        {loading ? (
+          <div className="aspect-video flex items-center justify-center bg-black rounded-lg">
+            <Loader2 className="h-8 w-8 animate-spin text-white" />
+          </div>
+        ) : videoUrl ? (
+          <video
+            src={videoUrl}
+            controls
+            autoPlay
+            className="w-full rounded-lg"
+          />
+        ) : (
+          <div className="aspect-video flex items-center justify-center bg-black rounded-lg text-white">
+            Erreur de chargement
+          </div>
+        )}
+        <div className="mt-4 text-white">
+          <h3 className="text-xl font-bold">{replay.title}</h3>
+          {replay.description && (
+            <p className="text-white/70 mt-1">{replay.description}</p>
+          )}
+        </div>
+        <Button 
+          variant="outline" 
+          className="mt-4"
+          onClick={onClose}
+        >
+          Fermer
+        </Button>
+      </div>
+    </div>
   );
 };
 

@@ -133,49 +133,15 @@ serve(async (req) => {
     const userId = authResult.userId!;
     console.log("[get-replay-url] User authenticated:", userId);
 
-    const { contentId } = await req.json();
+    const { contentId, liveStreamId, filePath: clientFilePath } = await req.json();
     
-    // SECURITY: contentId is now REQUIRED - we fetch filePath from DB
-    if (!contentId) {
-      return new Response(
-        JSON.stringify({ error: "contentId is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // SECURITY: Get the content from DB to retrieve the ACTUAL file_url
-    const { data: content, error: contentError } = await supabaseAdmin
-      .from("content")
-      .select("id, file_url, creator_id, is_premium, tags")
-      .eq("id", contentId)
-      .single();
-
-    if (contentError || !content) {
-      console.error("[get-replay-url] Content not found:", contentError);
-      return new Response(
-        JSON.stringify({ error: "Content not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // SECURITY: Validate this is actually a replay
-    const isReplay = content.tags?.includes('replay');
-    const filePath = content.file_url;
-
-    // Additional validation: file path should match expected R2 pattern
-    if (!filePath.includes('replays/') && !isReplay) {
-      console.error("[get-replay-url] Content is not a replay:", contentId);
-      return new Response(
-        JSON.stringify({ error: "Content is not a replay" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Access control checks
+    let filePath: string;
+    let creatorId: string;
+    let isPremium = false;
     let hasAccess = false;
 
     // Check if user is admin
@@ -190,37 +156,114 @@ serve(async (req) => {
       hasAccess = true;
     }
 
-    // Check content ownership
-    if (!hasAccess) {
-      const { data: creator } = await supabaseAdmin
-        .from("creators")
-        .select("id, user_id")
-        .eq("id", content.creator_id)
+    // Route 1: Live stream replay (liveStreamId provided)
+    if (liveStreamId) {
+      console.log("[get-replay-url] Fetching live stream replay:", liveStreamId);
+      
+      const { data: liveStream, error: liveError } = await supabaseAdmin
+        .from("live_streams")
+        .select("id, recording_url, creator_id, is_premium")
+        .eq("id", liveStreamId)
         .single();
 
-      if (creator?.user_id === userId) {
-        hasAccess = true;
+      if (liveError || !liveStream || !liveStream.recording_url) {
+        console.error("[get-replay-url] Live stream not found:", liveError);
+        return new Response(
+          JSON.stringify({ error: "Replay not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
-      // Check subscription for premium content
-      if (!hasAccess && content.is_premium) {
-        const { data: subscription } = await supabaseAdmin
-          .from("subscriptions")
-          .select("id")
-          .eq("subscriber_id", userId)
-          .eq("creator_id", content.creator_id)
-          .eq("status", "active")
-          .maybeSingle();
+      filePath = liveStream.recording_url;
+      creatorId = liveStream.creator_id;
+      isPremium = liveStream.is_premium || false;
 
-        if (subscription) {
+      // Access control for live streams
+      if (!hasAccess) {
+        const { data: creator } = await supabaseAdmin
+          .from("creators")
+          .select("user_id")
+          .eq("id", creatorId)
+          .single();
+
+        if (creator?.user_id === userId) {
+          hasAccess = true;
+        }
+
+        if (!hasAccess && isPremium) {
+          const { data: subscription } = await supabaseAdmin
+            .from("subscriptions")
+            .select("id")
+            .eq("subscriber_id", userId)
+            .eq("creator_id", creatorId)
+            .eq("status", "active")
+            .maybeSingle();
+
+          if (subscription) hasAccess = true;
+        }
+
+        if (!hasAccess && !isPremium) {
           hasAccess = true;
         }
       }
+    }
+    // Route 2: Content-based replay (contentId provided)
+    else if (contentId) {
+      console.log("[get-replay-url] Fetching content replay:", contentId);
+      
+      const { data: content, error: contentError } = await supabaseAdmin
+        .from("content")
+        .select("id, file_url, creator_id, is_premium, tags")
+        .eq("id", contentId)
+        .single();
 
-      // Allow access to non-premium content
-      if (!hasAccess && !content.is_premium) {
-        hasAccess = true;
+      if (contentError || !content) {
+        console.error("[get-replay-url] Content not found:", contentError);
+        return new Response(
+          JSON.stringify({ error: "Content not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
+
+      filePath = content.file_url;
+      creatorId = content.creator_id;
+      isPremium = content.is_premium || false;
+
+      // Access control for content
+      if (!hasAccess) {
+        const { data: creator } = await supabaseAdmin
+          .from("creators")
+          .select("user_id")
+          .eq("id", creatorId)
+          .single();
+
+        if (creator?.user_id === userId) {
+          hasAccess = true;
+        }
+
+        if (!hasAccess && isPremium) {
+          const { data: subscription } = await supabaseAdmin
+            .from("subscriptions")
+            .select("id")
+            .eq("subscriber_id", userId)
+            .eq("creator_id", creatorId)
+            .eq("status", "active")
+            .maybeSingle();
+
+          if (subscription) hasAccess = true;
+        }
+
+        if (!hasAccess && !isPremium) {
+          hasAccess = true;
+        }
+      }
+    }
+    // No valid identifier provided
+    else {
+      return new Response(
+        JSON.stringify({ error: "contentId or liveStreamId is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     if (!hasAccess) {

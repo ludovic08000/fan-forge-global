@@ -69,10 +69,12 @@ export const useSecureR2Url = (
   originalUrl: string | undefined | null,
   options?: {
     contentId?: string;
+    liveStreamId?: string;
     enabled?: boolean;
   }
 ) => {
   const contentId = options?.contentId;
+  const liveStreamId = options?.liveStreamId;
   const enabled = options?.enabled !== false;
   
   // Check if R2 URL synchronously to avoid unnecessary state updates
@@ -169,7 +171,7 @@ export const useSecureR2Url = (
         pending = (async () => {
           try {
             const { data, error: fnError } = await supabase.functions.invoke('get-replay-url', {
-              body: { filePath, contentId },
+              body: { filePath, contentId, liveStreamId },
               headers: { Authorization: `Bearer ${session.access_token}` },
             });
 
@@ -203,7 +205,7 @@ export const useSecureR2Url = (
 
     setLoading(true);
     fetchUrl();
-  }, [originalUrl, enabled, isR2, filePath, cachedUrl, contentId]);
+  }, [originalUrl, enabled, isR2, filePath, cachedUrl, contentId, liveStreamId]);
 
   const refresh = useCallback(async () => {
     if (originalUrl) {
