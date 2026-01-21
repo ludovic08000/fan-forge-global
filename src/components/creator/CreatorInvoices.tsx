@@ -491,32 +491,39 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
     if (invoiceRef.current) {
       const printWindow = window.open('', '_blank');
       if (printWindow) {
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Facture ${selectedInvoice?.invoice_number}</title>
-            <style>
-              body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
-              .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
-              .invoice-title { font-size: 28px; font-weight: bold; color: #333; }
-              .invoice-number { color: #666; margin-top: 8px; }
-              .section { margin-bottom: 24px; }
-              .section-title { font-weight: bold; margin-bottom: 8px; color: #333; }
-              .table { width: 100%; border-collapse: collapse; margin-top: 24px; }
-              .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-              .table th { background: #f5f5f5; font-weight: bold; }
-              .text-right { text-align: right; }
-              .total-row { font-weight: bold; background: #f0f9ff; }
-              .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; }
-            </style>
-          </head>
-          <body>
-            ${invoiceRef.current.innerHTML}
-          </body>
-          </html>
-        `);
-        printWindow.document.close();
+        // SECURITY: Build document safely without innerHTML/document.write XSS risk
+        const invoiceContent = invoiceRef.current.cloneNode(true) as HTMLElement;
+        
+        // Create the print document structure
+        const printDoc = printWindow.document;
+        printDoc.open();
+        printDoc.write('<!DOCTYPE html><html><head></head><body></body></html>');
+        printDoc.close();
+        
+        // Set title safely
+        printDoc.title = `Facture ${selectedInvoice?.invoice_number || ''}`;
+        
+        // Add styles safely via DOM API
+        const style = printDoc.createElement('style');
+        style.textContent = `
+          body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
+          .invoice-title { font-size: 28px; font-weight: bold; color: #333; }
+          .invoice-number { color: #666; margin-top: 8px; }
+          .section { margin-bottom: 24px; }
+          .section-title { font-weight: bold; margin-bottom: 8px; color: #333; }
+          .table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+          .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+          .table th { background: #f5f5f5; font-weight: bold; }
+          .text-right { text-align: right; }
+          .total-row { font-weight: bold; background: #f0f9ff; }
+          .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #666; }
+        `;
+        printDoc.head.appendChild(style);
+        
+        // Append cloned content safely (no innerHTML)
+        printDoc.body.appendChild(invoiceContent);
+        
         printWindow.print();
       }
     }
