@@ -13,7 +13,7 @@ import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { supabase } from '@/integrations/supabase/client';
 import { preloadImage } from '@/components/ImageLightbox';
 import LazyContentImage, { preloadImageFast } from '@/components/LazyContentImage';
-import { VideoPreviewCard } from '@/components/VideoPreviewCard';
+import { SecureVideoPreviewCard } from '@/components/SecureVideoPreviewCard';
 
 interface ContentCardProps {
   content: Content;
@@ -181,12 +181,14 @@ const ContentCard: React.FC<ContentCardProps> = ({
 
         {/* Media - chargement optimisé */}
         {content.content_type === 'video' ? (
-          <VideoPreviewCard
+          <SecureVideoPreviewCard
             src={videoUrl}
+            contentId={content.id}
             poster={content.thumbnail_url ? content.thumbnail_url + cacheBuster : undefined}
             className="w-full h-full"
             blurred={shouldBlur}
             showPlayButton={!shouldBlur}
+            isPremium={content.is_premium}
           />
         ) : (
           <LazyContentImage
