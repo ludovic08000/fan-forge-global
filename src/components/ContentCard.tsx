@@ -19,6 +19,7 @@ interface ContentCardProps {
   onLike?: (contentId: string) => void;
   isLiked?: boolean;
   showCreatorInfo?: boolean;
+  compact?: boolean;
   onOpenFreeImage?: (content: Content) => void;
   onOpenFreeVideo?: (content: Content) => void;
 }
@@ -28,6 +29,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
   onLike, 
   isLiked = false,
   showCreatorInfo = true,
+  compact = false,
   onOpenFreeImage,
   onOpenFreeVideo,
 }) => {
@@ -60,7 +62,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
   const handleContentClick = () => {
     if (content.is_premium && !user) {
       toast.info('Connectez-vous pour voir ce contenu premium');
-      navigate('/auth');
+      navigate('/login');
       return;
     }
 
@@ -89,7 +91,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
     e.stopPropagation();
     if (!user) {
       toast.info('Connectez-vous pour liker ce contenu');
-      navigate('/auth');
+      navigate('/login');
       return;
     }
     onLike?.(content.id);
@@ -133,7 +135,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
 
   return (
     <Card 
-      className="group cursor-pointer hover:shadow-lg transition-all duration-300 overflow-hidden"
+      className={`group cursor-pointer hover:shadow-lg transition-all duration-300 overflow-hidden ${compact ? 'relative' : ''}`}
       onMouseEnter={handleMouseEnter}
     >
       {/* Media Container */}
@@ -207,74 +209,104 @@ const ContentCard: React.FC<ContentCardProps> = ({
       </div>
       </ProtectedMedia>
 
-      <CardContent className="p-4">
-        {/* Creator Info */}
-        {showCreatorInfo && (
-          <div className="flex items-center space-x-3 mb-3">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={content.creators?.profiles?.avatar_url || ''} />
-              <AvatarFallback>{creatorInitials}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{creatorName}</p>
-              <p className="text-xs text-muted-foreground">{formatDate(content.created_at)}</p>
+      {/* Mode compact : overlay avec stats au hover, pas de CardContent */}
+      {compact ? (
+        <div 
+          className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-2 pointer-events-none"
+        >
+          <div className="flex items-center justify-between w-full text-white text-xs">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1">
+                <Heart className={`h-3.5 w-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                {content.like_count}
+              </span>
+              <span className="flex items-center gap-1">
+                <Eye className="h-3.5 w-3.5" />
+                {content.view_count}
+              </span>
             </div>
-          </div>
-        )}
-
-        {/* Content Info */}
-        <div className="space-y-2">
-          <h3 className="font-medium line-clamp-2 leading-tight">
-            {content.title}
-          </h3>
-          
-          {content.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {content.description}
-            </p>
-          )}
-
-          {/* Price */}
-          {content.is_premium && content.price > 0 && (
-            <div className="flex items-center space-x-1 text-primary">
-              <Euro className="h-4 w-4" />
-              <span className="font-medium">{formatPrice(content.price)}</span>
-            </div>
-          )}
-        </div>
-      </CardContent>
-
-      <CardFooter className="p-4 pt-0">
-        {/* Stats & Actions */}
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-            <div className="flex items-center space-x-1">
-              <Eye className="h-4 w-4" />
-              <span>{content.view_count}</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <Heart className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-              <span>{content.like_count}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
-              size="sm"
+              size="icon"
               onClick={handleLike}
-              className={isLiked ? 'text-red-500 hover:text-red-600' : ''}
+              className={`h-7 w-7 pointer-events-auto ${isLiked ? 'text-red-500 hover:text-red-600' : 'text-white hover:text-red-400'}`}
             >
               <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
             </Button>
-            
-            <ReportContentDialog 
-              contentId={content.id} 
-              contentTitle={content.title}
-            />
           </div>
         </div>
-      </CardFooter>
+      ) : (
+        <>
+          <CardContent className="p-4">
+            {/* Creator Info */}
+            {showCreatorInfo && (
+              <div className="flex items-center space-x-3 mb-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={content.creators?.profiles?.avatar_url || ''} />
+                  <AvatarFallback>{creatorInitials}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{creatorName}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(content.created_at)}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Content Info */}
+            <div className="space-y-2">
+              <h3 className="font-medium line-clamp-2 leading-tight">
+                {content.title}
+              </h3>
+              
+              {content.description && (
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {content.description}
+                </p>
+              )}
+
+              {/* Price */}
+              {content.is_premium && content.price > 0 && (
+                <div className="flex items-center space-x-1 text-primary">
+                  <Euro className="h-4 w-4" />
+                  <span className="font-medium">{formatPrice(content.price)}</span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+
+          <CardFooter className="p-4 pt-0">
+            {/* Stats & Actions */}
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                <div className="flex items-center space-x-1">
+                  <Eye className="h-4 w-4" />
+                  <span>{content.view_count}</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Heart className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                  <span>{content.like_count}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLike}
+                  className={isLiked ? 'text-red-500 hover:text-red-600' : ''}
+                >
+                  <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+                </Button>
+                
+                <ReportContentDialog 
+                  contentId={content.id} 
+                  contentTitle={content.title}
+                />
+              </div>
+            </div>
+          </CardFooter>
+        </>
+      )}
     </Card>
   );
 };

@@ -163,13 +163,41 @@ export const useContent = () => {
 
       if (error) throw error;
       
-      return data as { liked: boolean; like_count: number };
+      return { ...data as { liked: boolean; like_count: number }, contentId };
+    },
+    onMutate: async (contentId: string) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['contents'] });
+      await queryClient.cancelQueries({ queryKey: ['user-likes'] });
+      await queryClient.cancelQueries({ queryKey: ['creator-content'] });
+      
+      // Snapshot the previous value
+      const previousLikes = queryClient.getQueryData<string[]>(['user-likes']);
+      const isCurrentlyLiked = previousLikes?.includes(contentId);
+      
+      // Optimistically update likes
+      if (isCurrentlyLiked) {
+        queryClient.setQueryData<string[]>(['user-likes'], (old) => 
+          old?.filter(id => id !== contentId) || []
+        );
+      } else {
+        queryClient.setQueryData<string[]>(['user-likes'], (old) => 
+          [...(old || []), contentId]
+        );
+      }
+      
+      return { previousLikes, isCurrentlyLiked };
     },
     onSuccess: (data) => {
+      // Force refetch to get accurate counts from server
       queryClient.invalidateQueries({ queryKey: ['contents'] });
-      queryClient.invalidateQueries({ queryKey: ['user-likes'] });
+      queryClient.invalidateQueries({ queryKey: ['creator-content'] });
     },
-    onError: (error: any) => {
+    onError: (error: any, _contentId, context) => {
+      // Rollback on error
+      if (context?.previousLikes) {
+        queryClient.setQueryData(['user-likes'], context.previousLikes);
+      }
       toast.error('Erreur lors du like : ' + error.message);
     }
   });

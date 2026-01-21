@@ -130,7 +130,7 @@ const CreatorProfile: React.FC = () => {
   const handleFollow = async () => {
     if (!user || !creator) {
       toast.info('Connectez-vous pour suivre ce créateur');
-      navigate('/auth');
+      navigate('/login');
       return;
     }
 
@@ -163,7 +163,7 @@ const CreatorProfile: React.FC = () => {
   const handleSubscribe = async () => {
     if (!user) {
       toast.info('Connectez-vous pour vous abonner');
-      navigate('/auth');
+      navigate('/login');
       return;
     }
 
