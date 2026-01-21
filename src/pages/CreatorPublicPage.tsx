@@ -17,6 +17,7 @@ import SEOHead from '@/components/SEOHead';
 import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { useContentProtection } from '@/hooks/useContentProtection';
 import { SecureVideoPreviewCard } from '@/components/SecureVideoPreviewCard';
+import { SecureVideoLightbox } from '@/components/SecureVideoLightbox';
 
 const CreatorPublicPage = () => {
   const { username } = useParams<{ username: string }>();
@@ -785,15 +786,13 @@ const CreatorPublicPage = () => {
             {/* Média - Double-clic pour liker */}
             <div className="relative" onDoubleClick={() => handleLikeContent(selectedImage.id)}>
               {selectedImage.content_type === 'video' ? (
-                <video
+                <SecureVideoLightbox
                   src={selectedImage.file_url}
-                  controls
-                  autoPlay
+                  contentId={selectedImage.id}
+                  isPremium={selectedImage.is_premium}
                   className="max-w-full max-h-[80vh] object-contain rounded-lg"
-                  playsInline
-                  controlsList="nodownload noplaybackrate"
-                  disablePictureInPicture
-                  onContextMenu={(e) => e.preventDefault()}
+                  autoPlay
+                  controls
                 />
               ) : (
                 <OptimizedImage
