@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Upload, Image, Video, X, Shield, AlertTriangle, Bug, CheckCircle, XCircle, Clock, Brain, Scissors, Palette, Loader2, Sparkles } from 'lucide-react';
+import { Upload, Image, Video, X, Shield, AlertTriangle, Bug, CheckCircle, XCircle, Clock, Brain, Scissors, Palette, Loader2, Sparkles, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useContentUpload } from '@/hooks/useContentUpload';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { contentUploadSchema } from '@/lib/validations';
 import { validateFile } from '@/lib/fileValidation';
 import { processImageForUpload, ProcessedImage } from '@/lib/imageProcessing';
+import { needsTranscoding, transcodeVideo, TranscodingProgress } from '@/lib/videoTranscoding';
 import { z } from 'zod';
 import { VideoEditor } from '@/components/video-editor';
 import { VideoEditSettings } from '@/hooks/useVideoEditor';
@@ -62,6 +63,9 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const [processedImageInfo, setProcessedImageInfo] = useState<ProcessedImage | null>(null);
   const [editedImageDataUrl, setEditedImageDataUrl] = useState<string | null>(null);
 
+  // Video transcoding state
+  const [isTranscoding, setIsTranscoding] = useState(false);
+  const [transcodingProgress, setTranscodingProgress] = useState<TranscodingProgress | null>(null);
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -151,18 +155,51 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
         } finally {
           setIsProcessingImage(false);
         }
+      } else if (file.type.startsWith('video/')) {
+        // Vérifier si la vidéo nécessite une conversion
+        if (needsTranscoding(file)) {
+          setIsTranscoding(true);
+          toast.info('Conversion vidéo en cours...', { 
+            description: 'Le format MOV sera converti en format compatible.', 
+            duration: 30000 
+          });
+          
+          const result = await transcodeVideo(file, (progress) => {
+            setTranscodingProgress(progress);
+          });
+          
+          setIsTranscoding(false);
+          setTranscodingProgress(null);
+          
+          if (result.success) {
+            setSelectedFile(result.file);
+            const url = URL.createObjectURL(result.file);
+            setPreviewUrl(url);
+            
+            if (result.wasConverted) {
+              toast.success('Vidéo convertie!', {
+                description: `${result.originalFormat} → ${result.file.type}`
+              });
+            }
+          } else {
+            toast.error('Échec de la conversion', {
+              description: result.error || 'Veuillez utiliser un format MP4 directement.'
+            });
+            setValidationStatus('error');
+            if (fileInputRef.current) {
+              fileInputRef.current.value = '';
+            }
+            return;
+          }
+        } else {
+          setSelectedFile(file);
+          const url = URL.createObjectURL(file);
+          setPreviewUrl(url);
+        }
       } else {
         setSelectedFile(file);
         const url = URL.createObjectURL(file);
         setPreviewUrl(url);
-        
-        // Avertissement pour les fichiers MOV (non supportés sur Windows)
-        if (file.type === 'video/quicktime' || file.name.toLowerCase().endsWith('.mov')) {
-          toast.warning('Format MOV détecté', {
-            description: 'Ce format peut ne pas être lisible sur Windows/Android. Pour une compatibilité maximale, utilisez MP4.',
-            duration: 8000
-          });
-        }
       }
 
       // Modération IA du contenu (images uniquement)
@@ -446,7 +483,22 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
               </p>
             </div>
             
-            {(isValidating || virusScanStatus === 'scanning' || moderationStatus === 'moderating') && (
+            {/* Transcodage vidéo en cours */}
+            {isTranscoding && (
+              <div className="border-2 border-dashed border-primary/50 rounded-lg p-8 text-center bg-primary/5">
+                <RefreshCw className="h-12 w-12 mx-auto mb-4 text-primary animate-spin" />
+                <p className="text-lg font-medium mb-2">Conversion vidéo en cours...</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {transcodingProgress?.message || 'Préparation...'}
+                </p>
+                <Progress value={transcodingProgress?.progress || 0} className="w-full max-w-xs mx-auto" />
+                <p className="text-xs text-muted-foreground mt-2">
+                  {Math.round(transcodingProgress?.progress || 0)}% - Format MOV → MP4/WebM
+                </p>
+              </div>
+            )}
+
+            {(isValidating || virusScanStatus === 'scanning' || moderationStatus === 'moderating') && !isTranscoding && (
               <div className="border-2 border-dashed border-primary/50 rounded-lg p-8 text-center bg-primary/5">
                 <div className="animate-spin h-12 w-12 mx-auto mb-4 border-4 border-primary border-t-transparent rounded-full" />
                 <p className="text-lg font-medium mb-2">
@@ -465,7 +517,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
               </div>
             )}
 
-            {!selectedFile && !isValidating && virusScanStatus !== 'scanning' && moderationStatus !== 'moderating' ? (
+            {!selectedFile && !isValidating && !isTranscoding && virusScanStatus !== 'scanning' && moderationStatus !== 'moderating' ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
                 className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
