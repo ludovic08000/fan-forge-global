@@ -217,12 +217,12 @@ const ContentCard: React.FC<ContentCardProps> = ({
           <div className="flex items-center justify-between w-full text-white text-xs">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1">
-                <Heart className={`h-3.5 w-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-                {content.like_count}
-              </span>
-              <span className="flex items-center gap-1">
                 <Eye className="h-3.5 w-3.5" />
                 {content.view_count}
+              </span>
+              <span className="flex items-center gap-1">
+                <Heart className={`h-3.5 w-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                {content.like_count}
               </span>
             </div>
             <Button
