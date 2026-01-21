@@ -142,9 +142,14 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
   const handleSendMessage = async () => {
     if (!newMessage.trim() || sendMessage.isPending) return;
     
+    const recipientId = targetId || creatorId;
+    if (!recipientId) {
+      toast.error('Destinataire non trouvé');
+      return;
+    }
+    
     try {
-      // Utiliser targetId qui est déjà la bonne cible selon le contexte
-      await sendMessage.mutateAsync({ content: newMessage, creatorId: targetId || creatorId });
+      await sendMessage.mutateAsync({ content: newMessage, creatorId: recipientId });
       setNewMessage('');
     } catch (error) {
       console.error('Erreur lors de l\'envoi du message:', error);

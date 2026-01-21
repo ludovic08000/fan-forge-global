@@ -30,6 +30,9 @@ interface PrivateMessage {
 export const usePrivateMessages = (creatorId?: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  
+  // Validation: creatorId doit être un UUID valide, pas une chaîne vide
+  const isValidUuid = creatorId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(creatorId);
   const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Query paginée avec infinite scroll
@@ -42,7 +45,8 @@ export const usePrivateMessages = (creatorId?: string) => {
   } = useInfiniteQuery({
     queryKey: ['private-messages', creatorId, user?.id],
     queryFn: async ({ pageParam = 0 }) => {
-      if (!user || !creatorId) return { messages: [], nextCursor: null };
+      // Double validation avec isValidUuid qui vérifie aussi que ce n'est pas une chaîne vide
+      if (!user || !isValidUuid) return { messages: [], nextCursor: null };
       
       const from = pageParam * MESSAGES_PER_PAGE;
       const to = from + MESSAGES_PER_PAGE - 1;
@@ -107,7 +111,7 @@ export const usePrivateMessages = (creatorId?: string) => {
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     initialPageParam: 0,
-    enabled: !!user && !!creatorId,
+    enabled: !!user && isValidUuid,
     staleTime: 30000,
     gcTime: 5 * 60 * 1000,
   });
@@ -116,7 +120,7 @@ export const usePrivateMessages = (creatorId?: string) => {
 
   // Abonnement temps réel optimisé (INSERT, UPDATE, DELETE)
   useEffect(() => {
-    if (!user || !creatorId) return;
+    if (!user || !isValidUuid) return;
 
     if (subscriptionRef.current) {
       subscriptionRef.current.unsubscribe();
@@ -252,7 +256,12 @@ export const usePrivateMessages = (creatorId?: string) => {
   const sendMessage = useMutation({
     mutationFn: async ({ content, creatorId: targetId }: { content: string; creatorId: string }) => {
       if (!user) throw new Error('Non authentifié');
-
+      
+      // Valider l'UUID cible
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!targetId || !uuidRegex.test(targetId)) {
+        throw new Error('ID de destinataire invalide');
+      }
       // Vérifier si je suis un créateur
       const { data: myCreator } = await supabase
         .from('creators')
