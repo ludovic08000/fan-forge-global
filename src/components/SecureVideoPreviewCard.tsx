@@ -73,11 +73,16 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   );
 
   // URL sécurisée finale à utiliser
+  // IMPORTANT: Pour les previews, on utilise l'URL publique R2 (pub-xxx.r2.dev)
+  // Les URLs signées (r2.cloudflarestorage.com) peuvent avoir des problèmes CORS
+  // L'URL publique est suffisante pour les previews, l'URL signée sera utilisée pour la lecture complète
   const getSecureVideoUrl = (): string => {
     if (isExternalR2) {
-      // Vidéos R2 (replays) - utiliser URL signée ou fallback
-      console.log('[SecureVideoPreviewCard] R2 mode:', { r2SecureUrl: !!r2SecureUrl });
-      return r2SecureUrl || src;
+      // Vidéos R2 (replays) - utiliser l'URL PUBLIQUE pour les previews
+      // L'URL publique (pub-xxx.r2.dev) est accessible sans CORS issues
+      // Cela permet les previews même si le bucket R2 n'a pas de CORS configuré
+      console.log('[SecureVideoPreviewCard] R2 mode - using PUBLIC URL for preview');
+      return src; // Utiliser l'URL publique directement pour les previews
     } else if (isPremium && supabaseSignedUrl) {
       // Contenu premium Supabase avec URL signée
       console.log('[SecureVideoPreviewCard] Premium signed URL mode');
