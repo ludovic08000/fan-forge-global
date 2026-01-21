@@ -91,7 +91,7 @@ const AccountDeletion: React.FC<AccountDeletionProps> = ({ isCreator = false, cr
 
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive" className="w-full">
+            <Button variant="destructive" className="w-full" size="sm">
               <Trash2 className="h-4 w-4 mr-2" />
               Supprimer mon compte
             </Button>

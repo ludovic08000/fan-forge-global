@@ -319,7 +319,7 @@ const handleOpenStripeDashboard = async () => {
   <Button
     onClick={handleOpenStripeDashboard}
     className="w-full"
-    size="lg"
+    size="sm"
     disabled={loading}
   >
     <ExternalLink className="h-4 w-4 mr-2" />
@@ -329,6 +329,7 @@ const handleOpenStripeDashboard = async () => {
     onClick={checkStatus}
     variant="outline"
     className="w-full"
+    size="sm"
     disabled={checking}
   >
     <RefreshCw className={`h-4 w-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
