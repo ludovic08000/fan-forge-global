@@ -296,10 +296,11 @@ export const useLiveKitBroadcast = () => {
       // Démarrer l'enregistrement automatiquement si activé
       if (recordingEnabledRef.current) {
         console.log('[LiveKit Broadcast] Auto-starting recording...');
-        // Petit délai pour s'assurer que le stream est bien établi
+        // Délai de 5 secondes pour s'assurer que les tracks sont bien publiés et actifs
+        // Le layout egress a besoin de temps pour détecter les tracks vidéo
         setTimeout(() => {
           startRecording(streamId);
-        }, 2000);
+        }, 5000);
       }
 
     } catch (err: any) {
