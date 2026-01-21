@@ -1,235 +1,187 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateJwtAndGetUserId } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-request-id',
 };
 
-// Domaines autorisés pour les requêtes
-const ALLOWED_ORIGINS = [
-  'lovableproject.com',
-  'lovable.app',
-  'localhost',
-  '127.0.0.1'
-];
+// Allowed storage buckets (whitelist)
+const ALLOWED_BUCKETS = ['content', 'avatars', 'covers', 'thumbnails', 'private-content'];
 
 const logStep = (step: string, details?: any) => {
   console.log(`[GET-SIGNED-URL] ${step}`, details ? JSON.stringify(details) : '');
 };
 
-// Helper: Decode JWT payload without verification (Supabase already signed it)
-function decodeJwtPayload(token: string): { sub: string; exp: number; email?: string } | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    
-    const payload = parts[1];
-    // Base64url decode
-    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = atob(base64);
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    console.error("[GET-SIGNED-URL] JWT decode error:", error);
-    return null;
-  }
-}
-
-/**
- * Vérifie si l'origine de la requête est autorisée
- */
-const isOriginAllowed = (origin: string | null): boolean => {
-  if (!origin) return false;
-  try {
-    const url = new URL(origin);
-    return ALLOWED_ORIGINS.some(allowed => 
-      url.hostname === allowed || url.hostname.endsWith(`.${allowed}`)
-    );
-  } catch {
-    return false;
-  }
-};
-
-/**
- * Génère un identifiant de requête unique pour le tracking
- */
 const generateRequestId = (): string => {
   return crypto.randomUUID().substring(0, 8);
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   const requestId = req.headers.get('x-request-id') || generateRequestId();
-  const origin = req.headers.get('origin') || req.headers.get('referer');
 
   try {
-    logStep('Starting signed URL generation', { requestId, origin });
+    logStep('Starting signed URL generation', { requestId });
 
-    // Vérifier l'origine (non bloquant pour le moment, juste logging)
-    if (!isOriginAllowed(origin)) {
-      logStep('Warning: Request from unknown origin', { origin, requestId });
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    // Validate JWT with proper signature verification
+    const authResult = await validateJwtAndGetUserId(req.headers.get('Authorization'));
     
-    // Client avec service role pour accéder au storage
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Client pour vérifier l'utilisateur
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      logStep('No auth header provided', { requestId });
+    if (authResult.error) {
+      logStep('Auth failed', { error: authResult.error, requestId });
       return new Response(
-        JSON.stringify({ error: 'Authorization required', requestId }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: authResult.error, requestId }),
+        { status: authResult.statusCode, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Decode JWT to get user ID
-    const token = authHeader.replace('Bearer ', '');
-    const jwtPayload = decodeJwtPayload(token);
-    
-    if (!jwtPayload || !jwtPayload.sub) {
-      logStep('Invalid JWT payload', { requestId });
+    const userId = authResult.userId!;
+    logStep('User authenticated', { userId, requestId });
+
+    const { contentId, bucket } = await req.json();
+
+    // SECURITY: contentId is now REQUIRED - we no longer accept arbitrary filePath
+    if (!contentId) {
       return new Response(
-        JSON.stringify({ error: 'Invalid user', requestId }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Check if token is expired
-    const now = Math.floor(Date.now() / 1000);
-    if (jwtPayload.exp && jwtPayload.exp < now) {
-      logStep('Token expired', { requestId });
-      return new Response(
-        JSON.stringify({ error: 'Token expired', requestId }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const userId = jwtPayload.sub;
-    logStep('User authenticated via JWT decode', { userId, requestId });
-
-    const { filePath, bucket, contentId, includeChecksum } = await req.json();
-
-    if (!filePath || !bucket) {
-      return new Response(
-        JSON.stringify({ error: 'filePath and bucket are required' }),
+        JSON.stringify({ error: 'contentId is required', requestId }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    logStep('Request params', { filePath, bucket, contentId });
+    // SECURITY: Validate bucket against allowlist
+    if (bucket && !ALLOWED_BUCKETS.includes(bucket)) {
+      logStep('Invalid bucket requested', { bucket, requestId });
+      return new Response(
+        JSON.stringify({ error: 'Invalid bucket', requestId }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Si c'est un contenu premium, vérifier l'accès
-    if (contentId) {
-      // Récupérer les infos du contenu
-      const { data: content, error: contentError } = await supabaseAdmin
-        .from('content')
-        .select('creator_id, is_premium, is_preview')
-        .eq('id', contentId)
-        .single();
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-      if (contentError || !content) {
-        logStep('Content not found', contentError);
+    // SECURITY: Fetch the content from DB and get the ACTUAL file_url
+    // We no longer trust client-provided filePath
+    const { data: content, error: contentError } = await supabaseAdmin
+      .from('content')
+      .select('id, file_url, creator_id, is_premium, is_preview')
+      .eq('id', contentId)
+      .single();
+
+    if (contentError || !content) {
+      logStep('Content not found', { contentId, error: contentError, requestId });
+      return new Response(
+        JSON.stringify({ error: 'Content not found', requestId }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Extract file path and bucket from the stored URL
+    const fileUrl = content.file_url;
+    let actualBucket: string;
+    let actualFilePath: string;
+
+    // Parse the Supabase storage URL to extract bucket and path
+    const storageUrlMatch = fileUrl.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)/);
+    if (storageUrlMatch) {
+      actualBucket = storageUrlMatch[1];
+      actualFilePath = decodeURIComponent(storageUrlMatch[2]);
+    } else {
+      // Handle direct path format
+      const pathParts = fileUrl.split('/');
+      if (pathParts.length >= 2) {
+        actualBucket = bucket || 'content';
+        actualFilePath = fileUrl;
+      } else {
+        logStep('Invalid file URL format', { fileUrl, requestId });
         return new Response(
-          JSON.stringify({ error: 'Content not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'Invalid file URL', requestId }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
-      }
-
-      // Si le contenu est premium et n'est pas un preview, vérifier l'abonnement
-      if (content.is_premium && !content.is_preview) {
-        const { data: subscription } = await supabaseAdmin
-          .from('subscriptions')
-          .select('id')
-          .eq('subscriber_id', userId)
-          .eq('creator_id', content.creator_id)
-          .eq('status', 'active')
-          .maybeSingle();
-
-        // Vérifier aussi si l'utilisateur est le créateur
-        const { data: creator } = await supabaseAdmin
-          .from('creators')
-          .select('user_id')
-          .eq('id', content.creator_id)
-          .single();
-
-        const isCreator = creator?.user_id === userId;
-        const isAdmin = await checkIsAdmin(supabaseAdmin, userId);
-
-        if (!subscription && !isCreator && !isAdmin) {
-          logStep('Access denied - no subscription', { userId, creatorId: content.creator_id });
-          return new Response(
-            JSON.stringify({ error: 'Subscription required to access this content' }),
-            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        logStep('Access granted', { isSubscribed: !!subscription, isCreator, isAdmin });
       }
     }
 
-    // Générer l'URL signée avec expiration (1 heure)
-    const expiresIn = 3600; // 1 heure en secondes
+    // Verify bucket is allowed
+    if (!ALLOWED_BUCKETS.includes(actualBucket)) {
+      logStep('Bucket not in allowlist', { actualBucket, requestId });
+      return new Response(
+        JSON.stringify({ error: 'Access denied', requestId }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Access control: Check subscription for premium content
+    if (content.is_premium && !content.is_preview) {
+      const { data: subscription } = await supabaseAdmin
+        .from('subscriptions')
+        .select('id')
+        .eq('subscriber_id', userId)
+        .eq('creator_id', content.creator_id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      const { data: creator } = await supabaseAdmin
+        .from('creators')
+        .select('user_id')
+        .eq('id', content.creator_id)
+        .single();
+
+      const isCreator = creator?.user_id === userId;
+      const isAdmin = await checkIsAdmin(supabaseAdmin, userId);
+
+      if (!subscription && !isCreator && !isAdmin) {
+        logStep('Access denied - no subscription', { userId, creatorId: content.creator_id, requestId });
+        return new Response(
+          JSON.stringify({ error: 'Subscription required', requestId }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      logStep('Access granted', { isSubscribed: !!subscription, isCreator, isAdmin, requestId });
+    }
+
+    // Generate signed URL for the ACTUAL file path from DB (not client-provided)
+    const expiresIn = 3600;
     
     const { data: signedUrlData, error: signedUrlError } = await supabaseAdmin
       .storage
-      .from(bucket)
-      .createSignedUrl(filePath, expiresIn);
+      .from(actualBucket)
+      .createSignedUrl(actualFilePath, expiresIn);
 
     if (signedUrlError) {
-      logStep('Failed to create signed URL', signedUrlError);
+      logStep('Failed to create signed URL', { error: signedUrlError, requestId });
       return new Response(
-        JSON.stringify({ error: 'Failed to generate signed URL' }),
+        JSON.stringify({ error: 'Failed to generate signed URL', requestId }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    logStep('Signed URL generated successfully', { expiresIn, requestId });
-
-    // Générer un checksum si demandé pour la vérification d'intégrité
-    let checksum: string | undefined;
-    if (includeChecksum) {
-      const data = `${filePath}:${userId}:${bucket}`;
-      const encoder = new TextEncoder();
-      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data));
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      checksum = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
-    }
+    logStep('Signed URL generated successfully', { contentId, expiresIn, requestId });
 
     return new Response(
       JSON.stringify({ 
         signedUrl: signedUrlData.signedUrl,
         expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
         requestId,
-        checksum,
-        issuedAt: new Date().toISOString(),
-        userId: userId.substring(0, 8) + '...' // Truncated for logging
+        issuedAt: new Date().toISOString()
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     logStep('Error', { error: error.message, requestId });
     return new Response(
-      JSON.stringify({ error: error.message, requestId }),
+      JSON.stringify({ error: 'Internal server error', requestId }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
 
-/**
- * Vérifier si l'utilisateur est admin
- */
 async function checkIsAdmin(supabase: any, userId: string): Promise<boolean> {
   const { data } = await supabase
     .from('user_roles')

@@ -1,27 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { validateJwtAndGetUserId } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-// Helper: Decode JWT payload without verification (Supabase already signed it)
-function decodeJwtPayload(token: string): { sub: string; exp: number; email?: string } | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    
-    const payload = parts[1];
-    // Base64url decode
-    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = atob(base64);
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    console.error("[get-replay-url] JWT decode error:", error);
-    return null;
-  }
-}
 
 // Helper: Convert ArrayBuffer to hex string
 function toHex(buffer: ArrayBuffer): string {
@@ -79,14 +63,12 @@ async function generatePresignedUrl(
   const host = `${accountId}.r2.cloudflarestorage.com`;
   const endpoint = `https://${host}`;
   
-  // URI encode the key (file path)
   const encodedKey = key.split('/').map(segment => encodeURIComponent(segment)).join('/');
   const canonicalUri = `/${bucket}/${encodedKey}`;
   
   const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
   const credential = encodeURIComponent(`${accessKeyId}/${credentialScope}`);
   
-  // Build query parameters (must be sorted alphabetically)
   const queryParams = [
     ['X-Amz-Algorithm', 'AWS4-HMAC-SHA256'],
     ['X-Amz-Credential', credential],
@@ -99,14 +81,10 @@ async function generatePresignedUrl(
     .map(([k, v]) => `${k}=${v}`)
     .join('&');
   
-  // Canonical headers
   const canonicalHeaders = `host:${host}\n`;
   const signedHeaders = 'host';
-  
-  // For presigned URLs, payload is UNSIGNED-PAYLOAD
   const payloadHash = 'UNSIGNED-PAYLOAD';
   
-  // Create canonical request
   const canonicalRequest = [
     'GET',
     canonicalUri,
@@ -116,7 +94,6 @@ async function generatePresignedUrl(
     payloadHash
   ].join('\n');
   
-  // Create string to sign
   const canonicalRequestHash = await sha256(canonicalRequest);
   const stringToSign = [
     'AWS4-HMAC-SHA256',
@@ -125,79 +102,80 @@ async function generatePresignedUrl(
     canonicalRequestHash
   ].join('\n');
   
-  // Calculate signing key
   const kDate = await hmacSha256(`AWS4${secretAccessKey}`, dateStamp);
   const kRegion = await hmacSha256(kDate, region);
   const kService = await hmacSha256(kRegion, service);
   const kSigning = await hmacSha256(kService, 'aws4_request');
   
-  // Calculate signature
   const signatureBuffer = await hmacSha256(kSigning, stringToSign);
   const signature = toHex(signatureBuffer);
   
-  // Build final URL
-  const presignedUrl = `${endpoint}${canonicalUri}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
-  
-  return presignedUrl;
+  return `${endpoint}${canonicalUri}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get authorization header
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({ error: "Authorization required" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Decode JWT to get user ID
-    const token = authHeader.replace("Bearer ", "");
-    const jwtPayload = decodeJwtPayload(token);
+    // SECURITY: Proper JWT validation with signature verification
+    const authResult = await validateJwtAndGetUserId(req.headers.get("Authorization"));
     
-    if (!jwtPayload || !jwtPayload.sub) {
-      console.error("[get-replay-url] Invalid JWT payload");
+    if (authResult.error) {
+      console.error("[get-replay-url] Auth failed:", authResult.error);
       return new Response(
-        JSON.stringify({ error: "Invalid authentication" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: authResult.error }),
+        { status: authResult.statusCode, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check if token is expired
-    const now = Math.floor(Date.now() / 1000);
-    if (jwtPayload.exp && jwtPayload.exp < now) {
-      console.error("[get-replay-url] Token expired");
-      return new Response(
-        JSON.stringify({ error: "Token expired" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const userId = authResult.userId!;
+    console.log("[get-replay-url] User authenticated:", userId);
 
-    const userId = jwtPayload.sub;
-    console.log("[get-replay-url] User authenticated via JWT decode:", userId);
-
-    // Parse request body
-    const { filePath, contentId } = await req.json();
+    const { contentId } = await req.json();
     
-    if (!filePath) {
+    // SECURITY: contentId is now REQUIRED - we fetch filePath from DB
+    if (!contentId) {
       return new Response(
-        JSON.stringify({ error: "filePath is required" }),
+        JSON.stringify({ error: "contentId is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Use service role for database queries
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Check access rights
+    // SECURITY: Get the content from DB to retrieve the ACTUAL file_url
+    const { data: content, error: contentError } = await supabaseAdmin
+      .from("content")
+      .select("id, file_url, creator_id, is_premium, tags")
+      .eq("id", contentId)
+      .single();
+
+    if (contentError || !content) {
+      console.error("[get-replay-url] Content not found:", contentError);
+      return new Response(
+        JSON.stringify({ error: "Content not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // SECURITY: Validate this is actually a replay
+    const isReplay = content.tags?.includes('replay');
+    const filePath = content.file_url;
+
+    // Additional validation: file path should match expected R2 pattern
+    if (!filePath.includes('replays/') && !isReplay) {
+      console.error("[get-replay-url] Content is not a replay:", contentId);
+      return new Response(
+        JSON.stringify({ error: "Content is not a replay" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Access control checks
     let hasAccess = false;
 
     // Check if user is admin
@@ -206,80 +184,42 @@ serve(async (req) => {
       .select("role")
       .eq("user_id", userId)
       .eq("role", "admin")
-      .single();
+      .maybeSingle();
 
     if (adminRole) {
       hasAccess = true;
     }
 
-    // If contentId provided, check content ownership and subscription
-    if (!hasAccess && contentId) {
-      const { data: content } = await supabaseAdmin
-        .from("content")
-        .select("creator_id, is_premium")
-        .eq("id", contentId)
+    // Check content ownership
+    if (!hasAccess) {
+      const { data: creator } = await supabaseAdmin
+        .from("creators")
+        .select("id, user_id")
+        .eq("id", content.creator_id)
         .single();
 
-      if (content) {
-        const { data: creator } = await supabaseAdmin
-          .from("creators")
-          .select("id, user_id")
-          .eq("id", content.creator_id)
-          .single();
+      if (creator?.user_id === userId) {
+        hasAccess = true;
+      }
 
-        if (creator?.user_id === userId) {
-          hasAccess = true;
-        }
+      // Check subscription for premium content
+      if (!hasAccess && content.is_premium) {
+        const { data: subscription } = await supabaseAdmin
+          .from("subscriptions")
+          .select("id")
+          .eq("subscriber_id", userId)
+          .eq("creator_id", content.creator_id)
+          .eq("status", "active")
+          .maybeSingle();
 
-        if (!hasAccess && content.is_premium) {
-          const { data: subscription } = await supabaseAdmin
-            .from("subscriptions")
-            .select("id")
-            .eq("subscriber_id", userId)
-            .eq("creator_id", content.creator_id)
-            .eq("status", "active")
-            .single();
-
-          if (subscription) {
-            hasAccess = true;
-          }
-        }
-
-        if (!hasAccess && !content.is_premium) {
+        if (subscription) {
           hasAccess = true;
         }
       }
-    }
 
-    // If no contentId, try to extract creator_id from file path
-    if (!hasAccess && !contentId) {
-      const pathMatch = filePath.match(/^replays\/([a-f0-9-]+)\//);
-      if (pathMatch) {
-        const creatorId = pathMatch[1];
-        
-        const { data: creator } = await supabaseAdmin
-          .from("creators")
-          .select("id, user_id")
-          .eq("id", creatorId)
-          .single();
-
-        if (creator?.user_id === userId) {
-          hasAccess = true;
-        }
-
-        if (!hasAccess) {
-          const { data: subscription } = await supabaseAdmin
-            .from("subscriptions")
-            .select("id")
-            .eq("subscriber_id", userId)
-            .eq("creator_id", creatorId)
-            .eq("status", "active")
-            .single();
-
-          if (subscription) {
-            hasAccess = true;
-          }
-        }
+      // Allow access to non-premium content
+      if (!hasAccess && !content.is_premium) {
+        hasAccess = true;
       }
     }
 
@@ -290,33 +230,48 @@ serve(async (req) => {
       );
     }
 
+    // Extract actual file path from URL for R2
+    let r2FilePath = filePath;
+    if (filePath.includes('r2.cloudflarestorage.com')) {
+      const urlPath = new URL(filePath).pathname;
+      const pathParts = urlPath.split('/').filter(p => p);
+      r2FilePath = pathParts.slice(1).join('/');
+    } else if (filePath.startsWith('replays/')) {
+      r2FilePath = filePath;
+    } else {
+      // Extract path from a custom domain URL
+      try {
+        const url = new URL(filePath);
+        r2FilePath = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
+      } catch {
+        r2FilePath = filePath;
+      }
+    }
+
     // Get R2 credentials
     const r2AccountId = Deno.env.get("R2_ACCOUNT_ID")!;
     const r2AccessKeyId = Deno.env.get("R2_ACCESS_KEY_ID")!;
     const r2SecretAccessKey = Deno.env.get("R2_SECRET_ACCESS_KEY")!;
     const r2BucketName = Deno.env.get("R2_BUCKET_NAME") || "crub";
 
-    const expiresIn = 3600; // 1 hour
+    const expiresIn = 3600;
 
-    // Generate presigned URL
     const signedUrl = await generatePresignedUrl(
       r2AccessKeyId,
       r2SecretAccessKey,
       'auto',
       r2BucketName,
-      filePath,
+      r2FilePath,
       r2AccountId,
       expiresIn
     );
 
-    const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
-
-    console.log(`[get-replay-url] Generated signed URL for ${filePath} for user ${userId}`);
+    console.log(`[get-replay-url] Generated signed URL for content ${contentId} for user ${userId}`);
 
     return new Response(
       JSON.stringify({
         signedUrl,
-        expiresAt,
+        expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
         expiresIn,
       }),
       {
@@ -327,7 +282,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("[get-replay-url] Error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

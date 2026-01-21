@@ -1,22 +1,45 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateJwtAndGetUserId } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Max image size: 10MB base64 ≈ 7.5MB actual file
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { imageBase64, contentType, contentId, userId } = await req.json();
+    // SECURITY: Require authentication
+    const authResult = await validateJwtAndGetUserId(req.headers.get('Authorization'));
+    
+    if (authResult.error) {
+      return new Response(
+        JSON.stringify({ error: authResult.error }),
+        { status: authResult.statusCode, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = authResult.userId!;
+
+    const { imageBase64, contentType, contentId } = await req.json();
 
     if (!imageBase64) {
       return new Response(
         JSON.stringify({ error: 'Image base64 is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // SECURITY: Validate image size
+    if (imageBase64.length > MAX_IMAGE_SIZE) {
+      return new Response(
+        JSON.stringify({ error: 'Image too large (max 10MB)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -32,12 +55,10 @@ serve(async (req) => {
 
     console.log(`Moderating content for user ${userId}, content ${contentId}, type: ${contentType}`);
 
-    // Prepare the image for analysis
     const imageUrl = imageBase64.startsWith('data:') 
       ? imageBase64 
       : `data:image/jpeg;base64,${imageBase64}`;
 
-    // Call Lovable AI Gateway for content moderation
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -86,9 +107,7 @@ Tu dois répondre UNIQUEMENT avec un JSON valide, sans texte avant ou après.`
               },
               {
                 type: "image_url",
-                image_url: {
-                  url: imageUrl
-                }
+                image_url: { url: imageUrl }
               }
             ]
           }
@@ -147,10 +166,8 @@ Tu dois répondre UNIQUEMENT avec un JSON valide, sans texte avant ou après.`
       );
     }
 
-    // Parse the JSON response from AI
     let moderationResult;
     try {
-      // Clean up the response - remove markdown code blocks if present
       let cleanedContent = content.trim();
       if (cleanedContent.startsWith('```json')) {
         cleanedContent = cleanedContent.slice(7);
@@ -163,9 +180,8 @@ Tu dois répondre UNIQUEMENT avec un JSON valide, sans texte avant ou après.`
       cleanedContent = cleanedContent.trim();
       
       moderationResult = JSON.parse(cleanedContent);
-    } catch (parseError) {
+    } catch {
       console.error("Failed to parse AI response:", content);
-      // Return a safe default that requires manual review
       moderationResult = {
         approved: false,
         confidence: 0,
@@ -186,7 +202,6 @@ Tu dois répondre UNIQUEMENT avec un JSON valide, sans texte avant ou après.`
 
     console.log(`Moderation result for content ${contentId}:`, moderationResult);
 
-    // Add metadata
     const result = {
       ...moderationResult,
       contentId,

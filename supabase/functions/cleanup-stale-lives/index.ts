@@ -1,17 +1,26 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyCronSecret } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // SECURITY: Verify cron secret - reject unauthorized requests
+    if (!verifyCronSecret(req)) {
+      console.error("[Cleanup Stale Lives] Unauthorized: Invalid or missing cron secret");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
@@ -19,7 +28,7 @@ Deno.serve(async (req) => {
 
     console.log("[Cleanup] Starting cleanup of stale live streams...");
 
-    // Terminer les lives dont le heartbeat est > 2 minutes (réduit de 5 à 2)
+    // End lives with heartbeat > 2 minutes ago
     const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
 
     const { data: staleLives, error: fetchError } = await supabase
@@ -45,7 +54,7 @@ Deno.serve(async (req) => {
       staleLives.map(l => ({ id: l.id, title: l.title, lastHeartbeat: l.last_heartbeat }))
     );
 
-    // Terminer ces lives
+    // End these lives
     const { error: updateError } = await supabase
       .from("live_streams")
       .update({ 
