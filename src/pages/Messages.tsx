@@ -43,6 +43,11 @@ const Messages = () => {
       return;
     }
 
+    // Attendre que le userRole soit défini
+    if (userRole === undefined) {
+      return;
+    }
+
     const loadConversations = async () => {
       try {
         // Charger les conversations selon le rôle
@@ -92,8 +97,8 @@ const Messages = () => {
             setConversations(Array.from(conversationsMap.values()));
           }
         } else {
-          // Pour les abonnés : charger les conversations avec les créateurs
-          const { data: messages } = await supabase
+          // Pour les abonnés : charger TOUTES les conversations (créateur OU subscriber)
+          const { data: messagesAsSubscriber } = await supabase
             .from('private_messages')
             .select(`
               creator_id,
@@ -107,7 +112,7 @@ const Messages = () => {
           // Grouper par créateur
           const conversationsMap = new Map<string, Conversation>();
           
-          for (const msg of messages || []) {
+          for (const msg of messagesAsSubscriber || []) {
             if (!conversationsMap.has(msg.creator_id)) {
               // Charger le profil du créateur
               const { data: creatorData } = await supabase
@@ -117,13 +122,15 @@ const Messages = () => {
                 .single();
 
               let avatar = null;
+              let username = null;
               if (creatorData) {
                 const { data: profile } = await supabase
                   .from('profiles')
-                  .select('avatar_url')
+                  .select('avatar_url, username')
                   .eq('user_id', creatorData.user_id)
                   .single();
                 avatar = profile?.avatar_url;
+                username = profile?.username;
               }
 
               conversationsMap.set(msg.creator_id, {
