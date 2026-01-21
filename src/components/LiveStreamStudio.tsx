@@ -18,6 +18,7 @@ import { EmojiPicker } from '@/components/live/EmojiPicker';
 import { PaidMediaUpload } from '@/components/live/PaidMediaUpload';
 import { TipMessage } from '@/components/live/TipMessage';
 import { LiveModerationPanel, MessageModeration } from '@/components/LiveModerationPanel';
+import { CreatorReplays } from '@/components/live/CreatorReplays';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLiveStream } from '@/hooks/useLiveStream';
@@ -1415,6 +1416,11 @@ export const LiveStreamStudio = () => {
         </div>
       </div>
       )}
+      
+      {/* Section Replays - toujours visible */}
+      <div className="mt-8">
+        <CreatorReplays />
+      </div>
     </div>
   );
 };

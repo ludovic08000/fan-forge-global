@@ -317,11 +317,43 @@ export const useLiveStream = () => {
     }
   };
 
+  /**
+   * Récupérer les replays du créateur (lives terminés avec recording_url)
+   */
+  const fetchMyReplays = async () => {
+    if (!user) return { data: null, error: 'Not authenticated' };
+    
+    try {
+      // Récupérer l'ID du créateur
+      const { data: creatorData } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!creatorData) return { data: [], error: null };
+
+      const { data, error } = await supabase
+        .from('live_streams')
+        .select('*')
+        .eq('creator_id', creatorData.id)
+        .eq('status', 'ended')
+        .not('recording_url', 'is', null)
+        .order('ended_at', { ascending: false });
+
+      if (error) throw error;
+      return { data: data as LiveStream[], error: null };
+    } catch (error) {
+      console.error('Erreur chargement replays:', error);
+      return { data: null, error };
+    }
+  };
 
   return {
     liveStreams,
     loading,
     fetchLiveStreams,
+    fetchMyReplays,
     createLiveStream,
     startLiveStream,
     endLiveStream,
