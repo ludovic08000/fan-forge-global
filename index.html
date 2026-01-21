@@ -141,21 +141,14 @@
     }
     </script>
     
-    <!-- SECURITY: Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="
-      default-src 'self';
-      script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com;
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      font-src 'self' https://fonts.gstatic.com;
-      img-src 'self' data: blob: https: http:;
-      media-src 'self' blob: https:;
-      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://ai.gateway.lovable.dev https://livekit.io wss://*.livekit.cloud https://*.r2.cloudflarestorage.com https://*.r2.dev https://pub-70ffb1b2cbbb4074b7c416e5cb63aeeb.r2.dev;
-      frame-src 'self' https://js.stripe.com https://challenges.cloudflare.com;
-      object-src 'none';
-      base-uri 'self';
-      form-action 'self';
-      upgrade-insecure-requests;
-    ">
+    <!-- SECURITY: Content Security Policy (STRICT) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://usjxcgauyvdocngfkhys.supabase.co https://*.r2.dev https://*.r2.cloudflarestorage.com; media-src 'self' blob: https://usjxcgauyvdocngfkhys.supabase.co https://*.r2.dev https://*.r2.cloudflarestorage.com; connect-src 'self' https://usjxcgauyvdocngfkhys.supabase.co wss://usjxcgauyvdocngfkhys.supabase.co https://api.stripe.com https://livekit.io wss://*.livekit.cloud https://*.r2.cloudflarestorage.com https://*.r2.dev; frame-src 'self' https://js.stripe.com https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self' https://usjxcgauyvdocngfkhys.supabase.co; frame-ancestors 'none'; upgrade-insecure-requests;">
+    
+    <!-- SECURITY: Additional Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(self), geolocation=(), payment=(self)">
     
     <!-- Critical CSS inline for faster first paint -->
     <style>
