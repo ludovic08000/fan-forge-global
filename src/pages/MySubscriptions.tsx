@@ -28,6 +28,7 @@ interface Subscription {
   currency: string;
   creator: {
     id: string;
+    user_id: string;
     stage_name: string | null;
     subscription_price: number;
     profile: {
@@ -722,7 +723,7 @@ const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
                     Se désabonner
                   </Button>
                   <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
-                    <Link to={username ? `/${username}` : '#'}>
+                    <Link to={username ? `/${username}` : `/creator/${creator.user_id}`}>
                       Voir le profil
                     </Link>
                   </Button>
@@ -740,7 +741,7 @@ const SubscriptionCard = ({ subscription }: { subscription: Subscription }) => {
                     Se réabonner
                   </Button>
                   <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
-                    <Link to={username ? `/${username}` : '#'}>
+                    <Link to={username ? `/${username}` : `/creator/${creator.user_id}`}>
                       Voir le profil
                     </Link>
                   </Button>
