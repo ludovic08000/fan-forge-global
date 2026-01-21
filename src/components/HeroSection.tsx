@@ -68,32 +68,32 @@ const HeroSection = memo(() => {
         </div>
       </div>
 
-      {/* Premium portrait image - same style as splash screen */}
+      {/* Premium portrait image */}
       <div className="relative z-10 w-full max-w-md mx-auto px-4 pb-8">
         <div className="relative overflow-hidden rounded-2xl shadow-2xl">
-          {/* Image with splash screen filters */}
+          {/* Image avec luminosité normale */}
           <img 
             src={splashPortrait} 
             alt="Créateurs Crub" 
             className="w-full h-auto object-cover"
             style={{ 
-              filter: 'brightness(0.9) contrast(1.1)',
+              filter: 'brightness(1.05) contrast(1.05)',
             }}
           />
           
-          {/* Vignette overlay like splash */}
+          {/* Vignette subtile */}
           <div 
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: 'radial-gradient(ellipse at center, transparent 30%, black 100%)',
+              background: 'radial-gradient(ellipse at center, transparent 50%, black/40 100%)',
             }}
           />
           
-          {/* Top gradient fade */}
-          <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+          {/* Top gradient léger */}
+          <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-black/30 to-transparent pointer-events-none" />
           
-          {/* Bottom gradient fade */}
-          <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none" />
+          {/* Bottom gradient léger */}
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/50 via-black/20 to-transparent pointer-events-none" />
         </div>
       </div>
     </section>
