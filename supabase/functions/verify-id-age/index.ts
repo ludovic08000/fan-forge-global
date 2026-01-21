@@ -1,22 +1,45 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateJwtAndGetUserId } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Max image size: 10MB base64 ≈ 7.5MB actual file
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { imageBase64, documentType, declaredBirthdate, userId } = await req.json();
+    // SECURITY: Require authentication
+    const authResult = await validateJwtAndGetUserId(req.headers.get("Authorization"));
+    
+    if (authResult.error) {
+      return new Response(
+        JSON.stringify({ error: authResult.error }),
+        { status: authResult.statusCode, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = authResult.userId!;
+
+    const { imageBase64, documentType, declaredBirthdate } = await req.json();
 
     if (!imageBase64) {
       return new Response(
         JSON.stringify({ error: "Image requise" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // SECURITY: Validate image size
+    if (imageBase64.length > MAX_IMAGE_SIZE) {
+      return new Response(
+        JSON.stringify({ error: "Image trop grande (max 10MB)" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -30,7 +53,8 @@ serve(async (req) => {
       );
     }
 
-    // Prepare image data
+    console.log(`[verify-id-age] User ${userId} requesting age verification`);
+
     const imageData = imageBase64.startsWith('data:') 
       ? imageBase64 
       : `data:image/jpeg;base64,${imageBase64}`;
@@ -113,12 +137,12 @@ Retourne les informations extraites au format JSON.`;
                   issues: {
                     type: "array",
                     items: { type: "string" },
-                    description: "Liste des problèmes détectés (document flou, informations partiellement visibles, etc.)"
+                    description: "Liste des problèmes détectés"
                   },
                   recommendation: {
                     type: "string",
                     enum: ["approve", "manual_review", "reject"],
-                    description: "Recommandation: approve (vérification automatique OK), manual_review (besoin d'un admin), reject (refus)"
+                    description: "Recommandation"
                   },
                   rejection_reason: {
                     type: "string",
@@ -164,7 +188,6 @@ Retourne les informations extraites au format JSON.`;
 
     const data = await response.json();
     
-    // Extract tool call result
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall || !toolCall.function?.arguments) {
       console.error("No tool call response:", JSON.stringify(data));
@@ -193,14 +216,12 @@ Retourne les informations extraites au format JSON.`;
       );
     }
 
-    // Add metadata
     const result = {
       ...verificationResult,
       userId,
       documentType,
       declaredBirthdate,
       verifiedAt: new Date().toISOString(),
-      // Determine final status based on AI analysis
       status: determineStatus(verificationResult, declaredBirthdate)
     };
 
@@ -225,24 +246,20 @@ Retourne les informations extraites au format JSON.`;
 });
 
 function determineStatus(result: any, declaredBirthdate?: string): string {
-  // Reject if document appears fake
   if (result.document_appears_authentic === false) {
     return "rejected";
   }
   
-  // Reject if clearly underage
   if (result.is_adult === false && result.confidence_level === "high") {
     return "rejected";
   }
   
-  // Reject if birthdate mismatch with high confidence
   if (result.birthdate_matches_declared === false && 
       result.confidence_level === "high" && 
       declaredBirthdate) {
     return "rejected";
   }
   
-  // Auto-approve if high confidence adult
   if (result.is_adult === true && 
       result.confidence_level === "high" && 
       result.document_appears_authentic === true &&
@@ -250,6 +267,5 @@ function determineStatus(result: any, declaredBirthdate?: string): string {
     return "approved";
   }
   
-  // Everything else needs manual review
   return "pending";
 }

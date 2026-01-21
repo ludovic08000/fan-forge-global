@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { verifyInternalSecret, validateJwtAndGetUserId } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-internal-secret",
 };
 
 const MAX_ATTEMPTS = 5;
@@ -34,9 +35,9 @@ serve(async (req) => {
 
     logStep('Request received', { action, identifier, ipAddress, attemptType });
 
-    // Action: Vérifier si bloqué
+    // Action: Check if blocked (read-only, safe to allow)
     if (action === "check") {
-      // Vérifier le blocage par identifiant
+      // Check block by identifier
       const { data: blockByIdentifier } = await supabaseClient
         .from('security_blocks')
         .select('*')
@@ -45,7 +46,7 @@ serve(async (req) => {
         .gt('expires_at', new Date().toISOString())
         .maybeSingle();
 
-      // Vérifier le blocage par IP
+      // Check block by IP
       const { data: blockByIp } = await supabaseClient
         .from('security_blocks')
         .select('*')
@@ -72,7 +73,7 @@ serve(async (req) => {
         });
       }
 
-      // Compter les tentatives récentes
+      // Count recent attempts
       const timeWindowStart = new Date(Date.now() - TIME_WINDOW_MINUTES * 60 * 1000).toISOString();
       
       const { count: attemptCount } = await supabaseClient
@@ -94,9 +95,20 @@ serve(async (req) => {
       });
     }
 
-    // Action: Enregistrer une tentative
+    // SECURITY: Action "record" REQUIRES internal secret (server-to-server only)
+    // This prevents attackers from calling this endpoint to trigger blocks
     if (action === "record") {
-      // Enregistrer la tentative
+      if (!verifyInternalSecret(req)) {
+        logStep('Record action rejected - no internal secret', { identifier, ipAddress });
+        return new Response(JSON.stringify({ 
+          error: "Unauthorized - internal calls only"
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Record the attempt
       await supabaseClient
         .from('login_attempts')
         .insert({
@@ -109,7 +121,7 @@ serve(async (req) => {
 
       logStep('Attempt recorded', { identifier, ipAddress, success });
 
-      // Si échec, vérifier si on doit bloquer
+      // If failure, check if we need to block
       if (!success) {
         const timeWindowStart = new Date(Date.now() - TIME_WINDOW_MINUTES * 60 * 1000).toISOString();
         
@@ -123,7 +135,7 @@ serve(async (req) => {
         if ((failedCount || 0) >= MAX_ATTEMPTS) {
           const expiresAt = new Date(Date.now() + BLOCK_DURATION_MINUTES * 60 * 1000).toISOString();
           
-          // Bloquer l'identifiant
+          // Block identifier
           await supabaseClient
             .from('security_blocks')
             .upsert({
@@ -137,7 +149,7 @@ serve(async (req) => {
               onConflict: 'identifier,block_type' 
             });
 
-          // Bloquer aussi l'IP
+          // Block IP too
           await supabaseClient
             .from('security_blocks')
             .upsert({
@@ -176,7 +188,7 @@ serve(async (req) => {
         });
       }
 
-      // Succès - réinitialiser le compteur
+      // Success - reset counter
       return new Response(JSON.stringify({ 
         blocked: false,
         success: true
@@ -185,31 +197,25 @@ serve(async (req) => {
       });
     }
 
-    // Action: Débloquer manuellement (admin only)
+    // Action: Manual unblock (admin only)
     if (action === "unblock") {
-      const authHeader = req.headers.get("Authorization");
-      if (!authHeader) {
-        return new Response(JSON.stringify({ error: "Non autorisé" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const token = authHeader.replace("Bearer ", "");
-      const { data: { user } } = await supabaseClient.auth.getUser(token);
+      // SECURITY: Proper JWT validation for admin unblock
+      const authResult = await validateJwtAndGetUserId(req.headers.get("Authorization"));
       
-      if (!user) {
-        return new Response(JSON.stringify({ error: "Non autorisé" }), {
-          status: 401,
+      if (authResult.error) {
+        return new Response(JSON.stringify({ error: authResult.error }), {
+          status: authResult.statusCode,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Vérifier si admin
+      const userId = authResult.userId!;
+
+      // Verify admin role
       const { data: adminRole } = await supabaseClient
         .from('user_roles')
         .select('role')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('role', 'admin')
         .maybeSingle();
 
@@ -220,13 +226,13 @@ serve(async (req) => {
         });
       }
 
-      // Débloquer
+      // Unblock
       await supabaseClient
         .from('security_blocks')
         .update({ is_active: false })
         .eq('identifier', identifier);
 
-      logStep('Account unblocked by admin', { identifier, adminId: user.id });
+      logStep('Account unblocked by admin', { identifier, adminId: userId });
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -240,11 +246,12 @@ serve(async (req) => {
 
   } catch (error) {
     logStep('Error', error);
-    // Fail open - ne pas bloquer en cas d'erreur
+    // SECURITY: Fail closed on error - return blocked=true to prevent bypass
     return new Response(JSON.stringify({ 
-      blocked: false,
-      error: "Erreur interne"
+      blocked: true,
+      error: "Erreur interne - veuillez réessayer"
     }), {
+      status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

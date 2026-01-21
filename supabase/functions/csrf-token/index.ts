@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { validateJwtAndGetUserId } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,35 +7,17 @@ const corsHeaders = {
   "Access-Control-Expose-Headers": "x-csrf-token",
 };
 
-// Helper: Decode JWT payload without verification (Supabase already signed it)
-function decodeJwtPayload(token: string): { sub: string; exp: number; email?: string } | null {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-    
-    const payload = parts[1];
-    // Base64url decode
-    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = atob(base64);
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    console.error("[CSRF] JWT decode error:", error);
-    return null;
-  }
-}
-
-// Clé secrète pour signer les tokens (utilise SUPABASE_SERVICE_ROLE_KEY comme seed)
+// Secret key for signing tokens
 const getSecretKey = () => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
   return serviceKey.substring(0, 32);
 };
 
-// Génère un token CSRF sécurisé
+// Generate secure CSRF token
 const generateToken = async (userId: string, sessionId: string): Promise<string> => {
   const timestamp = Date.now();
   const data = `${userId}:${sessionId}:${timestamp}`;
   
-  // Encoder et créer une signature
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
@@ -55,12 +37,11 @@ const generateToken = async (userId: string, sessionId: string): Promise<string>
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
   
-  // Token format: base64(data):signature
   const tokenData = btoa(data);
   return `${tokenData}.${signatureHex}`;
 };
 
-// Vérifie un token CSRF
+// Verify CSRF token
 const verifyToken = async (token: string, userId: string): Promise<{ valid: boolean; reason?: string }> => {
   try {
     const [tokenData, signature] = token.split('.');
@@ -71,12 +52,11 @@ const verifyToken = async (token: string, userId: string): Promise<{ valid: bool
     const data = atob(tokenData);
     const [tokenUserId, sessionId, timestampStr] = data.split(':');
     
-    // Vérifier que le user_id correspond
     if (tokenUserId !== userId) {
       return { valid: false, reason: "User mismatch" };
     }
     
-    // Vérifier l'expiration (1 heure)
+    // Check expiration (1 hour)
     const timestamp = parseInt(timestampStr);
     const now = Date.now();
     const oneHour = 60 * 60 * 1000;
@@ -85,7 +65,7 @@ const verifyToken = async (token: string, userId: string): Promise<{ valid: bool
       return { valid: false, reason: "Token expired" };
     }
     
-    // Vérifier la signature
+    // Verify signature
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
       "raw",
@@ -119,44 +99,23 @@ serve(async (req) => {
   }
 
   try {
-    // Authentifier l'utilisateur
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Decode JWT to get user ID
-    const token = authHeader.replace("Bearer ", "");
-    const jwtPayload = decodeJwtPayload(token);
+    // SECURITY: Proper JWT validation with signature verification
+    const authResult = await validateJwtAndGetUserId(req.headers.get("Authorization"));
     
-    if (!jwtPayload || !jwtPayload.sub) {
-      console.error("[CSRF] Invalid JWT payload");
-      return new Response(JSON.stringify({ error: "Invalid authentication" }), {
-        status: 401,
+    if (authResult.error) {
+      console.error("[CSRF] Auth failed:", authResult.error);
+      return new Response(JSON.stringify({ error: authResult.error }), {
+        status: authResult.statusCode,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Check if token is expired
-    const now = Math.floor(Date.now() / 1000);
-    if (jwtPayload.exp && jwtPayload.exp < now) {
-      console.error("[CSRF] Token expired");
-      return new Response(JSON.stringify({ error: "Token expired" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = jwtPayload.sub;
-    console.log("[CSRF] User authenticated via JWT decode:", userId);
+    const userId = authResult.userId!;
+    console.log("[CSRF] User authenticated:", userId);
 
     const { action, csrfToken } = await req.json();
 
     if (action === "generate") {
-      // Générer un nouveau token CSRF
       const sessionId = crypto.randomUUID();
       const newToken = await generateToken(userId, sessionId);
       

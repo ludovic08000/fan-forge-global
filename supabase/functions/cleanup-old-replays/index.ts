@@ -1,9 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { S3Client, DeleteObjectCommand } from "npm:@aws-sdk/client-s3@3.600.0";
+import { verifyCronSecret } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 };
 
 Deno.serve(async (req) => {
@@ -12,17 +13,25 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // SECURITY: Verify cron secret - reject unauthorized requests
+    if (!verifyCronSecret(req)) {
+      console.error("[Cleanup Replays] Unauthorized: Invalid or missing cron secret");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Trouver les replays de plus de 7 jours
+    // Find replays older than 7 days
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     
     console.log('[Cleanup Replays] Looking for replays older than:', sevenDaysAgo);
 
-    // Récupérer les replays expirés
     const { data: expiredReplays, error: fetchError } = await supabaseAdmin
       .from('content')
       .select('id, file_url, creator_id, title')
@@ -44,7 +53,7 @@ Deno.serve(async (req) => {
 
     console.log(`[Cleanup Replays] Found ${expiredReplays.length} expired replay(s)`);
 
-    // Configurer le client S3 pour R2
+    // Configure S3 client for R2
     const r2AccountId = Deno.env.get('R2_ACCOUNT_ID');
     const r2AccessKeyId = Deno.env.get('R2_ACCESS_KEY_ID');
     const r2SecretAccessKey = Deno.env.get('R2_SECRET_ACCESS_KEY');
@@ -70,20 +79,16 @@ Deno.serve(async (req) => {
 
     for (const replay of expiredReplays) {
       try {
-        // Supprimer le fichier de R2 si configuré
+        // Delete file from R2 if configured
         if (s3Client && replay.file_url) {
-          // Extraire la clé du fichier depuis l'URL
           const r2PublicDomain = Deno.env.get('R2_PUBLIC_DOMAIN') || '';
           let fileKey = '';
           
           if (r2PublicDomain && replay.file_url.includes(r2PublicDomain)) {
-            // URL de type https://domain.com/replays/xxx/file.mp4
             const urlPath = new URL(replay.file_url).pathname;
             fileKey = urlPath.startsWith('/') ? urlPath.slice(1) : urlPath;
           } else if (replay.file_url.includes('r2.cloudflarestorage.com')) {
-            // URL S3 directe
             const urlPath = new URL(replay.file_url).pathname;
-            // Enlever le nom du bucket du chemin
             const pathParts = urlPath.split('/').filter(p => p);
             fileKey = pathParts.slice(1).join('/');
           }
@@ -100,7 +105,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Supprimer de la base de données
+        // Delete from database
         const { error: deleteError } = await supabaseAdmin
           .from('content')
           .delete()
@@ -114,7 +119,7 @@ Deno.serve(async (req) => {
           console.log(`[Cleanup Replays] Deleted replay: ${replay.id} - ${replay.title}`);
         }
 
-        // Nettoyer aussi l'URL d'enregistrement dans live_streams
+        // Clean recording URL from live_streams
         await supabaseAdmin
           .from('live_streams')
           .update({ recording_url: null })

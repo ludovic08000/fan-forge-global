@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateJwtAndGetUserId } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,12 +9,16 @@ const corsHeaders = {
 const METADEFENDER_API_KEY = Deno.env.get('METADEFENDER_API_KEY');
 const METADEFENDER_API_URL = 'https://api.metadefender.com/v4';
 
+// Max file size for scanning: 140MB (MetaDefender limit)
+const MAX_SCAN_SIZE = 140 * 1024 * 1024;
+
 interface ScanResult {
   isClean: boolean;
   scanId?: string;
   threatFound?: string;
   scanProgress?: number;
   error?: string;
+  skipped?: boolean;
 }
 
 async function uploadFileForScan(fileData: ArrayBuffer, fileName: string): Promise<string> {
@@ -59,12 +64,11 @@ async function getScanResult(dataId: string): Promise<ScanResult> {
   const result = await response.json();
   console.log('Scan result:', JSON.stringify(result, null, 2));
 
-  // Check scan progress
   const scanProgress = result.scan_results?.progress_percentage || 0;
   
   if (scanProgress < 100) {
     return {
-      isClean: true,
+      isClean: false, // SECURITY: Not clean until scan completes
       scanId: dataId,
       scanProgress,
     };
@@ -102,30 +106,47 @@ async function waitForScanComplete(dataId: string, maxAttempts = 30): Promise<Sc
     }
     
     console.log(`Scan in progress: ${result.scanProgress}%, attempt ${attempt + 1}/${maxAttempts}`);
-    
-    // Wait 2 seconds before next check
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
   
-  throw new Error('Scan timeout: file analysis took too long');
+  // SECURITY: Fail closed - treat timeout as suspicious
+  return {
+    isClean: false,
+    error: 'Scan timeout: file analysis took too long',
+    scanProgress: 0,
+  };
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // SECURITY: Require authentication
+    const authResult = await validateJwtAndGetUserId(req.headers.get('Authorization'));
+    
+    if (authResult.error) {
+      return new Response(
+        JSON.stringify({ error: authResult.error }),
+        { status: authResult.statusCode, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = authResult.userId!;
+    console.log(`[scan-file-virus] User ${userId} requesting virus scan`);
+
     if (!METADEFENDER_API_KEY) {
       console.error('METADEFENDER_API_KEY not configured');
+      // SECURITY: Fail closed when service not configured
       return new Response(
         JSON.stringify({ 
-          isClean: true, 
+          isClean: false, 
           skipped: true,
-          message: 'Virus scan skipped: API key not configured' 
+          error: 'Virus scan service not configured',
+          message: 'File upload blocked: virus scan unavailable' 
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -141,30 +162,43 @@ serve(async (req) => {
 
     console.log(`Scanning file: ${file.name}, type: ${file.type}, size: ${file.size}`);
 
-    // Skip scan for very large files (MetaDefender free tier limit is 140MB)
-    const MAX_SCAN_SIZE = 140 * 1024 * 1024; // 140MB
+    // Reject files that are too large
     if (file.size > MAX_SCAN_SIZE) {
       console.log(`File too large for scan: ${file.size} bytes`);
+      // SECURITY: Fail closed for large files
       return new Response(
         JSON.stringify({ 
-          isClean: true, 
+          isClean: false, 
           skipped: true,
-          message: 'File too large for virus scan' 
+          error: 'File too large for virus scan',
+          message: 'File upload blocked: exceeds scan size limit (140MB)'
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Convert file to ArrayBuffer
     const fileData = await file.arrayBuffer();
     
-    // Upload file for scanning
     const dataId = await uploadFileForScan(fileData, file.name);
-    
-    // Wait for scan to complete
     const scanResult = await waitForScanComplete(dataId);
     
     console.log(`Scan complete for ${file.name}:`, scanResult);
+
+    // SECURITY: If scan failed or file is infected, return error status
+    if (!scanResult.isClean) {
+      return new Response(
+        JSON.stringify({
+          ...scanResult,
+          message: scanResult.threatFound 
+            ? `Threat detected: ${scanResult.threatFound}`
+            : 'File scan failed or suspicious content detected'
+        }),
+        { 
+          status: scanResult.threatFound ? 400 : 500, // 400 for threats, 500 for errors
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
 
     return new Response(
       JSON.stringify(scanResult),
@@ -174,16 +208,14 @@ serve(async (req) => {
   } catch (error) {
     console.error('Virus scan error:', error);
     
-    // En cas d'erreur, on laisse passer le fichier mais on log l'erreur
-    // Pour ne pas bloquer l'upload si le service est indisponible
+    // SECURITY: Fail closed on any error
     return new Response(
       JSON.stringify({ 
-        isClean: true, 
-        skipped: true,
+        isClean: false, 
         error: error.message,
-        message: 'Virus scan failed, file allowed with warning'
+        message: 'File upload blocked: virus scan failed'
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
