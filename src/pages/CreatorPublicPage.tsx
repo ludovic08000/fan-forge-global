@@ -167,6 +167,8 @@ const CreatorPublicPage = () => {
   }, [user?.id, creator?.id, isSubscribed]); // Utiliser des IDs stables
 
   const handleSubscribe = async () => {
+    console.log('[SUBSCRIBE] handleSubscribe called, user:', !!user, 'creator:', !!creator);
+    
     if (!user) {
       toast.info('Connectez-vous pour vous abonner');
       navigate('/login');
@@ -176,6 +178,7 @@ const CreatorPublicPage = () => {
     if (!creator) return;
 
     const price = creator.subscription_price ?? 0;
+    console.log('[SUBSCRIBE] Price:', price);
 
     if (price <= 0) {
       // Abonnement gratuit
@@ -218,7 +221,9 @@ const CreatorPublicPage = () => {
       }
     } else {
       // Abonnement payant - ouvrir le checkout embedded
+      console.log('[SUBSCRIBE] Opening checkout dialog, setting showCheckout to true');
       setShowCheckout(true);
+      console.log('[SUBSCRIBE] showCheckout set, current value will be true on next render');
     }
   };
 
@@ -738,9 +743,17 @@ const CreatorPublicPage = () => {
         )}
       </div>
 
-      {/* Checkout Embedded Dialog */}
-      <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="checkout-description">
+      {/* Checkout Embedded Dialog - Rendu en dehors du flux principal */}
+      {/* DEBUG: showCheckout = {String(showCheckout)} */}
+      <Dialog open={showCheckout} onOpenChange={(open) => {
+        console.log('[DIALOG] onOpenChange called with:', open);
+        setShowCheckout(open);
+      }}>
+        <DialogContent 
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          aria-describedby="checkout-description"
+          style={{ pointerEvents: 'auto' }}
+        >
           <DialogHeader>
             <DialogTitle>
               Abonnement à {creator?.stage_name || 'ce créateur'}
