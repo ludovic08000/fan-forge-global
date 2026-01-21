@@ -109,31 +109,36 @@ serve(async (req) => {
   try {
     // Authentifier l'utilisateur
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Not authenticated" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // Use getClaims for authentication (works with signing-keys)
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
     
-    if (authError || !user) {
+    if (claimsError || !claimsData?.claims) {
+      console.error("[CSRF] getClaims failed:", claimsError);
       return new Response(JSON.stringify({ error: "Invalid authentication" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const userId = claimsData.claims.sub as string;
+    console.log("[CSRF] User authenticated via getClaims:", userId);
+
     const { action, csrfToken } = await req.json();
 
     if (action === "generate") {
       // Générer un nouveau token CSRF
       const sessionId = crypto.randomUUID();
-      const newToken = await generateToken(user.id, sessionId);
+      const newToken = await generateToken(userId, sessionId);
       
-      console.log(`[CSRF] Token generated for user ${user.id}`);
+      console.log(`[CSRF] Token generated for user ${userId}`);
       
       return new Response(JSON.stringify({ 
         token: newToken,
@@ -155,9 +160,9 @@ serve(async (req) => {
         });
       }
       
-      const result = await verifyToken(csrfToken, user.id);
+      const result = await verifyToken(csrfToken, userId);
       
-      console.log(`[CSRF] Token verification for user ${user.id}: ${result.valid}`);
+      console.log(`[CSRF] Token verification for user ${userId}: ${result.valid}`);
       
       return new Response(JSON.stringify(result), {
         status: result.valid ? 200 : 403,
