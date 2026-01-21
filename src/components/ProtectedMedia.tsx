@@ -114,7 +114,7 @@ export const ProtectedMedia = ({
         </div>
       )}
       
-      {/* Overlay invisible pour bloquer clic droit et drag seulement */}
+      {/* Overlay invisible pour bloquer clic droit et drag */}
       <div 
         className="absolute inset-0 z-[1]"
         style={{ 
@@ -123,23 +123,6 @@ export const ProtectedMedia = ({
         }}
         onContextMenu={(e) => e.preventDefault()}
         onDragStart={(e) => e.preventDefault()}
-      />
-      
-      {/* Motif de protection invisible */}
-      <div 
-        className="absolute inset-0 pointer-events-none z-15"
-        style={{
-          background: `
-            repeating-linear-gradient(
-              -45deg,
-              transparent,
-              transparent 10px,
-              rgba(255,255,255,0.003) 10px,
-              rgba(255,255,255,0.003) 20px
-            )
-          `,
-          mixBlendMode: 'overlay',
-        }}
       />
 
       {/* Watermark forensique avec ID utilisateur - Très subtil mais traçable */}
@@ -219,49 +202,21 @@ export const ProtectedMedia = ({
         </div>
       )}
       
-      {/* Filigrane textuel du créateur si fourni */}
+      {/* Filigrane textuel du créateur si fourni - Design premium sans lignes */}
       {watermarkText && !isBlurred && (
         <div 
           className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 overflow-hidden"
         >
-          {/* Motif de filigrane répété */}
+          {/* Filigrane principal - opacité très subtile */}
           <div 
-            className="absolute inset-0"
+            className="text-white/[0.06] text-4xl md:text-6xl font-bold select-none"
             style={{
-              background: `repeating-linear-gradient(
-                -30deg,
-                transparent,
-                transparent 150px,
-                rgba(255,255,255,0.02) 150px,
-                rgba(255,255,255,0.02) 300px
-              )`,
-            }}
-          />
-          
-          {/* Filigrane principal */}
-          <div 
-            className="text-white/10 text-4xl md:text-6xl font-bold select-none"
-            style={{
-              transform: 'rotate(-30deg)',
-              textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
+              transform: 'rotate(-25deg)',
               userSelect: 'none',
               WebkitUserSelect: 'none',
-              letterSpacing: '0.1em',
+              letterSpacing: '0.15em',
+              fontWeight: 600,
             }}
-          >
-            {watermarkText}
-          </div>
-          
-          {/* Filigranes secondaires dans les coins */}
-          <div 
-            className="absolute top-4 left-4 text-white/5 text-sm font-medium select-none"
-            style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
-          >
-            {watermarkText}
-          </div>
-          <div 
-            className="absolute bottom-4 right-4 text-white/5 text-sm font-medium select-none"
-            style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
           >
             {watermarkText}
           </div>
