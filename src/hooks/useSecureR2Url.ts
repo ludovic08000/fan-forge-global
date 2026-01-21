@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import type { Session } from '@supabase/supabase-js';
 
 interface R2UrlCache {
   url: string;
@@ -59,13 +59,32 @@ export const useSecureR2Url = (
     enabled?: boolean;
   }
 ) => {
-  const { session } = useAuth();
+  const [session, setSession] = useState<Session | null>(null);
   const [secureUrl, setSecureUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const contentId = options?.contentId;
   const enabled = options?.enabled !== false;
+
+  // Charger la session Supabase directement
+  useEffect(() => {
+    const loadSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      console.log('[useSecureR2Url] Session loaded:', !!data.session);
+      setSession(data.session);
+    };
+    
+    loadSession();
+    
+    // Écouter les changements de session
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('[useSecureR2Url] Auth state changed:', !!session);
+      setSession(session);
+    });
+    
+    return () => subscription.unsubscribe();
+  }, []);
 
   /**
    * Vérifier le cache
