@@ -214,25 +214,18 @@ const ContentCard: React.FC<ContentCardProps> = ({
         <div 
           className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6"
         >
-          <div className="flex items-center justify-between w-full text-white text-xs">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1">
-                <Eye className="h-3.5 w-3.5" />
-                {content.view_count}
-              </span>
-              <span className="flex items-center gap-1">
-                <Heart className={`h-3.5 w-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-                {content.like_count}
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
+          <div className="flex items-center gap-3 text-white text-xs">
+            <span className="flex items-center gap-1">
+              <Eye className="h-3.5 w-3.5" />
+              {content.view_count}
+            </span>
+            <button 
               onClick={handleLike}
-              className={`h-7 w-7 ${isLiked ? 'text-red-500 hover:text-red-600' : 'text-white hover:text-red-400 hover:bg-white/20'}`}
+              className="flex items-center gap-1 hover:scale-110 transition-transform"
             >
-              <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
-            </Button>
+              <Heart className={`h-3.5 w-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+              {content.like_count}
+            </button>
           </div>
         </div>
       )}
