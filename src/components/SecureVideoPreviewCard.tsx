@@ -1,7 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Play, Volume2, VolumeX, Loader2, Shield } from 'lucide-react';
-import { useSignedUrl } from '@/hooks/useSignedUrl';
-import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
+import { Play, Volume2, VolumeX, Loader2 } from 'lucide-react';
 
 interface SecureVideoPreviewCardProps {
   src: string;
@@ -15,8 +13,8 @@ interface SecureVideoPreviewCardProps {
 }
 
 /**
- * Composant vidéo sécurisé avec lecture automatique au survol
- * Utilise des URLs signées pour le contenu premium et R2
+ * Composant vidéo simplifié avec lecture automatique au survol
+ * Utilise directement l'URL fournie (R2 public ou Supabase public)
  */
 export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   src,
@@ -29,50 +27,26 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   children,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
   const [isHovering, setIsHovering] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [posterError, setPosterError] = useState(false);
+  const [previewReady, setPreviewReady] = useState(false);
 
-  // Détecter si c'est une URL R2 externe
-  const isExternalR2 = isR2Url(src);
+  // URL à utiliser directement
+  const videoUrl = src;
 
-  // Hook pour URLs R2 sécurisées (Cloudflare)
-  const { secureUrl: r2SecureUrl, loading: r2Loading } = useSecureR2Url(
-    isExternalR2 ? src : null,
-    {
-      contentId,
-      enabled: isExternalR2
-    }
-  );
-
-  // Hook pour URLs Supabase signées (contenu premium stocké sur Supabase)
-  const { signedUrl: supabaseSignedUrl, loading: supabaseLoading } = useSignedUrl(
-    !isExternalR2 && isPremium ? src : null,
-    {
-      bucket: 'content',
-      contentId,
-      enabled: !isExternalR2 && isPremium
-    }
-  );
-
-  // URL sécurisée finale à utiliser
-  const secureVideoUrl = isExternalR2 
-    ? (r2SecureUrl || src) 
-    : (isPremium ? (supabaseSignedUrl || src) : src);
-  
-  const isLoading = isExternalR2 ? r2Loading : (isPremium ? supabaseLoading : false);
-
-  // Utiliser le poster fourni, ou extraire une frame de la vidéo
+  // Utiliser le poster fourni si disponible
   const effectivePoster = poster && poster.trim() !== '' ? poster : undefined;
 
   const handleMouseEnter = () => {
     setIsHovering(true);
-    if (videoRef.current && !videoError && !blurred && secureVideoUrl) {
+    if (videoRef.current && !videoError && !blurred && videoUrl) {
       videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {
-        setVideoError(true);
+      videoRef.current.play().catch((err) => {
+        console.warn('Video play failed:', err.message);
       });
     }
   };
@@ -96,7 +70,8 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
     setVideoError(false);
     setVideoLoaded(false);
     setPosterError(false);
-  }, [secureVideoUrl]);
+    setPreviewReady(false);
+  }, [videoUrl]);
 
   return (
     <div
@@ -104,27 +79,23 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Loading state pour URL sécurisée */}
-      {isLoading && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/80">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
-      )}
-
-      {/* Video element - toujours présent mais caché quand pas en hover */}
-      {secureVideoUrl && !isLoading && (
+      {/* Video principale pour le hover */}
+      {videoUrl && (
         <video
           ref={videoRef}
-          src={secureVideoUrl}
+          src={videoUrl}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-            isHovering && !videoError && !blurred ? 'opacity-100 z-10' : 'opacity-0'
+            isHovering && !videoError && !blurred ? 'opacity-100 z-10' : 'opacity-0 z-0'
           } ${blurred ? 'blur-lg' : ''}`}
           muted={isMuted}
           loop
           playsInline
           preload="metadata"
           onLoadedData={() => setVideoLoaded(true)}
-          onError={() => setVideoError(true)}
+          onError={(e) => {
+            console.warn('Main video error:', e);
+            setVideoError(true);
+          }}
           controlsList="nodownload noplaybackrate"
           disablePictureInPicture
           onContextMenu={(e) => e.preventDefault()}
@@ -132,10 +103,10 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
         />
       )}
 
-      {/* Thumbnail/poster quand pas en hover */}
+      {/* Thumbnail/poster ou preview frame quand pas en hover */}
       <div
         className={`absolute inset-0 w-full h-full transition-opacity duration-300 ${
-          isHovering && !videoError && !blurred && !isLoading ? 'opacity-0' : 'opacity-100'
+          isHovering && !videoError && !blurred ? 'opacity-0' : 'opacity-100'
         }`}
       >
         {effectivePoster && !posterError ? (
@@ -147,10 +118,11 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
             onContextMenu={(e) => e.preventDefault()}
             onError={() => setPosterError(true)}
           />
-        ) : !isLoading ? (
-          /* Si pas de poster, afficher une video statique avec preload metadata pour avoir la première frame */
+        ) : (
+          /* Si pas de poster, utiliser une video pour capturer la première frame */
           <video
-            src={secureVideoUrl || src}
+            ref={previewVideoRef}
+            src={videoUrl}
             className={`w-full h-full object-cover ${blurred ? 'blur-lg' : ''}`}
             muted
             playsInline
@@ -163,24 +135,16 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
               const video = e.currentTarget;
               video.currentTime = 0.5;
             }}
+            onSeeked={() => setPreviewReady(true)}
+            onError={(e) => {
+              console.warn('Preview video error:', e);
+            }}
           />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-muted to-muted/50" />
         )}
       </div>
 
-      {/* Badge sécurisé */}
-      {(isExternalR2 || isPremium) && isHovering && !videoError && !isLoading && (
-        <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-green-500/90 px-2 py-0.5 rounded-full">
-          <Shield className="h-3 w-3 text-white" />
-          <span className="text-[10px] font-semibold text-white">
-            Sécurisé
-          </span>
-        </div>
-      )}
-
       {/* Play button overlay - visible quand pas en hover et pas flouté */}
-      {showPlayButton && !isHovering && !blurred && !isLoading && (
+      {showPlayButton && !isHovering && !blurred && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
           <div className="bg-black/60 rounded-full p-3 shadow-lg">
             <Play className="h-6 w-6 text-white fill-white" />
@@ -189,7 +153,7 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
       )}
 
       {/* Mute button pendant le hover */}
-      {isHovering && !videoError && !blurred && !isLoading && (
+      {isHovering && !videoError && !blurred && (
         <button
           onClick={toggleMute}
           className="absolute bottom-2 left-2 z-30 p-2 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
