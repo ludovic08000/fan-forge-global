@@ -71,29 +71,29 @@ const HeroSection = memo(() => {
       {/* Premium portrait image */}
       <div className="relative z-10 w-full max-w-md mx-auto px-4 pb-8">
         <div className="relative overflow-hidden rounded-2xl shadow-2xl">
-          {/* Image avec luminosité normale */}
+          {/* Image avec luminosité augmentée */}
           <img 
             src={splashPortrait} 
             alt="Créateurs Crub" 
             className="w-full h-auto object-cover"
             style={{ 
-              filter: 'brightness(1.05) contrast(1.05)',
+              filter: 'brightness(1.3) contrast(1.08) saturate(1.1)',
             }}
           />
           
-          {/* Vignette subtile */}
+          {/* Vignette très subtile */}
           <div 
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: 'radial-gradient(ellipse at center, transparent 50%, black/40 100%)',
+              background: 'radial-gradient(ellipse at center, transparent 60%, black/25 100%)',
             }}
           />
           
-          {/* Top gradient léger */}
-          <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-black/30 to-transparent pointer-events-none" />
+          {/* Top gradient très léger */}
+          <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-black/15 to-transparent pointer-events-none" />
           
           {/* Bottom gradient léger */}
-          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/50 via-black/20 to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/30 via-black/10 to-transparent pointer-events-none" />
         </div>
       </div>
     </section>
