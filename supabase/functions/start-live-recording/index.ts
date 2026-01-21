@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { EgressClient, RoomCompositeOptions, EncodedFileOutput, EncodedFileType } from "npm:livekit-server-sdk@2.6.1";
+import { EgressClient, EncodedFileOutput, EncodedFileType, DirectFileOutput } from "npm:livekit-server-sdk@2.6.1";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
@@ -92,39 +92,39 @@ serve(async (req) => {
       );
     }
 
-    // Créer le client Egress
-    const egressClient = new EgressClient(livekitUrl, apiKey, apiSecret);
+    // Créer le client Egress - utiliser l'URL HTTP au lieu de WSS
+    const httpUrl = livekitUrl.replace('wss://', 'https://');
+    const egressClient = new EgressClient(httpUrl, apiKey, apiSecret);
     
     const roomName = `live-${streamId}`;
     const timestamp = Date.now();
-    const fileName = `recordings/${stream.creator_id}/${streamId}_${timestamp}.mp4`;
+    const fileName = `recordings/${stream.creator_id}/${streamId}_${timestamp}`;
 
     console.log('[Start Live Recording] Starting room composite egress for room:', roomName);
 
-    // Configuration de l'enregistrement - output vers GCS (compatible avec Supabase Storage)
-    // On utilise un fichier local temporaire puis on uploadera via webhook
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    
-    // Webhook URL pour recevoir les notifications d'enregistrement terminé
-    const webhookUrl = `${supabaseUrl}/functions/v1/livekit-recording-webhook`;
+    // Utiliser DirectFileOutput pour LiveKit Cloud storage intégré
+    // Le fichier sera disponible via downloadUrl dans le webhook
+    const fileOutput = new DirectFileOutput({
+      filepath: `${fileName}.mp4`,
+    });
 
     // Démarrer l'enregistrement avec Room Composite Egress
+    // Pour LiveKit Cloud, on utilise le storage intégré qui fournit une downloadUrl
     const egressInfo = await egressClient.startRoomCompositeEgress(
       roomName,
       {
+        segments: undefined, // Pas de segments
+        stream: undefined, // Pas de stream RTMP
         file: new EncodedFileOutput({
           fileType: EncodedFileType.MP4,
-          filepath: fileName,
-          // Pour LiveKit Cloud, on utilise le storage intégré
-          // Les fichiers seront récupérés via le webhook
+          filepath: `${fileName}.mp4`,
+          disableManifest: true,
         }),
       },
       {
-        layout: 'speaker', // Layout avec le speaker principal
+        layout: 'speaker',
         audioOnly: false,
         videoOnly: false,
-        customBaseUrl: '', // Utiliser le template par défaut
       }
     );
 
