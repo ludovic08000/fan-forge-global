@@ -12,7 +12,7 @@ interface VideoPreviewCardProps {
 
 /**
  * Composant vidéo avec lecture automatique au survol
- * Inspiré du comportement du dashboard créateur
+ * Affiche la première frame de la vidéo comme poster si aucun poster n'est fourni
  */
 export const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
   src,
@@ -27,11 +27,12 @@ export const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
   const [isMuted, setIsMuted] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [firstFrameLoaded, setFirstFrameLoaded] = useState(false);
 
   const handleMouseEnter = () => {
     setIsHovering(true);
     if (videoRef.current && !videoError && !blurred) {
-      videoRef.current.currentTime = 0;
+      // Ne pas reset à 0 pour garder la preview visible
       videoRef.current.play().catch(() => {
         setVideoError(true);
       });
@@ -42,6 +43,7 @@ export const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
     setIsHovering(false);
     if (videoRef.current) {
       videoRef.current.pause();
+      // Reset to first frame pour l'aperçu
       videoRef.current.currentTime = 0;
     }
   };
@@ -56,7 +58,22 @@ export const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
   useEffect(() => {
     setVideoError(false);
     setVideoLoaded(false);
+    setFirstFrameLoaded(false);
   }, [src]);
+
+  // Charger la première frame comme aperçu
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      // Aller à 0.5 seconde pour éviter un écran noir
+      videoRef.current.currentTime = 0.5;
+    }
+  };
+
+  const handleSeeked = () => {
+    setFirstFrameLoaded(true);
+  };
+
+  const hasPoster = poster && poster.trim() !== '';
 
   return (
     <div
@@ -64,44 +81,29 @@ export const VideoPreviewCard: React.FC<VideoPreviewCardProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Video element - toujours présent mais caché quand pas en hover */}
+      {/* Video element - toujours visible pour servir de preview */}
       <video
         ref={videoRef}
         src={src}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-          isHovering && !videoError && !blurred ? 'opacity-100 z-10' : 'opacity-0'
-        } ${blurred ? 'blur-lg' : ''}`}
+        className={`absolute inset-0 w-full h-full object-cover ${blurred ? 'blur-lg' : ''}`}
         muted={isMuted}
         loop
         playsInline
         preload="metadata"
-        poster={poster || undefined}
+        poster={hasPoster ? poster : undefined}
+        onLoadedMetadata={handleLoadedMetadata}
+        onSeeked={handleSeeked}
         onLoadedData={() => setVideoLoaded(true)}
         onError={() => setVideoError(true)}
         controlsList="nodownload noplaybackrate"
         disablePictureInPicture
         onContextMenu={(e) => e.preventDefault()}
-        style={{ pointerEvents: isHovering ? 'auto' : 'none' }}
       />
 
-      {/* Thumbnail/poster quand pas en hover */}
-      <div
-        className={`absolute inset-0 w-full h-full transition-opacity duration-300 ${
-          isHovering && !videoError && !blurred ? 'opacity-0' : 'opacity-100'
-        }`}
-      >
-        {poster ? (
-          <img
-            src={poster}
-            alt=""
-            className={`w-full h-full object-cover ${blurred ? 'blur-lg' : ''}`}
-            draggable={false}
-            onContextMenu={(e) => e.preventDefault()}
-          />
-        ) : (
-          <div className={`w-full h-full bg-gradient-to-br from-muted to-muted/50 ${blurred ? 'blur-lg' : ''}`} />
-        )}
-      </div>
+      {/* Fallback gradient si vidéo en erreur */}
+      {videoError && (
+        <div className={`absolute inset-0 w-full h-full bg-gradient-to-br from-muted to-muted/50 ${blurred ? 'blur-lg' : ''}`} />
+      )}
 
       {/* Play button overlay - visible quand pas en hover et pas flouté */}
       {showPlayButton && !isHovering && !blurred && (
