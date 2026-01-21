@@ -1,12 +1,128 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { S3Client, GetObjectCommand } from "https://esm.sh/@aws-sdk/client-s3@3.490.0";
-import { getSignedUrl } from "https://esm.sh/@aws-sdk/s3-request-presigner@3.490.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Helper: Convert ArrayBuffer to hex string
+function toHex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// Helper: HMAC-SHA256
+async function hmacSha256(key: ArrayBuffer | string, data: string): Promise<ArrayBuffer> {
+  const encoder = new TextEncoder();
+  const keyData = typeof key === 'string' 
+    ? encoder.encode(key) 
+    : new Uint8Array(key);
+  
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  
+  return await crypto.subtle.sign(
+    'HMAC',
+    cryptoKey,
+    new TextEncoder().encode(data)
+  );
+}
+
+// Helper: SHA256 hash
+async function sha256(data: string): Promise<string> {
+  const hash = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(data)
+  );
+  return toHex(hash);
+}
+
+// Generate AWS Signature V4 presigned URL for S3/R2
+async function generatePresignedUrl(
+  accessKeyId: string,
+  secretAccessKey: string,
+  region: string,
+  bucket: string,
+  key: string,
+  accountId: string,
+  expiresIn: number = 3600
+): Promise<string> {
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
+  const dateStamp = amzDate.slice(0, 8);
+  
+  const service = 's3';
+  const host = `${accountId}.r2.cloudflarestorage.com`;
+  const endpoint = `https://${host}`;
+  
+  // URI encode the key (file path)
+  const encodedKey = key.split('/').map(segment => encodeURIComponent(segment)).join('/');
+  const canonicalUri = `/${bucket}/${encodedKey}`;
+  
+  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+  const credential = encodeURIComponent(`${accessKeyId}/${credentialScope}`);
+  
+  // Build query parameters (must be sorted alphabetically)
+  const queryParams = [
+    ['X-Amz-Algorithm', 'AWS4-HMAC-SHA256'],
+    ['X-Amz-Credential', credential],
+    ['X-Amz-Date', amzDate],
+    ['X-Amz-Expires', expiresIn.toString()],
+    ['X-Amz-SignedHeaders', 'host'],
+  ];
+  
+  const canonicalQueryString = queryParams
+    .map(([k, v]) => `${k}=${v}`)
+    .join('&');
+  
+  // Canonical headers
+  const canonicalHeaders = `host:${host}\n`;
+  const signedHeaders = 'host';
+  
+  // For presigned URLs, payload is UNSIGNED-PAYLOAD
+  const payloadHash = 'UNSIGNED-PAYLOAD';
+  
+  // Create canonical request
+  const canonicalRequest = [
+    'GET',
+    canonicalUri,
+    canonicalQueryString,
+    canonicalHeaders,
+    signedHeaders,
+    payloadHash
+  ].join('\n');
+  
+  // Create string to sign
+  const canonicalRequestHash = await sha256(canonicalRequest);
+  const stringToSign = [
+    'AWS4-HMAC-SHA256',
+    amzDate,
+    credentialScope,
+    canonicalRequestHash
+  ].join('\n');
+  
+  // Calculate signing key
+  const kDate = await hmacSha256(`AWS4${secretAccessKey}`, dateStamp);
+  const kRegion = await hmacSha256(kDate, region);
+  const kService = await hmacSha256(kRegion, service);
+  const kSigning = await hmacSha256(kService, 'aws4_request');
+  
+  // Calculate signature
+  const signatureBuffer = await hmacSha256(kSigning, stringToSign);
+  const signature = toHex(signatureBuffer);
+  
+  // Build final URL
+  const presignedUrl = `${endpoint}${canonicalUri}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
+  
+  return presignedUrl;
+}
 
 serve(async (req) => {
   // Handle CORS preflight
@@ -67,7 +183,6 @@ serve(async (req) => {
 
     // If contentId provided, check content ownership and subscription
     if (!hasAccess && contentId) {
-      // Get content details
       const { data: content } = await supabase
         .from("content")
         .select("creator_id, is_premium")
@@ -75,7 +190,6 @@ serve(async (req) => {
         .single();
 
       if (content) {
-        // Check if user is the creator
         const { data: creator } = await supabase
           .from("creators")
           .select("id, user_id")
@@ -86,7 +200,6 @@ serve(async (req) => {
           hasAccess = true;
         }
 
-        // If premium content, check subscription
         if (!hasAccess && content.is_premium) {
           const { data: subscription } = await supabase
             .from("subscriptions")
@@ -101,7 +214,6 @@ serve(async (req) => {
           }
         }
 
-        // If not premium, allow access
         if (!hasAccess && !content.is_premium) {
           hasAccess = true;
         }
@@ -109,13 +221,11 @@ serve(async (req) => {
     }
 
     // If no contentId, try to extract creator_id from file path
-    // Format: replays/{creator_id}/{filename}.mp4
     if (!hasAccess && !contentId) {
       const pathMatch = filePath.match(/^replays\/([a-f0-9-]+)\//);
       if (pathMatch) {
         const creatorId = pathMatch[1];
         
-        // Check if user is the creator
         const { data: creator } = await supabase
           .from("creators")
           .select("id, user_id")
@@ -126,7 +236,6 @@ serve(async (req) => {
           hasAccess = true;
         }
 
-        // Check subscription to this creator
         if (!hasAccess) {
           const { data: subscription } = await supabase
             .from("subscriptions")
@@ -150,29 +259,24 @@ serve(async (req) => {
       );
     }
 
-    // Initialize R2 client
+    // Get R2 credentials
     const r2AccountId = Deno.env.get("R2_ACCOUNT_ID")!;
     const r2AccessKeyId = Deno.env.get("R2_ACCESS_KEY_ID")!;
     const r2SecretAccessKey = Deno.env.get("R2_SECRET_ACCESS_KEY")!;
     const r2BucketName = Deno.env.get("R2_BUCKET_NAME") || "crub";
 
-    const s3Client = new S3Client({
-      region: "auto",
-      endpoint: `https://${r2AccountId}.r2.cloudflarestorage.com`,
-      credentials: {
-        accessKeyId: r2AccessKeyId,
-        secretAccessKey: r2SecretAccessKey,
-      },
-    });
-
-    // Generate presigned URL (expires in 1 hour)
-    const command = new GetObjectCommand({
-      Bucket: r2BucketName,
-      Key: filePath,
-    });
-
     const expiresIn = 3600; // 1 hour
-    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn });
+
+    // Generate presigned URL
+    const signedUrl = await generatePresignedUrl(
+      r2AccessKeyId,
+      r2SecretAccessKey,
+      'auto',
+      r2BucketName,
+      filePath,
+      r2AccountId,
+      expiresIn
+    );
 
     const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
