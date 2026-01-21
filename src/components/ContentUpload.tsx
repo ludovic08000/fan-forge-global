@@ -601,8 +601,8 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
 
           {/* Premium Toggle */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
+            <div className="flex items-center justify-between gap-4 p-3 bg-muted/30 rounded-lg border border-border">
+              <div className="space-y-0.5 flex-1">
                 <Label htmlFor="premium">Contenu Premium</Label>
                 <p className="text-sm text-muted-foreground">
                   Réservé aux abonnés payants uniquement
@@ -621,8 +621,8 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
             
             {/* Preview Toggle - Only show when content is premium */}
             {formData.isPremium && (
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
-                <div className="space-y-0.5">
+              <div className="flex items-center justify-between gap-4 p-3 bg-muted/50 rounded-lg border border-border">
+                <div className="space-y-0.5 flex-1">
                   <Label htmlFor="preview" className="flex items-center gap-2">
                     👁️ Photo d'aperçu
                   </Label>
