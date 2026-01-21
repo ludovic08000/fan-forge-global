@@ -65,7 +65,7 @@ serve(async (req) => {
 
     // Client pour vérifier l'utilisateur
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       logStep('No auth header provided', { requestId });
       return new Response(
         JSON.stringify({ error: 'Authorization required', requestId }),
@@ -77,16 +77,20 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     });
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      logStep('User authentication failed', { error: userError, requestId });
+    // Use getClaims for authentication (works with signing-keys)
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      logStep('User authentication failed via getClaims', { error: claimsError, requestId });
       return new Response(
         JSON.stringify({ error: 'Invalid user', requestId }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    logStep('User authenticated', { userId: user.id, requestId });
+    const userId = claimsData.claims.sub as string;
+    logStep('User authenticated via getClaims', { userId, requestId });
 
     const { filePath, bucket, contentId, includeChecksum } = await req.json();
 
@@ -121,7 +125,7 @@ serve(async (req) => {
         const { data: subscription } = await supabaseAdmin
           .from('subscriptions')
           .select('id')
-          .eq('subscriber_id', user.id)
+          .eq('subscriber_id', userId)
           .eq('creator_id', content.creator_id)
           .eq('status', 'active')
           .maybeSingle();
@@ -133,11 +137,11 @@ serve(async (req) => {
           .eq('id', content.creator_id)
           .single();
 
-        const isCreator = creator?.user_id === user.id;
-        const isAdmin = await checkIsAdmin(supabaseAdmin, user.id);
+        const isCreator = creator?.user_id === userId;
+        const isAdmin = await checkIsAdmin(supabaseAdmin, userId);
 
         if (!subscription && !isCreator && !isAdmin) {
-          logStep('Access denied - no subscription', { userId: user.id, creatorId: content.creator_id });
+          logStep('Access denied - no subscription', { userId, creatorId: content.creator_id });
           return new Response(
             JSON.stringify({ error: 'Subscription required to access this content' }),
             { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -169,7 +173,7 @@ serve(async (req) => {
     // Générer un checksum si demandé pour la vérification d'intégrité
     let checksum: string | undefined;
     if (includeChecksum) {
-      const data = `${filePath}:${user.id}:${bucket}`;
+      const data = `${filePath}:${userId}:${bucket}`;
       const encoder = new TextEncoder();
       const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data));
       const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -183,7 +187,7 @@ serve(async (req) => {
         requestId,
         checksum,
         issuedAt: new Date().toISOString(),
-        userId: user.id.substring(0, 8) + '...' // Truncated for logging
+        userId: userId.substring(0, 8) + '...' // Truncated for logging
       }),
       { 
         status: 200, 

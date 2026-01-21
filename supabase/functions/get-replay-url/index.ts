@@ -133,7 +133,7 @@ serve(async (req) => {
   try {
     // Get authorization header
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ error: "Authorization required" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -147,14 +147,20 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Verify user authentication using getClaims (works with signing-keys)
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error("[get-replay-url] getClaims failed:", claimsError);
       return new Response(
         JSON.stringify({ error: "Invalid authentication" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const userId = claimsData.claims.sub as string;
+    console.log("[get-replay-url] User authenticated via getClaims:", userId);
 
     // Parse request body
     const { filePath, contentId } = await req.json();
@@ -166,14 +172,18 @@ serve(async (req) => {
       );
     }
 
+    // Use service role for database queries
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
     // Check access rights
     let hasAccess = false;
 
     // Check if user is admin
-    const { data: adminRole } = await supabase
+    const { data: adminRole } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("role", "admin")
       .single();
 
@@ -183,28 +193,28 @@ serve(async (req) => {
 
     // If contentId provided, check content ownership and subscription
     if (!hasAccess && contentId) {
-      const { data: content } = await supabase
+      const { data: content } = await supabaseAdmin
         .from("content")
         .select("creator_id, is_premium")
         .eq("id", contentId)
         .single();
 
       if (content) {
-        const { data: creator } = await supabase
+        const { data: creator } = await supabaseAdmin
           .from("creators")
           .select("id, user_id")
           .eq("id", content.creator_id)
           .single();
 
-        if (creator?.user_id === user.id) {
+        if (creator?.user_id === userId) {
           hasAccess = true;
         }
 
         if (!hasAccess && content.is_premium) {
-          const { data: subscription } = await supabase
+          const { data: subscription } = await supabaseAdmin
             .from("subscriptions")
             .select("id")
-            .eq("subscriber_id", user.id)
+            .eq("subscriber_id", userId)
             .eq("creator_id", content.creator_id)
             .eq("status", "active")
             .single();
@@ -226,21 +236,21 @@ serve(async (req) => {
       if (pathMatch) {
         const creatorId = pathMatch[1];
         
-        const { data: creator } = await supabase
+        const { data: creator } = await supabaseAdmin
           .from("creators")
           .select("id, user_id")
           .eq("id", creatorId)
           .single();
 
-        if (creator?.user_id === user.id) {
+        if (creator?.user_id === userId) {
           hasAccess = true;
         }
 
         if (!hasAccess) {
-          const { data: subscription } = await supabase
+          const { data: subscription } = await supabaseAdmin
             .from("subscriptions")
             .select("id")
-            .eq("subscriber_id", user.id)
+            .eq("subscriber_id", userId)
             .eq("creator_id", creatorId)
             .eq("status", "active")
             .single();
@@ -280,7 +290,7 @@ serve(async (req) => {
 
     const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
-    console.log(`[get-replay-url] Generated signed URL for ${filePath} for user ${user.id}`);
+    console.log(`[get-replay-url] Generated signed URL for ${filePath} for user ${userId}`);
 
     return new Response(
       JSON.stringify({
