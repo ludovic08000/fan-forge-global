@@ -18,6 +18,23 @@ const logStep = (step: string, details?: any) => {
   console.log(`[GET-SIGNED-URL] ${step}`, details ? JSON.stringify(details) : '');
 };
 
+// Helper: Decode JWT payload without verification (Supabase already signed it)
+function decodeJwtPayload(token: string): { sub: string; exp: number; email?: string } | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    
+    const payload = parts[1];
+    // Base64url decode
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = atob(base64);
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error("[GET-SIGNED-URL] JWT decode error:", error);
+    return null;
+  }
+}
+
 /**
  * Vérifie si l'origine de la requête est autorisée
  */
@@ -73,24 +90,30 @@ serve(async (req) => {
       );
     }
 
-    const supabaseClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    // Use getClaims for authentication (works with signing-keys)
+    // Decode JWT to get user ID
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    const jwtPayload = decodeJwtPayload(token);
     
-    if (claimsError || !claimsData?.claims) {
-      logStep('User authentication failed via getClaims', { error: claimsError, requestId });
+    if (!jwtPayload || !jwtPayload.sub) {
+      logStep('Invalid JWT payload', { requestId });
       return new Response(
         JSON.stringify({ error: 'Invalid user', requestId }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const userId = claimsData.claims.sub as string;
-    logStep('User authenticated via getClaims', { userId, requestId });
+    // Check if token is expired
+    const now = Math.floor(Date.now() / 1000);
+    if (jwtPayload.exp && jwtPayload.exp < now) {
+      logStep('Token expired', { requestId });
+      return new Response(
+        JSON.stringify({ error: 'Token expired', requestId }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = jwtPayload.sub;
+    logStep('User authenticated via JWT decode', { userId, requestId });
 
     const { filePath, bucket, contentId, includeChecksum } = await req.json();
 

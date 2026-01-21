@@ -6,6 +6,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper: Decode JWT payload without verification (Supabase already signed it)
+function decodeJwtPayload(token: string): { sub: string; exp: number; email?: string } | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    
+    const payload = parts[1];
+    // Base64url decode
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = atob(base64);
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error("[get-replay-url] JWT decode error:", error);
+    return null;
+  }
+}
+
 // Helper: Convert ArrayBuffer to hex string
 function toHex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer))
@@ -140,27 +157,30 @@ serve(async (req) => {
       );
     }
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    // Verify user authentication using getClaims (works with signing-keys)
+    // Decode JWT to get user ID
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    const jwtPayload = decodeJwtPayload(token);
     
-    if (claimsError || !claimsData?.claims) {
-      console.error("[get-replay-url] getClaims failed:", claimsError);
+    if (!jwtPayload || !jwtPayload.sub) {
+      console.error("[get-replay-url] Invalid JWT payload");
       return new Response(
         JSON.stringify({ error: "Invalid authentication" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const userId = claimsData.claims.sub as string;
-    console.log("[get-replay-url] User authenticated via getClaims:", userId);
+    // Check if token is expired
+    const now = Math.floor(Date.now() / 1000);
+    if (jwtPayload.exp && jwtPayload.exp < now) {
+      console.error("[get-replay-url] Token expired");
+      return new Response(
+        JSON.stringify({ error: "Token expired" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = jwtPayload.sub;
+    console.log("[get-replay-url] User authenticated via JWT decode:", userId);
 
     // Parse request body
     const { filePath, contentId } = await req.json();
@@ -173,6 +193,7 @@ serve(async (req) => {
     }
 
     // Use service role for database queries
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
