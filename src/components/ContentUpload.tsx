@@ -50,7 +50,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isValidating, setIsValidating] = useState(false);
   const [validationStatus, setValidationStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [virusScanStatus, setVirusScanStatus] = useState<'idle' | 'scanning' | 'clean' | 'infected' | 'skipped'>('idle');
+  const [virusScanStatus, setVirusScanStatus] = useState<'idle' | 'scanning' | 'clean' | 'infected' | 'quarantined' | 'skipped'>('idle');
   const [moderationStatus, setModerationStatus] = useState<'idle' | 'moderating' | 'approved' | 'review' | 'rejected'>('idle');
   
   // Video editor state (legacy)
@@ -104,6 +104,20 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
       
       const scanResult = await scanFile(file);
       
+      // Handle quarantined files
+      if (scanResult.quarantined) {
+        toast.warning('Fichier mis en quarantaine', {
+          description: 'Ce fichier suspect sera examiné par un administrateur.',
+          duration: 8000
+        });
+        setVirusScanStatus('quarantined');
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        return;
+      }
+      
+      // Handle infected files
       if (!scanResult.isClean && !scanResult.skipped) {
         toast.error('Fichier potentiellement dangereux détecté!', {
           description: scanResult.threatFound || 'Ce fichier a été bloqué pour des raisons de sécurité'
@@ -466,6 +480,18 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
                   Scan ignoré
                 </span>
               )}
+              {virusScanStatus === 'quarantined' && (
+                <span className="inline-flex items-center gap-1 text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
+                  <Shield className="h-3 w-3" />
+                  En quarantaine
+                </span>
+              )}
+              {virusScanStatus === 'infected' && (
+                <span className="inline-flex items-center gap-1 text-xs text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
+                  <XCircle className="h-3 w-3" />
+                  Infecté
+                </span>
+              )}
               {getModerationBadge()}
             </Label>
             
@@ -742,13 +768,14 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
           {/* Submit Button */}
           <Button
             type="submit"
-            disabled={uploading || scanning || moderating || !selectedFile || !formData.title.trim() || virusScanStatus === 'infected' || moderationStatus === 'rejected'}
+            disabled={uploading || scanning || moderating || !selectedFile || !formData.title.trim() || virusScanStatus === 'infected' || virusScanStatus === 'quarantined' || moderationStatus === 'rejected'}
             className="w-full"
             variant="premium"
           >
             {uploading ? 'Upload en cours...' : 
              scanning ? 'Scan en cours...' : 
              moderating ? 'Modération IA...' :
+             virusScanStatus === 'quarantined' ? 'Fichier en quarantaine' :
              moderationStatus === 'review' ? 'Publier (vérification requise)' :
              'Publier le contenu'}
           </Button>
