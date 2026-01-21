@@ -41,6 +41,7 @@ const SecureContentCard: React.FC<{
   const isVideo = item.content_type === 'video';
   const isReplay = item.title?.toLowerCase().includes('replay');
   const isPremium = item.is_premium === true;
+  const isExternalUrl = item.file_url?.startsWith('https://') && !item.file_url?.includes('supabase.co');
 
   // Utiliser des URLs signées pour le contenu premium
   const { signedUrl, loading: urlLoading } = useSignedUrl(
@@ -113,7 +114,8 @@ const SecureContentCard: React.FC<{
                 loop
                 playsInline
                 preload="metadata"
-                crossOrigin="anonymous"
+                // crossOrigin seulement pour Supabase, pas pour R2 externe
+                {...(!isExternalUrl && { crossOrigin: "anonymous" })}
                 onError={() => setVideoError(true)}
                 // Protection contre le téléchargement
                 controlsList="nodownload noplaybackrate"
