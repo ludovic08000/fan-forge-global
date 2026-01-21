@@ -104,13 +104,9 @@ export const OptimizedContentGallery = ({
 
   if (loading) {
     return (
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {Array.from({ length: pageSize }).map((_, i) => (
-          <div key={i} className="space-y-3">
-            <Skeleton className="aspect-video w-full" />
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-3 w-1/2" />
-          </div>
+      <div className="grid gap-1.5 grid-cols-3">
+        {Array.from({ length: 9 }).map((_, i) => (
+          <Skeleton key={i} className="aspect-square w-full rounded-lg" />
         ))}
       </div>
     );
@@ -125,14 +121,16 @@ export const OptimizedContentGallery = ({
   }
 
   return (
-    <div className="space-y-8">
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="space-y-6">
+      <div className="grid gap-1.5 grid-cols-3">
         {content.map((item) => (
           <ContentCard 
             key={item.id} 
             content={item} 
             onLike={handleLike}
             isLiked={isContentLiked(item.id)}
+            showCreatorInfo={false}
+            compact={true}
           />
         ))}
       </div>
