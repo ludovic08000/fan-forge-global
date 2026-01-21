@@ -34,7 +34,7 @@ const ContentUpload = lazy(() => import('@/components/ContentUpload'));
 const CreatorMessages = lazy(() => import('@/components/CreatorMessages'));
 const CreatorAnalyticsDashboard = lazy(() => import('@/components/analytics/CreatorAnalyticsDashboard'));
 const PaymentRequest = lazy(() => import('@/components/creator/PaymentRequest'));
-const ImageLightbox = lazy(() => import('@/components/ImageLightbox'));
+const MediaLightbox = lazy(() => import('@/components/MediaLightbox'));
 const PhotoEditor = lazy(() => import('@/components/PhotoEditor'));
 
 // Fallback components
@@ -459,10 +459,11 @@ const Dashboard = () => {
         {/* Lightbox */}
         {selectedContent && (
           <Suspense fallback={null}>
-            <ImageLightbox
+            <MediaLightbox
               isOpen={!!selectedContent}
               onClose={() => setSelectedContent(null)}
-              imageUrl={selectedContent.file_url}
+              mediaUrl={selectedContent.file_url}
+              mediaType={selectedContent.content_type === 'video' ? 'video' : 'image'}
               title={selectedContent.title}
               onPrevious={lightboxIndex > 0 ? handlePreviousImage : undefined}
               onNext={myContent && lightboxIndex < myContent.length - 1 ? handleNextImage : undefined}
