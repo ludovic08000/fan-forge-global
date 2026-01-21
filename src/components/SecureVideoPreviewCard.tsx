@@ -39,6 +39,8 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
 
   // Détecter si c'est une URL R2 externe (Cloudflare)
   const isExternalR2 = isR2Url(src);
+  
+  console.log('[SecureVideoPreviewCard] Rendering:', { src, isExternalR2, contentId, isPremium });
 
   // Hook pour URLs R2 sécurisées (Cloudflare) - utilise get-replay-url avec clés API
   const { secureUrl: r2SecureUrl, loading: r2Loading, error: r2Error } = useSecureR2Url(

@@ -90,21 +90,29 @@ export const useSecureR2Url = (
    * Obtenir une URL R2 sécurisée
    */
   const fetchSecureUrl = useCallback(async () => {
+    console.log('[useSecureR2Url] fetchSecureUrl called:', { originalUrl, enabled, hasSession: !!session });
+    
     // Si pas d'URL ou désactivé
     if (!originalUrl || !enabled) {
+      console.log('[useSecureR2Url] Disabled or no URL');
       setSecureUrl(originalUrl || null);
       setLoading(false);
       return;
     }
 
     // Vérifier si c'est une URL R2
-    if (!isR2Url(originalUrl)) {
+    const isR2 = isR2Url(originalUrl);
+    console.log('[useSecureR2Url] isR2Url check:', isR2, originalUrl);
+    
+    if (!isR2) {
       setSecureUrl(originalUrl);
       setLoading(false);
       return;
     }
 
     const filePath = extractR2FilePath(originalUrl);
+    console.log('[useSecureR2Url] Extracted file path:', filePath);
+    
     if (!filePath) {
       console.warn('[useSecureR2Url] Could not extract file path from URL:', originalUrl);
       setSecureUrl(originalUrl);
@@ -114,7 +122,7 @@ export const useSecureR2Url = (
 
     // Si pas de session, on attend qu'elle arrive
     if (!session) {
-      console.log('[useSecureR2Url] Waiting for session...');
+      console.log('[useSecureR2Url] No session yet, waiting...');
       setLoading(true);
       return;
     }
