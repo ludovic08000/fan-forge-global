@@ -192,3 +192,7 @@ verify_jwt = true
 # R2 Signed URLs
 [functions.get-replay-url]
 verify_jwt = true
+
+# Cleanup old replays (7 days) - cron job, no JWT
+[functions.cleanup-old-replays]
+verify_jwt = false
