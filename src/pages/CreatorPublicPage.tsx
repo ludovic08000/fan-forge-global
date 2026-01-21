@@ -517,16 +517,7 @@ const CreatorPublicPage = () => {
                       </AlertDialog>
                     </div>
                   ) : (
-                    <Button 
-                      size="lg" 
-                      variant="premium" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        handleSubscribe();
-                      }}
-                      style={{ pointerEvents: 'auto' }}
-                    >
+                    <Button size="lg" variant="premium" onClick={handleSubscribe}>
                       <Crown className="h-4 w-4 mr-2" />
                       {creator.subscription_price > 0 ? `S'abonner - ${creator.subscription_price}€/mois` : "S'abonner gratuitement"}
                     </Button>
@@ -728,16 +719,7 @@ const CreatorPublicPage = () => {
                 <p className="text-muted-foreground mb-4">
                   Abonnez-vous pour débloquer {premiumContent.length} contenus premium
                 </p>
-                <Button 
-                  size="lg" 
-                  variant="premium" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    handleSubscribe();
-                  }}
-                  style={{ pointerEvents: 'auto' }}
-                >
+                <Button size="lg" variant="premium" onClick={handleSubscribe}>
                   <Crown className="h-4 w-4 mr-2" />
                   S'abonner maintenant - {creator.subscription_price}€/mois
                 </Button>
@@ -755,13 +737,9 @@ const CreatorPublicPage = () => {
         )}
       </div>
 
-      {/* Checkout Embedded Dialog - Portail en dehors de la protection */}
-      <Dialog open={showCheckout} onOpenChange={setShowCheckout} modal={true}>
-        <DialogContent 
-          className="max-w-2xl max-h-[90vh] overflow-y-auto" 
-          aria-describedby="checkout-description"
-          style={{ pointerEvents: 'auto' }}
-        >
+      {/* Checkout Embedded Dialog */}
+      <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="checkout-description">
           <DialogHeader>
             <DialogTitle>
               Abonnement à {creator?.stage_name || 'ce créateur'}
