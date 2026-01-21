@@ -96,17 +96,17 @@ serve(async (req) => {
           fileSize
         });
 
-        // Configuration R2 pour construire l'URL publique
-        const r2AccountId = Deno.env.get('R2_ACCOUNT_ID');
-        const r2BucketName = Deno.env.get('R2_BUCKET_NAME');
+        // Utiliser l'URL location fournie par LiveKit (endpoint S3 direct)
+        // ou construire une URL publique R2 si un domaine personnalisé est configuré
+        const r2PublicDomain = Deno.env.get('R2_PUBLIC_DOMAIN');
         
-        // Construire l'URL publique R2
-        // Format: https://<bucket>.<account_id>.r2.dev/<filepath>
-        // ou avec un custom domain si configuré
         let publicUrl = '';
-        if (r2AccountId && filepath) {
-          // URL publique R2 standard
-          publicUrl = `https://pub-${r2AccountId}.r2.dev/${filepath}`;
+        if (r2PublicDomain && filepath) {
+          // Utiliser le domaine public personnalisé si configuré
+          publicUrl = `https://${r2PublicDomain}/${filepath}`;
+        } else if (fileResult.location) {
+          // Utiliser l'URL location de LiveKit (endpoint S3 CloudFlare)
+          publicUrl = fileResult.location;
         } else if (fileResult.downloadUrl) {
           // Fallback sur downloadUrl si disponible
           publicUrl = fileResult.downloadUrl;
