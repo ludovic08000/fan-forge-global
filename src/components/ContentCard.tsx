@@ -89,6 +89,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     if (!user) {
       toast.info('Connectez-vous pour liker ce contenu');
       navigate('/login');

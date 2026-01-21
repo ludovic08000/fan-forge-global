@@ -1,9 +1,8 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ContentCard from '@/components/ContentCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2 } from 'lucide-react';
 import { useContent } from '@/hooks/useContent';
 
 interface OptimizedContentGalleryProps {
@@ -50,10 +49,21 @@ export const OptimizedContentGallery = ({
     staleTime: 30000, // 30 secondes
   });
 
+  // Ref pour éviter les doubles clics
+  const pendingLikesRef = useRef<Set<string>>(new Set());
+
   const handleLike = useCallback((contentId: string) => {
+    // Éviter le double clic
+    if (pendingLikesRef.current.has(contentId) || likeMutation.isPending) {
+      return;
+    }
+    
+    pendingLikesRef.current.add(contentId);
+    
     likeMutation.mutate(contentId, {
       onSuccess: (result) => {
-        // Mise à jour optimiste du cache local de la galerie
+        pendingLikesRef.current.delete(contentId);
+        // Mise à jour du cache local de la galerie
         queryClient.setQueryData(queryKey, (oldData: any[] | undefined) => {
           if (!oldData) return oldData;
           return oldData.map(item => 
@@ -62,6 +72,9 @@ export const OptimizedContentGallery = ({
               : item
           );
         });
+      },
+      onError: () => {
+        pendingLikesRef.current.delete(contentId);
       }
     });
   }, [likeMutation, queryClient, queryKey]);
