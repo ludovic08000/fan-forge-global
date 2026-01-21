@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,6 +31,7 @@ const ContentDetail: React.FC = () => {
   const [creator, setCreator] = useState<any>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
+  const viewRecordedRef = useRef<string | null>(null);
 
   useEffect(() => {
     const loadContent = async () => {
@@ -83,8 +84,11 @@ const ContentDetail: React.FC = () => {
           setIsSubscribed(!!subData);
         }
 
-        // Enregistrer la vue
-        recordView(contentId);
+        // Enregistrer la vue une seule fois par contenu
+        if (viewRecordedRef.current !== contentId) {
+          viewRecordedRef.current = contentId;
+          recordView(contentId);
+        }
       } catch (error) {
         console.error('Error loading content:', error);
       } finally {
@@ -93,7 +97,8 @@ const ContentDetail: React.FC = () => {
     };
 
     loadContent();
-  }, [contentId, user, navigate, recordView]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contentId, user, navigate]);
 
   const handleLike = () => {
     if (!user) {
