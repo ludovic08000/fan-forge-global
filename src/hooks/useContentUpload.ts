@@ -10,7 +10,18 @@ export interface ContentUploadData {
   isPreview?: boolean;
   price?: number;
   file: File;
+  width?: number;
+  height?: number;
 }
+
+/**
+ * Generate a unique watermark ID for content tracking
+ */
+const generateWatermarkId = (): string => {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 8);
+  return `WM-${timestamp}-${random}`.toUpperCase();
+};
 
 export const useContentUpload = () => {
   const [uploading, setUploading] = useState(false);
@@ -150,6 +161,37 @@ export const useContentUpload = () => {
 
       if (dbError) {
         throw dbError;
+      }
+
+      setProgress(90);
+
+      // 5. Compute and store media fingerprint for security tracking
+      try {
+        const watermarkId = generateWatermarkId();
+        
+        const { error: fingerprintError } = await supabase.functions.invoke('compute-media-fingerprint', {
+          body: {
+            fileUrl: fileUrl,
+            contentId: contentData.id,
+            creatorId: creatorId,
+            fileType: contentType,
+            originalFilename: data.file.name,
+            mimeType: data.file.type,
+            fileSize: fileToUpload.size,
+            width: data.width,
+            height: data.height,
+            watermarkId: watermarkId,
+          }
+        });
+
+        if (fingerprintError) {
+          console.warn('Fingerprint computation warning:', fingerprintError);
+          // Don't fail the upload, fingerprinting is non-blocking
+        } else {
+          console.log('Media fingerprint stored successfully');
+        }
+      } catch (fingerprintError) {
+        console.warn('Fingerprint error (non-critical):', fingerprintError);
       }
 
       setProgress(100);

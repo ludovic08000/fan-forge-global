@@ -591,6 +591,66 @@ export type Database = {
         }
         Relationships: []
       }
+      duplicate_detections: {
+        Row: {
+          action_taken: string | null
+          action_taken_at: string | null
+          action_taken_by: string | null
+          created_at: string
+          detected_platform: string | null
+          detected_url: string | null
+          detection_type: string
+          duplicate_fingerprint_id: string | null
+          id: string
+          notes: string | null
+          original_fingerprint_id: string
+          similarity_score: number | null
+        }
+        Insert: {
+          action_taken?: string | null
+          action_taken_at?: string | null
+          action_taken_by?: string | null
+          created_at?: string
+          detected_platform?: string | null
+          detected_url?: string | null
+          detection_type: string
+          duplicate_fingerprint_id?: string | null
+          id?: string
+          notes?: string | null
+          original_fingerprint_id: string
+          similarity_score?: number | null
+        }
+        Update: {
+          action_taken?: string | null
+          action_taken_at?: string | null
+          action_taken_by?: string | null
+          created_at?: string
+          detected_platform?: string | null
+          detected_url?: string | null
+          detection_type?: string
+          duplicate_fingerprint_id?: string | null
+          id?: string
+          notes?: string | null
+          original_fingerprint_id?: string
+          similarity_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "duplicate_detections_duplicate_fingerprint_id_fkey"
+            columns: ["duplicate_fingerprint_id"]
+            isOneToOne: false
+            referencedRelation: "media_fingerprints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "duplicate_detections_original_fingerprint_id_fkey"
+            columns: ["original_fingerprint_id"]
+            isOneToOne: false
+            referencedRelation: "media_fingerprints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follows: {
         Row: {
           created_at: string | null
@@ -1117,6 +1177,117 @@ export type Database = {
           user_agent?: string | null
         }
         Relationships: []
+      }
+      media_fingerprints: {
+        Row: {
+          content_id: string | null
+          created_at: string
+          creator_id: string | null
+          duration: number | null
+          file_size: number | null
+          file_type: string
+          file_url: string
+          height: number | null
+          id: string
+          message_id: string | null
+          mime_type: string | null
+          original_filename: string | null
+          phash: string | null
+          sha256_hash: string
+          upload_ip: string | null
+          uploader_id: string
+          user_agent: string | null
+          verified_at: string | null
+          video_fingerprint: string | null
+          watermark_id: string | null
+          watermark_pattern: string | null
+          width: number | null
+        }
+        Insert: {
+          content_id?: string | null
+          created_at?: string
+          creator_id?: string | null
+          duration?: number | null
+          file_size?: number | null
+          file_type: string
+          file_url: string
+          height?: number | null
+          id?: string
+          message_id?: string | null
+          mime_type?: string | null
+          original_filename?: string | null
+          phash?: string | null
+          sha256_hash: string
+          upload_ip?: string | null
+          uploader_id: string
+          user_agent?: string | null
+          verified_at?: string | null
+          video_fingerprint?: string | null
+          watermark_id?: string | null
+          watermark_pattern?: string | null
+          width?: number | null
+        }
+        Update: {
+          content_id?: string | null
+          created_at?: string
+          creator_id?: string | null
+          duration?: number | null
+          file_size?: number | null
+          file_type?: string
+          file_url?: string
+          height?: number | null
+          id?: string
+          message_id?: string | null
+          mime_type?: string | null
+          original_filename?: string | null
+          phash?: string | null
+          sha256_hash?: string
+          upload_ip?: string | null
+          uploader_id?: string
+          user_agent?: string | null
+          verified_at?: string | null
+          video_fingerprint?: string | null
+          watermark_id?: string | null
+          watermark_pattern?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_fingerprints_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_fingerprints_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_fingerprints_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_fingerprints_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_fingerprints_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "private_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -2127,6 +2298,16 @@ export type Database = {
         Args: { _live_stream_id: string; _minute_number: number }
         Returns: undefined
       }
+      check_duplicate_hash: {
+        Args: { p_sha256_hash: string }
+        Returns: {
+          content_id: string
+          created_at: string
+          file_url: string
+          fingerprint_id: string
+          uploader_id: string
+        }[]
+      }
       cleanup_expired_otp_codes: { Args: never; Returns: undefined }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
@@ -2141,6 +2322,19 @@ export type Database = {
         Returns: undefined
       }
       delete_user_completely: { Args: { _user_id: string }; Returns: undefined }
+      find_similar_images: {
+        Args: { p_max_distance?: number; p_phash: string }
+        Returns: {
+          content_id: string
+          created_at: string
+          creator_id: string
+          distance: number
+          file_url: string
+          fingerprint_id: string
+          phash: string
+          uploader_id: string
+        }[]
+      }
       generate_invoice_number: { Args: never; Returns: string }
       generate_stream_key: { Args: never; Returns: string }
       generate_unique_username: { Args: { base_text: string }; Returns: string }
