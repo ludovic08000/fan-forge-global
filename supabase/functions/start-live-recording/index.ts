@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { EgressClient, EncodedFileOutput, EncodedFileType, S3Upload } from "npm:livekit-server-sdk@2.6.1";
+import { EgressClient } from "npm:livekit-server-sdk@2.6.1";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
@@ -112,33 +112,33 @@ serve(async (req) => {
     
     const roomName = `live-${streamId}`;
     const timestamp = Date.now();
-    const fileName = `replays/${stream.creator_id}/${streamId}_${timestamp}.mp4`;
+    const filePath = `replays/${stream.creator_id}/${streamId}_${timestamp}.mp4`;
 
     console.log('[Start Live Recording] Starting room composite egress for room:', roomName);
-    console.log('[Start Live Recording] Output file:', fileName);
-
-    // Configurer le stockage S3 (Cloudflare R2)
-    const s3Upload = new S3Upload({
-      accessKey: r2AccessKeyId,
-      secret: r2SecretAccessKey,
-      bucket: r2BucketName,
-      region: 'auto',
-      endpoint: `https://${r2AccountId}.r2.cloudflarestorage.com`,
-      forcePathStyle: true,
-    });
+    console.log('[Start Live Recording] Output file:', filePath);
+    console.log('[Start Live Recording] R2 endpoint:', `https://${r2AccountId}.r2.cloudflarestorage.com`);
 
     // Démarrer l'enregistrement avec Room Composite Egress vers R2
+    // Utiliser la configuration directe du proto plutôt que les classes wrapper
     const egressInfo = await egressClient.startRoomCompositeEgress(
       roomName,
       {
-        file: new EncodedFileOutput({
-          fileType: EncodedFileType.MP4,
-          filepath: fileName,
+        file: {
+          fileType: 0, // MP4
+          filepath: filePath,
+          disableManifest: true,
           output: {
             case: 's3',
-            value: s3Upload,
+            value: {
+              accessKey: r2AccessKeyId,
+              secret: r2SecretAccessKey,
+              bucket: r2BucketName,
+              region: 'auto',
+              endpoint: `https://${r2AccountId}.r2.cloudflarestorage.com`,
+              forcePathStyle: true,
+            },
           },
-        }),
+        },
       },
       {
         layout: 'speaker',
