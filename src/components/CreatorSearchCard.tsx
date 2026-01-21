@@ -25,13 +25,17 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
     }).format(price);
   };
 
-  const handleViewProfile = () => {
+  const handleViewProfile = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     // Utiliser username si disponible, sinon user_id via la route /creator/
-    if (creator.username) {
-      navigate(`/${creator.username}`);
-    } else {
-      navigate(`/creator/${creator.user_id}`);
-    }
+    const targetPath = creator.username 
+      ? `/${creator.username}` 
+      : `/creator/${creator.user_id}`;
+    
+    console.log('[CreatorSearchCard] Navigation vers:', targetPath, { username: creator.username, user_id: creator.user_id });
+    navigate(targetPath);
   };
 
   if (compact) {
@@ -195,6 +199,7 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
           <Button 
             size="sm"
             className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all"
+            onClick={handleViewProfile}
           >
             <Crown className="h-4 w-4 mr-1.5" />
             Voir
