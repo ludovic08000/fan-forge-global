@@ -533,11 +533,7 @@ const CreatorPublicPage = () => {
                     size="lg" 
                     variant="premium" 
                     type="button"
-                    onClick={() => {
-                      console.log('[CLICK] Subscribe button clicked!');
-                      alert('Bouton cliqué!');
-                      handleSubscribe();
-                    }}
+                    onClick={handleSubscribe}
                   >
                     <Crown className="h-4 w-4 mr-2" />
                     {creator.subscription_price > 0 ? `S'abonner - ${creator.subscription_price}€/mois` : "S'abonner gratuitement"}
