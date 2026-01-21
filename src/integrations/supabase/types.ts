@@ -1627,6 +1627,42 @@ export type Database = {
         }
         Relationships: []
       }
+      processed_stripe_sessions: {
+        Row: {
+          amount: number | null
+          created_at: string
+          creator_id: string | null
+          id: string
+          metadata: Json | null
+          processed_at: string
+          session_id: string
+          session_type: string
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          creator_id?: string | null
+          id?: string
+          metadata?: Json | null
+          processed_at?: string
+          session_id: string
+          session_type?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          creator_id?: string | null
+          id?: string
+          metadata?: Json | null
+          processed_at?: string
+          session_id?: string
+          session_type?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
