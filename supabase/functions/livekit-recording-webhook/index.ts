@@ -115,6 +115,21 @@ serve(async (req) => {
         console.log('[LiveKit Recording Webhook] Public URL:', publicUrl);
 
         if (publicUrl) {
+          // Vérifier si le replay n'a pas déjà été créé (éviter les doublons)
+          const { data: existingContent } = await supabaseAdmin
+            .from('content')
+            .select('id')
+            .eq('file_url', publicUrl)
+            .limit(1);
+
+          if (existingContent && existingContent.length > 0) {
+            console.log('[LiveKit Recording Webhook] Replay already exists, skipping creation');
+            return new Response(
+              JSON.stringify({ success: true, message: 'Replay already processed' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+
           // Mettre à jour le live stream avec l'URL de l'enregistrement
           await supabaseAdmin
             .from('live_streams')
@@ -144,13 +159,6 @@ serve(async (req) => {
             console.error('[LiveKit Recording Webhook] Content creation error:', contentError);
           } else {
             console.log('[LiveKit Recording Webhook] Content created successfully for replay');
-            
-            // Mettre à jour le compteur de contenu du créateur
-            await supabaseAdmin.rpc('update_creator_content_count', { 
-              _creator_id: stream.creator_id 
-            }).catch(() => {
-              // La fonction n'existe peut-être pas, ignorer
-            });
           }
         } else {
           console.error('[LiveKit Recording Webhook] No public URL available');
