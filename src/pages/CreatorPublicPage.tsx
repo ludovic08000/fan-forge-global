@@ -398,14 +398,15 @@ const CreatorPublicPage = () => {
 
   return (
     <div className="min-h-screen bg-background pt-16">
-      {/* SEO Head avec JSON-LD */}
+      {/* SEO Head avec JSON-LD optimisé */}
       <SEOHead
         title={`${creatorName} - Profil Créateur`}
         description={creatorDescription}
         image={creatorImage}
         url={creatorUrl}
         type="profile"
-        keywords={`${creatorName}, créateur Crub, ${creator?.category || 'contenu exclusif'}, abonnement créateur`}
+        keywords={`${creatorName}, créateur Crub, ${creator?.category || 'contenu exclusif'}, abonnement créateur, contenu premium`}
+        noindex={false} // JAMAIS noindex pour les pages créateurs
         creator={{
           name: creatorName,
           username: profile?.username || '',
@@ -415,7 +416,8 @@ const CreatorPublicPage = () => {
           contentCount: content.length,
           isVerified: profile?.is_verified,
           subscriptionPrice: creator?.subscription_price,
-          currency: creator?.currency || 'EUR'
+          currency: creator?.currency || 'EUR',
+          avatarUrl: profile?.avatar_url
         }}
         modifiedTime={creator?.updated_at}
       />

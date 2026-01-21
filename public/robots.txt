@@ -11,7 +11,10 @@ Sitemap: https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/sitemap
 # Crawl-delay for respectful crawling
 Crawl-delay: 1
 
-# Disallow admin and private areas
+# IMPORTANT: Toutes les pages créateurs DOIVENT être indexées
+# Ne jamais ajouter /creator/ en Disallow
+
+# Disallow admin and private areas only
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /settings
@@ -19,8 +22,10 @@ Disallow: /profile-settings
 Disallow: /security-settings
 Disallow: /my-subscriptions
 Disallow: /reset-password
+Disallow: /verify-otp
+Disallow: /messages
 
-# Allow important public pages
+# Allow important public pages explicitly
 Allow: /
 Allow: /search
 Allow: /lives
@@ -36,6 +41,7 @@ Allow: /install
 # Allow specific bots full access to public content
 User-agent: Googlebot
 Allow: /
+Crawl-delay: 0
 
 User-agent: Bingbot
 Allow: /

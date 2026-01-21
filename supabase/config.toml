@@ -169,3 +169,7 @@ verify_jwt = false
 # AI Content Moderation
 [functions.moderate-content]
 verify_jwt = true
+
+# SEO - Ping sitemap to search engines
+[functions.ping-sitemap]
+verify_jwt = false
