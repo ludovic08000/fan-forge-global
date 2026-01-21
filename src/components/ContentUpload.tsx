@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Upload, Image, Video, X, Shield, AlertTriangle, Bug, CheckCircle, XCircle, Clock, Brain, Scissors } from 'lucide-react';
+import { Upload, Image, Video, X, Shield, AlertTriangle, Bug, CheckCircle, XCircle, Clock, Brain, Scissors, Palette, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useContentUpload } from '@/hooks/useContentUpload';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
@@ -17,9 +17,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { contentUploadSchema } from '@/lib/validations';
 import { validateFile } from '@/lib/fileValidation';
+import { processImageForUpload, ProcessedImage } from '@/lib/imageProcessing';
 import { z } from 'zod';
 import { VideoEditor } from '@/components/video-editor';
 import { VideoEditSettings } from '@/hooks/useVideoEditor';
+
+// Lazy load PhotoEditor
+const PhotoEditor = lazy(() => import('@/components/PhotoEditor'));
 
 interface ContentUploadProps {
   onUploadComplete?: () => void;
@@ -51,6 +55,12 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const [showVideoEditor, setShowVideoEditor] = useState(false);
   const [videoEditSettings, setVideoEditSettings] = useState<VideoEditSettings | null>(null);
   const [coverBlob, setCoverBlob] = useState<Blob | null>(null);
+
+  // Photo editor state
+  const [showPhotoEditor, setShowPhotoEditor] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [processedImageInfo, setProcessedImageInfo] = useState<ProcessedImage | null>(null);
+  const [editedImageDataUrl, setEditedImageDataUrl] = useState<string | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -107,11 +117,45 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
         });
       }
 
-      setSelectedFile(file);
-
-      // Créer un aperçu
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+      // Process image: strip EXIF, resize, convert to WebP
+      if (file.type.startsWith('image/') && file.type !== 'image/gif') {
+        setIsProcessingImage(true);
+        toast.info('Optimisation de l\'image...', { duration: 3000 });
+        
+        try {
+          const processed = await processImageForUpload(file);
+          setProcessedImageInfo(processed);
+          setSelectedFile(processed.file);
+          
+          // Show optimization info
+          const savedBytes = processed.originalSize - processed.processedSize;
+          const savedPercent = Math.round((savedBytes / processed.originalSize) * 100);
+          
+          if (savedBytes > 0) {
+            toast.success(`Image optimisée!`, {
+              description: `${savedPercent}% plus léger • EXIF supprimé • ${processed.format.split('/')[1].toUpperCase()}`
+            });
+          } else {
+            toast.success('Métadonnées EXIF supprimées');
+          }
+          
+          // Create preview from processed file
+          const url = URL.createObjectURL(processed.file);
+          setPreviewUrl(url);
+        } catch (processError) {
+          console.error('Image processing error:', processError);
+          // Continue with original file
+          setSelectedFile(file);
+          const url = URL.createObjectURL(file);
+          setPreviewUrl(url);
+        } finally {
+          setIsProcessingImage(false);
+        }
+      } else {
+        setSelectedFile(file);
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+      }
 
       // Modération IA du contenu (images uniquement)
       if (file.type.startsWith('image/')) {
@@ -248,12 +292,15 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
     setModerationStatus('idle');
     setVideoEditSettings(null);
     setCoverBlob(null);
+    setProcessedImageInfo(null);
+    setEditedImageDataUrl(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
   const isVideo = selectedFile?.type.startsWith('video/');
+  const isImage = selectedFile?.type.startsWith('image/');
 
   // Handle video editor save
   const handleVideoEditorSave = async (settings: VideoEditSettings, cover: Blob | null) => {
@@ -267,6 +314,28 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const openVideoEditor = () => {
     if (selectedFile && isVideo) {
       setShowVideoEditor(true);
+    }
+  };
+
+  // Handle photo editor save
+  const handlePhotoEditorSave = (editedDataUrl: string) => {
+    setEditedImageDataUrl(editedDataUrl);
+    
+    // Convert data URL to file for upload
+    fetch(editedDataUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const editedFile = new File([blob], selectedFile?.name || 'edited.png', { type: 'image/png' });
+        setSelectedFile(editedFile);
+        setPreviewUrl(editedDataUrl);
+        toast.success('Photo éditée avec succès!');
+      });
+  };
+
+  // Open photo editor
+  const openPhotoEditor = () => {
+    if (selectedFile && isImage) {
+      setShowPhotoEditor(true);
     }
   };
 
@@ -341,6 +410,12 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
                 <Shield className="h-4 w-4 flex-shrink-0" />
                 <span>
                   <strong>Validation sécurisée :</strong> Chaque fichier est analysé pour détecter les contenus malveillants (magic bytes, type MIME, extension).
+                </span>
+              </p>
+              <p className="text-sm text-primary flex items-center gap-2">
+                <Sparkles className="h-4 w-4 flex-shrink-0" />
+                <span>
+                  <strong>Optimisation auto :</strong> Métadonnées EXIF supprimées, resize automatique, conversion WebP pour de meilleures performances.
                 </span>
               </p>
               <p className="text-sm text-primary flex items-center gap-2">
@@ -456,6 +531,44 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
                         <CheckCircle className="h-4 w-4 ml-2 text-green-500" />
                       )}
                     </Button>
+                  )}
+
+                  {/* Photo Editor Button */}
+                  {isImage && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full mt-3"
+                      onClick={openPhotoEditor}
+                      disabled={isProcessingImage}
+                    >
+                      {isProcessingImage ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Optimisation...
+                        </>
+                      ) : (
+                        <>
+                          <Palette className="h-4 w-4 mr-2" />
+                          Éditer la photo (filtres, ajustements...)
+                          {editedImageDataUrl && (
+                            <CheckCircle className="h-4 w-4 ml-2 text-green-500" />
+                          )}
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {/* Image optimization info */}
+                  {processedImageInfo && processedImageInfo.processedSize < processedImageInfo.originalSize && (
+                    <div className="mt-2 p-2 bg-green-50 dark:bg-green-950/30 rounded text-xs text-green-700 dark:text-green-400 flex items-center gap-2">
+                      <CheckCircle className="h-3 w-3" />
+                      <span>
+                        Optimisé: {Math.round((processedImageInfo.originalSize - processedImageInfo.processedSize) / 1024)}KB économisés • 
+                        {processedImageInfo.width}×{processedImageInfo.height} • 
+                        {processedImageInfo.format.split('/')[1].toUpperCase()}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -573,6 +686,18 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Photo Editor */}
+        {isImage && previewUrl && (
+          <Suspense fallback={null}>
+            <PhotoEditor
+              isOpen={showPhotoEditor}
+              onClose={() => setShowPhotoEditor(false)}
+              imageUrl={previewUrl}
+              onSave={handlePhotoEditorSave}
+            />
+          </Suspense>
+        )}
       </CardContent>
     </Card>
   );
