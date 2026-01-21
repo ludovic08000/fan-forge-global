@@ -82,8 +82,9 @@ serve(async (req) => {
       if (egressInfo.status === 3 && egressInfo.fileResults?.length > 0) {
         const fileResult = egressInfo.fileResults[0];
         console.log('[LiveKit Recording Webhook] File result:', JSON.stringify(fileResult));
-        const duration = fileResult.duration ? Math.floor(fileResult.duration / 1000000000) : null; // nanoseconds to seconds
-        const fileSize = fileResult.size || null;
+        // Duration et size peuvent être des BigInt (strings), on les convertit en Number
+        const duration = fileResult.duration ? Math.floor(Number(fileResult.duration) / 1000000000) : null; // nanoseconds to seconds
+        const fileSize = fileResult.size ? Number(fileResult.size) : null;
         
         // Le fichier a été enregistré directement dans R2 via S3Upload
         // On récupère le filepath pour construire l'URL publique
