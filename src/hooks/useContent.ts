@@ -107,10 +107,12 @@ export const useContent = () => {
   const isContentLiked = (contentId: string) => userLikes.includes(contentId);
 
   // Récupérer le contenu d'un créateur spécifique
-  const useCreatorContent = (creatorId: string) => {
+  const useCreatorContent = (creatorId: string | undefined | null) => {
     return useQuery({
       queryKey: ['creator-content', creatorId],
       queryFn: async () => {
+        if (!creatorId) return [] as Content[];
+        
         const { data, error } = await supabase
           .from('content')
           .select(`*`)
@@ -120,7 +122,8 @@ export const useContent = () => {
 
         if (error) throw error;
         return data as Content[];
-      }
+      },
+      enabled: !!creatorId // Ne pas exécuter si creatorId est vide
     });
   };
 
