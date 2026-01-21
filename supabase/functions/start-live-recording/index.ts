@@ -141,11 +141,12 @@ serve(async (req) => {
     });
 
     // Démarrer l'enregistrement avec Room Composite Egress vers R2
+    // Utiliser layout 'grid' au lieu de 'speaker' pour éviter l'écran noir quand il n'y a qu'un broadcaster
     const egressInfo = await egressClient.startRoomCompositeEgress(
       roomName,
       { file: fileOutput },
       {
-        layout: 'speaker',
+        layout: 'grid',
         audioOnly: false,
         videoOnly: false,
       }
