@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { EgressClient, EncodedFileOutput, EncodedFileType, DirectFileOutput } from "npm:livekit-server-sdk@2.6.1";
+import { EgressClient, EncodedFileOutput, EncodedFileType, S3Upload } from "npm:livekit-server-sdk@2.6.1";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
@@ -92,33 +92,52 @@ serve(async (req) => {
       );
     }
 
+    // Configuration R2
+    const r2AccountId = Deno.env.get('R2_ACCOUNT_ID');
+    const r2AccessKeyId = Deno.env.get('R2_ACCESS_KEY_ID');
+    const r2SecretAccessKey = Deno.env.get('R2_SECRET_ACCESS_KEY');
+    const r2BucketName = Deno.env.get('R2_BUCKET_NAME');
+
+    if (!r2AccountId || !r2AccessKeyId || !r2SecretAccessKey || !r2BucketName) {
+      console.error('[Start Live Recording] Missing R2 configuration');
+      return new Response(
+        JSON.stringify({ error: 'R2 storage configuration missing' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Créer le client Egress - utiliser l'URL HTTP au lieu de WSS
     const httpUrl = livekitUrl.replace('wss://', 'https://');
     const egressClient = new EgressClient(httpUrl, apiKey, apiSecret);
     
     const roomName = `live-${streamId}`;
     const timestamp = Date.now();
-    const fileName = `recordings/${stream.creator_id}/${streamId}_${timestamp}`;
+    const fileName = `replays/${stream.creator_id}/${streamId}_${timestamp}.mp4`;
 
     console.log('[Start Live Recording] Starting room composite egress for room:', roomName);
+    console.log('[Start Live Recording] Output file:', fileName);
 
-    // Utiliser DirectFileOutput pour LiveKit Cloud storage intégré
-    // Le fichier sera disponible via downloadUrl dans le webhook
-    const fileOutput = new DirectFileOutput({
-      filepath: `${fileName}.mp4`,
+    // Configurer le stockage S3 (Cloudflare R2)
+    const s3Upload = new S3Upload({
+      accessKey: r2AccessKeyId,
+      secret: r2SecretAccessKey,
+      bucket: r2BucketName,
+      region: 'auto',
+      endpoint: `https://${r2AccountId}.r2.cloudflarestorage.com`,
+      forcePathStyle: true,
     });
 
-    // Démarrer l'enregistrement avec Room Composite Egress
-    // Pour LiveKit Cloud, on utilise le storage intégré qui fournit une downloadUrl
+    // Démarrer l'enregistrement avec Room Composite Egress vers R2
     const egressInfo = await egressClient.startRoomCompositeEgress(
       roomName,
       {
-        segments: undefined, // Pas de segments
-        stream: undefined, // Pas de stream RTMP
         file: new EncodedFileOutput({
           fileType: EncodedFileType.MP4,
-          filepath: `${fileName}.mp4`,
-          disableManifest: true,
+          filepath: fileName,
+          output: {
+            case: 's3',
+            value: s3Upload,
+          },
         }),
       },
       {
@@ -130,7 +149,7 @@ serve(async (req) => {
 
     console.log('[Start Live Recording] Egress started:', egressInfo.egressId);
 
-    // Sauvegarder l'egress ID dans la base de données
+    // Sauvegarder l'egress ID et le chemin du fichier dans la base de données
     await supabaseAdmin
       .from('live_streams')
       .update({ 
