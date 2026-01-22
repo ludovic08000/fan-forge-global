@@ -6,10 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, ArrowLeft, Mail, AlertTriangle, Shield } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Mail, AlertTriangle, Shield, CheckCircle } from 'lucide-react';
 import { authSchema } from '@/lib/validations';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
 import { useBruteForceProtection } from '@/hooks/useBruteForceProtection';
+import { useSecureEmailAction } from '@/hooks/useSecureEmailAction';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,7 +31,9 @@ const Login = () => {
     recordAttempt,
     formatRemainingTime 
   } = useBruteForceProtection();
+  const { sendAction: sendSecureEmailAction, isLoading: isSecureActionLoading, lastMessage } = useSecureEmailAction();
   const navigate = useNavigate();
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   const [signInForm, setSignInForm] = useState({
     email: '',
@@ -114,27 +117,11 @@ const Login = () => {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const redirectUrl = `${window.location.origin}/reset-password`;
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: redirectUrl,
-      });
-
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success('Email de réinitialisation envoyé ! Vérifiez votre boîte de réception.');
-        setShowResetPassword(false);
-        setResetEmail('');
-      }
-    } catch (error: any) {
-      toast.error('Une erreur est survenue');
-    } finally {
-      setIsLoading(false);
-    }
+    
+    // Utiliser le système sécurisé qui ne révèle jamais si le compte existe
+    await sendSecureEmailAction('password_reset', resetEmail);
+    setResetSuccess(true);
+    // Ne PAS fermer le formulaire pour montrer le message de succès
   };
 
   return (
@@ -226,38 +213,52 @@ const Login = () => {
                   type="button"
                   variant="ghost"
                   className="mb-2"
-                  onClick={() => setShowResetPassword(false)}
+                  onClick={() => {
+                    setShowResetPassword(false);
+                    setResetSuccess(false);
+                    setResetEmail('');
+                  }}
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Retour
                 </Button>
-                <form onSubmit={handleResetPassword} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="reset-email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="reset-email"
-                        type="email"
-                        placeholder="votre@email.com"
-                        className="pl-10"
-                        required
-                        value={resetEmail}
-                        onChange={(e) => setResetEmail(e.target.value)}
-                      />
+                
+                {resetSuccess ? (
+                  <Alert className="border-green-500 bg-green-500/10">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <AlertDescription className="text-green-500">
+                      {lastMessage || "Si cette adresse email est associée à un compte, vous recevrez un email avec les instructions."}
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <form onSubmit={handleResetPassword} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="reset-email">Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="reset-email"
+                          type="email"
+                          placeholder="votre@email.com"
+                          className="pl-10"
+                          required
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Si un compte existe avec cette adresse, vous recevrez les instructions
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Vous recevrez un lien de réinitialisation par email
-                    </p>
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Envoi...' : 'Réinitialiser mon mot de passe'}
-                  </Button>
-                </form>
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={isSecureActionLoading}
+                    >
+                      {isSecureActionLoading ? 'Envoi...' : 'Réinitialiser mon mot de passe'}
+                    </Button>
+                  </form>
+                )}
               </div>
             ) : (
               <form onSubmit={handleSignIn} className="space-y-4">

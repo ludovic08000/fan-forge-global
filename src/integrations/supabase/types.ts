@@ -741,6 +741,33 @@ export type Database = {
           },
         ]
       }
+      email_action_logs: {
+        Row: {
+          action: string
+          created_at: string
+          email_hash: string
+          id: string
+          ip_address: string
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          email_hash: string
+          id?: string
+          ip_address: string
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          email_hash?: string
+          id?: string
+          ip_address?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string | null
@@ -1919,6 +1946,36 @@ export type Database = {
           },
         ]
       }
+      secure_email_tokens: {
+        Row: {
+          action: string
+          created_at: string
+          email_hash: string
+          expires_at: string
+          id: string
+          token_hash: string
+          used_at: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          email_hash: string
+          expires_at: string
+          id?: string
+          token_hash: string
+          used_at?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          email_hash?: string
+          expires_at?: string
+          id?: string
+          token_hash?: string
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       security_blocks: {
         Row: {
           block_type: string
@@ -2505,6 +2562,7 @@ export type Database = {
       }
       cleanup_expired_otp_codes: { Args: never; Returns: undefined }
       cleanup_expired_quarantine: { Args: never; Returns: number }
+      cleanup_old_email_logs: { Args: never; Returns: undefined }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       cleanup_paused_creators: { Args: never; Returns: number }
