@@ -316,7 +316,7 @@ const Dashboard = () => {
 
   // Auth checks
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   const isCreator = isCreatorLocal === true || userRole === 'creator' || userRole === 'admin';
