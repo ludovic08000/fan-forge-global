@@ -63,6 +63,7 @@ interface CreatorSearchResult {
 const PartnershipManager: React.FC = () => {
   const {
     currentCreatorId,
+    isCreator,
     partnerships,
     pendingReceived,
     pendingSent,
@@ -170,6 +171,20 @@ const PartnershipManager: React.FC = () => {
         <Skeleton className="h-48 w-full" />
         <Skeleton className="h-48 w-full" />
       </div>
+    );
+  }
+
+  if (!isCreator) {
+    return (
+      <Card className="border-amber-500/20 bg-amber-500/5">
+        <CardContent className="p-8 text-center">
+          <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Fonctionnalité réservée aux créateurs</h3>
+          <p className="text-muted-foreground">
+            Vous devez avoir un profil créateur pour accéder aux partenariats.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 

@@ -87,7 +87,7 @@ export const usePartnerships = () => {
   const queryClient = useQueryClient();
 
   // Récupérer le creator_id de l'utilisateur actuel
-  const { data: currentCreator } = useQuery({
+  const { data: currentCreator, isLoading: creatorLoading } = useQuery({
     queryKey: ['current-creator', user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -302,11 +302,13 @@ export const usePartnerships = () => {
 
   return {
     currentCreatorId: currentCreator?.id,
+    isCreator: !!currentCreator,
+    isCreatorLoading: creatorLoading,
     partnerships,
     pendingReceived,
     pendingSent,
     activePartnerships,
-    isLoading,
+    isLoading: creatorLoading || isLoading,
     refetch,
     createPartnership,
     acceptPartnership,
