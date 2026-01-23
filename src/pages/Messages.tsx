@@ -163,16 +163,33 @@ const Messages = () => {
     try {
       let error = null;
       
-      if (conversationType === 'subscriber' && creatorId) {
+      console.log('Deleting conversation:', { conversationId, conversationType, creatorId, userId: user.id });
+      
+      if (conversationType === 'subscriber') {
         // Pour les créateurs : supprimer les messages avec cet abonné
+        // Re-fetch creatorId pour être sûr
+        const { data: creatorData } = await supabase
+          .from('creators')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (!creatorData) {
+          throw new Error('Impossible de trouver votre profil créateur');
+        }
+        
+        console.log('Creator deleting conversation with subscriber:', { creatorId: creatorData.id, subscriberId: conversationId });
+        
         const result = await supabase
           .from('private_messages')
           .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-          .eq('creator_id', creatorId)
+          .eq('creator_id', creatorData.id)
           .eq('subscriber_id', conversationId);
         error = result.error;
       } else if (conversationType === 'creator') {
         // Pour les abonnés : supprimer les messages avec ce créateur
+        console.log('Subscriber deleting conversation with creator:', { subscriberId: user.id, creatorId: conversationId });
+        
         const result = await supabase
           .from('private_messages')
           .update({ is_deleted: true, deleted_at: new Date().toISOString() })
