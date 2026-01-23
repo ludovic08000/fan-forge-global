@@ -32,11 +32,12 @@ interface Conversation {
 }
 
 const Messages = () => {
-  const { user, userRole } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isCreator, setIsCreator] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -44,60 +45,56 @@ const Messages = () => {
       return;
     }
 
-    // Attendre que le userRole soit défini
-    if (userRole === undefined) {
-      return;
-    }
-
     const loadConversations = async () => {
       try {
-        // Charger les conversations selon le rôle
-        if (userRole === 'creator') {
+        // Vérifier d'abord si l'utilisateur est créateur
+        const { data: creatorData } = await supabase
+          .from('creators')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        const userIsCreator = !!creatorData;
+        setIsCreator(userIsCreator);
+
+        if (userIsCreator && creatorData) {
           // Pour les créateurs : charger les conversations avec leurs abonnés
-          const { data: creatorData } = await supabase
-            .from('creators')
-            .select('id')
-            .eq('user_id', user.id)
-            .single();
+          const { data: messages } = await supabase
+            .from('private_messages')
+            .select(`
+              subscriber_id,
+              content,
+              created_at
+            `)
+            .eq('creator_id', creatorData.id)
+            .eq('is_deleted', false)
+            .order('created_at', { ascending: false });
 
-          if (creatorData) {
-            const { data: messages } = await supabase
-              .from('private_messages')
-              .select(`
-                subscriber_id,
-                content,
-                created_at
-              `)
-              .eq('creator_id', creatorData.id)
-              .eq('is_deleted', false)
-              .order('created_at', { ascending: false });
+          // Grouper par subscriber
+          const conversationsMap = new Map<string, Conversation>();
+          
+          for (const msg of messages || []) {
+            if (!conversationsMap.has(msg.subscriber_id)) {
+              // Charger le profil du subscriber
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('display_name, username, avatar_url')
+                .eq('user_id', msg.subscriber_id)
+                .single();
 
-            // Grouper par subscriber
-            const conversationsMap = new Map<string, Conversation>();
-            
-            for (const msg of messages || []) {
-              if (!conversationsMap.has(msg.subscriber_id)) {
-                // Charger le profil du subscriber
-                const { data: profile } = await supabase
-                  .from('profiles')
-                  .select('display_name, username, avatar_url')
-                  .eq('user_id', msg.subscriber_id)
-                  .single();
-
-                conversationsMap.set(msg.subscriber_id, {
-                  id: msg.subscriber_id,
-                  name: profile?.display_name || profile?.username || 'Utilisateur',
-                  avatar: profile?.avatar_url,
-                  last_message: msg.content,
-                  last_message_date: msg.created_at,
-                  unread_count: 0,
-                  type: 'subscriber'
-                });
-              }
+              conversationsMap.set(msg.subscriber_id, {
+                id: msg.subscriber_id,
+                name: profile?.display_name || profile?.username || 'Utilisateur',
+                avatar: profile?.avatar_url,
+                last_message: msg.content,
+                last_message_date: msg.created_at,
+                unread_count: 0,
+                type: 'subscriber'
+              });
             }
-
-            setConversations(Array.from(conversationsMap.values()));
           }
+
+          setConversations(Array.from(conversationsMap.values()));
         } else {
           // Pour les abonnés : charger les conversations avec les créateurs
           const { data: messagesAsSubscriber } = await supabase
@@ -117,25 +114,25 @@ const Messages = () => {
           for (const msg of messagesAsSubscriber || []) {
             if (!conversationsMap.has(msg.creator_id)) {
               // Charger le profil du créateur
-              const { data: creatorData } = await supabase
+              const { data: creator } = await supabase
                 .from('creators')
                 .select('id, stage_name, user_id')
                 .eq('id', msg.creator_id)
                 .single();
 
               let avatar = null;
-              if (creatorData) {
+              if (creator) {
                 const { data: profile } = await supabase
                   .from('profiles')
                   .select('avatar_url')
-                  .eq('user_id', creatorData.user_id)
+                  .eq('user_id', creator.user_id)
                   .single();
                 avatar = profile?.avatar_url;
               }
 
               conversationsMap.set(msg.creator_id, {
                 id: msg.creator_id,
-                name: creatorData?.stage_name || 'Créateur',
+                name: creator?.stage_name || 'Créateur',
                 avatar: avatar,
                 last_message: msg.content,
                 last_message_date: msg.created_at,
@@ -155,7 +152,7 @@ const Messages = () => {
     };
 
     loadConversations();
-  }, [user, userRole, navigate]);
+  }, [user, navigate]);
 
   const handleDeleteConversation = async (conversationId: string, conversationType: 'creator' | 'subscriber') => {
     if (!user) return;
@@ -237,7 +234,7 @@ const Messages = () => {
               <MessageCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
               <h2 className="text-xl font-semibold mb-2">Aucune conversation</h2>
               <p className="text-muted-foreground">
-                {userRole === 'creator' 
+                {isCreator 
                   ? "Vos abonnés peuvent vous envoyer des messages privés"
                   : "Abonnez-vous à des créateurs pour leur envoyer des messages"}
               </p>
