@@ -202,10 +202,10 @@ const Messages = () => {
 
   // Déterminer l'URL de la conversation selon le type
   const getConversationUrl = (conv: Conversation) => {
-    // Si c'est une conversation avec un subscriber (vue créateur) -> /messages/:subscriberId
+    // Si c'est une conversation avec un subscriber (vue créateur) -> /chat/:subscriberId
     // Si c'est une conversation avec un creator (vue abonné) -> /messagerie/:creatorId
     if (conv.type === 'subscriber') {
-      return `/messages/${conv.id}`;
+      return `/chat/${conv.id}`;
     }
     return `/messagerie/${conv.id}`;
   };

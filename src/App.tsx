@@ -158,7 +158,7 @@ const AppRoutes = () => {
               <PrivateChatPage />
             </ProtectedRoute>
           } />
-          <Route path="/messages/:subscriberId" element={
+          <Route path="/chat/:subscriberId" element={
             <ProtectedRoute>
               <CreatorChatPage />
             </ProtectedRoute>
