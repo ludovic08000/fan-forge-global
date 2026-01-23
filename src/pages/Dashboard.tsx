@@ -25,6 +25,7 @@ import {
   DashboardStripeAlert,
   DashboardPricingSection,
   DashboardSettingsSection,
+  DashboardPaymentsSection,
   type DashboardSection,
 } from '@/components/dashboard';
 
@@ -333,6 +334,7 @@ const Dashboard = () => {
     { id: 'messages' as DashboardSection, label: 'Messages', icon: MessageCircle, badge: unreadCount },
     { id: 'analytics' as DashboardSection, label: 'Statistiques', icon: BarChart3, badge: 0 },
     { id: 'partnerships' as DashboardSection, label: 'Partenariats', icon: Handshake, badge: 0 },
+    { id: 'payments' as DashboardSection, label: 'Paiements', icon: Banknote, badge: 0 },
     { id: 'pricing' as DashboardSection, label: 'Abonnement & Boost', icon: Sparkles, badge: 0 },
     { id: 'settings' as DashboardSection, label: 'Paramètres', icon: Settings, badge: 0 },
   ];
@@ -450,6 +452,11 @@ const Dashboard = () => {
           <Suspense fallback={<LoadingFallback />}>
             <PartnershipManager />
           </Suspense>
+        )}
+
+        {/* Section: Payments */}
+        {activeSection === 'payments' && creatorProfile?.id && (
+          <DashboardPaymentsSection creatorId={creatorProfile.id} />
         )}
 
         {/* Section: Pricing & Boost */}
