@@ -35,6 +35,7 @@ const ContentUpload = lazy(() => import('@/components/ContentUpload'));
 const CreatorMessages = lazy(() => import('@/components/CreatorMessages'));
 const CreatorAnalyticsDashboard = lazy(() => import('@/components/analytics/CreatorAnalyticsDashboard'));
 const PaymentRequest = lazy(() => import('@/components/creator/PaymentRequest'));
+const PaymentRequestCard = lazy(() => import('@/components/dashboard/PaymentRequestCard'));
 const PartnershipManager = lazy(() => import('@/components/creator/PartnershipManager'));
 const MediaLightbox = lazy(() => import('@/components/MediaLightbox'));
 const PhotoEditor = lazy(() => import('@/components/PhotoEditor'));
@@ -444,20 +445,13 @@ const Dashboard = () => {
         {/* Section: Payments */}
         {activeSection === 'payments' && creatorProfile?.id && (
           <div className="space-y-6">
-            <DashboardPaymentsSection creatorId={creatorProfile.id} />
+            {/* Quick Payment Request Card */}
+            <Suspense fallback={<LoadingFallback />}>
+              <PaymentRequestCard />
+            </Suspense>
             
-            {/* Payment Request */}
-            <div className="rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
-              <div className="flex items-center gap-2 p-5 border-b border-border/50">
-                <Banknote className="h-5 w-5 text-emerald-500" />
-                <h3 className="font-semibold text-lg">Demander un paiement</h3>
-              </div>
-              <div className="p-5">
-                <Suspense fallback={<LoadingFallback />}>
-                  <PaymentRequest />
-                </Suspense>
-              </div>
-            </div>
+            {/* Payment History */}
+            <DashboardPaymentsSection creatorId={creatorProfile.id} />
           </div>
         )}
 
