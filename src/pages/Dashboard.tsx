@@ -398,19 +398,6 @@ const Dashboard = () => {
               onNewContent={() => setShowUpload(true)}
               onViewAll={() => setActiveSection('content')}
             />
-            
-            {/* Payments */}
-            <div className="rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
-              <div className="flex items-center gap-2 p-5 border-b border-border/50">
-                <Banknote className="h-5 w-5 text-emerald-500" />
-                <h3 className="font-semibold text-lg">Paiements</h3>
-              </div>
-              <div className="p-5">
-                <Suspense fallback={<LoadingFallback />}>
-                  <PaymentRequest />
-                </Suspense>
-              </div>
-            </div>
           </div>
         )}
 
@@ -456,7 +443,22 @@ const Dashboard = () => {
 
         {/* Section: Payments */}
         {activeSection === 'payments' && creatorProfile?.id && (
-          <DashboardPaymentsSection creatorId={creatorProfile.id} />
+          <div className="space-y-6">
+            <DashboardPaymentsSection creatorId={creatorProfile.id} />
+            
+            {/* Payment Request */}
+            <div className="rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
+              <div className="flex items-center gap-2 p-5 border-b border-border/50">
+                <Banknote className="h-5 w-5 text-emerald-500" />
+                <h3 className="font-semibold text-lg">Demander un paiement</h3>
+              </div>
+              <div className="p-5">
+                <Suspense fallback={<LoadingFallback />}>
+                  <PaymentRequest />
+                </Suspense>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Section: Pricing & Boost */}
