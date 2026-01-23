@@ -29,7 +29,7 @@ export const NotificationBell = () => {
       // Rediriger vers la bonne conversation selon le rôle
       if (userRole === 'creator' && notification.data?.subscriber_id) {
         // Créateur: aller vers la conversation avec l'abonné
-        navigate(`/messages/${notification.data.subscriber_id}`);
+        navigate(`/chat/${notification.data.subscriber_id}`);
       } else if (notification.data?.creator_id) {
         // Abonné: aller vers la conversation avec le créateur
         navigate(`/messagerie/${notification.data.creator_id}`);
