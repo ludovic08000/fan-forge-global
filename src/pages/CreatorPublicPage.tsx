@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -9,16 +8,19 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, MessageCircle, UserMinus, Play } from 'lucide-react';
+import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, MessageCircle, UserMinus, Play, Image, Video, Home, MoreHorizontal, Grid3X3, ShoppingBag, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
-// Private messaging is now a dedicated page (/messagerie/:creatorId)
 import SEOHead from '@/components/SEOHead';
 import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { useContentProtection } from '@/hooks/useContentProtection';
 import { SecureVideoPreviewCard } from '@/components/SecureVideoPreviewCard';
 import { SecureVideoLightbox } from '@/components/SecureVideoLightbox';
 import { PublicReplays } from '@/components/live/PublicReplays';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
+type ContentFilter = 'all' | 'image' | 'video';
+type TabFilter = 'posts' | 'medias';
 
 const CreatorPublicPage = () => {
   const { username } = useParams<{ username: string }>();
@@ -33,38 +35,47 @@ const CreatorPublicPage = () => {
   const [showCheckout, setShowCheckout] = useState(false);
   const [preloadedSecret, setPreloadedSecret] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<any>(null);
-  // Chat is now a dedicated page, not a dialog
   const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
   const [likingContent, setLikingContent] = useState<string | null>(null);
   const [heartAnimation, setHeartAnimation] = useState<string | null>(null);
   const [unsubscribing, setUnsubscribing] = useState(false);
+  const [contentFilter, setContentFilter] = useState<ContentFilter>('all');
+  const [activeTab, setActiveTab] = useState<TabFilter>('posts');
+  const [bioExpanded, setBioExpanded] = useState(false);
 
-  // Activer la protection anti-capture seulement quand le checkout n'est pas affiché
-  // Car la protection interfère avec l'iframe Stripe
   useContentProtection(!showCheckout && !selectedImage);
 
-  // Liste des chemins réservés qui ne sont pas des usernames
   const RESERVED_PATHS = ['admin', 'backstage', 'dashboard', 'login', 'signup', 'auth', 'search', 'lives', 'live', 'install', 'terms', 'privacy', 'legal', 'cookies', 'security', 'profile', 'subscriptions', 'reset-password', 'suspended'];
+
+  // Stats calculés
+  const stats = useMemo(() => {
+    const imageCount = content.filter(c => c.content_type === 'image').length;
+    const videoCount = content.filter(c => c.content_type === 'video').length;
+    const totalLikes = content.reduce((sum, c) => sum + (c.like_count || 0), 0);
+    return { imageCount, videoCount, totalLikes };
+  }, [content]);
+
+  // Contenu filtré
+  const filteredContent = useMemo(() => {
+    if (contentFilter === 'all') return content;
+    return content.filter(c => c.content_type === contentFilter);
+  }, [content, contentFilter]);
 
   useEffect(() => {
     const loadCreator = async () => {
       if (!username) return;
 
-      // Vérifier si c'est un chemin réservé
       if (RESERVED_PATHS.includes(username.toLowerCase())) {
         setLoading(false);
         return;
       }
       try {
-        // Essayer d'abord de chercher par username via la vue publique
         let profileData = null;
         let profileError = null;
 
-        // Vérifier si c'est un UUID (user_id) ou un username
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(username);
 
         if (isUUID) {
-          // Chercher par user_id via la vue publique
           const result = await supabase
             .from('public_creator_profiles')
             .select('*')
@@ -73,7 +84,6 @@ const CreatorPublicPage = () => {
           profileData = result.data;
           profileError = result.error;
         } else {
-          // Chercher par username via la vue publique
           const result = await supabase
             .from('public_creator_profiles')
             .select('*')
@@ -86,7 +96,6 @@ const CreatorPublicPage = () => {
         if (profileError) throw profileError;
         setProfile(profileData);
 
-        // Récupérer les infos créateur via la vue publique
         const { data: creatorData, error: creatorError } = await supabase
           .from('public_creators')
           .select('*')
@@ -96,7 +105,6 @@ const CreatorPublicPage = () => {
         if (creatorError) throw creatorError;
         setCreator(creatorData);
 
-        // Récupérer le contenu public
         const { data: contentData } = await supabase
           .from('content')
           .select('*')
@@ -106,7 +114,6 @@ const CreatorPublicPage = () => {
 
         setContent(contentData || []);
 
-        // Vérifier si abonné et charger les likes de l'utilisateur
         if (user) {
           const { data: subData } = await supabase
             .from('subscriptions')
@@ -118,7 +125,6 @@ const CreatorPublicPage = () => {
 
           setIsSubscribed(!!subData);
 
-          // Charger les likes de l'utilisateur pour ce contenu
           if (contentData && contentData.length > 0) {
             const contentIds = contentData.map((c: any) => c.id);
             const { data: likesData } = await supabase
@@ -143,11 +149,10 @@ const CreatorPublicPage = () => {
     loadCreator();
   }, [username, user]);
 
-  // Précharger le checkout en arrière-plan - utiliser creator.id comme dépendance stable
   useEffect(() => {
     const preloadCheckout = async () => {
       if (!user || !creator?.id || isSubscribed || creator.subscription_price <= 0) return;
-      if (preloadedSecret) return; // Déjà préchargé
+      if (preloadedSecret) return;
       
       try {
         const session = await supabase.auth.getSession();
@@ -161,17 +166,14 @@ const CreatorPublicPage = () => {
           setPreloadedSecret(data.clientSecret);
         }
       } catch (error) {
-        // Silencieux, le préchargement n'est qu'une optimisation
         console.debug('Preload checkout:', error);
       }
     };
 
     preloadCheckout();
-  }, [user?.id, creator?.id, isSubscribed]); // Utiliser des IDs stables
+  }, [user?.id, creator?.id, isSubscribed]);
 
   const handleSubscribe = async () => {
-    console.log('[SUBSCRIBE] handleSubscribe called, user:', !!user, 'creator:', !!creator);
-    
     if (!user) {
       toast.info('Connectez-vous pour vous abonner');
       navigate('/login');
@@ -181,10 +183,8 @@ const CreatorPublicPage = () => {
     if (!creator) return;
 
     const price = creator.subscription_price ?? 0;
-    console.log('[SUBSCRIBE] Price:', price);
 
     if (price <= 0) {
-      // Abonnement gratuit
       try {
         const { data: existingSub } = await supabase
           .from('subscriptions')
@@ -223,10 +223,7 @@ const CreatorPublicPage = () => {
         toast.error('Erreur lors de l\'abonnement : ' + error.message);
       }
     } else {
-      // Abonnement payant - ouvrir le checkout embedded
-      console.log('[SUBSCRIBE] Opening checkout dialog, setting showCheckout to true');
       setShowCheckout(true);
-      console.log('[SUBSCRIBE] showCheckout set, current value will be true on next render');
     }
   };
 
@@ -235,7 +232,6 @@ const CreatorPublicPage = () => {
 
     setUnsubscribing(true);
     try {
-      // Vérifier si c'est un abonnement payant avec Stripe
       const { data: subscription } = await supabase
         .from('subscriptions')
         .select('stripe_subscription_id, price')
@@ -245,7 +241,6 @@ const CreatorPublicPage = () => {
         .single();
 
       if (subscription?.stripe_subscription_id && subscription.price > 0) {
-        // Abonnement payant - rediriger vers le portail Stripe
         const { data, error } = await supabase.functions.invoke('customer-portal', {
           headers: {
             Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
@@ -258,7 +253,6 @@ const CreatorPublicPage = () => {
           toast.info('Gérez votre abonnement dans le portail Stripe');
         }
       } else {
-        // Abonnement gratuit - annuler directement
         const { error } = await supabase
           .from('subscriptions')
           .update({ status: 'canceled' })
@@ -287,10 +281,8 @@ const CreatorPublicPage = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Enregistrer une vue de contenu
   const recordContentView = async (contentId: string) => {
     try {
-      // Vérifier si l'utilisateur a déjà vu ce contenu (éviter les doublons)
       const { error } = await supabase
         .from('content_views')
         .insert({ 
@@ -299,14 +291,12 @@ const CreatorPublicPage = () => {
         });
 
       if (!error) {
-        // Incrémenter le compteur de vues
         const currentContent = content.find(c => c.id === contentId);
         await supabase
           .from('content')
           .update({ view_count: (currentContent?.view_count || 0) + 1 })
           .eq('id', contentId);
 
-        // Mettre à jour le contenu local
         setContent(prev => prev.map(c => 
           c.id === contentId ? { ...c, view_count: (c.view_count || 0) + 1 } : c
         ));
@@ -316,7 +306,6 @@ const CreatorPublicPage = () => {
     }
   };
 
-  // Ouvrir l'image et enregistrer une vue
   const handleOpenImage = (item: any) => {
     setSelectedImage(item);
     recordContentView(item.id);
@@ -329,7 +318,6 @@ const CreatorPublicPage = () => {
       return;
     }
 
-    // Animation du cœur au double-clic (seulement si on ajoute un like)
     const isLiked = userLikes.has(contentId);
     if (showAnimation && !isLiked) {
       setHeartAnimation(contentId);
@@ -339,7 +327,6 @@ const CreatorPublicPage = () => {
     setLikingContent(contentId);
 
     try {
-      // Utiliser la fonction SQL sécurisée
       const { data, error } = await supabase.rpc('toggle_content_like', {
         p_content_id: contentId
       });
@@ -359,7 +346,6 @@ const CreatorPublicPage = () => {
         });
       }
 
-      // Mettre à jour le contenu local avec le nouveau compteur
       setContent(prev => prev.map(c => 
         c.id === contentId ? { ...c, like_count: result.like_count } : c
       ));
@@ -372,6 +358,13 @@ const CreatorPublicPage = () => {
     } finally {
       setLikingContent(null);
     }
+  };
+
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return null;
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (loading) {
@@ -395,27 +388,23 @@ const CreatorPublicPage = () => {
     );
   }
 
-  const freeContent = content.filter(c => !c.is_premium);
-  const premiumContent = content.filter(c => c.is_premium);
-
   const creatorName = creator?.stage_name || profile?.display_name || profile?.username || 'Créateur';
   const creatorDescription = profile?.bio 
     ? `${profile.bio.substring(0, 150)}${profile.bio.length > 150 ? '...' : ''}`
-    : `Découvrez le profil de ${creatorName} sur Crub. ${creator?.category ? `Catégorie: ${creator.category}.` : ''} ${creator?.total_subscribers || 0} abonnés.`;
+    : `Découvrez le profil de ${creatorName} sur Crub.`;
   const creatorImage = profile?.avatar_url || '/og-image.jpg';
   const creatorUrl = `https://crub.fr/creator/${profile?.username || username}`;
 
   return (
-    <div className="min-h-screen bg-background pt-16">
-      {/* SEO Head avec JSON-LD optimisé */}
+    <div className="min-h-screen bg-background">
       <SEOHead
         title={`${creatorName} - Profil Créateur`}
         description={creatorDescription}
         image={creatorImage}
         url={creatorUrl}
         type="profile"
-        keywords={`${creatorName}, créateur Crub, ${creator?.category || 'contenu exclusif'}, abonnement créateur, contenu premium`}
-        noindex={false} // JAMAIS noindex pour les pages créateurs
+        keywords={`${creatorName}, créateur Crub, ${creator?.category || 'contenu exclusif'}`}
+        noindex={false}
         creator={{
           name: creatorName,
           username: profile?.username || '',
@@ -431,299 +420,327 @@ const CreatorPublicPage = () => {
         modifiedTime={creator?.updated_at}
       />
 
-      {/* Header avec cover */}
-      <div className="relative h-64 bg-gradient-to-r from-primary/20 to-primary/10">
-        {profile.cover_url && (
+      {/* Header avec navigation */}
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
+        >
+          <Home className="h-5 w-5" />
+        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleShare}
+            className="p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
+          >
+            <Share2 className="h-5 w-5" />
+          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors">
+                <MoreHorizontal className="h-5 w-5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigate(`/messagerie/${creator.id}`)}>
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Message privé
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Cover Photo */}
+      <div className="relative h-56 md:h-72 bg-gradient-to-br from-primary/30 to-primary/10">
+        {profile.cover_url ? (
           <img 
             src={profile.cover_url} 
             alt="Cover" 
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-[center_20%]"
           />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/30" />
         )}
+        {/* Gradient overlay pour lisibilité */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
       </div>
 
-      <div className="container mx-auto px-4 -mt-20 relative z-10">
-        {/* Profil */}
-        <Card className="mb-8">
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-              <Avatar className="h-32 w-32 border-4 border-background">
-                <AvatarImage src={profile.avatar_url} />
-                <AvatarFallback className="text-3xl">
-                  {profile.display_name?.charAt(0) || profile.username?.charAt(0) || '?'}
-                </AvatarFallback>
-              </Avatar>
+      {/* Profile Section */}
+      <div className="relative px-4 pb-4 -mt-16">
+        {/* Avatar */}
+        <Avatar className="h-24 w-24 md:h-28 md:w-28 border-4 border-background shadow-xl">
+          <AvatarImage src={profile.avatar_url} className="object-cover" />
+          <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
+            {creatorName.charAt(0).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
 
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-3xl font-bold">
-                    {creator.stage_name || profile.display_name || profile.username}
-                  </h1>
-                  {profile.is_verified && (
-                    <Badge variant="default" className="gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Vérifié
-                    </Badge>
-                  )}
-                  {creator.is_featured && (
-                    <Badge variant="default" className="gap-1">
-                      <Crown className="h-3 w-3" />
-                      Featured
-                    </Badge>
-                  )}
-                </div>
-                
-                <p className="text-muted-foreground mb-1">@{profile.username}</p>
-                
-                {creator.category && (
-                  <Badge variant="outline" className="mb-3">{creator.category}</Badge>
-                )}
+        {/* Nom et vérification */}
+        <div className="mt-3 flex items-center gap-2">
+          <h1 className="text-2xl font-bold">{creatorName}</h1>
+          {profile.is_verified && (
+            <CheckCircle2 className="h-5 w-5 text-primary fill-primary" />
+          )}
+        </div>
 
-                {profile.bio && (
-                  <p className="text-sm mt-3 max-w-2xl">{profile.bio}</p>
-                )}
+        {/* Catégorie et promo */}
+        <p className="text-muted-foreground text-sm mt-1">
+          {creator.category && <span>{creator.category}</span>}
+          {creator.category && creator.is_featured && <span> • </span>}
+          {creator.is_featured && (
+            <span className="text-primary">⭐ Créateur en vedette</span>
+          )}
+        </p>
 
-                <div className="flex items-center gap-6 mt-4 text-sm text-muted-foreground">
-                  <span>{creator.total_subscribers} abonnés</span>
-                  <span>{creator.total_content || content.length} contenus</span>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                {!user ? (
-                  <Link to="/login">
-                    <Button size="lg" variant="premium">
-                      <Crown className="h-4 w-4 mr-2" />
-                      S'abonner - {creator.subscription_price}€/mois
-                    </Button>
-                  </Link>
-                ) : isSubscribed ? (
-                  <div className="flex flex-col gap-2">
-                    <Badge variant="default" className="text-base px-4 py-2">
-                      <Crown className="h-4 w-4 mr-2" />
-                      Abonné
-                    </Badge>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                          <UserMinus className="h-4 w-4 mr-2" />
-                          Se désabonner
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Confirmer le désabonnement</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Êtes-vous sûr de vouloir vous désabonner de {creator.stage_name || profile.display_name || profile.username} ? 
-                            Vous perdrez l'accès au contenu premium.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Annuler</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={handleUnsubscribe}
-                            disabled={unsubscribing}
-                            className="bg-destructive hover:bg-destructive/90"
-                          >
-                            {unsubscribing ? 'Désabonnement...' : 'Se désabonner'}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                ) : (
-                  <Button 
-                    size="lg" 
-                    variant="premium" 
-                    type="button"
-                    onClick={handleSubscribe}
-                  >
-                    <Crown className="h-4 w-4 mr-2" />
-                    {creator.subscription_price > 0 ? `S'abonner - ${creator.subscription_price}€/mois` : "S'abonner gratuitement"}
-                  </Button>
-                )}
-                
-                {isSubscribed && (
-                  <Button variant="outline" onClick={() => navigate(`/messagerie/${creator.id}`)}>
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Message privé
-                  </Button>
-                )}
-                
-                <Button variant="outline" onClick={handleShare}>
-                  <Share2 className="h-4 w-4 mr-2" />
-                  {copied ? 'Copié !' : 'Partager'}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Contenu gratuit */}
-        {freeContent.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-4">Contenu gratuit</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-              {freeContent.map((item) => (
-                <ProtectedMedia
-                  key={item.id}
-                  className="overflow-hidden group cursor-pointer rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow"
-                  watermarkText={creator?.stage_name || profile?.username}
-                >
-                  <div 
-                    className="aspect-square bg-muted relative overflow-hidden w-full"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenImage(item);
-                    }}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation();
-                      handleLikeContent(item.id);
-                    }}
-                  >
-                    {item.content_type === 'video' ? (
-                      <SecureVideoPreviewCard
-                        src={item.file_url}
-                        contentId={item.id}
-                        poster={item.thumbnail_url && item.thumbnail_url !== item.file_url ? item.thumbnail_url : null}
-                        className="w-full h-full"
-                        showPlayButton={true}
-                        isPremium={false}
-                      />
-                    ) : (
-                      <OptimizedImage
-                        src={item.thumbnail_url || item.file_url}
-                        alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                    )}
-                    
-                    {/* Animation cœur Instagram */}
-                    {heartAnimation === item.id && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40">
-                        <Heart className="h-24 w-24 text-red-500 fill-red-500 animate-heart-burst drop-shadow-lg" />
-                      </div>
-                    )}
-                    
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 pointer-events-none z-30">
-                      <h3 className="text-white font-medium text-sm line-clamp-1">{item.title}</h3>
-                      <div className="flex items-center gap-3 text-white/80 text-xs mt-1">
-                        <span className="flex items-center gap-1">
-                          <Eye className="h-3 w-3" />
-                          {item.view_count || 0}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Heart className={`h-3 w-3 ${userLikes.has(item.id) ? 'fill-red-500 text-red-500' : ''}`} />
-                          {item.like_count || 0}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </ProtectedMedia>
-              ))}
-            </div>
+        {/* Stats en ligne */}
+        <div className="flex items-center gap-6 mt-4 text-sm">
+          <div className="flex items-center gap-1.5">
+            <Image className="h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold">{stats.imageCount}</span>
           </div>
-        )}
+          <div className="flex items-center gap-1.5">
+            <Video className="h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold">{stats.videoCount}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Heart className="h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold">{stats.totalLikes}</span>
+          </div>
+        </div>
 
-        {/* Contenu premium */}
-        {premiumContent.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-              <Crown className="h-6 w-6 text-primary" />
-              Contenu Premium ({premiumContent.length})
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-              {premiumContent.map((item) => (
-                <ProtectedMedia
-                  key={item.id}
-                  className={`overflow-hidden relative rounded-xl border bg-card shadow-sm ${isSubscribed ? 'cursor-pointer group hover:shadow-md transition-shadow' : ''}`}
-                  watermarkText={isSubscribed ? (creator?.stage_name || profile?.username) : undefined}
-                  enableForensicWatermark={isSubscribed}
-                  forensicOpacity={0.04}
-                >
-                  <div 
-                    className="aspect-square bg-muted relative overflow-hidden w-full"
-                    onClick={(e) => {
-                      if (isSubscribed) {
-                        e.stopPropagation();
-                        handleOpenImage(item);
-                      }
-                    }}
-                    onDoubleClick={(e) => {
-                      if (isSubscribed) {
-                        e.stopPropagation();
-                        handleLikeContent(item.id);
-                      }
-                    }}
-                  >
-                    {item.content_type === 'video' ? (
-                      <SecureVideoPreviewCard
-                        src={item.file_url}
-                        contentId={item.id}
-                        poster={item.thumbnail_url && item.thumbnail_url !== item.file_url ? item.thumbnail_url : null}
-                        className="w-full h-full"
-                        blurred={!isSubscribed}
-                        showPlayButton={isSubscribed}
-                        isPremium={true}
-                      />
-                    ) : (
-                      <OptimizedImage
-                        src={item.thumbnail_url || item.file_url}
-                        alt={item.title}
-                        className={`w-full h-full object-cover ${!isSubscribed ? 'blur-lg' : 'group-hover:scale-105 transition-transform'}`}
-                      />
-                    )}
-                    
-                    {/* Animation cœur Instagram */}
-                    {heartAnimation === item.id && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40">
-                        <Heart className="h-24 w-24 text-red-500 fill-red-500 animate-heart-burst drop-shadow-lg" />
-                      </div>
-                    )}
-                    
-                    {!isSubscribed && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/60 pointer-events-none z-30">
-                        <div className="text-center text-white">
-                          <Lock className="h-8 w-8 mx-auto mb-2" />
-                          <p className="text-sm font-medium">Contenu Premium</p>
-                        </div>
-                      </div>
-                    )}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 pointer-events-none z-30">
-                      <h3 className="text-white font-medium text-sm line-clamp-1">{item.title}</h3>
-                      {isSubscribed && (
-                        <div className="flex items-center gap-3 text-white/80 text-xs mt-1">
-                          <span className="flex items-center gap-1">
-                            <Eye className="h-3 w-3" />
-                            {item.view_count || 0}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Heart className={`h-3 w-3 ${userLikes.has(item.id) ? 'fill-red-500 text-red-500' : ''}`} />
-                            {item.like_count || 0}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </ProtectedMedia>
-              ))}
+        {/* Bouton S'abonner */}
+        <div className="mt-4">
+          {!user ? (
+            <Link to="/login" className="block">
+              <Button className="w-full rounded-full h-12 text-base font-semibold bg-primary hover:bg-primary/90">
+                S'abonner - Sans engagement
+              </Button>
+            </Link>
+          ) : isSubscribed ? (
+            <div className="flex gap-2">
+              <Badge variant="default" className="flex-1 justify-center py-3 text-base rounded-full">
+                <Crown className="h-4 w-4 mr-2" />
+                Abonné
+              </Badge>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="icon" className="rounded-full h-12 w-12 text-destructive hover:text-destructive">
+                    <UserMinus className="h-5 w-5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmer le désabonnement</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Êtes-vous sûr de vouloir vous désabonner de {creatorName} ? Vous perdrez l'accès au contenu premium.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleUnsubscribe}
+                      disabled={unsubscribing}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      {unsubscribing ? 'Désabonnement...' : 'Se désabonner'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
-            
-            {!isSubscribed && (
-              <div className="mt-6 text-center">
-                <p className="text-muted-foreground mb-4">
-                  Abonnez-vous pour débloquer {premiumContent.length} contenus premium
-                </p>
-                <Button size="lg" variant="premium" onClick={handleSubscribe}>
-                  <Crown className="h-4 w-4 mr-2" />
-                  S'abonner maintenant - {creator.subscription_price}€/mois
-                </Button>
-              </div>
+          ) : (
+            <Button 
+              className="w-full rounded-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+              onClick={handleSubscribe}
+            >
+              {creator.subscription_price > 0 
+                ? `S'abonner - ${creator.subscription_price}€/mois` 
+                : "S'abonner - Sans engagement"}
+            </Button>
+          )}
+        </div>
+
+        {/* Bio avec "Voir plus" */}
+        {profile.bio && (
+          <div className="mt-4">
+            <p className={`text-sm text-primary ${!bioExpanded ? 'line-clamp-2' : ''}`}>
+              {profile.bio}
+            </p>
+            {profile.bio.length > 100 && (
+              <button
+                onClick={() => setBioExpanded(!bioExpanded)}
+                className="text-muted-foreground text-sm mt-1 flex items-center gap-1 hover:text-foreground transition-colors"
+              >
+                {bioExpanded ? (
+                  <>Voir moins <ChevronUp className="h-4 w-4" /></>
+                ) : (
+                  <>Voir plus <ChevronDown className="h-4 w-4" /></>
+                )}
+              </button>
             )}
           </div>
         )}
+      </div>
 
-        {/* Section Replays - visible par tous mais accessible aux abonnés */}
+      {/* Tabs Posts / Médias */}
+      <div className="border-b border-border sticky top-0 bg-background z-40">
+        <div className="flex">
+          <button
+            onClick={() => setActiveTab('posts')}
+            className={`flex-1 py-3 text-center font-medium text-sm transition-colors relative ${
+              activeTab === 'posts' 
+                ? 'text-primary' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Grid3X3 className="h-4 w-4" />
+              {content.length} Posts
+            </div>
+            {activeTab === 'posts' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('medias')}
+            className={`flex-1 py-3 text-center font-medium text-sm transition-colors relative ${
+              activeTab === 'medias' 
+                ? 'text-primary' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <ShoppingBag className="h-4 w-4" />
+              0 Médias
+            </div>
+            {activeTab === 'medias' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Filtre photos/vidéos */}
+      <div className="p-4 flex justify-end">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="secondary" className="rounded-full gap-2">
+              <SlidersHorizontal className="h-4 w-4" />
+              Filtres
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setContentFilter('all')}>
+              <Grid3X3 className="h-4 w-4 mr-2" />
+              Tout ({content.length})
+              {contentFilter === 'all' && <CheckCircle2 className="h-4 w-4 ml-auto text-primary" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setContentFilter('image')}>
+              <Image className="h-4 w-4 mr-2" />
+              Photos ({stats.imageCount})
+              {contentFilter === 'image' && <CheckCircle2 className="h-4 w-4 ml-auto text-primary" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setContentFilter('video')}>
+              <Video className="h-4 w-4 mr-2" />
+              Vidéos ({stats.videoCount})
+              {contentFilter === 'video' && <CheckCircle2 className="h-4 w-4 ml-auto text-primary" />}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Grille de contenu - 3 colonnes uniformes */}
+      {activeTab === 'posts' && (
+        <div className="grid grid-cols-3 gap-0.5">
+          {filteredContent.map((item) => {
+            const canView = !item.is_premium || isSubscribed;
+            
+            return (
+              <ProtectedMedia
+                key={item.id}
+                className="relative aspect-square overflow-hidden bg-muted cursor-pointer group"
+                watermarkText={canView ? (creator?.stage_name || profile?.username) : undefined}
+                enableForensicWatermark={canView && item.is_premium}
+              >
+                <div 
+                  className="w-full h-full"
+                  onClick={() => canView && handleOpenImage(item)}
+                  onDoubleClick={() => canView && handleLikeContent(item.id)}
+                >
+                  {item.content_type === 'video' ? (
+                    <SecureVideoPreviewCard
+                      src={item.file_url}
+                      contentId={item.id}
+                      poster={item.thumbnail_url && item.thumbnail_url !== item.file_url ? item.thumbnail_url : null}
+                      className="w-full h-full object-cover"
+                      blurred={!canView}
+                      showPlayButton={false}
+                      isPremium={item.is_premium}
+                    />
+                  ) : (
+                    <OptimizedImage
+                      src={item.thumbnail_url || item.file_url}
+                      alt={item.title}
+                      className={`w-full h-full object-cover transition-transform ${
+                        canView ? 'group-hover:scale-105' : 'blur-lg'
+                      }`}
+                    />
+                  )}
+
+                  {/* Indicateur vidéo avec durée */}
+                  {item.content_type === 'video' && canView && (
+                    <div className="absolute top-2 right-2 flex items-center gap-1">
+                      <div className="bg-black/60 rounded-full p-1.5">
+                        <Play className="h-3 w-3 text-white fill-white" />
+                      </div>
+                      {item.duration && (
+                        <span className="bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                          {formatDuration(item.duration)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Icône verrou pour premium non débloqué */}
+                  {item.is_premium && !isSubscribed && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                      <div className="bg-black/60 rounded-full p-3">
+                        <Lock className="h-6 w-6 text-white" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Animation cœur */}
+                  {heartAnimation === item.id && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-40">
+                      <Heart className="h-16 w-16 text-red-500 fill-red-500 animate-heart-burst drop-shadow-lg" />
+                    </div>
+                  )}
+                </div>
+              </ProtectedMedia>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Message si pas de contenu */}
+      {filteredContent.length === 0 && activeTab === 'posts' && (
+        <div className="py-12 text-center text-muted-foreground">
+          <p>Aucun contenu disponible</p>
+        </div>
+      )}
+
+      {/* Onglet Médias - à venir */}
+      {activeTab === 'medias' && (
+        <div className="py-12 text-center text-muted-foreground">
+          <ShoppingBag className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p>Pas encore de médias à acheter</p>
+        </div>
+      )}
+
+      {/* Section Replays */}
+      <div className="px-4 pb-8">
         {creator && (
           <PublicReplays 
             creatorId={creator.id} 
@@ -731,36 +748,13 @@ const CreatorPublicPage = () => {
             creatorName={creator.stage_name || profile?.display_name}
           />
         )}
-
-        {content.length === 0 && (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">Ce créateur n'a pas encore publié de contenu</p>
-            </CardContent>
-          </Card>
-        )}
       </div>
 
-      {/* Checkout Embedded Dialog */}
-      <Dialog 
-        open={showCheckout} 
-        onOpenChange={(open) => {
-          console.log('[DIALOG] onOpenChange:', open);
-          setShowCheckout(open);
-        }}
-        modal={true}
-      >
-        <DialogContent 
-          className="max-w-2xl max-h-[90vh] overflow-y-auto z-[10000]"
-          aria-describedby="checkout-description"
-        >
+      {/* Checkout Dialog */}
+      <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              Abonnement à {creator?.stage_name || 'ce créateur'}
-            </DialogTitle>
-            <p id="checkout-description" className="text-sm text-muted-foreground">
-              Complétez votre paiement pour accéder au contenu premium
-            </p>
+            <DialogTitle>Abonnement à {creatorName}</DialogTitle>
           </DialogHeader>
           {creator && showCheckout && (
             <EmbeddedCheckout 
@@ -772,28 +766,24 @@ const CreatorPublicPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Image Lightbox personnalisé avec bouton like */}
+      {/* Image Lightbox */}
       {selectedImage && (
         <div 
           className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center"
           onClick={() => setSelectedImage(null)}
         >
-          {/* Bouton fermer */}
           <button
             type="button"
             onClick={() => setSelectedImage(null)}
             className="absolute top-4 right-4 z-[10000] p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
           >
-            <span className="sr-only">Fermer</span>
             ✕
           </button>
           
-          {/* Container principal - empêche la propagation du clic */}
           <div 
             className="relative max-w-[95vw] max-h-[95vh] flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Média - Double-clic pour liker */}
             <div className="relative" onDoubleClick={() => handleLikeContent(selectedImage.id)}>
               {selectedImage.content_type === 'video' ? (
                 <SecureVideoLightbox
@@ -812,7 +802,6 @@ const CreatorPublicPage = () => {
                 />
               )}
               
-              {/* Animation cœur Instagram dans le lightbox */}
               {heartAnimation === selectedImage.id && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <Heart className="h-32 w-32 text-red-500 fill-red-500 animate-heart-burst drop-shadow-2xl" />
@@ -820,7 +809,6 @@ const CreatorPublicPage = () => {
               )}
             </div>
             
-            {/* Infos et bouton like */}
             <div className="w-full mt-4 px-4">
               <h3 className="text-white text-xl font-bold mb-2">{selectedImage.title}</h3>
               {selectedImage.description && (
@@ -833,10 +821,7 @@ const CreatorPublicPage = () => {
                 </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    console.log('Like button clicked!', selectedImage.id);
-                    handleLikeContent(selectedImage.id);
-                  }}
+                  onClick={() => handleLikeContent(selectedImage.id)}
                   disabled={likingContent === selectedImage.id}
                   className={`flex items-center gap-2 text-sm transition-all px-4 py-2 rounded-lg border ${
                     userLikes.has(selectedImage.id)
@@ -856,7 +841,6 @@ const CreatorPublicPage = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
