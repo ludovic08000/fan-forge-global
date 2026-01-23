@@ -38,6 +38,7 @@ const Messages = () => {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isCreator, setIsCreator] = useState(false);
+  const [creatorId, setCreatorId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -56,6 +57,7 @@ const Messages = () => {
 
         const userIsCreator = !!creatorData;
         setIsCreator(userIsCreator);
+        if (creatorData) setCreatorId(creatorData.id);
 
         if (userIsCreator && creatorData) {
           // Pour les créateurs : charger les conversations avec leurs abonnés
@@ -159,39 +161,36 @@ const Messages = () => {
     
     setDeletingId(conversationId);
     try {
-      if (conversationType === 'subscriber') {
+      let error = null;
+      
+      if (conversationType === 'subscriber' && creatorId) {
         // Pour les créateurs : supprimer les messages avec cet abonné
-        const { data: creatorData } = await supabase
-          .from('creators')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
-
-        if (creatorData) {
-          const { error } = await supabase
-            .from('private_messages')
-            .update({ is_deleted: true, deleted_at: new Date().toISOString() })
-            .eq('creator_id', creatorData.id)
-            .eq('subscriber_id', conversationId);
-
-          if (error) throw error;
-        }
-      } else {
+        const result = await supabase
+          .from('private_messages')
+          .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+          .eq('creator_id', creatorId)
+          .eq('subscriber_id', conversationId);
+        error = result.error;
+      } else if (conversationType === 'creator') {
         // Pour les abonnés : supprimer les messages avec ce créateur
-        const { error } = await supabase
+        const result = await supabase
           .from('private_messages')
           .update({ is_deleted: true, deleted_at: new Date().toISOString() })
           .eq('subscriber_id', user.id)
           .eq('creator_id', conversationId);
+        error = result.error;
+      }
 
-        if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
       }
 
       setConversations(prev => prev.filter(c => c.id !== conversationId));
       toast.success('Conversation supprimée');
     } catch (error: any) {
       console.error('Error deleting conversation:', error);
-      toast.error('Erreur lors de la suppression');
+      toast.error('Erreur lors de la suppression: ' + (error?.message || 'Erreur inconnue'));
     } finally {
       setDeletingId(null);
     }
