@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, MessageCircle, UserMinus, Play, Image, Video, Home, MoreHorizontal, Grid3X3, ShoppingBag, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
+import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, MessageCircle, UserMinus, Play, Image, Video, Home, MoreHorizontal, Grid3X3, ShoppingBag, SlidersHorizontal, ChevronDown, ChevronUp, Coins } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
 import SEOHead from '@/components/SEOHead';
@@ -18,6 +18,7 @@ import { SecureVideoPreviewCard } from '@/components/SecureVideoPreviewCard';
 import { SecureVideoLightbox } from '@/components/SecureVideoLightbox';
 import { PublicReplays } from '@/components/live/PublicReplays';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { CreatorTipButton } from '@/components/CreatorTipButton';
 
 type ContentFilter = 'all' | 'image' | 'video';
 type TabFilter = 'posts' | 'medias';
@@ -509,8 +510,9 @@ const CreatorPublicPage = () => {
           </div>
         </div>
 
-        {/* Bouton S'abonner */}
-        <div className="mt-4">
+        {/* Boutons d'action */}
+        <div className="mt-4 space-y-3">
+          {/* Bouton S'abonner */}
           {!user ? (
             <Link to="/login" className="block">
               <Button className="w-full rounded-full h-12 text-base font-semibold bg-primary hover:bg-primary/90">
@@ -559,6 +561,15 @@ const CreatorPublicPage = () => {
                 : "S'abonner - Sans engagement"}
             </Button>
           )}
+
+          {/* Bouton Tip */}
+          <CreatorTipButton 
+            creatorId={creator.id}
+            creatorName={creatorName}
+            variant="outline"
+            size="lg"
+            className="w-full rounded-full h-11"
+          />
         </div>
 
         {/* Bio avec "Voir plus" */}
