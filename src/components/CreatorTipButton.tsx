@@ -45,6 +45,18 @@ export const CreatorTipButton = ({
       return;
     }
 
+    // Vérifier si l'utilisateur est un créateur (sécurité: comptes séparés obligatoires)
+    const { data: isCreator } = await supabase
+      .from('creators')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (isCreator) {
+      toast.error('Les créateurs ne peuvent pas envoyer de tips avec leur compte créateur. Veuillez utiliser un compte utilisateur séparé.');
+      return;
+    }
+
     const tipAmount = parseFloat(amount);
     if (isNaN(tipAmount) || tipAmount < 1) {
       toast.error('Montant minimum: 1€');

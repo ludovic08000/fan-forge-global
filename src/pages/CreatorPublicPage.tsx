@@ -183,6 +183,18 @@ const CreatorPublicPage = () => {
 
     if (!creator) return;
 
+    // Vérifier si l'utilisateur est un créateur (sécurité: comptes séparés obligatoires)
+    const { data: isCreator } = await supabase
+      .from('creators')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (isCreator) {
+      toast.error('Les créateurs ne peuvent pas s\'abonner avec leur compte créateur. Veuillez utiliser un compte utilisateur séparé.');
+      return;
+    }
+
     const price = creator.subscription_price ?? 0;
 
     if (price <= 0) {
@@ -221,7 +233,11 @@ const CreatorPublicPage = () => {
         setIsSubscribed(true);
         toast.success('Abonnement gratuit créé avec succès !');
       } catch (error: any) {
-        toast.error('Erreur lors de l\'abonnement : ' + error.message);
+        if (error.message?.includes('créateurs ne peuvent pas')) {
+          toast.error(error.message);
+        } else {
+          toast.error('Erreur lors de l\'abonnement : ' + error.message);
+        }
       }
     } else {
       setShowCheckout(true);

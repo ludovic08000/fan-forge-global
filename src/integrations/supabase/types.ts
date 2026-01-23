@@ -2697,6 +2697,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_active_creator: { Args: { _user_id: string }; Returns: boolean }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_blocked: { Args: { check_identifier: string }; Returns: boolean }
       is_creator_by_user_id: {
