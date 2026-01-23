@@ -140,6 +140,66 @@ export type Database = {
           },
         ]
       }
+      collaborative_content: {
+        Row: {
+          content_id: string
+          created_at: string
+          id: string
+          partnership_id: string
+          primary_creator_id: string
+        }
+        Insert: {
+          content_id: string
+          created_at?: string
+          id?: string
+          partnership_id: string
+          primary_creator_id: string
+        }
+        Update: {
+          content_id?: string
+          created_at?: string
+          id?: string
+          partnership_id?: string
+          primary_creator_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborative_content_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: true
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborative_content_partnership_id_fkey"
+            columns: ["partnership_id"]
+            isOneToOne: false
+            referencedRelation: "creator_partnerships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborative_content_primary_creator_id_fkey"
+            columns: ["primary_creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborative_content_primary_creator_id_fkey"
+            columns: ["primary_creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborative_content_primary_creator_id_fkey"
+            columns: ["primary_creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content: {
         Row: {
           content_type: Database["public"]["Enums"]["content_type"]
@@ -499,6 +559,91 @@ export type Database = {
             columns: ["payment_request_id"]
             isOneToOne: false
             referencedRelation: "creator_payment_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_partnerships: {
+        Row: {
+          accepted_at: string | null
+          collaboration_type: string[] | null
+          created_at: string
+          id: string
+          message: string | null
+          partner_id: string
+          requester_id: string
+          revenue_share_partner: number
+          revenue_share_requester: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          collaboration_type?: string[] | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          partner_id: string
+          requester_id: string
+          revenue_share_partner?: number
+          revenue_share_requester?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          collaboration_type?: string[] | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          partner_id?: string
+          requester_id?: string
+          revenue_share_partner?: number
+          revenue_share_requester?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_partnerships_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_partnerships_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_partnerships_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_partnerships_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_partnerships_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_partnerships_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -1477,6 +1622,57 @@ export type Database = {
           verified?: boolean | null
         }
         Relationships: []
+      }
+      partnership_revenue: {
+        Row: {
+          content_id: string | null
+          created_at: string
+          currency: string
+          id: string
+          partner_share: number
+          partnership_id: string
+          requester_share: number
+          revenue_type: string
+          total_amount: number
+        }
+        Insert: {
+          content_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          partner_share?: number
+          partnership_id: string
+          requester_share?: number
+          revenue_type: string
+          total_amount?: number
+        }
+        Update: {
+          content_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          partner_share?: number
+          partnership_id?: string
+          requester_share?: number
+          revenue_type?: string
+          total_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partnership_revenue_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partnership_revenue_partnership_id_fkey"
+            columns: ["partnership_id"]
+            isOneToOne: false
+            referencedRelation: "creator_partnerships"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       platform_commissions: {
         Row: {
