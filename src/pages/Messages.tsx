@@ -22,12 +22,13 @@ import {
 } from '@/components/ui/alert-dialog';
 
 interface Conversation {
-  creator_id: string;
-  creator_name: string;
-  creator_avatar: string | null;
+  id: string; // creator_id pour abonnés, subscriber_id pour créateurs
+  name: string;
+  avatar: string | null;
   last_message: string | null;
   last_message_date: string | null;
   unread_count: number;
+  type: 'creator' | 'subscriber'; // Pour distinguer le type de conversation
 }
 
 const Messages = () => {
@@ -84,12 +85,13 @@ const Messages = () => {
                   .single();
 
                 conversationsMap.set(msg.subscriber_id, {
-                  creator_id: msg.subscriber_id,
-                  creator_name: profile?.display_name || profile?.username || 'Utilisateur',
-                  creator_avatar: profile?.avatar_url,
+                  id: msg.subscriber_id,
+                  name: profile?.display_name || profile?.username || 'Utilisateur',
+                  avatar: profile?.avatar_url,
                   last_message: msg.content,
                   last_message_date: msg.created_at,
-                  unread_count: 0
+                  unread_count: 0,
+                  type: 'subscriber'
                 });
               }
             }
@@ -97,7 +99,7 @@ const Messages = () => {
             setConversations(Array.from(conversationsMap.values()));
           }
         } else {
-          // Pour les abonnés : charger TOUTES les conversations (créateur OU subscriber)
+          // Pour les abonnés : charger les conversations avec les créateurs
           const { data: messagesAsSubscriber } = await supabase
             .from('private_messages')
             .select(`
@@ -122,24 +124,23 @@ const Messages = () => {
                 .single();
 
               let avatar = null;
-              let username = null;
               if (creatorData) {
                 const { data: profile } = await supabase
                   .from('profiles')
-                  .select('avatar_url, username')
+                  .select('avatar_url')
                   .eq('user_id', creatorData.user_id)
                   .single();
                 avatar = profile?.avatar_url;
-                username = profile?.username;
               }
 
               conversationsMap.set(msg.creator_id, {
-                creator_id: msg.creator_id,
-                creator_name: creatorData?.stage_name || 'Créateur',
-                creator_avatar: avatar,
+                id: msg.creator_id,
+                name: creatorData?.stage_name || 'Créateur',
+                avatar: avatar,
                 last_message: msg.content,
                 last_message_date: msg.created_at,
-                unread_count: 0
+                unread_count: 0,
+                type: 'creator'
               });
             }
           }
@@ -156,12 +157,12 @@ const Messages = () => {
     loadConversations();
   }, [user, userRole, navigate]);
 
-  const handleDeleteConversation = async (conversationId: string) => {
+  const handleDeleteConversation = async (conversationId: string, conversationType: 'creator' | 'subscriber') => {
     if (!user) return;
     
     setDeletingId(conversationId);
     try {
-      if (userRole === 'creator') {
+      if (conversationType === 'subscriber') {
         // Pour les créateurs : supprimer les messages avec cet abonné
         const { data: creatorData } = await supabase
           .from('creators')
@@ -189,7 +190,7 @@ const Messages = () => {
         if (error) throw error;
       }
 
-      setConversations(prev => prev.filter(c => c.creator_id !== conversationId));
+      setConversations(prev => prev.filter(c => c.id !== conversationId));
       toast.success('Conversation supprimée');
     } catch (error: any) {
       console.error('Error deleting conversation:', error);
@@ -197,6 +198,16 @@ const Messages = () => {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  // Déterminer l'URL de la conversation selon le type
+  const getConversationUrl = (conv: Conversation) => {
+    // Si c'est une conversation avec un subscriber (vue créateur) -> /messages/:subscriberId
+    // Si c'est une conversation avec un creator (vue abonné) -> /messagerie/:creatorId
+    if (conv.type === 'subscriber') {
+      return `/messages/${conv.id}`;
+    }
+    return `/messagerie/${conv.id}`;
   };
 
   if (loading) {
@@ -235,22 +246,22 @@ const Messages = () => {
         ) : (
           <div className="space-y-3">
             {conversations.map((conv) => (
-              <Card key={conv.creator_id} className="hover:bg-muted/50 transition-colors">
+              <Card key={conv.id} className="hover:bg-muted/50 transition-colors">
                 <CardContent className="p-4 flex items-center gap-4">
                   <Link 
-                    to={userRole === 'creator' ? `/messages/${conv.creator_id}` : `/messagerie/${conv.creator_id}`}
+                    to={getConversationUrl(conv)}
                     className="flex items-center gap-4 flex-1 min-w-0"
                   >
                     <Avatar className="h-14 w-14 border-2 border-primary/20">
-                      <AvatarImage src={conv.creator_avatar || undefined} />
+                      <AvatarImage src={conv.avatar || undefined} />
                       <AvatarFallback className="bg-primary/10 text-primary font-bold">
-                        {conv.creator_name.substring(0, 2).toUpperCase()}
+                        {conv.name.substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold truncate">{conv.creator_name}</h3>
+                        <h3 className="font-semibold truncate">{conv.name}</h3>
                         {conv.unread_count > 0 && (
                           <Badge variant="default" className="text-xs">
                             {conv.unread_count}
@@ -278,7 +289,7 @@ const Messages = () => {
                         variant="ghost" 
                         size="icon"
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        disabled={deletingId === conv.creator_id}
+                        disabled={deletingId === conv.id}
                       >
                         <Trash2 className="h-5 w-5" />
                       </Button>
@@ -287,14 +298,14 @@ const Messages = () => {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Supprimer la conversation</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Êtes-vous sûr de vouloir supprimer cette conversation avec {conv.creator_name} ? 
+                          Êtes-vous sûr de vouloir supprimer cette conversation avec {conv.name} ? 
                           Cette action est irréversible.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Annuler</AlertDialogCancel>
                         <AlertDialogAction 
-                          onClick={() => handleDeleteConversation(conv.creator_id)}
+                          onClick={() => handleDeleteConversation(conv.id, conv.type)}
                           className="bg-destructive hover:bg-destructive/90"
                         >
                           Supprimer
