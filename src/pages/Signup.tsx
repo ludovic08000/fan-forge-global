@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, ArrowLeft, Mail, UserCircle, Video, AlertTriangle, ShieldX, CalendarDays } from 'lucide-react';
 import { signUpSchema } from '@/lib/validations';
@@ -68,7 +69,9 @@ const Signup = () => {
     birthdate: '',
     gender: '',
     stageName: '',
-    category: ''
+    category: '',
+    termsAccepted: false,
+    privacyAccepted: false
   });
 
   const [signUpErrors, setSignUpErrors] = useState<Record<string, string>>({});
@@ -534,10 +537,44 @@ const Signup = () => {
                   <p className="text-sm text-destructive">Les mots de passe ne correspondent pas</p>
                 )}
               </div>
+
+              {/* Acceptation des CGU et Politique de confidentialité */}
+              <div className="space-y-3 pt-2 border-t">
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="termsAccepted"
+                    checked={signUpForm.termsAccepted}
+                    onCheckedChange={(checked) => setSignUpForm({ ...signUpForm, termsAccepted: checked === true })}
+                  />
+                  <Label htmlFor="termsAccepted" className="text-sm leading-relaxed cursor-pointer">
+                    J'ai lu et j'accepte les{' '}
+                    <Link to="/terms" target="_blank" className="text-primary hover:underline">
+                      Conditions Générales d'Utilisation
+                    </Link>
+                    {' '}*
+                  </Label>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="privacyAccepted"
+                    checked={signUpForm.privacyAccepted}
+                    onCheckedChange={(checked) => setSignUpForm({ ...signUpForm, privacyAccepted: checked === true })}
+                  />
+                  <Label htmlFor="privacyAccepted" className="text-sm leading-relaxed cursor-pointer">
+                    J'ai lu et j'accepte la{' '}
+                    <Link to="/privacy" target="_blank" className="text-primary hover:underline">
+                      Politique de Confidentialité
+                    </Link>
+                    {' '}et le traitement de mes données conformément au RGPD *
+                  </Label>
+                </div>
+              </div>
+
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={isLoading || (signUpForm.password !== signUpForm.confirmPassword) || isMinor || !signUpForm.birthdate}
+                disabled={isLoading || (signUpForm.password !== signUpForm.confirmPassword) || isMinor || !signUpForm.birthdate || !signUpForm.termsAccepted || !signUpForm.privacyAccepted}
               >
                 {isLoading ? 'Création...' : 'Créer un compte'}
               </Button>

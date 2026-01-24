@@ -39,6 +39,7 @@ const PaymentRequestCard = lazy(() => import('@/components/dashboard/PaymentRequ
 const PartnershipManager = lazy(() => import('@/components/creator/PartnershipManager'));
 const MediaLightbox = lazy(() => import('@/components/MediaLightbox'));
 const PhotoEditor = lazy(() => import('@/components/PhotoEditor'));
+const LiveHistory = lazy(() => import('@/components/live/LiveHistory'));
 
 // Fallback components
 const LoadingFallback = ({ message = "Chargement..." }: { message?: string }) => (
@@ -416,9 +417,14 @@ const Dashboard = () => {
 
         {/* Section: Live */}
         {activeSection === 'live' && (
-          <Suspense fallback={<LoadingFallback message="Chargement du studio live..." />}>
-            <LiveStreamStudio />
-          </Suspense>
+          <div className="space-y-6">
+            <Suspense fallback={<LoadingFallback message="Chargement du studio live..." />}>
+              <LiveStreamStudio />
+            </Suspense>
+            <Suspense fallback={<LoadingFallback />}>
+              <LiveHistory />
+            </Suspense>
+          </div>
         )}
 
         {/* Section: Messages */}
