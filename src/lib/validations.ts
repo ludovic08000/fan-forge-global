@@ -70,6 +70,8 @@ export const signUpSchema = authSchema.extend({
   gender: z.string().optional(),
   stageName: z.string().trim().max(50, { message: "Le surnom doit contenir moins de 50 caractères" }).optional().or(z.literal('')),
   category: z.string().optional(),
+  termsAccepted: z.boolean().refine(val => val === true, { message: "Vous devez accepter les conditions d'utilisation" }),
+  privacyAccepted: z.boolean().refine(val => val === true, { message: "Vous devez accepter la politique de confidentialité" }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Les mots de passe ne correspondent pas",
   path: ["confirmPassword"],

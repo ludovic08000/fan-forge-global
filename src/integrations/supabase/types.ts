@@ -1016,6 +1016,45 @@ export type Database = {
         }
         Relationships: []
       }
+      live_reservations: {
+        Row: {
+          created_at: string
+          id: string
+          live_stream_id: string
+          notified: boolean | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          live_stream_id: string
+          notified?: boolean | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          live_stream_id?: string
+          notified?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_reservations_live_stream_id_fkey"
+            columns: ["live_stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_reservations_live_stream_id_fkey"
+            columns: ["live_stream_id"]
+            isOneToOne: false
+            referencedRelation: "public_live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       live_stream_bans: {
         Row: {
           banned_by: string
@@ -1902,6 +1941,10 @@ export type Database = {
           orientation: string | null
           otp_verified: boolean | null
           phone: string | null
+          privacy_accepted_at: string | null
+          privacy_version: string | null
+          terms_accepted_at: string | null
+          terms_version: string | null
           updated_at: string | null
           user_id: string
           username: string | null
@@ -1922,6 +1965,10 @@ export type Database = {
           orientation?: string | null
           otp_verified?: boolean | null
           phone?: string | null
+          privacy_accepted_at?: string | null
+          privacy_version?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string | null
           user_id: string
           username?: string | null
@@ -1942,6 +1989,10 @@ export type Database = {
           orientation?: string | null
           otp_verified?: boolean | null
           phone?: string | null
+          privacy_accepted_at?: string | null
+          privacy_version?: string | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string | null
           user_id?: string
           username?: string | null

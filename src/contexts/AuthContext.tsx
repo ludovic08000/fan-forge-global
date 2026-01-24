@@ -432,23 +432,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setUserRole('subscriber');
           }
 
-          // Mettre à jour le profil avec le pseudo et la date de naissance
-          const profileUpdate: { birthdate?: string; username?: string; display_name?: string } = {};
+          // Mettre à jour le profil avec le pseudo, date de naissance et acceptation CGU
+          const now = new Date().toISOString();
+          const profileUpdate: { 
+            birthdate?: string; 
+            username?: string; 
+            display_name?: string;
+            terms_accepted_at?: string;
+            privacy_accepted_at?: string;
+            terms_version?: string;
+            privacy_version?: string;
+          } = {
+            terms_accepted_at: now,
+            privacy_accepted_at: now,
+            terms_version: '1.0',
+            privacy_version: '1.0'
+          };
           if (birthdate) profileUpdate.birthdate = birthdate;
           if (username) {
             profileUpdate.username = username;
             profileUpdate.display_name = username;
           }
           
-          if (Object.keys(profileUpdate).length > 0) {
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .update(profileUpdate)
-              .eq('user_id', data.user.id);
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update(profileUpdate)
+            .eq('user_id', data.user.id);
 
-            if (profileError) {
-              console.error('Erreur lors de la mise à jour du profil:', profileError);
-            }
+          if (profileError) {
+            console.error('Erreur lors de la mise à jour du profil:', profileError);
           }
         } catch (err) {
           console.error('Erreur lors de la configuration du compte:', err);

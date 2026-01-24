@@ -56,6 +56,7 @@ const ContentDetail = lazy(() => import("./pages/ContentDetail"));
 const Messages = lazy(() => import("./pages/Messages"));
 const VerifyOtp = lazy(() => import("./pages/VerifyOtp"));
 const CompleteProfile = lazy(() => import("./pages/CompleteProfile"));
+const IdentityVerification = lazy(() => import("./pages/IdentityVerification"));
 
 
 // Composant de chargement optimisé avec skeleton
@@ -161,6 +162,11 @@ const AppRoutes = () => {
           <Route path="/chat/:subscriberId" element={
             <ProtectedRoute>
               <CreatorChatPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/identity-verification" element={
+            <ProtectedRoute>
+              <IdentityVerification />
             </ProtectedRoute>
           } />
           <Route path="/dashboard" element={
