@@ -170,23 +170,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
         
         // Gérer la confirmation d'email via magic link
-        // Quand l'utilisateur clique sur le magic link, marquer otp_verified = true
+        // NOTE: On ne met PAS otp_verified = true ici car chaque connexion doit passer par l'OTP
         if (event === 'SIGNED_IN' && session?.user) {
-          // Vérifier si l'email est confirmé (magic link cliqué)
-          if (session.user.email_confirmed_at) {
-            console.log('📧 Email confirmé, mise à jour otp_verified');
-            // Mettre à jour otp_verified dans le profil
-            await supabase
-              .from('profiles')
-              .update({ otp_verified: true })
-              .eq('user_id', session.user.id);
-            
-            // Nettoyer le sessionStorage
-            sessionStorage.removeItem('pending_otp_email');
-          }
+          // Ne pas mettre otp_verified à true automatiquement
+          // La vérification OTP sera demandée à chaque connexion
+          console.log('📧 Connexion détectée, OTP sera demandé');
           
           toast.success('Connexion réussie!');
-          logUserLogin(session.user.id, session.user.email || '', 'magic_link');
+          logUserLogin(session.user.id, session.user.email || '', 'email');
         } else if (event === 'SIGNED_OUT') {
           toast.success('Déconnexion réussie!');
           setUserRole(null);
@@ -202,15 +193,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
       
       // Charger le rôle et le profil si l'utilisateur est déjà connecté
+      // NOTE: On ne modifie PAS otp_verified ici - il reste tel quel
       if (session?.user) {
-        // Si l'email est confirmé, s'assurer que otp_verified est true
-        if (session.user.email_confirmed_at) {
-          await supabase
-            .from('profiles')
-            .update({ otp_verified: true })
-            .eq('user_id', session.user.id);
-        }
-        
         loadUserRole(session.user.id);
         loadUserProfile(session.user.id);
       }
@@ -531,6 +515,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const signOut = async () => {
     try {
+      // Réinitialiser otp_verified à false pour forcer la vérification à la prochaine connexion
+      if (user) {
+        await supabase
+          .from('profiles')
+          .update({ otp_verified: false })
+          .eq('user_id', user.id);
+      }
+      
       // Appel à l'API Supabase pour se déconnecter
       const { error } = await supabase.auth.signOut();
       if (error) {
