@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, ArrowLeft, Mail, UserCircle, Video } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Mail, UserCircle, Video, CheckCircle, MailOpen } from 'lucide-react';
 import { signUpSchema } from '@/lib/validations';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
 import { toast } from 'sonner';
@@ -18,6 +19,8 @@ const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
   const { signUp, user } = useAuth();
   const { checkRateLimit } = useRateLimitServer();
   const navigate = useNavigate();
@@ -80,11 +83,10 @@ const Signup = () => {
       console.log('🔵 Résultat signUp:', { error });
       
       if (!error) {
-        // Stocker l'email pour la page OTP
-        sessionStorage.setItem('pending_otp_email', validatedData.email);
-        console.log('🔵 Redirection vers OTP...');
-        // Rediriger vers la page de vérification OTP
-        navigate('/verify-otp');
+        // Afficher le message de succès - l'utilisateur doit cliquer sur le lien email
+        setRegisteredEmail(validatedData.email);
+        setSignupSuccess(true);
+        console.log('🔵 Inscription réussie - en attente de confirmation email');
       } else {
         console.log('🔴 Erreur signUp:', error);
         const msg = (error?.message || '').toLowerCase();
@@ -129,13 +131,51 @@ const Signup = () => {
 
         <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle>Créer un compte</CardTitle>
+            <CardTitle>{signupSuccess ? 'Vérifiez votre email' : 'Créer un compte'}</CardTitle>
             <CardDescription>
-              Rejoignez notre communauté de créateurs et abonnés
+              {signupSuccess 
+                ? 'Un email de confirmation vous a été envoyé'
+                : 'Rejoignez notre communauté de créateurs et abonnés'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {signupSuccess ? (
+              <div className="space-y-6">
+                <div className="text-center py-4">
+                  <div className="mx-auto w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
+                    <MailOpen className="h-8 w-8 text-green-500" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Compte créé avec succès !</h3>
+                  <p className="text-muted-foreground">
+                    Nous avons envoyé un email de confirmation à :
+                  </p>
+                  <p className="font-medium text-primary mt-1">{registeredEmail}</p>
+                </div>
 
+                <Alert className="border-green-500 bg-green-500/10">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <AlertDescription>
+                    <strong>Cliquez sur le lien dans l'email</strong> pour activer votre compte.
+                    <br />
+                    <span className="text-sm text-muted-foreground">
+                      Vérifiez également vos spams si vous ne trouvez pas l'email.
+                    </span>
+                  </AlertDescription>
+                </Alert>
+
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Une fois votre compte activé, vous pourrez vous connecter.
+                  </p>
+                  <Button asChild className="w-full">
+                    <Link to="/login">
+                      Aller à la page de connexion
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            ) : (
             <form onSubmit={handleSignUp} className="space-y-4">
               {/* Sélection du rôle */}
               <div className="space-y-3">
@@ -425,13 +465,16 @@ const Signup = () => {
                 {isLoading ? 'Création...' : 'Créer un compte'}
               </Button>
             </form>
+            )}
 
+            {!signupSuccess && (
             <div className="mt-6 text-center text-sm">
               <span className="text-muted-foreground">Déjà un compte ?</span>{' '}
               <Link to="/login" className="text-primary hover:underline font-medium">
                 Se connecter
               </Link>
             </div>
+            )}
           </CardContent>
         </Card>
       </div>
