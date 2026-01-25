@@ -450,15 +450,7 @@ const Dashboard = () => {
 
         {/* Section: Payments */}
         {activeSection === 'payments' && creatorProfile?.id && (
-          <div className="space-y-6">
-            {/* Quick Payment Request Card */}
-            <Suspense fallback={<LoadingFallback />}>
-              <PaymentRequestCard />
-            </Suspense>
-            
-            {/* Payment History */}
-            <DashboardPaymentsSection creatorId={creatorProfile.id} />
-          </div>
+          <DashboardPaymentsSection creatorId={creatorProfile.id} />
         )}
 
         {/* Section: Pricing & Boost */}
