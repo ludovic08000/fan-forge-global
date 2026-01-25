@@ -446,12 +446,6 @@ const CreatorPublicPage = () => {
           <Home className="h-5 w-5" />
         </button>
         <div className="flex gap-2">
-          <button
-            onClick={handleShare}
-            className="p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
-          >
-            <Share2 className="h-5 w-5" />
-          </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors">
