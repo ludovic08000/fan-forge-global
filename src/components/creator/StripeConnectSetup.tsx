@@ -52,9 +52,10 @@ const StripeConnectSetup: React.FC = () => {
       if (error) throw error;
 
       if (data.onboarding_url) {
-        // Redirection directe - fonctionne sur tous les navigateurs
-        window.location.href = data.onboarding_url;
+        // Ouvrir dans un nouvel onglet - Stripe s'affiche en dehors du site
+        window.open(data.onboarding_url, '_blank', 'noopener,noreferrer');
       }
+      setLoading(false);
     } catch (error: any) {
       console.error('Erreur connexion Stripe:', error);
       toast.error(error.message || 'Erreur lors de la connexion à Stripe');
@@ -86,8 +87,9 @@ const StripeConnectSetup: React.FC = () => {
 
       setLastStripeUrl(data.url);
       
-      // Redirection directe - fonctionne sur tous les navigateurs y compris Chrome
-      window.location.href = data.url;
+      // Ouvrir dans un nouvel onglet - Stripe s'affiche en dehors du site
+      window.open(data.url, '_blank', 'noopener,noreferrer');
+      setLoading(false);
     } catch (error: any) {
       console.error('Erreur ouverture Stripe:', error);
       toast.error(error.message || "Impossible d'ouvrir Stripe.");
