@@ -515,7 +515,8 @@ const CreatorPublicPage = () => {
           <img 
             src={profile.cover_url} 
             alt="Cover" 
-            className="w-full h-full object-cover object-[center_20%]"
+            className="w-full h-full object-cover"
+            style={{ objectPosition: `center ${profile.cover_position ?? 50}%` }}
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/30" />

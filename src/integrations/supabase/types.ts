@@ -1943,6 +1943,7 @@ export type Database = {
           bio: string | null
           birthdate: string | null
           cookie_consent: Json | null
+          cover_position: number | null
           cover_url: string | null
           created_at: string | null
           display_name: string | null
@@ -1972,6 +1973,7 @@ export type Database = {
           bio?: string | null
           birthdate?: string | null
           cookie_consent?: Json | null
+          cover_position?: number | null
           cover_url?: string | null
           created_at?: string | null
           display_name?: string | null
@@ -2001,6 +2003,7 @@ export type Database = {
           bio?: string | null
           birthdate?: string | null
           cookie_consent?: Json | null
+          cover_position?: number | null
           cover_url?: string | null
           created_at?: string | null
           display_name?: string | null

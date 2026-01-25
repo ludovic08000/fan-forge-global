@@ -11,6 +11,7 @@ interface ProfilePreviewDialogProps {
   category: string;
   avatarUrl: string | null;
   coverUrl: string | null;
+  coverPosition?: number;
   subscriptionPrice?: number;
   currency?: string;
   isVerified?: boolean;
@@ -24,6 +25,7 @@ const ProfilePreviewDialog: React.FC<ProfilePreviewDialogProps> = ({
   category,
   avatarUrl,
   coverUrl,
+  coverPosition = 50,
   subscriptionPrice = 0,
   currency = 'EUR',
   isVerified = false,
@@ -62,7 +64,8 @@ const ProfilePreviewDialog: React.FC<ProfilePreviewDialogProps> = ({
               <motion.img 
                 src={coverUrl} 
                 alt="Couverture" 
-                className="w-full h-full object-cover object-[center_20%]"
+                className="w-full h-full object-cover"
+                style={{ objectPosition: `center ${coverPosition}%` }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
