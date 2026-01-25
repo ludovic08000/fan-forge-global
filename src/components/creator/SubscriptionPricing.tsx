@@ -77,7 +77,7 @@ const SubscriptionPricing: React.FC<SubscriptionPricingProps> = ({ creatorId }) 
       toast.success('Prix d\'abonnement mis à jour avec succès !');
       
       if (!hasStripeProduct) {
-        toast.info('Note : Vous devrez configurer Stripe Connect pour accepter les paiements dans l\'onglet Paramètres.');
+        toast.info('Note : Vous devrez configurer Stripe Connect pour accepter les paiements dans l\'onglet Paiements.');
       }
       
     } catch (error: any) {
@@ -223,7 +223,7 @@ const SubscriptionPricing: React.FC<SubscriptionPricingProps> = ({ creatorId }) 
         {!hasStripeProduct && currentPrice !== null && currentPrice > 0 && (
           <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-4">
             <p className="text-sm text-orange-600">
-              ⚠️ <strong>Important :</strong> Vous devez configurer Stripe Connect dans l'onglet "Paramètres" pour commencer à accepter les paiements d'abonnement.
+              ⚠️ <strong>Important :</strong> Vous devez configurer Stripe Connect dans l'onglet "Paiements" pour commencer à accepter les paiements d'abonnement.
             </p>
           </div>
         )}
