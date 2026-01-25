@@ -5,9 +5,12 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Eye, EyeOff, Globe, Users, MapPin, Shield, Save, Loader2, X } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Eye, EyeOff, Globe, Users, MapPin, Shield, Save, Loader2, X, Languages } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { Language } from '@/hooks/useLanguageDetection';
 
 // Liste des pays européens + principaux pays
 const COUNTRIES = [
@@ -33,16 +36,29 @@ const COUNTRIES = [
   { code: 'MX', name: 'Mexique' },
 ];
 
+// Langues disponibles avec leurs noms natifs
+const LANGUAGES = [
+  { code: 'fr', name: 'Français', flag: '🇫🇷' },
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+  { code: 'it', name: 'Italiano', flag: '🇮🇹' },
+  { code: 'pt', name: 'Português', flag: '🇵🇹' },
+  { code: 'nl', name: 'Nederlands', flag: '🇳🇱' },
+];
+
 interface CreatorPrivacySettingsProps {
   creatorId: string;
 }
 
 const CreatorPrivacySettings: React.FC<CreatorPrivacySettingsProps> = ({ creatorId }) => {
+  const { changeLanguage } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hideFromSearchEngines, setHideFromSearchEngines] = useState(false);
   const [hideSubscriberCount, setHideSubscriberCount] = useState(false);
   const [blockedCountries, setBlockedCountries] = useState<string[]>([]);
+  const [preferredLanguage, setPreferredLanguage] = useState('fr');
   const [showCountrySelector, setShowCountrySelector] = useState(false);
 
   useEffect(() => {
@@ -53,7 +69,7 @@ const CreatorPrivacySettings: React.FC<CreatorPrivacySettingsProps> = ({ creator
     try {
       const { data, error } = await supabase
         .from('creators')
-        .select('hide_from_search_engines, hide_subscriber_count, blocked_countries')
+        .select('hide_from_search_engines, hide_subscriber_count, blocked_countries, preferred_language')
         .eq('id', creatorId)
         .single();
 
@@ -62,11 +78,18 @@ const CreatorPrivacySettings: React.FC<CreatorPrivacySettingsProps> = ({ creator
       setHideFromSearchEngines(data?.hide_from_search_engines || false);
       setHideSubscriberCount(data?.hide_subscriber_count || false);
       setBlockedCountries(data?.blocked_countries || []);
+      setPreferredLanguage(data?.preferred_language || 'fr');
     } catch (error) {
       console.error('Error loading privacy settings:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLanguageChange = (newLanguage: string) => {
+    setPreferredLanguage(newLanguage);
+    // Appliquer immédiatement la traduction
+    changeLanguage(newLanguage as Language);
   };
 
   const handleSave = async () => {
@@ -78,10 +101,14 @@ const CreatorPrivacySettings: React.FC<CreatorPrivacySettingsProps> = ({ creator
           hide_from_search_engines: hideFromSearchEngines,
           hide_subscriber_count: hideSubscriberCount,
           blocked_countries: blockedCountries,
+          preferred_language: preferredLanguage,
         })
         .eq('id', creatorId);
 
       if (error) throw error;
+
+      // Persister la langue dans localStorage
+      localStorage.setItem('preferred-language', preferredLanguage);
 
       toast.success('Paramètres de confidentialité enregistrés');
     } catch (error) {
@@ -123,13 +150,46 @@ const CreatorPrivacySettings: React.FC<CreatorPrivacySettingsProps> = ({ creator
       <CardHeader>
         <div className="flex items-center gap-2">
           <Shield className="h-5 w-5 text-primary" />
-          <CardTitle>Confidentialité</CardTitle>
+          <CardTitle>Confidentialité & Langue</CardTitle>
         </div>
         <CardDescription>
-          Contrôlez la visibilité de votre profil
+          Contrôlez la visibilité de votre profil et la langue du site
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Language Selection */}
+        <div className="p-4 rounded-lg bg-muted/50 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-background">
+              <Languages className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="flex-1">
+              <Label className="font-medium">Langue du site</Label>
+              <p className="text-sm text-muted-foreground">
+                Choisissez votre langue préférée pour l'interface
+              </p>
+            </div>
+          </div>
+          <Select value={preferredLanguage} onValueChange={handleLanguageChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue>
+                {LANGUAGES.find(l => l.code === preferredLanguage)?.flag}{' '}
+                {LANGUAGES.find(l => l.code === preferredLanguage)?.name}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {LANGUAGES.map(lang => (
+                <SelectItem key={lang.code} value={lang.code}>
+                  <span className="flex items-center gap-2">
+                    <span>{lang.flag}</span>
+                    <span>{lang.name}</span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Hide from Search Engines */}
         <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
           <div className="flex items-center gap-3">
