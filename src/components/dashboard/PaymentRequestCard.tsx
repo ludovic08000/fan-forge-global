@@ -186,30 +186,19 @@ export const PaymentRequestCard: React.FC = () => {
           {/* Right: Action buttons */}
           <div className="flex items-center gap-2 shrink-0">
             {stripeConnected ? (
-              <>
-                <Button
-                  onClick={handleRequestPayment}
-                  disabled={loading || !canWithdraw}
-                  size="sm"
-                  className="gap-2"
-                >
-                  {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Banknote className="h-4 w-4" />
-                  )}
-                  Retirer
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleOpenStripe}
-                  className="gap-1"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  Stripe
-                </Button>
-              </>
+              <Button
+                onClick={handleRequestPayment}
+                disabled={loading || !canWithdraw}
+                size="sm"
+                className="gap-2"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Banknote className="h-4 w-4" />
+                )}
+                Retirer
+              </Button>
             ) : (
               <Button onClick={handleConnectStripe} size="sm" variant="default">
                 Connecter Stripe
