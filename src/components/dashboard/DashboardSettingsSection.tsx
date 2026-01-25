@@ -1,8 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CreditCard } from 'lucide-react';
 import CreatorSettings from '@/components/CreatorSettings';
-import StripeConnectSetup from '@/components/creator/StripeConnectSetup';
 import CreatorPrivacySettings from '@/components/creator/CreatorPrivacySettings';
 
 interface DashboardSettingsSectionProps {
@@ -29,25 +27,6 @@ export const DashboardSettingsSection: React.FC<DashboardSettingsSectionProps> =
 
       {/* Privacy Settings */}
       <CreatorPrivacySettings creatorId={creatorId} />
-
-      {/* Stripe Connect */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-primary" />
-            <CardTitle>Paiements Stripe</CardTitle>
-          </div>
-          <CardDescription>
-            {stripeConnected 
-              ? "Votre compte Stripe est connecté et prêt à recevoir des paiements" 
-              : "Connectez votre compte Stripe pour recevoir vos revenus"
-            }
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <StripeConnectSetup />
-        </CardContent>
-      </Card>
     </div>
   );
 };
