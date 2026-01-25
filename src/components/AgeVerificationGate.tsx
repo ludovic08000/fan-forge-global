@@ -166,9 +166,6 @@ const AgeVerificationGate = ({ children, category, contentType }: AgeVerificatio
               </Link>
             </div>
 
-            <p className="text-xs text-muted-foreground text-center">
-              Conformément à la loi française, l'accès à ce contenu est interdit aux mineurs.
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -238,9 +235,6 @@ const AgeVerificationGate = ({ children, category, contentType }: AgeVerificatio
               </Button>
             </div>
 
-            <p className="text-xs text-muted-foreground text-center">
-              Conformément à la loi française, l'accès à ce contenu est interdit aux mineurs.
-            </p>
           </CardContent>
         </Card>
       </div>
