@@ -76,13 +76,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={fallbackPath} state={{ from: location }} replace />;
   }
 
-  // Utilisateur connecté mais OTP non vérifié (seulement pour connexion email, pas OAuth)
-  const isOAuthUser = user.app_metadata?.provider === 'google' || 
-                      user.app_metadata?.provider === 'facebook' ||
-                      user.app_metadata?.providers?.includes('google') ||
-                      user.app_metadata?.providers?.includes('facebook');
+  // Utilisateur connecté mais OTP non vérifié (seulement pour connexion email pure, pas OAuth)
+  // Un utilisateur est considéré OAuth s'il a Google/Facebook dans ses providers OU si son provider principal est OAuth
+  const providers = user.app_metadata?.providers as string[] | undefined;
+  const mainProvider = user.app_metadata?.provider as string | undefined;
   
-  if (otpVerified === false && !isOAuthUser) {
+  const hasOAuthProvider = 
+    mainProvider === 'google' || 
+    mainProvider === 'facebook' ||
+    providers?.includes('google') ||
+    providers?.includes('facebook');
+  
+  // Si l'utilisateur a un provider OAuth, on le considère comme vérifié (pas besoin d'OTP email)
+  if (otpVerified !== true && !hasOAuthProvider) {
     // Stocker l'email pour la page OTP
     if (user.email) {
       sessionStorage.setItem('pending_otp_email', user.email);
