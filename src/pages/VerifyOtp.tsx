@@ -17,9 +17,11 @@ const VerifyOtp = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [isNewSignup, setIsNewSignup] = useState(false);
   const [debugCode, setDebugCode] = useState<string | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const hasSentOtp = useRef(false);
+  const hasCheckedStatus = useRef(false);
 
   // Récupérer l'email depuis le sessionStorage (défini à l'inscription ou connexion)
   const pendingEmail = sessionStorage.getItem('pending_otp_email') || user?.email || '';
@@ -27,7 +29,8 @@ const VerifyOtp = () => {
   // Détecter si c'est une nouvelle inscription ou une connexion existante
   useEffect(() => {
     const checkSignupStatus = async () => {
-      if (hasSentOtp.current) return;
+      // Éviter les exécutions multiples
+      if (hasCheckedStatus.current || hasSentOtp.current || isRedirecting) return;
       
       // Vérifier si c'est une nouvelle inscription via sessionStorage
       const isFromSignup = sessionStorage.getItem('pending_otp_email');
@@ -42,6 +45,7 @@ const VerifyOtp = () => {
       // Attendre que le chargement soit terminé
       if (loading) return;
 
+      hasCheckedStatus.current = true;
       console.log('Email trouvé:', pendingEmail);
       console.log('Nouvelle inscription:', !!isFromSignup);
 
@@ -69,6 +73,7 @@ const VerifyOtp = () => {
         
         if (profile?.otp_verified === true) {
           console.log('OTP déjà vérifié, redirection');
+          setIsRedirecting(true);
           // Déjà vérifié, rediriger vers le dashboard
           const { data: creatorData } = await supabase
             .from('creators')
@@ -76,7 +81,7 @@ const VerifyOtp = () => {
             .eq('user_id', currentSession.user.id)
             .maybeSingle();
           
-          navigate(creatorData ? '/dashboard' : '/subscriptions');
+          navigate(creatorData ? '/dashboard' : '/subscriptions', { replace: true });
           return;
         }
         
@@ -93,7 +98,7 @@ const VerifyOtp = () => {
     };
 
     checkSignupStatus();
-  }, [loading, pendingEmail]);
+  }, [loading, pendingEmail, isRedirecting]);
 
   useEffect(() => {
     if (otpCountdown > 0) {
@@ -180,6 +185,8 @@ const VerifyOtp = () => {
     }
 
     setIsLoading(true);
+    setIsRedirecting(true); // Empêcher toute nouvelle action
+    
     try {
       console.log('Vérification OTP pour:', emailToUse, 'code:', otpCode);
       
@@ -205,6 +212,7 @@ const VerifyOtp = () => {
 
       if (verifyResult.error) {
         console.error('Erreur verify-otp:', verifyResult.error);
+        setIsRedirecting(false);
         
         if (verifyResult.error.message.includes('expired') || verifyResult.error.message.includes('Token has expired')) {
           throw new Error('Code expiré. Demandez un nouveau code.');
@@ -239,13 +247,15 @@ const VerifyOtp = () => {
           .eq('user_id', userId)
           .maybeSingle();
 
-        navigate(creatorData ? '/dashboard' : '/subscriptions');
+        // Utiliser replace pour éviter de revenir sur cette page
+        navigate(creatorData ? '/dashboard' : '/subscriptions', { replace: true });
       } else {
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true });
       }
     } catch (error: any) {
       console.error('Erreur handleVerifyOtp:', error);
       toast.error(error.message || 'Code invalide. Réessayez.');
+      setIsRedirecting(false);
     } finally {
       setIsLoading(false);
     }
@@ -264,6 +274,18 @@ const VerifyOtp = () => {
       toast.success('Code copié !');
     }
   };
+
+  // Afficher un loader si on redirige
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Redirection en cours...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
