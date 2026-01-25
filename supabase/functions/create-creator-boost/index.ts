@@ -106,10 +106,9 @@ serve(async (req) => {
 
     const boostOption = BOOST_OPTIONS[boost_type];
 
-    // Create an embedded checkout session for the boost
+    // Create a standard checkout session (redirect mode - more reliable)
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      ui_mode: "embedded",
       line_items: [
         {
           price: boostOption.price_id,
@@ -117,7 +116,8 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      return_url: `${req.headers.get("origin")}/dashboard?boost_success=true&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${req.headers.get("origin")}/dashboard?boost_success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.get("origin")}/dashboard?boost_cancelled=true`,
       metadata: {
         boost_type,
         creator_id: creator.id,
@@ -126,10 +126,10 @@ serve(async (req) => {
       }
     });
 
-    logStep("Embedded checkout session created", { sessionId: session.id });
+    logStep("Checkout session created", { sessionId: session.id, url: session.url });
 
     return new Response(JSON.stringify({ 
-      clientSecret: session.client_secret,
+      url: session.url,
       boost_info: {
         type: boost_type,
         name: boostOption.name,
