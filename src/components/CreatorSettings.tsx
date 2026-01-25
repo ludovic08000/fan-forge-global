@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
-import { Save, User, Gift, Camera, Loader2, ImageIcon, FileText } from 'lucide-react';
+import { Save, User, Gift, Camera, Loader2, ImageIcon, FileText, Instagram, Youtube, Link2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -32,6 +32,10 @@ interface UserProfileData {
   cover_url: string | null;
   bio: string | null;
   is_verified: boolean | null;
+  instagram_url: string | null;
+  twitter_url: string | null;
+  tiktok_url: string | null;
+  youtube_url: string | null;
 }
 
 const CreatorSettings: React.FC = () => {
@@ -47,9 +51,14 @@ const CreatorSettings: React.FC = () => {
     stageName: '',
     category: '',
     isAcceptingTips: true,
-    bio: ''
+    bio: '',
+    instagram_url: '',
+    twitter_url: '',
+    tiktok_url: '',
+    youtube_url: ''
   });
   const [savingBio, setSavingBio] = useState(false);
+  const [savingSocials, setSavingSocials] = useState(false);
   
   const MAX_BIO_LENGTH = 500;
 
@@ -98,13 +107,20 @@ const CreatorSettings: React.FC = () => {
         // Load user profile for avatar/cover/bio
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('avatar_url, cover_url, bio, is_verified')
+          .select('avatar_url, cover_url, bio, is_verified, instagram_url, twitter_url, tiktok_url, youtube_url')
           .eq('user_id', user.id)
           .single();
 
         if (profileData) {
           setUserProfile(profileData);
-          setFormData(prev => ({ ...prev, bio: profileData.bio || '' }));
+          setFormData(prev => ({ 
+            ...prev, 
+            bio: profileData.bio || '',
+            instagram_url: profileData.instagram_url || '',
+            twitter_url: profileData.twitter_url || '',
+            tiktok_url: profileData.tiktok_url || '',
+            youtube_url: profileData.youtube_url || ''
+          }));
         }
       } catch (error: any) {
         console.error('Error loading profile:', error);
@@ -427,6 +443,122 @@ const CreatorSettings: React.FC = () => {
               <Save className="h-4 w-4 mr-2" />
             )}
             Enregistrer la bio
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Section Réseaux Sociaux */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Link2 className="h-4 w-4" />
+            Réseaux sociaux
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground mb-4">
+            Ajoutez vos liens pour que vos fans puissent vous suivre sur d'autres plateformes
+          </p>
+          
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="instagram" className="flex items-center gap-2">
+                <Instagram className="h-4 w-4 text-pink-500" />
+                Instagram
+              </Label>
+              <Input
+                id="instagram"
+                placeholder="https://instagram.com/votre_pseudo"
+                value={formData.instagram_url}
+                onChange={(e) => setFormData(prev => ({ ...prev, instagram_url: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="twitter" className="flex items-center gap-2">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+                X (Twitter)
+              </Label>
+              <Input
+                id="twitter"
+                placeholder="https://x.com/votre_pseudo"
+                value={formData.twitter_url}
+                onChange={(e) => setFormData(prev => ({ ...prev, twitter_url: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tiktok" className="flex items-center gap-2">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                </svg>
+                TikTok
+              </Label>
+              <Input
+                id="tiktok"
+                placeholder="https://tiktok.com/@votre_pseudo"
+                value={formData.tiktok_url}
+                onChange={(e) => setFormData(prev => ({ ...prev, tiktok_url: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="youtube" className="flex items-center gap-2">
+                <Youtube className="h-4 w-4 text-red-500" />
+                YouTube
+              </Label>
+              <Input
+                id="youtube"
+                placeholder="https://youtube.com/@votre_chaine"
+                value={formData.youtube_url}
+                onChange={(e) => setFormData(prev => ({ ...prev, youtube_url: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            size="sm"
+            disabled={savingSocials}
+            onClick={async () => {
+              if (!user) return;
+              setSavingSocials(true);
+              try {
+                const { error } = await supabase
+                  .from('profiles')
+                  .update({ 
+                    instagram_url: formData.instagram_url || null,
+                    twitter_url: formData.twitter_url || null,
+                    tiktok_url: formData.tiktok_url || null,
+                    youtube_url: formData.youtube_url || null
+                  })
+                  .eq('user_id', user.id);
+                
+                if (error) throw error;
+                setUserProfile(prev => prev ? { 
+                  ...prev, 
+                  instagram_url: formData.instagram_url || null,
+                  twitter_url: formData.twitter_url || null,
+                  tiktok_url: formData.tiktok_url || null,
+                  youtube_url: formData.youtube_url || null
+                } : null);
+                toast.success('Réseaux sociaux mis à jour');
+              } catch (error) {
+                console.error('Error saving socials:', error);
+                toast.error('Erreur lors de la sauvegarde');
+              } finally {
+                setSavingSocials(false);
+              }
+            }}
+          >
+            {savingSocials ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Enregistrer les liens
           </Button>
         </CardContent>
       </Card>
