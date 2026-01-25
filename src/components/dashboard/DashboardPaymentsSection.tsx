@@ -239,8 +239,6 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
 
   return (
     <div className="space-y-6">
-      {/* Stripe Connect Setup - En premier pour configurer les paiements */}
-      <StripeConnectSetup />
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
@@ -376,6 +374,9 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
           )}
         </CardContent>
       </Card>
+
+      {/* Stripe Connect Setup - En fin de page */}
+      <StripeConnectSetup />
     </div>
   );
 };
