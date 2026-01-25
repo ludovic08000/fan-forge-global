@@ -236,77 +236,88 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
+      {/* Section Header */}
+      <div className="flex items-center gap-3 pb-2 border-b">
+        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+          <Euro className="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold">Revenus</h2>
+          <p className="text-sm text-muted-foreground">Vue d'ensemble de vos encaissements</p>
+        </div>
+      </div>
+
+      {/* Stats Cards - 4 colonnes alignées */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                 <Users className="h-5 w-5 text-primary" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Abonnements</p>
-                <p className="text-lg font-bold">{totals.subscriptions.toFixed(2)}€</p>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Abonnements</p>
+                <p className="text-lg font-bold tabular-nums">{totals.subscriptions.toFixed(2)} €</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-pink-500/10 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-full bg-pink-500/10 flex items-center justify-center shrink-0">
                 <Heart className="h-5 w-5 text-pink-500" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Tips</p>
-                <p className="text-lg font-bold">{totals.tips.toFixed(2)}€</p>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Tips</p>
+                <p className="text-lg font-bold tabular-nums">{totals.tips.toFixed(2)} €</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
                 <MessageCircle className="h-5 w-5 text-purple-500" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Messages privés</p>
-                <p className="text-lg font-bold">{totals.privateContent.toFixed(2)}€</p>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Messages privés</p>
+                <p className="text-lg font-bold tabular-nums">{totals.privateContent.toFixed(2)} €</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
                 <Radio className="h-5 w-5 text-red-500" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Lives</p>
-                <p className="text-lg font-bold">{totals.live.toFixed(2)}€</p>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Lives</p>
+                <p className="text-lg font-bold tabular-nums">{totals.live.toFixed(2)} €</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Total Card */}
+      {/* Total Card - 3 colonnes égales */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">Revenus bruts</p>
-              <p className="text-2xl font-bold">{totalGross.toFixed(2)}€</p>
+          <div className="grid grid-cols-3 gap-4 divide-x divide-border">
+            <div className="text-center px-2">
+              <p className="text-xs text-muted-foreground mb-1">Brut</p>
+              <p className="text-xl md:text-2xl font-bold tabular-nums">{totalGross.toFixed(2)} €</p>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">Commission (15%)</p>
-              <p className="text-2xl font-bold text-amber-500">-{commission.toFixed(2)}€</p>
+            <div className="text-center px-2">
+              <p className="text-xs text-muted-foreground mb-1">Commission 15%</p>
+              <p className="text-xl md:text-2xl font-bold tabular-nums text-amber-500">-{commission.toFixed(2)} €</p>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">Revenus nets</p>
-              <p className="text-2xl font-bold text-emerald-500">{totalNet.toFixed(2)}€</p>
+            <div className="text-center px-2">
+              <p className="text-xs text-muted-foreground mb-1">Net</p>
+              <p className="text-xl md:text-2xl font-bold tabular-nums text-emerald-500">{totalNet.toFixed(2)} €</p>
             </div>
           </div>
         </CardContent>
@@ -317,50 +328,50 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
 
       {/* Encaissements List */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Banknote className="h-5 w-5" />
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Banknote className="h-4 w-4" />
             Historique des encaissements
           </CardTitle>
-          <CardDescription>
-            Tous vos revenus récents
+          <CardDescription className="text-xs">
+            Vos 30 dernières transactions
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           {allEncaissements.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Euro className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <p>Aucun encaissement pour le moment</p>
+            <div className="text-center py-8 text-muted-foreground">
+              <Euro className="h-10 w-10 mx-auto mb-3 opacity-20" />
+              <p className="text-sm">Aucun encaissement pour le moment</p>
             </div>
           ) : (
-            <ScrollArea className="h-[400px]">
-              <div className="space-y-3">
+            <ScrollArea className="h-[320px] -mx-2">
+              <div className="space-y-2 px-2">
                 {allEncaissements.map((item) => (
                   <div
                     key={`${item.type}-${item.id}`}
-                    className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
                         {getTypeIcon(item.type)}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
                           {getTypeBadge(item.type)}
-                          <span className="text-sm text-muted-foreground">
+                          <span className="text-xs text-muted-foreground truncate">
                             de {item.senderName}
                           </span>
                         </div>
-                        <p className="text-sm text-muted-foreground line-clamp-1">
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
                           {item.description}
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-emerald-500">
-                        +{item.amount.toFixed(2)}€
+                    <div className="text-right shrink-0 ml-3">
+                      <p className="font-semibold text-emerald-500 tabular-nums">
+                        +{item.amount.toFixed(2)} €
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[10px] text-muted-foreground">
                         {formatDistanceToNow(new Date(item.createdAt), { 
                           addSuffix: true, 
                           locale: fr 
