@@ -13,12 +13,24 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import AccountDeletion from '@/components/settings/AccountDeletion';
 import CreatorAccountPause from '@/components/creator/CreatorAccountPause';
+import ProfilePreviewDialog from '@/components/creator/ProfilePreviewDialog';
 
 interface CreatorProfile {
   id: string;
   stage_name: string | null;
   category: string | null;
   is_accepting_tips: boolean;
+  subscription_price: number | null;
+  currency: string | null;
+  total_subscribers: number | null;
+  total_content: number | null;
+}
+
+interface UserProfileData {
+  avatar_url: string | null;
+  cover_url: string | null;
+  bio: string | null;
+  is_verified: boolean | null;
 }
 
 const CreatorSettings: React.FC = () => {
@@ -28,7 +40,7 @@ const CreatorSettings: React.FC = () => {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
-  const [userProfile, setUserProfile] = useState<{ avatar_url: string | null; cover_url: string | null } | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfileData | null>(null);
   
   const [formData, setFormData] = useState({
     stageName: '',
@@ -77,10 +89,10 @@ const CreatorSettings: React.FC = () => {
           });
         }
 
-        // Load user profile for avatar/cover
+        // Load user profile for avatar/cover/bio
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('avatar_url, cover_url')
+          .select('avatar_url, cover_url, bio, is_verified')
           .eq('user_id', user.id)
           .single();
 
@@ -252,10 +264,24 @@ const CreatorSettings: React.FC = () => {
       {/* Section Photos de profil */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <ImageIcon className="h-4 w-4" />
-            Photos du profil
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" />
+              Photos du profil
+            </CardTitle>
+            <ProfilePreviewDialog
+              stageName={formData.stageName}
+              category={formData.category}
+              avatarUrl={userProfile?.avatar_url || null}
+              coverUrl={userProfile?.cover_url || null}
+              subscriptionPrice={profile?.subscription_price || 0}
+              currency={profile?.currency || 'EUR'}
+              isVerified={userProfile?.is_verified || false}
+              bio={userProfile?.bio || ''}
+              totalSubscribers={profile?.total_subscribers || 0}
+              totalContent={profile?.total_content || 0}
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Photo de couverture */}
