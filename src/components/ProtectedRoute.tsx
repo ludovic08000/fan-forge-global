@@ -27,6 +27,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   useEffect(() => {
     const checkProfileStatus = async () => {
+      // Attendre que le loading soit terminé
+      if (loading) {
+        return;
+      }
+
       if (!user) {
         setCheckingProfile(false);
         return;
@@ -64,7 +69,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     };
 
     checkProfileStatus();
-  }, [user]);
+  }, [user, loading]);
 
   // Afficher le modal CGU si nécessaire
   useEffect(() => {
