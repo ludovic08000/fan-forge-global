@@ -4,19 +4,30 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Cookie, Shield, Settings, X, AlertTriangle, ShieldAlert } from "lucide-react";
+import { Cookie, Shield, Settings, X, ShieldCheck, BarChart3, Fingerprint } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface CookiePreferences {
   essential: boolean;
   functional: boolean;
   analytics: boolean;
+  marketing: boolean;
 }
 
-const COOKIE_CONSENT_KEY = "cookie_consent";
-const COOKIE_PREFERENCES_KEY = "cookie_preferences";
-const AGE_VERIFICATION_KEY = "age-verified";
-const VERIFICATION_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 jours
+interface ConsentRecord {
+  version: string;
+  timestamp: string;
+  preferences: CookiePreferences;
+  ageVerified: boolean;
+  expiresAt: string;
+  userAgent: string;
+}
+
+const COOKIE_CONSENT_KEY = "rgpd_cookie_consent";
+const COOKIE_PREFERENCES_KEY = "rgpd_cookie_preferences";
+const CONSENT_VERSION = "1.0";
+const CONSENT_DURATION_DAYS = 365; // Durée légale max recommandée: 13 mois
+const CONSENT_DURATION_MS = CONSENT_DURATION_DAYS * 24 * 60 * 60 * 1000;
 
 export const CookieConsent = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -24,57 +35,67 @@ export const CookieConsent = () => {
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [preferences, setPreferences] = useState<CookiePreferences>({
     essential: true,
-    functional: true,
+    functional: false,
     analytics: false,
+    marketing: false,
   });
 
   useEffect(() => {
-    // Vérifier si l'utilisateur a déjà donné son consentement ET vérifié son âge
-    const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
-    const ageVerification = localStorage.getItem(AGE_VERIFICATION_KEY);
-    
-    let ageIsVerified = false;
-    if (ageVerification) {
-      try {
-        const { timestamp, verified } = JSON.parse(ageVerification);
-        const isExpired = Date.now() - timestamp > VERIFICATION_DURATION;
-        ageIsVerified = !isExpired && verified;
-      } catch {
-        ageIsVerified = false;
+    const checkExistingConsent = () => {
+      const consentRecord = localStorage.getItem(COOKIE_CONSENT_KEY);
+      
+      if (consentRecord) {
+        try {
+          const record: ConsentRecord = JSON.parse(consentRecord);
+          const expiresAt = new Date(record.expiresAt);
+          const now = new Date();
+          
+          // Vérifier expiration et version
+          if (now < expiresAt && record.version === CONSENT_VERSION && record.ageVerified) {
+            // Consentement valide
+            const savedPrefs = localStorage.getItem(COOKIE_PREFERENCES_KEY);
+            if (savedPrefs) {
+              setPreferences(JSON.parse(savedPrefs));
+            }
+            return;
+          }
+        } catch {
+          // Consentement invalide, le redemander
+        }
       }
-    }
-
-    if (!consent || !ageIsVerified) {
-      // Attendre un peu avant d'afficher la bannière pour une meilleure UX
+      
+      // Afficher la bannière avec délai pour UX
       const timer = setTimeout(() => {
         setIsVisible(true);
       }, 500);
       return () => clearTimeout(timer);
-    } else {
-      // Charger les préférences existantes
-      const savedPrefs = localStorage.getItem(COOKIE_PREFERENCES_KEY);
-      if (savedPrefs) {
-        setPreferences(JSON.parse(savedPrefs));
-      }
-    }
+    };
+
+    checkExistingConsent();
   }, []);
 
-  const saveConsent = (accepted: boolean, prefs: CookiePreferences) => {
-    // Sauvegarder le consentement cookies
-    localStorage.setItem(COOKIE_CONSENT_KEY, accepted ? "accepted" : "rejected");
-    localStorage.setItem(COOKIE_PREFERENCES_KEY, JSON.stringify(prefs));
+  const saveConsent = (prefs: CookiePreferences) => {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + CONSENT_DURATION_MS);
     
-    // Sauvegarder la vérification d'âge
-    localStorage.setItem(
-      AGE_VERIFICATION_KEY,
-      JSON.stringify({ verified: true, timestamp: Date.now() })
-    );
+    // Enregistrement de consentement conforme RGPD
+    const consentRecord: ConsentRecord = {
+      version: CONSENT_VERSION,
+      timestamp: now.toISOString(),
+      preferences: prefs,
+      ageVerified: true,
+      expiresAt: expiresAt.toISOString(),
+      userAgent: navigator.userAgent,
+    };
+    
+    localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consentRecord));
+    localStorage.setItem(COOKIE_PREFERENCES_KEY, JSON.stringify(prefs));
     
     setIsVisible(false);
     
-    // Émettre un événement personnalisé
+    // Émettre un événement pour les autres composants
     window.dispatchEvent(new CustomEvent("cookieConsentChanged", { 
-      detail: { accepted, preferences: prefs, ageVerified: true } 
+      detail: { preferences: prefs, ageVerified: true, timestamp: now.toISOString() } 
     }));
   };
 
@@ -84,9 +105,10 @@ export const CookieConsent = () => {
       essential: true,
       functional: true,
       analytics: true,
+      marketing: true,
     };
     setPreferences(allAccepted);
-    saveConsent(true, allAccepted);
+    saveConsent(allAccepted);
   };
 
   const handleAcceptEssential = () => {
@@ -95,18 +117,18 @@ export const CookieConsent = () => {
       essential: true,
       functional: false,
       analytics: false,
+      marketing: false,
     };
     setPreferences(essentialOnly);
-    saveConsent(true, essentialOnly);
+    saveConsent(essentialOnly);
   };
 
   const handleSavePreferences = () => {
     if (!ageConfirmed) return;
-    saveConsent(true, preferences);
+    saveConsent(preferences);
   };
 
   const handleLeave = () => {
-    // Rediriger vers Google si l'utilisateur refuse ou est mineur
     window.location.href = "https://www.google.com";
   };
 
@@ -116,34 +138,31 @@ export const CookieConsent = () => {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
       <Card className="w-full max-w-2xl bg-card border-border shadow-2xl animate-in zoom-in-95 duration-500 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
-          {/* Header avec avertissement adulte */}
+          {/* Header */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-destructive/20">
-                <ShieldAlert className="h-6 w-6 text-destructive" />
+              <div className="p-2 rounded-full bg-primary/20">
+                <Cookie className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h2 className="text-xl font-bold">Site réservé aux adultes</h2>
-                <p className="text-sm text-muted-foreground">Vérification d'âge et cookies</p>
+                <h2 className="text-xl font-bold">Gestion des cookies et données</h2>
+                <p className="text-sm text-muted-foreground">Conforme RGPD / Loi française</p>
               </div>
             </div>
           </div>
 
-          {/* Avertissement adulte */}
-          <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-6">
+          {/* Info RGPD */}
+          <div className="bg-muted/30 border border-border rounded-lg p-4 mb-6">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div className="space-y-2">
-                <p className="font-semibold text-destructive">
-                  ⚠️ CONTENU EXPLICITE POUR ADULTES
+                <p className="font-semibold">
+                  Protection de vos données personnelles
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Ce site contient du contenu à caractère sexuel explicite réservé exclusivement 
-                  aux personnes majeures (18 ans et plus). En poursuivant, vous certifiez sur l'honneur 
-                  avoir l'âge légal requis dans votre pays.
-                </p>
-                <p className="text-sm font-medium text-destructive">
-                  L'accès à ce site est strictement interdit aux mineurs.
+                  Conformément au Règlement Général sur la Protection des Données (RGPD) et à la loi 
+                  française Informatique et Libertés, nous vous informons de l'utilisation de cookies 
+                  et technologies similaires sur notre site.
                 </p>
               </div>
             </div>
@@ -166,36 +185,38 @@ export const CookieConsent = () => {
                   Je certifie avoir 18 ans ou plus
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Je confirme être majeur(e) et accepter de voir du contenu pour adultes. 
-                  Je comprends que ce site utilise des cookies essentiels pour la vérification d'âge, 
-                  l'authentification et la sécurité des paiements.
+                  Je confirme être majeur(e) et comprends que ce site utilise des cookies 
+                  pour son fonctionnement.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Section Cookies */}
+          {/* Section Cookies - Toujours visible */}
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <Cookie className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">Gestion des cookies</h3>
+              <Settings className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold">Types de cookies utilisés</h3>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Nous utilisons des cookies pour assurer le bon fonctionnement du site, 
-              sécuriser vos paiements et mémoriser vos préférences.
-            </p>
 
             {/* Détails des cookies */}
-            {showDetails && (
-              <div className="space-y-3 p-4 bg-muted/20 rounded-lg border border-border animate-in slide-in-from-top-2 duration-300 mb-4">
+            {showDetails ? (
+              <div className="space-y-4 p-4 bg-muted/20 rounded-lg border border-border animate-in slide-in-from-top-2 duration-300 mb-4">
                 {/* Cookies essentiels */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Shield className="h-4 w-4 text-green-500" />
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <Shield className="h-4 w-4 text-green-500 mt-1" />
                     <div>
-                      <Label className="font-medium text-sm">Essentiels (obligatoires)</Label>
+                      <Label className="font-medium text-sm">Cookies essentiels (obligatoires)</Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Authentification, session utilisateur, sécurité, paiements Stripe. 
+                        Ces cookies sont nécessaires au fonctionnement du site.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <strong>Données collectées:</strong> Identifiant de session, token d'authentification
+                      </p>
                       <p className="text-xs text-muted-foreground">
-                        Authentification, vérification d'âge, sécurité, Stripe
+                        <strong>Durée:</strong> Session / 30 jours max
                       </p>
                     </div>
                   </div>
@@ -203,13 +224,19 @@ export const CookieConsent = () => {
                 </div>
 
                 {/* Cookies fonctionnels */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Settings className="h-4 w-4 text-blue-500" />
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <Settings className="h-4 w-4 text-blue-500 mt-1" />
                     <div>
-                      <Label className="font-medium text-sm">Fonctionnels</Label>
+                      <Label className="font-medium text-sm">Cookies fonctionnels</Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Thème (clair/sombre), langue préférée, préférences d'affichage.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <strong>Données collectées:</strong> Préférences utilisateur
+                      </p>
                       <p className="text-xs text-muted-foreground">
-                        Thème, langue, préférences
+                        <strong>Durée:</strong> 1 an
                       </p>
                     </div>
                   </div>
@@ -220,13 +247,19 @@ export const CookieConsent = () => {
                 </div>
 
                 {/* Cookies analytiques */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Cookie className="h-4 w-4 text-orange-500" />
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <BarChart3 className="h-4 w-4 text-orange-500 mt-1" />
                     <div>
-                      <Label className="font-medium text-sm">Analytiques</Label>
+                      <Label className="font-medium text-sm">Cookies analytiques</Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Statistiques anonymes pour améliorer notre service (Sentry pour les erreurs).
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <strong>Données collectées:</strong> Pages visitées, erreurs techniques (anonymisées)
+                      </p>
                       <p className="text-xs text-muted-foreground">
-                        Statistiques anonymes (désactivés par défaut)
+                        <strong>Durée:</strong> 13 mois max
                       </p>
                     </div>
                   </div>
@@ -235,7 +268,44 @@ export const CookieConsent = () => {
                     onCheckedChange={(checked) => setPreferences(prev => ({ ...prev, analytics: checked }))}
                   />
                 </div>
+
+                {/* Cookies marketing */}
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <Fingerprint className="h-4 w-4 text-purple-500 mt-1" />
+                    <div>
+                      <Label className="font-medium text-sm">Cookies publicitaires / marketing</Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Personnalisation des recommandations, retargeting publicitaire.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <strong>Données collectées:</strong> Préférences de contenu, historique de navigation
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        <strong>Durée:</strong> 13 mois max
+                      </p>
+                    </div>
+                  </div>
+                  <Switch 
+                    checked={preferences.marketing}
+                    onCheckedChange={(checked) => setPreferences(prev => ({ ...prev, marketing: checked }))}
+                  />
+                </div>
+
+                {/* Info droits RGPD */}
+                <div className="border-t border-border pt-4 mt-4">
+                  <p className="text-xs text-muted-foreground">
+                    <strong>Vos droits RGPD:</strong> Vous pouvez à tout moment modifier vos préférences, 
+                    accéder à vos données, les rectifier ou demander leur suppression en nous contactant 
+                    ou via vos paramètres de compte.
+                  </p>
+                </div>
               </div>
+            ) : (
+              <p className="text-sm text-muted-foreground mb-4">
+                Nous utilisons des cookies essentiels (session, sécurité) et optionnels (préférences, statistiques). 
+                Vous pouvez personnaliser vos choix ci-dessous.
+              </p>
             )}
           </div>
 
@@ -245,11 +315,12 @@ export const CookieConsent = () => {
             <Link to="/terms" className="text-primary hover:underline">CGU</Link>,{" "}
             <Link to="/privacy" className="text-primary hover:underline">Politique de confidentialité</Link> et{" "}
             <Link to="/cookies" className="text-primary hover:underline">Politique des cookies</Link>.
+            {" "}Votre consentement est conservé {CONSENT_DURATION_DAYS} jours.
           </p>
 
           {/* Boutons */}
           <div className="flex flex-col gap-3">
-            {/* Ligne de personnalisation */}
+            {/* Personnalisation cookies */}
             <Button 
               variant="ghost" 
               size="sm"
@@ -257,7 +328,7 @@ export const CookieConsent = () => {
               className="self-start text-muted-foreground hover:text-foreground"
             >
               <Settings className="h-4 w-4 mr-2" />
-              {showDetails ? "Masquer les options cookies" : "Personnaliser les cookies"}
+              {showDetails ? "Masquer les détails" : "Personnaliser mes choix"}
             </Button>
 
             {/* Boutons principaux */}
@@ -268,7 +339,7 @@ export const CookieConsent = () => {
                 className="flex-1 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
               >
                 <X className="h-4 w-4 mr-2" />
-                Je suis mineur - Quitter
+                Quitter le site
               </Button>
 
               {showDetails ? (
@@ -294,7 +365,7 @@ export const CookieConsent = () => {
                     disabled={!ageConfirmed}
                     className="flex-1 bg-primary hover:bg-primary/90"
                   >
-                    J'ai 18+ ans - Tout accepter
+                    Tout accepter
                   </Button>
                 </>
               )}
@@ -302,7 +373,7 @@ export const CookieConsent = () => {
 
             {!ageConfirmed && (
               <p className="text-xs text-center text-amber-500">
-                ⚠️ Vous devez cocher la case de vérification d'âge pour continuer
+                ⚠️ Veuillez cocher la case de vérification d'âge pour continuer
               </p>
             )}
           </div>
@@ -316,28 +387,33 @@ export const CookieConsent = () => {
 export const useCookieConsent = () => {
   const [hasConsent, setHasConsent] = useState<boolean | null>(null);
   const [preferences, setPreferences] = useState<CookiePreferences | null>(null);
-  const [ageVerified, setAgeVerified] = useState<boolean>(false);
+  const [consentTimestamp, setConsentTimestamp] = useState<string | null>(null);
 
   useEffect(() => {
     const checkConsent = () => {
-      const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
+      const consentRecord = localStorage.getItem(COOKIE_CONSENT_KEY);
       const prefs = localStorage.getItem(COOKIE_PREFERENCES_KEY);
-      const ageVerification = localStorage.getItem(AGE_VERIFICATION_KEY);
       
-      setHasConsent(consent === "accepted");
-      if (prefs) {
-        setPreferences(JSON.parse(prefs));
-      }
-      
-      if (ageVerification) {
+      if (consentRecord) {
         try {
-          const { timestamp, verified } = JSON.parse(ageVerification);
-          const isExpired = Date.now() - timestamp > VERIFICATION_DURATION;
-          setAgeVerified(!isExpired && verified);
+          const record: ConsentRecord = JSON.parse(consentRecord);
+          const expiresAt = new Date(record.expiresAt);
+          const now = new Date();
+          
+          if (now < expiresAt && record.version === CONSENT_VERSION && record.ageVerified) {
+            setHasConsent(true);
+            setConsentTimestamp(record.timestamp);
+            if (prefs) {
+              setPreferences(JSON.parse(prefs));
+            }
+            return;
+          }
         } catch {
-          setAgeVerified(false);
+          // Invalid record
         }
       }
+      
+      setHasConsent(false);
     };
 
     checkConsent();
@@ -353,14 +429,13 @@ export const useCookieConsent = () => {
   const resetConsent = () => {
     localStorage.removeItem(COOKIE_CONSENT_KEY);
     localStorage.removeItem(COOKIE_PREFERENCES_KEY);
-    localStorage.removeItem(AGE_VERIFICATION_KEY);
     setHasConsent(null);
     setPreferences(null);
-    setAgeVerified(false);
+    setConsentTimestamp(null);
     window.location.reload();
   };
 
-  return { hasConsent, preferences, ageVerified, resetConsent };
+  return { hasConsent, preferences, consentTimestamp, resetConsent };
 };
 
 export default CookieConsent;
