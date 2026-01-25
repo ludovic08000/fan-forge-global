@@ -49,15 +49,21 @@ const Signup = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('🔵 Début inscription...');
+    
     const isAllowed = await checkRateLimit('auth');
+    console.log('🔵 Rate limit check:', isAllowed);
     if (!isAllowed) return;
 
     setIsLoading(true);
     setSignUpErrors({});
 
     try {
+      console.log('🔵 Validation du formulaire...', signUpForm);
       const validatedData = signUpSchema.parse(signUpForm);
+      console.log('🔵 Données validées:', validatedData);
 
+      console.log('🔵 Appel signUp...');
       const { error } = await signUp(
         validatedData.email,
         validatedData.password,
@@ -71,18 +77,23 @@ const Signup = () => {
         validatedData.category
       );
       
+      console.log('🔵 Résultat signUp:', { error });
+      
       if (!error) {
         // Stocker l'email pour la page OTP
         sessionStorage.setItem('pending_otp_email', validatedData.email);
+        console.log('🔵 Redirection vers OTP...');
         // Rediriger vers la page de vérification OTP
         navigate('/verify-otp');
       } else {
+        console.log('🔴 Erreur signUp:', error);
         const msg = (error?.message || '').toLowerCase();
         if (msg.includes('already') || msg.includes('registered')) {
           setSignUpErrors({ email: 'Cet email est déjà utilisé. Connectez-vous ou utilisez un autre email.' });
         }
       }
     } catch (error) {
+      console.log('🔴 Erreur catch:', error);
       if (error instanceof z.ZodError) {
         const errors: Record<string, string> = {};
         error.errors.forEach(err => {
