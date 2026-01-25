@@ -25,7 +25,15 @@ serve(async (req) => {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
+    // Utiliser service role pour accéder aux créateurs
     const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+    
+    // Client pour l'authentification utilisateur
+    const supabaseAuth = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
@@ -39,7 +47,7 @@ serve(async (req) => {
 
     // PARALLÉLISER: Auth + Parse body en même temps
     const [authResult, body] = await Promise.all([
-      supabaseClient.auth.getUser(token),
+      supabaseAuth.auth.getUser(token),
       req.json()
     ]);
 
