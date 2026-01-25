@@ -527,24 +527,24 @@ const CreatorPublicPage = () => {
         </div>
 
         {/* Boutons d'action */}
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 flex gap-2">
           {/* Bouton S'abonner */}
           {!user ? (
-            <Link to="/login" className="block">
-              <Button className="w-full rounded-full h-12 text-base font-semibold bg-primary hover:bg-primary/90">
-                S'abonner - Sans engagement
+            <Link to="/login" className="flex-1">
+              <Button className="w-full rounded-full h-9 text-sm font-medium bg-primary hover:bg-primary/90 shadow-sm">
+                S'abonner
               </Button>
             </Link>
           ) : isSubscribed ? (
-            <div className="flex gap-2">
-              <Badge variant="default" className="flex-1 justify-center py-3 text-base rounded-full">
-                <Crown className="h-4 w-4 mr-2" />
+            <div className="flex gap-2 flex-1">
+              <Badge variant="default" className="flex-1 justify-center py-2 text-sm rounded-full">
+                <Crown className="h-3.5 w-3.5 mr-1.5" />
                 Abonné
               </Badge>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="icon" className="rounded-full h-12 w-12 text-destructive hover:text-destructive">
-                    <UserMinus className="h-5 w-5" />
+                  <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10">
+                    <UserMinus className="h-4 w-4" />
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -569,12 +569,12 @@ const CreatorPublicPage = () => {
             </div>
           ) : (
             <Button 
-              className="w-full rounded-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+              className="flex-1 rounded-full h-9 text-sm font-medium bg-primary hover:bg-primary/90 shadow-sm"
               onClick={handleSubscribe}
             >
               {creator.subscription_price > 0 
-                ? `S'abonner - ${creator.subscription_price}€/mois` 
-                : "S'abonner - Sans engagement"}
+                ? `S'abonner · ${creator.subscription_price}€` 
+                : "S'abonner"}
             </Button>
           )}
 
@@ -583,8 +583,8 @@ const CreatorPublicPage = () => {
             creatorId={creator.id}
             creatorName={creatorName}
             variant="outline"
-            size="lg"
-            className="w-full rounded-full h-11"
+            size="sm"
+            className="rounded-full h-9 px-4 text-sm border-border/60 hover:border-primary/40 hover:bg-primary/5"
           />
         </div>
 
