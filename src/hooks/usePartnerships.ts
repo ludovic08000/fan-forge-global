@@ -86,7 +86,7 @@ export const usePartnerships = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Récupérer le creator_id de l'utilisateur actuel
+  // Récupérer le creator_id de l'utilisateur actuel - avec cache long
   const { data: currentCreator, isLoading: creatorLoading } = useQuery({
     queryKey: ['current-creator', user?.id],
     queryFn: async () => {
@@ -100,9 +100,11 @@ export const usePartnerships = () => {
       return data;
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000, // Cache 5 minutes
+    gcTime: 10 * 60 * 1000,
   });
 
-  // Récupérer tous les partenariats (envoyés et reçus)
+  // Récupérer tous les partenariats (envoyés et reçus) - avec cache
   const { data: partnerships, isLoading, refetch } = useQuery({
     queryKey: ['partnerships', currentCreator?.id],
     queryFn: async () => {
@@ -116,12 +118,15 @@ export const usePartnerships = () => {
           partner:partner_id(id, stage_name, user_id, profiles:user_id(username, display_name, avatar_url, is_verified))
         `)
         .or(`requester_id.eq.${currentCreator.id},partner_id.eq.${currentCreator.id}`)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
       
       if (error) throw error;
       return (data as unknown as PartnershipRow[]).map(mapPartnershipWithProfiles);
     },
     enabled: !!currentCreator?.id,
+    staleTime: 60 * 1000, // Cache 1 minute
+    gcTime: 5 * 60 * 1000,
   });
 
   // Demandes reçues en attente

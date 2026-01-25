@@ -7,9 +7,13 @@ import ReferralCodesManager from '@/components/creator/ReferralCodesManager';
 
 interface DashboardPricingSectionProps {
   creatorId: string;
+  currentBoostUntil?: string | null;
 }
 
-export const DashboardPricingSection: React.FC<DashboardPricingSectionProps> = ({ creatorId }) => {
+export const DashboardPricingSection: React.FC<DashboardPricingSectionProps> = ({ 
+  creatorId, 
+  currentBoostUntil 
+}) => {
   return (
     <div className="space-y-6">
       {/* Boost Section */}
@@ -18,7 +22,7 @@ export const DashboardPricingSection: React.FC<DashboardPricingSectionProps> = (
           <Sparkles className="h-5 w-5 text-amber-500" />
           <h2 className="text-xl font-semibold">Boost de visibilité</h2>
         </div>
-        <CreatorBoost />
+        <CreatorBoost currentBoostUntil={currentBoostUntil} />
       </div>
 
       {/* Subscription Pricing */}

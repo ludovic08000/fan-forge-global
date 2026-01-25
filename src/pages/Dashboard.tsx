@@ -463,7 +463,10 @@ const Dashboard = () => {
 
         {/* Section: Pricing & Boost */}
         {activeSection === 'pricing' && creatorProfile?.id && (
-          <DashboardPricingSection creatorId={creatorProfile.id} />
+          <DashboardPricingSection 
+            creatorId={creatorProfile.id} 
+            currentBoostUntil={creatorProfile.featured_until}
+          />
         )}
 
         {/* Section: Settings */}
