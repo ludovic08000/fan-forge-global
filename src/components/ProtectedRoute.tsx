@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useTermsAcceptance } from '@/hooks/useTermsAcceptance';
+import TermsAcceptanceModal from '@/components/TermsAcceptanceModal';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -18,6 +20,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const location = useLocation();
   const [otpVerified, setOtpVerified] = useState<boolean | null>(null);
   const [checkingProfile, setCheckingProfile] = useState(true);
+  
+  // Vérification de l'acceptation des CGU
+  const { needsAcceptance, isLoading: termsLoading, refreshStatus } = useTermsAcceptance();
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   useEffect(() => {
     const checkProfileStatus = async () => {
@@ -45,7 +51,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     checkProfileStatus();
   }, [user]);
 
-  if (loading || checkingProfile) {
+  // Afficher le modal CGU si nécessaire
+  useEffect(() => {
+    if (!termsLoading && needsAcceptance && user && !checkingProfile) {
+      setShowTermsModal(true);
+    }
+  }, [termsLoading, needsAcceptance, user, checkingProfile]);
+
+  const handleTermsAccepted = () => {
+    setShowTermsModal(false);
+    refreshStatus();
+  };
+
+  if (loading || checkingProfile || termsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -58,8 +76,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={fallbackPath} state={{ from: location }} replace />;
   }
 
-  // Utilisateur connecté mais OTP non vérifié
-  if (otpVerified === false) {
+  // Utilisateur connecté mais OTP non vérifié (seulement pour connexion email, pas OAuth)
+  const isOAuthUser = user.app_metadata?.provider === 'google' || 
+                      user.app_metadata?.provider === 'facebook' ||
+                      user.app_metadata?.providers?.includes('google') ||
+                      user.app_metadata?.providers?.includes('facebook');
+  
+  if (otpVerified === false && !isOAuthUser) {
     // Stocker l'email pour la page OTP
     if (user.email) {
       sessionStorage.setItem('pending_otp_email', user.email);
@@ -76,7 +99,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {/* Modal d'acceptation des CGU (bloquant) */}
+      <TermsAcceptanceModal 
+        isOpen={showTermsModal} 
+        onAccepted={handleTermsAccepted}
+      />
+      {children}
+    </>
+  );
 };
 
 export default ProtectedRoute;
