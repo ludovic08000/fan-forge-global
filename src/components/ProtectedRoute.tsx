@@ -32,6 +32,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return;
       }
 
+      // Vérifier si on revient d'un callback Stripe Connect
+      const urlParams = new URLSearchParams(window.location.search);
+      const isStripeCallback = urlParams.get('stripe_connect') === 'success';
+
       try {
         const { data: profile } = await supabase
           .from('profiles')
@@ -39,7 +43,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           .eq('user_id', user.id)
           .single();
 
-        setOtpVerified(profile?.otp_verified ?? false);
+        // Si on revient de Stripe Connect, l'utilisateur était déjà vérifié
+        // Donc on le considère comme vérifié et on met à jour le profil
+        if (isStripeCallback && profile?.otp_verified === false) {
+          console.log('📧 Retour Stripe Connect, mise à jour otp_verified');
+          await supabase
+            .from('profiles')
+            .update({ otp_verified: true })
+            .eq('user_id', user.id);
+          setOtpVerified(true);
+        } else {
+          setOtpVerified(profile?.otp_verified ?? false);
+        }
       } catch (error) {
         console.error('Erreur vérification profil:', error);
         setOtpVerified(false);
