@@ -1,18 +1,18 @@
 import React, { memo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import CreatorSearchCard from './CreatorSearchCard';
+import PopularCreatorCard from './PopularCreatorCard';
 import { SearchCreator } from '@/hooks/useSearch';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TrendingUp, Users } from 'lucide-react';
+import { TrendingUp, Users, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
 
 const PopularCreators = () => {
   const { data: creators, isLoading } = useQuery({
     queryKey: ['popular-creators'],
     queryFn: async () => {
-      // Récupérer les créateurs triés par nombre d'abonnés via la vue publique
       const { data: creatorsData, error: creatorsError } = await supabase
         .from('public_creators')
         .select('*')
@@ -22,7 +22,6 @@ const PopularCreators = () => {
       if (creatorsError) throw creatorsError;
       if (!creatorsData || creatorsData.length === 0) return [];
 
-      // Récupérer les profils associés via la vue publique
       const userIds = creatorsData.map(c => c.user_id).filter(Boolean) as string[];
       const { data: profilesData } = await supabase
         .from('public_creator_profiles')
@@ -33,7 +32,6 @@ const PopularCreators = () => {
         (profilesData || []).map(p => [p.user_id, p])
       );
 
-      // Combiner les données
       const combinedCreators: SearchCreator[] = creatorsData.map(creator => {
         const profile = profilesMap.get(creator.user_id);
         return {
@@ -65,17 +63,32 @@ const PopularCreators = () => {
 
   if (isLoading) {
     return (
-      <section className="py-12 bg-background" aria-label="Chargement des créateurs populaires">
+      <section className="py-16 bg-gradient-to-b from-background to-muted/20" aria-label="Chargement des créateurs populaires">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <TrendingUp className="h-6 w-6 text-primary" aria-hidden="true" />
-              <h2 className="text-2xl md:text-3xl font-bold">Créateurs populaires</h2>
+          <div className="flex items-center justify-between mb-10">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl border border-primary/20">
+                <TrendingUp className="h-6 w-6 text-primary" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold">Créateurs populaires</h2>
+                <p className="text-muted-foreground text-sm mt-1">Découvrez les talents du moment</p>
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="status" aria-label="Chargement">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-48 rounded-xl" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" role="status" aria-label="Chargement">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="rounded-2xl overflow-hidden">
+                <Skeleton className="h-28 w-full" />
+                <div className="p-5 pt-16 space-y-3">
+                  <Skeleton className="h-6 w-2/3" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <div className="flex gap-3">
+                    <Skeleton className="h-8 w-20 rounded-full" />
+                    <Skeleton className="h-8 w-20 rounded-full" />
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -88,48 +101,68 @@ const PopularCreators = () => {
   }
 
   return (
-    <section className="py-12 bg-background" aria-labelledby="popular-creators-heading">
+    <section className="py-16 bg-gradient-to-b from-background via-background to-muted/30" aria-labelledby="popular-creators-heading">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg" aria-hidden="true">
-              <TrendingUp className="h-6 w-6 text-primary" />
+        {/* Header */}
+        <motion.div 
+          className="flex items-center justify-between mb-10"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/30 rounded-2xl blur-xl" />
+              <div className="relative p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl border border-primary/20 backdrop-blur-sm">
+                <TrendingUp className="h-6 w-6 text-primary" />
+              </div>
             </div>
             <div>
-              <h2 id="popular-creators-heading" className="text-2xl md:text-3xl font-bold">Créateurs populaires</h2>
+              <h2 id="popular-creators-heading" className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+                Créateurs populaires
+                <Sparkles className="h-5 w-5 text-amber-500" />
+              </h2>
               <p className="text-muted-foreground text-sm mt-1">
-                Découvrez les créateurs les plus suivis de la plateforme
+                Découvrez les talents les plus suivis
               </p>
             </div>
           </div>
+          
           <Link to="/search">
-            <Button variant="outline" className="hidden sm:flex items-center gap-2">
-              <Users className="h-4 w-4" aria-hidden="true" />
-              Voir tous
+            <Button variant="outline" className="hidden sm:flex items-center gap-2 group hover:border-primary/50 transition-all">
+              <Users className="h-4 w-4 group-hover:text-primary transition-colors" aria-hidden="true" />
+              <span className="group-hover:text-primary transition-colors">Voir tous</span>
             </Button>
           </Link>
-        </div>
+        </motion.div>
 
+        {/* Grid */}
         <div 
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           role="list"
           aria-label="Liste des créateurs populaires"
         >
-          {creators.map((creator) => (
+          {creators.map((creator, index) => (
             <div key={creator.id} role="listitem">
-              <CreatorSearchCard creator={creator} />
+              <PopularCreatorCard creator={creator} index={index} />
             </div>
           ))}
         </div>
 
-        <div className="mt-8 text-center sm:hidden">
+        {/* Mobile CTA */}
+        <motion.div 
+          className="mt-10 text-center sm:hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
           <Link to="/search">
-            <Button variant="outline" className="w-full">
+            <Button className="w-full bg-gradient-to-r from-primary to-primary/90 shadow-lg shadow-primary/20">
               <Users className="h-4 w-4 mr-2" aria-hidden="true" />
               Voir tous les créateurs
             </Button>
           </Link>
-        </div>
+        </motion.div>
       </div>
     </section>
   );
