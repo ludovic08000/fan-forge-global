@@ -146,7 +146,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     // Configuration de l'écouteur d'état d'authentification EN PREMIER
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        console.log('🔐 Auth event:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -168,13 +169,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUserProfile(null);
         }
         
-        // Notifications utilisateur et logging
-        if (event === 'SIGNED_IN') {
-          toast.success('Connexion réussie!');
-          // Logger la connexion
-          if (session?.user) {
-            logUserLogin(session.user.id, session.user.email || '', 'session_restored');
+        // Gérer la confirmation d'email via magic link
+        // Quand l'utilisateur clique sur le magic link, marquer otp_verified = true
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Vérifier si l'email est confirmé (magic link cliqué)
+          if (session.user.email_confirmed_at) {
+            console.log('📧 Email confirmé, mise à jour otp_verified');
+            // Mettre à jour otp_verified dans le profil
+            await supabase
+              .from('profiles')
+              .update({ otp_verified: true })
+              .eq('user_id', session.user.id);
+            
+            // Nettoyer le sessionStorage
+            sessionStorage.removeItem('pending_otp_email');
           }
+          
+          toast.success('Connexion réussie!');
+          logUserLogin(session.user.id, session.user.email || '', 'magic_link');
         } else if (event === 'SIGNED_OUT') {
           toast.success('Déconnexion réussie!');
           setUserRole(null);
@@ -184,13 +196,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     );
 
     // ENSUITE vérifier s'il existe déjà une session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
       
       // Charger le rôle et le profil si l'utilisateur est déjà connecté
       if (session?.user) {
+        // Si l'email est confirmé, s'assurer que otp_verified est true
+        if (session.user.email_confirmed_at) {
+          await supabase
+            .from('profiles')
+            .update({ otp_verified: true })
+            .eq('user_id', session.user.id);
+        }
+        
         loadUserRole(session.user.id);
         loadUserProfile(session.user.id);
       }
