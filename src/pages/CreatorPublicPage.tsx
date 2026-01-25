@@ -563,7 +563,6 @@ const CreatorPublicPage = () => {
             creatorName={creatorName}
             variant="outline"
             size="sm"
-            className="rounded-full h-9 px-4 text-sm border-border/60 hover:border-primary/40 hover:bg-primary/5"
           />
         </div>
 
