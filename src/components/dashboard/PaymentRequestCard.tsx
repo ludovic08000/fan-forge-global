@@ -3,11 +3,12 @@
  * Displays available balance and quick payout button
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Banknote, ExternalLink, Loader2 } from 'lucide-react';
+import { Banknote, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,20 +28,13 @@ export const PaymentRequestCard: React.FC = () => {
   const { user } = useAuth();
   const { token: csrfToken, generateToken } = useCsrfToken();
   const [loading, setLoading] = useState(false);
-  const [revenueBreakdown, setRevenueBreakdown] = useState<RevenueBreakdown | null>(null);
-  const [creatorInfo, setCreatorInfo] = useState<any>(null);
-  const [stripeConnected, setStripeConnected] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      loadCreatorInfo();
-    }
-  }, [user]);
+  // Utiliser useQuery avec cache pour éviter les rechargements
+  const { data: creatorData, refetch } = useQuery({
+    queryKey: ['creator-payment-info', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
 
-  const loadCreatorInfo = async () => {
-    if (!user) return;
-
-    try {
       const { data: creator, error } = await supabase
         .from('creators')
         .select('*')
@@ -48,15 +42,14 @@ export const PaymentRequestCard: React.FC = () => {
         .single();
 
       if (error) throw error;
-      setCreatorInfo(creator);
 
-      setStripeConnected(
+      const stripeConnected = !!(
         creator.stripe_account_id && 
         creator.stripe_onboarding_completed && 
         creator.stripe_payouts_enabled
       );
 
-      // Calculate available revenue
+      // Calculate period
       const now = new Date();
       let periodStart: Date;
 
@@ -75,13 +68,20 @@ export const PaymentRequestCard: React.FC = () => {
         end_date: now.toISOString(),
       });
 
-      if (revenue && revenue.length > 0) {
-        setRevenueBreakdown(revenue[0]);
-      }
-    } catch (error) {
-      console.error('Error loading creator:', error);
-    }
-  };
+      return {
+        creator,
+        stripeConnected,
+        revenueBreakdown: revenue?.[0] as RevenueBreakdown | null,
+      };
+    },
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000, // Cache 2 minutes
+    gcTime: 5 * 60 * 1000,
+  });
+
+  const creatorInfo = creatorData?.creator;
+  const stripeConnected = creatorData?.stripeConnected ?? false;
+  const revenueBreakdown = creatorData?.revenueBreakdown;
 
   const handleRequestPayment = async () => {
     if (!creatorInfo || !stripeConnected) return;
@@ -100,7 +100,7 @@ export const PaymentRequestCard: React.FC = () => {
 
       if (error) throw error;
       toast.success(data.message);
-      loadCreatorInfo();
+      refetch(); // Refresh data after payment
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de la demande de paiement');
     } finally {
