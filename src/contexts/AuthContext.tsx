@@ -20,8 +20,6 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, firstName?: string, lastName?: string, username?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signInWithGoogle: () => Promise<{ error: any }>;
-  signUpWithGoogle: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -509,62 +507,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   /**
-   * Connexion avec Google OAuth
-   * @returns Objet contenant l'erreur éventuelle
-   */
-  const signInWithGoogle = async () => {
-    try {
-      // URL de redirection après authentification OAuth - vers les abonnements
-      const redirectUrl = `${window.location.origin}/subscriptions`;
-      
-      // Appel à l'API Supabase pour connexion OAuth Google
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-        }
-      });
-
-      if (error) {
-        toast.error(error.message);
-      }
-
-      return { error };
-    } catch (error: any) {
-      toast.error('Une erreur est survenue lors de la connexion avec Google');
-      return { error };
-    }
-  };
-
-  /**
-   * Inscription avec Google OAuth (nouveau compte)
-   * @returns Objet contenant l'erreur éventuelle
-   */
-  const signUpWithGoogle = async () => {
-    try {
-      // URL de redirection après authentification OAuth - vers les abonnements
-      const redirectUrl = `${window.location.origin}/subscriptions`;
-      
-      // Appel à l'API Supabase pour inscription OAuth Google
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-        }
-      });
-
-      if (error) {
-        toast.error(error.message);
-      }
-
-      return { error };
-    } catch (error: any) {
-      toast.error('Une erreur est survenue lors de l\'inscription avec Google');
-      return { error };
-    }
-  };
-
-  /**
    * Déconnexion de l'utilisateur
    */
   const signOut = async () => {
@@ -587,8 +529,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading,
     signUp,
     signIn,
-    signInWithGoogle,
-    signUpWithGoogle,
     signOut,
     refreshProfile,
   };

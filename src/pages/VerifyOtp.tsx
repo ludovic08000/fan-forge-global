@@ -38,33 +38,6 @@ const VerifyOtp = () => {
       // Vérifier s'il y a une session existante
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       
-      if (currentSession) {
-        // Vérifier si c'est un utilisateur OAuth - pas besoin d'OTP pour eux
-        const providers = currentSession.user.app_metadata?.providers as string[] | undefined;
-        const mainProvider = currentSession.user.app_metadata?.provider as string | undefined;
-        
-        const hasOAuthProvider = 
-          mainProvider === 'google' || 
-          mainProvider === 'facebook' ||
-          providers?.includes('google') ||
-          providers?.includes('facebook');
-        
-        if (hasOAuthProvider) {
-          console.log('Utilisateur OAuth détecté, redirection directe');
-          setIsRedirecting(true);
-          sessionStorage.removeItem('pending_otp_email');
-          
-          const { data: creatorData } = await supabase
-            .from('creators')
-            .select('id')
-            .eq('user_id', currentSession.user.id)
-            .maybeSingle();
-          
-          navigate(creatorData ? '/dashboard' : '/subscriptions', { replace: true });
-          return;
-        }
-      }
-      
       // Vérifier si c'est une nouvelle inscription via sessionStorage
       const isFromSignup = sessionStorage.getItem('pending_otp_email');
       
