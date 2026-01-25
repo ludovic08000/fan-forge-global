@@ -2,15 +2,10 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Star, Clock, TrendingUp, Zap, Euro } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 const BOOST_OPTIONS = [
   {
@@ -49,9 +44,6 @@ interface CreatorBoostProps {
 
 const CreatorBoost: React.FC<CreatorBoostProps> = ({ currentBoostUntil, onBoostUpdate }) => {
   const [loading, setLoading] = useState<string | null>(null);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [selectedBoost, setSelectedBoost] = useState<typeof BOOST_OPTIONS[0] | null>(null);
   const { user } = useAuth();
 
   const isCurrentlyBoosted = currentBoostUntil && new Date(currentBoostUntil) > new Date();
@@ -62,11 +54,7 @@ const CreatorBoost: React.FC<CreatorBoostProps> = ({ currentBoostUntil, onBoostU
       return;
     }
 
-    const boost = BOOST_OPTIONS.find(b => b.id === boostType);
-    if (!boost) return;
-
     setLoading(boostType);
-    setSelectedBoost(boost);
     
     try {
       const { data, error } = await supabase.functions.invoke('create-creator-boost', {
@@ -75,22 +63,17 @@ const CreatorBoost: React.FC<CreatorBoostProps> = ({ currentBoostUntil, onBoostU
 
       if (error) throw error;
 
-      if (data?.clientSecret) {
-        setClientSecret(data.clientSecret);
-        setShowCheckout(true);
+      if (data?.url) {
+        // Redirection directe vers Stripe Checkout
+        window.location.href = data.url;
+      } else {
+        throw new Error('URL de paiement non reçue');
       }
     } catch (error: any) {
       console.error('Error creating boost checkout:', error);
       toast.error(error.message || 'Erreur lors de la création du checkout');
-    } finally {
       setLoading(null);
     }
-  };
-
-  const handleCloseCheckout = () => {
-    setShowCheckout(false);
-    setClientSecret(null);
-    setSelectedBoost(null);
   };
 
   const formatBoostEndTime = (dateString: string) => {
@@ -190,30 +173,6 @@ const CreatorBoost: React.FC<CreatorBoostProps> = ({ currentBoostUntil, onBoostU
           </div>
         </CardContent>
       </Card>
-
-      {/* Embedded Checkout Dialog */}
-      <Dialog open={showCheckout} onOpenChange={handleCloseCheckout}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Star className="h-5 w-5 text-primary" />
-              {selectedBoost ? `Boost ${selectedBoost.name}` : 'Paiement du boost'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {clientSecret ? (
-            <div className="min-h-[400px]">
-              <EmbeddedCheckoutProvider stripe={stripePromise} options={{ clientSecret }}>
-                <EmbeddedCheckout />
-              </EmbeddedCheckoutProvider>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center p-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </>
   );
 };
