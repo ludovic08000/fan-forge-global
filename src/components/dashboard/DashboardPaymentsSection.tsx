@@ -1,6 +1,7 @@
 /**
  * Section Paiements du Dashboard créateur
  * Affiche les encaissements (abonnements, tips, contenus privés, lives)
+ * et la configuration Stripe Connect
  */
 
 import React from 'react';
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import StripeConnectSetup from '@/components/creator/StripeConnectSetup';
 
 interface EncaissementItem {
   id: string;
@@ -242,6 +244,8 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
 
   return (
     <div className="space-y-6">
+      {/* Stripe Connect Setup - En premier pour configurer les paiements */}
+      <StripeConnectSetup />
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
