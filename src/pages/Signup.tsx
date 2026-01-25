@@ -266,6 +266,7 @@ const Signup = () => {
                         <SelectValue placeholder="Sélectionnez une catégorie" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="glamour">Glamour</SelectItem>
                         <SelectItem value="fitness">Fitness</SelectItem>
                         <SelectItem value="lifestyle">Lifestyle</SelectItem>
                         <SelectItem value="art">Art</SelectItem>
