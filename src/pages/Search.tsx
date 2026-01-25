@@ -201,18 +201,18 @@ const SearchPage: React.FC = () => {
 
                 <Separator />
 
-                {/* Quick Filters - Catégories populaires */}
+                {/* Quick Filters - Catégories suggérées */}
                 <div>
-                  <Label className="text-sm font-medium mb-2 block">Catégories populaires</Label>
+                  <Label className="text-sm font-medium mb-2 block">Catégories suggérées</Label>
                   <div className="flex flex-wrap gap-2">
-                    {categories.slice(0, 6).map(({ category }) => (
+                    {['Agriculture', 'DJing', 'Mannequin', 'Pilote voiture', 'Gaming', 'Fitness', 'Musique', 'Art'].map((cat) => (
                       <Badge
-                        key={category}
-                        variant={filters.category === category ? "default" : "outline"}
+                        key={cat}
+                        variant={filters.category === cat ? "default" : "outline"}
                         className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                        onClick={() => handleFilterChange('category', filters.category === category ? undefined : category)}
+                        onClick={() => handleFilterChange('category', filters.category === cat ? undefined : cat)}
                       >
-                        {category}
+                        {cat}
                       </Badge>
                     ))}
                   </div>
