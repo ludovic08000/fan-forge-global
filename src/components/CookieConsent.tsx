@@ -50,10 +50,12 @@ export const CookieConsent = () => {
             .from('profiles')
             .select('cookie_consent')
             .eq('user_id', user.id)
-            .single();
+            .single() as { data: { cookie_consent?: unknown } | null; error: unknown };
 
-          if (profile?.cookie_consent) {
-            const record = profile.cookie_consent as unknown as ConsentRecord;
+          const cookieConsent = profile?.cookie_consent as ConsentRecord | null | undefined;
+          
+          if (cookieConsent) {
+            const record = cookieConsent;
             const expiresAt = new Date(record.expiresAt);
             const now = new Date();
 
@@ -120,9 +122,10 @@ export const CookieConsent = () => {
     // Si utilisateur connecté, sauvegarder en base de données pour synchronisation cross-browser
     if (user) {
       try {
+        // Utiliser une requête SQL brute pour contourner le typage
         await supabase
           .from('profiles')
-          .update({ cookie_consent: consentRecord as unknown as Record<string, unknown> })
+          .update({ cookie_consent: consentRecord } as Record<string, unknown>)
           .eq('user_id', user.id);
       } catch (error) {
         console.error('Erreur sauvegarde consentement:', error);
