@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Heart, Eye, Lock, Crown, Share2, CheckCircle2, MessageCircle, UserMinus, Play, Image, Video, Home, MoreHorizontal, Grid3X3, ShoppingBag, SlidersHorizontal, ChevronDown, ChevronUp, Coins, Instagram, Youtube, ExternalLink } from 'lucide-react';
+import { Heart, Eye, Lock, Crown, CheckCircle2, MessageCircle, UserMinus, Play, Image, Video, Home, Grid3X3, ShoppingBag, SlidersHorizontal, ChevronDown, ChevronUp, Coins, Instagram, Youtube, ExternalLink, User, LogOut, Settings, Menu } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
 import SEOHead from '@/components/SEOHead';
@@ -26,7 +26,7 @@ type TabFilter = 'posts' | 'medias';
 const CreatorPublicPage = () => {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut, userProfile } = useAuth();
   const [creator, setCreator] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [content, setContent] = useState<any[]>([]);
@@ -438,13 +438,75 @@ const CreatorPublicPage = () => {
       />
 
       {/* Header avec navigation */}
-      <div className="fixed top-0 left-0 right-0 z-50 flex items-center p-4 bg-gradient-to-b from-black/60 to-transparent">
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
         <button
           onClick={() => navigate(-1)}
           className="p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
         >
           <Home className="h-5 w-5" />
         </button>
+        
+        {/* Menu utilisateur à droite */}
+        {user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-1 rounded-full bg-black/40 hover:bg-black/60 transition-colors ring-2 ring-white/30">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage 
+                    src={userProfile?.avatar_url || undefined} 
+                    alt="Mon profil"
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                    {userProfile?.display_name?.substring(0, 2).toUpperCase() || user.email?.substring(0, 2).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 bg-background border shadow-lg">
+              <DropdownMenuItem asChild>
+                <Link to="/dashboard" className="flex items-center">
+                  <User className="mr-2 h-4 w-4" />
+                  Tableau de bord
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/messages" className="flex items-center">
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Messages
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/subscriptions" className="flex items-center">
+                  <Crown className="mr-2 h-4 w-4" />
+                  Mes abonnements
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/profile" className="flex items-center">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Paramètres
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={async () => {
+                  await signOut();
+                  navigate('/');
+                }}
+                className="text-destructive"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Se déconnecter
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Link to="/login">
+            <button className="px-4 py-2 rounded-full bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+              Connexion
+            </button>
+          </Link>
+        )}
       </div>
 
       {/* Cover Photo */}
