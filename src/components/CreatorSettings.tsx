@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import AccountDeletion from '@/components/settings/AccountDeletion';
 import CreatorAccountPause from '@/components/creator/CreatorAccountPause';
 import ProfilePreviewDialog from '@/components/creator/ProfilePreviewDialog';
+import CoverPositionEditor from '@/components/creator/CoverPositionEditor';
 
 interface CreatorProfile {
   id: string;
@@ -30,6 +31,7 @@ interface CreatorProfile {
 interface UserProfileData {
   avatar_url: string | null;
   cover_url: string | null;
+  cover_position: number | null;
   bio: string | null;
   is_verified: boolean | null;
   instagram_url: string | null;
@@ -107,7 +109,7 @@ const CreatorSettings: React.FC = () => {
         // Load user profile for avatar/cover/bio
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('avatar_url, cover_url, bio, is_verified, instagram_url, twitter_url, tiktok_url, youtube_url')
+          .select('avatar_url, cover_url, cover_position, bio, is_verified, instagram_url, twitter_url, tiktok_url, youtube_url')
           .eq('user_id', user.id)
           .single();
 
@@ -297,6 +299,7 @@ const CreatorSettings: React.FC = () => {
               category={formData.category}
               avatarUrl={userProfile?.avatar_url || null}
               coverUrl={userProfile?.cover_url || null}
+              coverPosition={userProfile?.cover_position ?? 50}
               subscriptionPrice={profile?.subscription_price || 0}
               currency={profile?.currency || 'EUR'}
               isVerified={userProfile?.is_verified || false}
@@ -309,13 +312,37 @@ const CreatorSettings: React.FC = () => {
         <CardContent className="space-y-6">
           {/* Photo de couverture */}
           <div className="space-y-2">
-            <Label>Photo de couverture</Label>
+            <div className="flex items-center justify-between">
+              <Label>Photo de couverture</Label>
+              {userProfile?.cover_url && (
+                <CoverPositionEditor
+                  coverUrl={userProfile.cover_url}
+                  initialPosition={userProfile.cover_position ?? 50}
+                  onSave={async (position) => {
+                    if (!user) return;
+                    const { error } = await supabase
+                      .from('profiles')
+                      .update({ cover_position: position })
+                      .eq('user_id', user.id);
+                    
+                    if (error) {
+                      toast.error('Erreur lors de la sauvegarde');
+                      throw error;
+                    }
+                    
+                    setUserProfile(prev => prev ? { ...prev, cover_position: position } : null);
+                    toast.success('Position de couverture mise à jour');
+                  }}
+                />
+              )}
+            </div>
             <div className="relative h-32 bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg overflow-hidden group">
               {userProfile?.cover_url ? (
                 <img 
                   src={userProfile.cover_url} 
                   alt="Couverture" 
                   className="w-full h-full object-cover"
+                  style={{ objectPosition: `center ${userProfile.cover_position ?? 50}%` }}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground">
