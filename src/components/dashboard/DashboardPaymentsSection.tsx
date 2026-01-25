@@ -10,23 +10,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Banknote, 
-  CreditCard, 
   Users, 
   Heart, 
   MessageCircle, 
   Radio,
-  TrendingUp,
-  Calendar,
   Euro
 } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import StripeConnectSetup from '@/components/creator/StripeConnectSetup';
+import { PaymentRequestCard } from './PaymentRequestCard';
 
 interface EncaissementItem {
   id: string;
@@ -314,6 +311,9 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
           </div>
         </CardContent>
       </Card>
+
+      {/* Solde disponible & Retrait */}
+      <PaymentRequestCard />
 
       {/* Encaissements List */}
       <Card>
