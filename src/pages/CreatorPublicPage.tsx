@@ -530,14 +530,14 @@ const CreatorPublicPage = () => {
         <div className="mt-4 flex gap-2">
           {/* Bouton S'abonner */}
           {!user ? (
-            <Link to="/login" className="flex-1">
-              <Button className="w-full rounded-full h-9 text-sm font-medium bg-primary hover:bg-primary/90 shadow-sm">
+            <Link to="/login">
+              <Button className="rounded-full h-9 px-5 text-sm font-medium bg-primary hover:bg-primary/90 shadow-sm">
                 S'abonner
               </Button>
             </Link>
           ) : isSubscribed ? (
-            <div className="flex gap-2 flex-1">
-              <Badge variant="default" className="flex-1 justify-center py-2 text-sm rounded-full">
+            <div className="flex gap-2">
+              <Badge variant="default" className="justify-center py-2 px-4 text-sm rounded-full">
                 <Crown className="h-3.5 w-3.5 mr-1.5" />
                 Abonné
               </Badge>
@@ -569,7 +569,7 @@ const CreatorPublicPage = () => {
             </div>
           ) : (
             <Button 
-              className="flex-1 rounded-full h-9 text-sm font-medium bg-primary hover:bg-primary/90 shadow-sm"
+              className="rounded-full h-9 px-5 text-sm font-medium bg-primary hover:bg-primary/90 shadow-sm"
               onClick={handleSubscribe}
             >
               {creator.subscription_price > 0 
