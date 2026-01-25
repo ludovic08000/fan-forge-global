@@ -221,7 +221,7 @@ serve(async (req) => {
       }
     }
 
-    // Créer la session de checkout en mode embedded avec Stripe Tax
+    // Créer la session de checkout en mode redirect (plus fiable)
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [
@@ -231,8 +231,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      ui_mode: "embedded",
-      return_url: `${req.headers.get("origin")}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${req.headers.get("origin")}/dashboard?subscription_success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.get("origin")}/creator/${creatorId}?subscription_cancelled=true`,
       automatic_tax: { enabled: true },
       customer_update: {
         address: 'auto',
@@ -257,9 +257,9 @@ serve(async (req) => {
     
     logStep("Checkout session params", { trialDays, hasDiscounts: discounts.length > 0, paymentMethodCollection: trialDays ? 'if_required' : 'always' });
 
-    logStep("Embedded checkout session created", { sessionId: session.id, clientSecret: session.client_secret });
+    logStep("Checkout session created", { sessionId: session.id, url: session.url });
 
-    return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
+    return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
