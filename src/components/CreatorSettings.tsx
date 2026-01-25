@@ -7,7 +7,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Save, User, Gift, Camera, Loader2, ImageIcon } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Save, User, Gift, Camera, Loader2, ImageIcon, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -45,8 +46,12 @@ const CreatorSettings: React.FC = () => {
   const [formData, setFormData] = useState({
     stageName: '',
     category: '',
-    isAcceptingTips: true
+    isAcceptingTips: true,
+    bio: ''
   });
+  const [savingBio, setSavingBio] = useState(false);
+  
+  const MAX_BIO_LENGTH = 500;
 
   const categories = [
     'Art & Design',
@@ -82,11 +87,12 @@ const CreatorSettings: React.FC = () => {
 
         if (data) {
           setProfile(data);
-          setFormData({
+          setFormData(prev => ({
+            ...prev,
             stageName: data.stage_name || '',
             category: data.category || '',
             isAcceptingTips: data.is_accepting_tips
-          });
+          }));
         }
 
         // Load user profile for avatar/cover/bio
@@ -98,6 +104,7 @@ const CreatorSettings: React.FC = () => {
 
         if (profileData) {
           setUserProfile(profileData);
+          setFormData(prev => ({ ...prev, bio: profileData.bio || '' }));
         }
       } catch (error: any) {
         console.error('Error loading profile:', error);
@@ -356,6 +363,71 @@ const CreatorSettings: React.FC = () => {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Section Biographie */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Biographie
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="bio">Présentez-vous à vos fans</Label>
+            <Textarea
+              id="bio"
+              placeholder="Parlez de vous, de votre contenu, de ce qui vous rend unique... Attirez de nouveaux abonnés avec une description captivante !"
+              value={formData.bio}
+              onChange={(e) => {
+                if (e.target.value.length <= MAX_BIO_LENGTH) {
+                  setFormData(prev => ({ ...prev, bio: e.target.value }));
+                }
+              }}
+              className="min-h-[120px] resize-none"
+            />
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                Une bonne bio augmente vos chances d'attirer de nouveaux abonnés
+              </p>
+              <span className={`text-xs ${formData.bio.length >= MAX_BIO_LENGTH ? 'text-destructive' : 'text-muted-foreground'}`}>
+                {formData.bio.length}/{MAX_BIO_LENGTH}
+              </span>
+            </div>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            disabled={savingBio}
+            onClick={async () => {
+              if (!user) return;
+              setSavingBio(true);
+              try {
+                const { error } = await supabase
+                  .from('profiles')
+                  .update({ bio: formData.bio || null })
+                  .eq('user_id', user.id);
+                
+                if (error) throw error;
+                setUserProfile(prev => prev ? { ...prev, bio: formData.bio } : null);
+                toast.success('Biographie mise à jour');
+              } catch (error) {
+                console.error('Error saving bio:', error);
+                toast.error('Erreur lors de la sauvegarde');
+              } finally {
+                setSavingBio(false);
+              }
+            }}
+          >
+            {savingBio ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Enregistrer la bio
+          </Button>
         </CardContent>
       </Card>
 
