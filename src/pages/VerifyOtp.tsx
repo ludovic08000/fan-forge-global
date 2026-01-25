@@ -52,12 +52,15 @@ const VerifyOtp = () => {
       console.log('Email trouvé:', pendingEmail);
       console.log('Nouvelle inscription:', !!isFromSignup);
 
-      // Si c'est une nouvelle inscription (venant de signup), toujours envoyer l'OTP
+      // Si c'est une nouvelle inscription (venant de signup), NE PAS renvoyer l'OTP
+      // car Supabase a déjà envoyé l'email de confirmation automatiquement
       if (isFromSignup) {
-        console.log('Nouvelle inscription détectée, envoi OTP');
+        console.log('Nouvelle inscription détectée - email de confirmation déjà envoyé par Supabase');
         hasSentOtp.current = true;
         setIsNewSignup(true);
-        sendOtp();
+        setOtpSent(true); // Marquer comme déjà envoyé
+        setOtpCountdown(60); // Démarrer le countdown pour éviter le spam
+        // NE PAS appeler sendOtp() - l'email a déjà été envoyé lors du signup
         return;
       }
 
