@@ -44,14 +44,7 @@ const StripeConnectSetup: React.FC = () => {
     }
   };
 
-  const isInIframe = () => {
-    try {
-      return window.self !== window.top;
-    } catch {
-      return true;
-    }
-  };
-
+  // Toujours utiliser la redirection directe pour éviter les blocages popup Chrome
   const handleConnectStripe = async () => {
     setLoading(true);
     try {
@@ -59,23 +52,12 @@ const StripeConnectSetup: React.FC = () => {
       if (error) throw error;
 
       if (data.onboarding_url) {
-        // Si dans iframe, rediriger directement
-        if (isInIframe()) {
-          window.location.href = data.onboarding_url;
-          return;
-        }
-        // Sinon ouvrir dans un nouvel onglet
-        const popup = window.open(data.onboarding_url, '_blank');
-        if (!popup) {
-          window.location.href = data.onboarding_url;
-        } else {
-          toast.success('Onboarding Stripe ouvert - Complétez votre inscription');
-        }
+        // Redirection directe - fonctionne sur tous les navigateurs
+        window.location.href = data.onboarding_url;
       }
     } catch (error: any) {
       console.error('Erreur connexion Stripe:', error);
       toast.error(error.message || 'Erreur lors de la connexion à Stripe');
-    } finally {
       setLoading(false);
     }
   };
@@ -103,22 +85,12 @@ const StripeConnectSetup: React.FC = () => {
       }
 
       setLastStripeUrl(data.url);
-
-      // Si dans iframe (prévisualisation), rediriger directement
-      if (isInIframe()) {
-        window.location.href = data.url;
-        return;
-      }
-
-      // Sinon ouvrir dans un nouvel onglet
-      const popup = window.open(data.url, '_blank', 'noopener');
-      if (!popup) {
-        window.location.href = data.url;
-      }
+      
+      // Redirection directe - fonctionne sur tous les navigateurs y compris Chrome
+      window.location.href = data.url;
     } catch (error: any) {
       console.error('Erreur ouverture Stripe:', error);
       toast.error(error.message || "Impossible d'ouvrir Stripe.");
-    } finally {
       setLoading(false);
     }
   };
