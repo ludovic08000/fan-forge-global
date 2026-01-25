@@ -224,81 +224,94 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {/* Tableau aligné */}
-          <div className="divide-y divide-border">
-            {/* Header row */}
-            <div className="grid grid-cols-4 gap-0 text-xs font-medium text-muted-foreground bg-muted/30">
-              <div className="p-3 text-left">Source</div>
-              <div className="p-3 text-right">Montant</div>
-              <div className="p-3 text-right">Commission</div>
-              <div className="p-3 text-right">Net</div>
-            </div>
-            
-            {/* Abonnements */}
-            <div className="grid grid-cols-4 gap-0 items-center hover:bg-muted/20 transition-colors">
-              <div className="p-3 flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Users className="h-4 w-4 text-primary" />
-                </div>
-                <span className="font-medium text-sm">Abonnements</span>
-              </div>
-              <div className="p-3 text-right font-mono text-sm">{formatAmount(totals.subscriptions)}</div>
-              <div className="p-3 text-right font-mono text-sm text-amber-600">-{formatAmount(totals.subscriptions * 0.15)}</div>
-              <div className="p-3 text-right font-mono text-sm font-semibold text-emerald-600">{formatAmount(totals.subscriptions * 0.85)}</div>
-            </div>
-            
-            {/* Tips */}
-            <div className="grid grid-cols-4 gap-0 items-center hover:bg-muted/20 transition-colors">
-              <div className="p-3 flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-pink-500/10 flex items-center justify-center">
-                  <Heart className="h-4 w-4 text-pink-500" />
-                </div>
-                <span className="font-medium text-sm">Tips</span>
-              </div>
-              <div className="p-3 text-right font-mono text-sm">{formatAmount(totals.tips)}</div>
-              <div className="p-3 text-right font-mono text-sm text-amber-600">-{formatAmount(totals.tips * 0.15)}</div>
-              <div className="p-3 text-right font-mono text-sm font-semibold text-emerald-600">{formatAmount(totals.tips * 0.85)}</div>
-            </div>
-            
-            {/* Messages privés */}
-            <div className="grid grid-cols-4 gap-0 items-center hover:bg-muted/20 transition-colors">
-              <div className="p-3 flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                  <MessageCircle className="h-4 w-4 text-purple-500" />
-                </div>
-                <span className="font-medium text-sm">Messages privés</span>
-              </div>
-              <div className="p-3 text-right font-mono text-sm">{formatAmount(totals.privateContent)}</div>
-              <div className="p-3 text-right font-mono text-sm text-amber-600">-{formatAmount(totals.privateContent * 0.15)}</div>
-              <div className="p-3 text-right font-mono text-sm font-semibold text-emerald-600">{formatAmount(totals.privateContent * 0.85)}</div>
-            </div>
-            
-            {/* Lives */}
-            <div className="grid grid-cols-4 gap-0 items-center hover:bg-muted/20 transition-colors">
-              <div className="p-3 flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center">
-                  <Radio className="h-4 w-4 text-red-500" />
-                </div>
-                <span className="font-medium text-sm">Lives</span>
-              </div>
-              <div className="p-3 text-right font-mono text-sm">{formatAmount(totals.live)}</div>
-              <div className="p-3 text-right font-mono text-sm text-amber-600">-{formatAmount(totals.live * 0.15)}</div>
-              <div className="p-3 text-right font-mono text-sm font-semibold text-emerald-600">{formatAmount(totals.live * 0.85)}</div>
-            </div>
-            
-            {/* Total row */}
-            <div className="grid grid-cols-4 gap-0 items-center bg-gradient-to-r from-primary/5 to-emerald-500/5">
-              <div className="p-4 flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                  <Wallet className="h-4 w-4 text-primary-foreground" />
-                </div>
-                <span className="font-bold text-sm">TOTAL</span>
-              </div>
-              <div className="p-4 text-right font-mono text-base font-bold">{formatAmount(totalGross)}</div>
-              <div className="p-4 text-right font-mono text-base font-bold text-amber-600">-{formatAmount(commission)}</div>
-              <div className="p-4 text-right font-mono text-lg font-bold text-emerald-600">{formatAmount(totalNet)}</div>
-            </div>
-          </div>
+          {/* Tableau aligné avec colonnes fixes */}
+          <table className="w-full">
+            <thead>
+              <tr className="text-xs font-medium text-muted-foreground bg-muted/30">
+                <th className="p-3 text-left w-[40%]">Source</th>
+                <th className="p-3 text-right w-[20%]">Montant</th>
+                <th className="p-3 text-right w-[20%]">Commission</th>
+                <th className="p-3 text-right w-[20%]">Net</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {/* Abonnements */}
+              <tr className="hover:bg-muted/20 transition-colors">
+                <td className="p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Users className="h-4 w-4 text-primary" />
+                    </div>
+                    <span className="font-medium text-sm">Abonnements</span>
+                  </div>
+                </td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums">{formatAmount(totals.subscriptions)}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums text-amber-600">-{formatAmount(totals.subscriptions * 0.15)}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums font-semibold text-emerald-600">{formatAmount(totals.subscriptions * 0.85)}</td>
+              </tr>
+              
+              {/* Tips */}
+              <tr className="hover:bg-muted/20 transition-colors">
+                <td className="p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-pink-500/10 flex items-center justify-center shrink-0">
+                      <Heart className="h-4 w-4 text-pink-500" />
+                    </div>
+                    <span className="font-medium text-sm">Tips</span>
+                  </div>
+                </td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums">{formatAmount(totals.tips)}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums text-amber-600">-{formatAmount(totals.tips * 0.15)}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums font-semibold text-emerald-600">{formatAmount(totals.tips * 0.85)}</td>
+              </tr>
+              
+              {/* Messages privés */}
+              <tr className="hover:bg-muted/20 transition-colors">
+                <td className="p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+                      <MessageCircle className="h-4 w-4 text-purple-500" />
+                    </div>
+                    <span className="font-medium text-sm">Messages privés</span>
+                  </div>
+                </td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums">{formatAmount(totals.privateContent)}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums text-amber-600">-{formatAmount(totals.privateContent * 0.15)}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums font-semibold text-emerald-600">{formatAmount(totals.privateContent * 0.85)}</td>
+              </tr>
+              
+              {/* Lives */}
+              <tr className="hover:bg-muted/20 transition-colors">
+                <td className="p-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
+                      <Radio className="h-4 w-4 text-red-500" />
+                    </div>
+                    <span className="font-medium text-sm">Lives</span>
+                  </div>
+                </td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums">{formatAmount(totals.live)}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums text-amber-600">-{formatAmount(totals.live * 0.15)}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums font-semibold text-emerald-600">{formatAmount(totals.live * 0.85)}</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              {/* Total row */}
+              <tr className="bg-gradient-to-r from-primary/5 to-emerald-500/5 border-t-2 border-border">
+                <td className="p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+                      <Wallet className="h-4 w-4 text-primary-foreground" />
+                    </div>
+                    <span className="font-bold text-sm">TOTAL</span>
+                  </div>
+                </td>
+                <td className="p-4 text-right font-mono text-base tabular-nums font-bold">{formatAmount(totalGross)}</td>
+                <td className="p-4 text-right font-mono text-base tabular-nums font-bold text-amber-600">-{formatAmount(commission)}</td>
+                <td className="p-4 text-right font-mono text-lg tabular-nums font-bold text-emerald-600">{formatAmount(totalNet)}</td>
+              </tr>
+            </tfoot>
+          </table>
         </CardContent>
       </Card>
 
@@ -323,50 +336,52 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
             </div>
           ) : (
             <ScrollArea className="h-[360px]">
-              <div className="divide-y divide-border">
-                {/* Header */}
-                <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground bg-muted/30 sticky top-0">
-                  <div className="col-span-2 p-3">Type</div>
-                  <div className="col-span-4 p-3">De</div>
-                  <div className="col-span-3 p-3 text-right">Montant</div>
-                  <div className="col-span-3 p-3 text-right">Date</div>
-                </div>
-                
-                {allEncaissements.map((item) => {
-                  const config = getTypeConfig(item.type);
-                  const Icon = config.icon;
-                  return (
-                    <div
-                      key={`${item.type}-${item.id}`}
-                      className="grid grid-cols-12 gap-2 items-center hover:bg-muted/20 transition-colors"
-                    >
-                      <div className="col-span-2 p-3">
-                        <Badge className={`${config.color} text-[10px] px-1.5 py-0.5`}>
-                          <Icon className="h-3 w-3 mr-1" />
-                          {config.label}
-                        </Badge>
-                      </div>
-                      <div className="col-span-4 p-3">
-                        <p className="text-sm font-medium truncate">{item.senderName}</p>
-                        <p className="text-xs text-muted-foreground truncate">{item.description}</p>
-                      </div>
-                      <div className="col-span-3 p-3 text-right">
-                        <span className="font-mono text-sm font-semibold text-emerald-600">
-                          +{formatAmount(item.amount)}
-                        </span>
-                      </div>
-                      <div className="col-span-3 p-3 text-right">
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(item.createdAt), { 
-                            addSuffix: true, 
-                            locale: fr 
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <table className="w-full">
+                <thead className="sticky top-0 z-10">
+                  <tr className="text-xs font-medium text-muted-foreground bg-muted/30">
+                    <th className="p-3 text-left w-[15%]">Type</th>
+                    <th className="p-3 text-left w-[35%]">De</th>
+                    <th className="p-3 text-right w-[25%]">Montant</th>
+                    <th className="p-3 text-right w-[25%]">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {allEncaissements.map((item) => {
+                    const config = getTypeConfig(item.type);
+                    const Icon = config.icon;
+                    return (
+                      <tr
+                        key={`${item.type}-${item.id}`}
+                        className="hover:bg-muted/20 transition-colors"
+                      >
+                        <td className="p-3">
+                          <Badge className={`${config.color} text-[10px] px-1.5 py-0.5`}>
+                            <Icon className="h-3 w-3 mr-1" />
+                            {config.label}
+                          </Badge>
+                        </td>
+                        <td className="p-3">
+                          <p className="text-sm font-medium truncate">{item.senderName}</p>
+                          <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                        </td>
+                        <td className="p-3 text-right">
+                          <span className="font-mono text-sm tabular-nums font-semibold text-emerald-600">
+                            +{formatAmount(item.amount)}
+                          </span>
+                        </td>
+                        <td className="p-3 text-right">
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {formatDistanceToNow(new Date(item.createdAt), { 
+                              addSuffix: true, 
+                              locale: fr 
+                            })}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </ScrollArea>
           )}
         </CardContent>
