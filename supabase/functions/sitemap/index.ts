@@ -34,7 +34,7 @@ serve(async (req) => {
     const baseUrl = "https://crub.fr";
     const today = new Date().toISOString().split('T')[0];
 
-    // Fetch all active creators (non-paused) with their profiles
+    // Fetch all active creators (non-paused) who haven't opted out of search engines
     const { data: creators, error } = await supabase
       .from('creators')
       .select(`
@@ -44,9 +44,11 @@ serve(async (req) => {
         category,
         total_content,
         total_subscribers,
-        is_paused
+        is_paused,
+        hide_from_search_engines
       `)
       .or('is_paused.is.null,is_paused.eq.false')
+      .or('hide_from_search_engines.is.null,hide_from_search_engines.eq.false')
       .order('total_subscribers', { ascending: false });
 
     if (error) {
@@ -54,10 +56,16 @@ serve(async (req) => {
       throw error;
     }
 
-    logStep("Fetched creators", { count: creators?.length || 0 });
+    // Filter out creators who have opted out of search engines
+    const visibleCreators = creators?.filter(c => !c.hide_from_search_engines) || [];
+
+    logStep("Fetched creators", { 
+      total: creators?.length || 0, 
+      visible: visibleCreators.length 
+    });
 
     // Fetch profiles for usernames
-    const userIds = creators?.map(c => c.user_id) || [];
+    const userIds = visibleCreators.map(c => c.user_id);
     const { data: profiles } = await supabase
       .from('profiles')
       .select('user_id, username, display_name, avatar_url, updated_at')
@@ -153,8 +161,9 @@ serve(async (req) => {
   
   <!-- ==================== PAGES CRÉATEURS ==================== -->`;
 
-    // Add creator profile pages - TOUTES INDEXÉES
-    creators?.forEach(creator => {
+
+    // Add creator profile pages - only those who haven't opted out
+    visibleCreators.forEach(creator => {
       const profile = profileMap.get(creator.user_id);
       const username = profile?.username;
       
@@ -197,8 +206,9 @@ serve(async (req) => {
 
     const stats = {
       staticPages: 10,
-      creatorPages: creators?.length || 0,
-      totalUrls: 10 + (creators?.length || 0),
+      creatorPages: visibleCreators.length,
+      hiddenCreators: (creators?.length || 0) - visibleCreators.length,
+      totalUrls: 10 + visibleCreators.length,
       generatedAt: new Date().toISOString()
     };
 

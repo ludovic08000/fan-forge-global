@@ -724,12 +724,15 @@ export type Database = {
           bank_bic: string | null
           bank_country: string | null
           bank_iban: string | null
+          blocked_countries: string[] | null
           category: string | null
           content_type: string[] | null
           created_at: string | null
           currency: string | null
           featured_until: string | null
           gender: string | null
+          hide_from_search_engines: boolean | null
+          hide_subscriber_count: boolean | null
           id: string
           is_accepting_tips: boolean | null
           is_featured: boolean | null
@@ -759,12 +762,15 @@ export type Database = {
           bank_bic?: string | null
           bank_country?: string | null
           bank_iban?: string | null
+          blocked_countries?: string[] | null
           category?: string | null
           content_type?: string[] | null
           created_at?: string | null
           currency?: string | null
           featured_until?: string | null
           gender?: string | null
+          hide_from_search_engines?: boolean | null
+          hide_subscriber_count?: boolean | null
           id?: string
           is_accepting_tips?: boolean | null
           is_featured?: boolean | null
@@ -794,12 +800,15 @@ export type Database = {
           bank_bic?: string | null
           bank_country?: string | null
           bank_iban?: string | null
+          blocked_countries?: string[] | null
           category?: string | null
           content_type?: string[] | null
           created_at?: string | null
           currency?: string | null
           featured_until?: string | null
           gender?: string | null
+          hide_from_search_engines?: boolean | null
+          hide_subscriber_count?: boolean | null
           id?: string
           is_accepting_tips?: boolean | null
           is_featured?: boolean | null
