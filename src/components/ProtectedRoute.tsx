@@ -37,29 +37,33 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return;
       }
 
-      // Vérifier si on revient d'un callback Stripe Connect
+      // Vérifier si on revient d'un callback externe (Stripe Connect, boost, etc.)
       const urlParams = new URLSearchParams(window.location.search);
-      const isStripeCallback = urlParams.get('stripe_connect') === 'success';
+      const isExternalCallback = urlParams.get('stripe_connect') === 'success' ||
+                                  urlParams.get('boost_success') === 'true' ||
+                                  urlParams.get('boost_canceled') === 'true';
 
       try {
+        // Si c'est un callback externe, mettre à jour otp_verified IMMÉDIATEMENT
+        // car l'utilisateur était déjà authentifié avant de partir vers Stripe
+        if (isExternalCallback) {
+          console.log('📧 Retour de callback externe, mise à jour otp_verified immédiate');
+          await supabase
+            .from('profiles')
+            .update({ otp_verified: true })
+            .eq('user_id', user.id);
+          setOtpVerified(true);
+          setCheckingProfile(false);
+          return;
+        }
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('otp_verified')
           .eq('user_id', user.id)
           .single();
 
-        // Si on revient de Stripe Connect, l'utilisateur était déjà vérifié
-        // Donc on le considère comme vérifié et on met à jour le profil
-        if (isStripeCallback && profile?.otp_verified === false) {
-          console.log('📧 Retour Stripe Connect, mise à jour otp_verified');
-          await supabase
-            .from('profiles')
-            .update({ otp_verified: true })
-            .eq('user_id', user.id);
-          setOtpVerified(true);
-        } else {
-          setOtpVerified(profile?.otp_verified ?? false);
-        }
+        setOtpVerified(profile?.otp_verified ?? false);
       } catch (error) {
         console.error('Erreur vérification profil:', error);
         setOtpVerified(false);
