@@ -1,11 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { EmbeddedCheckoutProvider, EmbeddedCheckout as StripeEmbeddedCheckout } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '@/integrations/supabase/client';
 import { PromoCodeInput } from '@/components/PromoCodeInput';
 import { useCsrfToken } from '@/hooks/useCsrfToken';
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 interface EmbeddedCheckoutProps {
   creatorId: string;
@@ -13,25 +9,11 @@ interface EmbeddedCheckoutProps {
   preloadedSecret?: string | null;
 }
 
-export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: EmbeddedCheckoutProps) => {
-  const [clientSecret, setClientSecret] = useState<string>('');
+export const EmbeddedCheckout = ({ creatorId, onClose }: EmbeddedCheckoutProps) => {
   const [error, setError] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasFetched, setHasFetched] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { generateToken } = useCsrfToken();
-
-  // Décoder le clientSecret si nécessaire (URL encoded)
-  const decodeSecret = useCallback((secret: string): string => {
-    try {
-      if (secret.includes('%')) {
-        return decodeURIComponent(secret);
-      }
-      return secret;
-    } catch {
-      return secret;
-    }
-  }, []);
 
   const fetchCheckoutSession = useCallback(async (referralCode?: string | null) => {
     try {
@@ -64,31 +46,25 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
       });
 
       if (fnError) throw fnError;
-      if (data?.clientSecret) {
-        console.log('[EmbeddedCheckout] Got clientSecret successfully');
-        const decodedSecret = decodeSecret(data.clientSecret);
-        setClientSecret(decodedSecret);
+      
+      if (data?.url) {
+        // Redirection directe vers Stripe Checkout
+        console.log('[EmbeddedCheckout] Redirecting to Stripe:', data.url);
+        window.location.href = data.url;
       } else if (data?.error) {
         throw new Error(data.error);
       } else {
-        throw new Error('Aucun clientSecret reçu');
+        throw new Error('URL de paiement non reçue');
       }
     } catch (err: any) {
       console.error('[EmbeddedCheckout] Checkout error:', err);
       setError(err.message || 'Erreur lors du chargement du paiement');
-    } finally {
       setIsLoading(false);
     }
-  }, [creatorId, generateToken, decodeSecret]);
+  }, [creatorId, generateToken]);
 
-  // Initialisation au montage
+  // Initialisation au montage - vérifier le code promo sauvegardé
   useEffect(() => {
-    if (hasFetched) return;
-    setHasFetched(true);
-    
-    console.log('[EmbeddedCheckout] Initializing for creator:', creatorId);
-    
-    // Vérifier s'il y a un code promo sauvegardé
     const savedCode = localStorage.getItem('crub_promo_code');
     let savedPromoCode: string | null = null;
     
@@ -103,34 +79,19 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
       }
     }
     
-    // Si code promo sauvegardé, on doit fetch avec le code
     if (savedPromoCode) {
-      console.log('[EmbeddedCheckout] Found saved promo code, fetching with it');
       setPromoCode(savedPromoCode);
-      fetchCheckoutSession(savedPromoCode);
-    } else if (preloadedSecret) {
-      // Pas de code promo, utiliser le secret préchargé
-      console.log('[EmbeddedCheckout] Using preloaded secret');
-      const decodedSecret = decodeSecret(preloadedSecret);
-      setClientSecret(decodedSecret);
-      setIsLoading(false);
-    } else {
-      // Pas de préchargé, fetch maintenant
-      console.log('[EmbeddedCheckout] No preloaded secret, fetching now');
-      fetchCheckoutSession(null);
     }
-  }, [creatorId, preloadedSecret, hasFetched, fetchCheckoutSession, decodeSecret]);
+  }, [creatorId]);
 
-  const handlePromoCodeValidated = useCallback((code: string | null, discountInfo: { type: 'percentage' | 'fixed'; value: number } | null) => {
-    console.log('[EmbeddedCheckout] Promo code validated:', code, discountInfo);
-    
-    // Si le code change, refetch la session checkout
-    if (code && code !== promoCode) {
-      setPromoCode(code);
-      setClientSecret('');
-      fetchCheckoutSession(code);
-    }
-  }, [promoCode, fetchCheckoutSession]);
+  const handlePromoCodeValidated = useCallback((code: string | null) => {
+    console.log('[EmbeddedCheckout] Promo code validated:', code);
+    setPromoCode(code);
+  }, []);
+
+  const handleSubscribe = () => {
+    fetchCheckoutSession(promoCode);
+  };
 
   if (error) {
     return (
@@ -142,7 +103,7 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-4">
       {/* Promo code input */}
       <div className="p-4 border-b">
         <PromoCodeInput
@@ -151,17 +112,22 @@ export const EmbeddedCheckout = ({ creatorId, onClose, preloadedSecret }: Embedd
         />
       </div>
 
-      {/* Checkout form */}
-      <div className="min-h-[500px]">
-        {!clientSecret || isLoading ? (
-          <div className="flex items-center justify-center p-8 h-[500px]">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : (
-          <EmbeddedCheckoutProvider key={clientSecret} stripe={stripePromise} options={{ clientSecret }}>
-            <StripeEmbeddedCheckout className="w-full" />
-          </EmbeddedCheckoutProvider>
-        )}
+      {/* Subscribe button */}
+      <div className="p-4">
+        <button
+          onClick={handleSubscribe}
+          disabled={isLoading}
+          className="w-full bg-primary text-primary-foreground py-3 px-4 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+        >
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-2">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              Redirection vers le paiement...
+            </div>
+          ) : (
+            "Continuer vers le paiement"
+          )}
+        </button>
       </div>
     </div>
   );
