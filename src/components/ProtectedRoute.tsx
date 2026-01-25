@@ -24,6 +24,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Vérification de l'acceptation des CGU
   const { needsAcceptance, isLoading: termsLoading, refreshStatus } = useTermsAcceptance();
   const [showTermsModal, setShowTermsModal] = useState(false);
+  
+  // Détecter si c'est un callback externe (Stripe, etc.)
+  const urlParams = new URLSearchParams(window.location.search);
+  const isExternalCallback = urlParams.get('stripe_connect') === 'success' ||
+                              urlParams.get('boost_success') === 'true' ||
+                              urlParams.get('boost_canceled') === 'true';
 
   useEffect(() => {
     const checkProfileStatus = async () => {
@@ -87,7 +93,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     refreshStatus();
   };
 
-  if (loading || checkingProfile || termsLoading) {
+  // Pour les callbacks externes, ne pas bloquer sur le loading des CGU
+  if (loading || checkingProfile || (termsLoading && !isExternalCallback)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -100,8 +107,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={fallbackPath} state={{ from: location }} replace />;
   }
 
-  // Utilisateur connecté mais OTP non vérifié
-  if (otpVerified !== true) {
+  // Utilisateur connecté mais OTP non vérifié (sauf pour les callbacks externes)
+  if (otpVerified !== true && !isExternalCallback) {
     // Stocker l'email pour la page OTP
     if (user.email) {
       sessionStorage.setItem('pending_otp_email', user.email);
