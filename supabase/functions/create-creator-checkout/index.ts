@@ -73,7 +73,7 @@ serve(async (req) => {
     const [creatorResult, customersResult] = await Promise.all([
       supabaseClient
         .from('creators')
-        .select('subscription_price, currency, stage_name, stripe_price_id, stripe_product_id')
+        .select('subscription_price, currency, stage_name, stripe_price_id, stripe_product_id, stripe_account_id, stripe_charges_enabled, platform_commission_rate')
         .eq('id', creatorId)
         .single(),
       stripe.customers.list({ email: user.email, limit: 1 })
@@ -88,11 +88,24 @@ serve(async (req) => {
       throw new Error("Creator has free subscription - no payment needed");
     }
 
+    // Vérifier que le créateur a un compte Stripe Connect actif
+    if (!creatorData.stripe_account_id) {
+      throw new Error("Ce créateur n'a pas encore configuré son compte Stripe. Il doit d'abord connecter Stripe dans ses paramètres.");
+    }
+
+    if (!creatorData.stripe_charges_enabled) {
+      throw new Error("Le compte Stripe de ce créateur n'est pas encore activé pour recevoir des paiements.");
+    }
+
+    const commissionRate = creatorData.platform_commission_rate ?? 15; // 15% par défaut
+
     logStep("Creator data loaded", { 
       price: creatorData.subscription_price, 
       currency: creatorData.currency,
       stageName: creatorData.stage_name,
-      hasPriceId: !!creatorData.stripe_price_id 
+      hasPriceId: !!creatorData.stripe_price_id,
+      stripeAccountId: creatorData.stripe_account_id,
+      commissionRate
     });
 
     // Gérer le client Stripe
@@ -221,7 +234,11 @@ serve(async (req) => {
       }
     }
 
-    // Créer la session de checkout en mode redirect (plus fiable)
+    // Calculer la commission de la plateforme
+    const unitAmount = Math.round(creatorData.subscription_price * 100);
+    const applicationFeePercent = commissionRate;
+
+    // Créer la session de checkout en mode redirect avec Stripe Connect
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       line_items: [
@@ -233,14 +250,12 @@ serve(async (req) => {
       mode: "subscription",
       success_url: `${req.headers.get("origin")}/dashboard?subscription_success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${req.headers.get("origin")}/creator/${creatorId}?subscription_cancelled=true`,
-      automatic_tax: { enabled: true },
-      customer_update: {
-        address: 'auto',
-      },
-      // Si période d'essai, ne pas collecter de moyen de paiement immédiatement
-      payment_method_collection: trialDays ? 'if_required' : 'always',
-      discounts: discounts.length > 0 ? discounts : undefined,
+      // Stripe Connect: paiement vers le compte du créateur
       subscription_data: {
+        application_fee_percent: applicationFeePercent,
+        transfer_data: {
+          destination: creatorData.stripe_account_id,
+        },
         trial_period_days: trialDays,
         metadata: {
           creator_id: creatorId,
@@ -248,6 +263,9 @@ serve(async (req) => {
           referral_code: referralCode || null,
         },
       },
+      // Si période d'essai, ne pas collecter de moyen de paiement immédiatement
+      payment_method_collection: trialDays ? 'if_required' : 'always',
+      discounts: discounts.length > 0 ? discounts : undefined,
       metadata: {
         creator_id: creatorId,
         user_id: user.id,
