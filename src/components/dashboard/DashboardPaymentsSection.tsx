@@ -45,7 +45,7 @@ interface DashboardPaymentsSectionProps {
 export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> = ({ creatorId }) => {
   const { user } = useAuth();
 
-  // Récupérer les abonnements
+  // Récupérer les abonnements - avec cache long
   const { data: subscriptions, isLoading: subsLoading } = useQuery({
     queryKey: ['creator-subscriptions', creatorId],
     queryFn: async () => {
@@ -62,15 +62,17 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
         .eq('creator_id', creatorId)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(30);
       
       if (error) throw error;
       return data;
     },
     enabled: !!creatorId,
+    staleTime: 2 * 60 * 1000, // Cache 2 minutes
+    gcTime: 5 * 60 * 1000,
   });
 
-  // Récupérer les tips
+  // Récupérer les tips - avec cache long
   const { data: tips, isLoading: tipsLoading } = useQuery({
     queryKey: ['creator-tips', creatorId],
     queryFn: async () => {
@@ -87,15 +89,17 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
         `)
         .eq('creator_id', creatorId)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(30);
       
       if (error) throw error;
       return data;
     },
     enabled: !!creatorId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
-  // Récupérer les paiements de contenus privés
+  // Récupérer les paiements de contenus privés - optimisé avec une seule requête via join
   const { data: privatePayments, isLoading: privateLoading } = useQuery({
     queryKey: ['creator-private-payments', creatorId],
     queryFn: async () => {
@@ -108,27 +112,23 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
           created_at,
           subscriber_id,
           message_id,
-          profiles:subscriber_id(display_name, username)
+          profiles:subscriber_id(display_name, username),
+          private_messages!inner(creator_id)
         `)
         .eq('status', 'completed')
+        .eq('private_messages.creator_id', creatorId)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(30);
       
       if (error) throw error;
-      
-      // Filtrer pour ne garder que les messages du créateur
-      const { data: messages } = await supabase
-        .from('private_messages')
-        .select('id, creator_id')
-        .in('id', data?.map(p => p.message_id) || []);
-      
-      const creatorMessageIds = messages?.filter(m => m.creator_id === creatorId).map(m => m.id) || [];
-      return data?.filter(p => creatorMessageIds.includes(p.message_id)) || [];
+      return data || [];
     },
     enabled: !!creatorId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
-  // Récupérer les paiements des lives
+  // Récupérer les paiements des lives - optimisé avec join
   const { data: livePayments, isLoading: liveLoading } = useQuery({
     queryKey: ['creator-live-payments', creatorId],
     queryFn: async () => {
@@ -142,24 +142,19 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
           subscriber_id,
           live_stream_id,
           profiles:subscriber_id(display_name, username),
-          live_streams:live_stream_id(title)
+          live_streams!inner(title, creator_id)
         `)
         .eq('status', 'completed')
+        .eq('live_streams.creator_id', creatorId)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(30);
       
       if (error) throw error;
-      
-      // Filtrer pour les lives du créateur
-      const { data: lives } = await supabase
-        .from('live_streams')
-        .select('id')
-        .eq('creator_id', creatorId);
-      
-      const creatorLiveIds = lives?.map(l => l.id) || [];
-      return data?.filter(p => creatorLiveIds.includes(p.live_stream_id)) || [];
+      return data || [];
     },
     enabled: !!creatorId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   // Combiner tous les encaissements
