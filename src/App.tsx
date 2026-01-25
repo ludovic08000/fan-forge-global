@@ -55,7 +55,7 @@ const CreatorChatPage = lazy(() => import("./pages/CreatorChatPage"));
 const ContentDetail = lazy(() => import("./pages/ContentDetail"));
 const Messages = lazy(() => import("./pages/Messages"));
 const VerifyOtp = lazy(() => import("./pages/VerifyOtp"));
-const CompleteProfile = lazy(() => import("./pages/CompleteProfile"));
+
 const IdentityVerification = lazy(() => import("./pages/IdentityVerification"));
 
 
@@ -120,7 +120,7 @@ const AppRoutes = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/verify-otp" element={<VerifyOtp />} />
-          <Route path="/complete-profile" element={<CompleteProfile />} />
+          
           <Route path="/suspended" element={<Suspended />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/search" element={<Search />} />

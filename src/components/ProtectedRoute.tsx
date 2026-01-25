@@ -17,8 +17,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { user, userRole, loading } = useAuth();
   const location = useLocation();
   const [otpVerified, setOtpVerified] = useState<boolean | null>(null);
-  const [hasBirthdate, setHasBirthdate] = useState<boolean | null>(null);
-  const [isAdult, setIsAdult] = useState<boolean | null>(null);
   const [checkingProfile, setCheckingProfile] = useState(true);
 
   useEffect(() => {
@@ -31,31 +29,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('otp_verified, birthdate')
+          .select('otp_verified')
           .eq('user_id', user.id)
           .single();
 
         setOtpVerified(profile?.otp_verified ?? false);
-        setHasBirthdate(!!profile?.birthdate);
-
-        // Calculer si l'utilisateur est majeur
-        if (profile?.birthdate) {
-          const today = new Date();
-          const birth = new Date(profile.birthdate);
-          let age = today.getFullYear() - birth.getFullYear();
-          const monthDiff = today.getMonth() - birth.getMonth();
-          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-            age--;
-          }
-          setIsAdult(age >= 18);
-        } else {
-          setIsAdult(null);
-        }
       } catch (error) {
         console.error('Erreur vérification profil:', error);
         setOtpVerified(false);
-        setHasBirthdate(false);
-        setIsAdult(null);
       } finally {
         setCheckingProfile(false);
       }
@@ -77,18 +58,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={fallbackPath} state={{ from: location }} replace />;
   }
 
-  // Utilisateur connecté mais sans date de naissance -> compléter le profil (OAuth)
-  if (hasBirthdate === false) {
-    return <Navigate to="/complete-profile" replace />;
-  }
-
-  // Utilisateur mineur -> déconnexion et blocage
-  if (isAdult === false) {
-    return <Navigate to="/complete-profile" replace />;
-  }
-
-  // Utilisateur connecté mais OTP non vérifié (et a une date de naissance = inscription classique)
-  if (otpVerified === false && hasBirthdate === true) {
+  // Utilisateur connecté mais OTP non vérifié
+  if (otpVerified === false) {
     // Stocker l'email pour la page OTP
     if (user.email) {
       sessionStorage.setItem('pending_otp_email', user.email);
