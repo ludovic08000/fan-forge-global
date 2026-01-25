@@ -1948,6 +1948,7 @@ export type Database = {
           display_name: string | null
           gender: string | null
           id: string
+          instagram_url: string | null
           is_identity_verified: boolean | null
           is_verified: boolean | null
           location: string | null
@@ -1958,10 +1959,13 @@ export type Database = {
           privacy_version: string | null
           terms_accepted_at: string | null
           terms_version: string | null
+          tiktok_url: string | null
+          twitter_url: string | null
           updated_at: string | null
           user_id: string
           username: string | null
           website: string | null
+          youtube_url: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -1973,6 +1977,7 @@ export type Database = {
           display_name?: string | null
           gender?: string | null
           id?: string
+          instagram_url?: string | null
           is_identity_verified?: boolean | null
           is_verified?: boolean | null
           location?: string | null
@@ -1983,10 +1988,13 @@ export type Database = {
           privacy_version?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
+          tiktok_url?: string | null
+          twitter_url?: string | null
           updated_at?: string | null
           user_id: string
           username?: string | null
           website?: string | null
+          youtube_url?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -1998,6 +2006,7 @@ export type Database = {
           display_name?: string | null
           gender?: string | null
           id?: string
+          instagram_url?: string | null
           is_identity_verified?: boolean | null
           is_verified?: boolean | null
           location?: string | null
@@ -2008,10 +2017,13 @@ export type Database = {
           privacy_version?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
+          tiktok_url?: string | null
+          twitter_url?: string | null
           updated_at?: string | null
           user_id?: string
           username?: string | null
           website?: string | null
+          youtube_url?: string | null
         }
         Relationships: []
       }
