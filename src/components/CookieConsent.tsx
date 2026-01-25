@@ -5,6 +5,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Cookie, Shield, Settings, ShieldCheck, BarChart3, Fingerprint } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CookiePreferences {
   essential: boolean;
@@ -24,10 +26,11 @@ interface ConsentRecord {
 const COOKIE_CONSENT_KEY = "rgpd_cookie_consent";
 const COOKIE_PREFERENCES_KEY = "rgpd_cookie_preferences";
 const CONSENT_VERSION = "1.0";
-const CONSENT_DURATION_DAYS = 365; // Durée légale max recommandée: 13 mois
+const CONSENT_DURATION_DAYS = 365;
 const CONSENT_DURATION_MS = CONSENT_DURATION_DAYS * 24 * 60 * 60 * 1000;
 
 export const CookieConsent = () => {
+  const { user } = useAuth();
   const [isVisible, setIsVisible] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [preferences, setPreferences] = useState<CookiePreferences>({
@@ -37,8 +40,37 @@ export const CookieConsent = () => {
     marketing: false,
   });
 
+  // Charger le consentement depuis la base de données ou localStorage
   useEffect(() => {
-    const checkExistingConsent = () => {
+    const checkExistingConsent = async () => {
+      // Si utilisateur connecté, vérifier en base de données d'abord
+      if (user) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('cookie_consent')
+            .eq('user_id', user.id)
+            .single();
+
+          if (profile?.cookie_consent) {
+            const record = profile.cookie_consent as unknown as ConsentRecord;
+            const expiresAt = new Date(record.expiresAt);
+            const now = new Date();
+
+            if (now < expiresAt && record.version === CONSENT_VERSION) {
+              // Consentement valide en base, synchroniser avec localStorage
+              localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(record));
+              localStorage.setItem(COOKIE_PREFERENCES_KEY, JSON.stringify(record.preferences));
+              setPreferences(record.preferences);
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('Erreur lecture consentement:', error);
+        }
+      }
+
+      // Fallback: vérifier localStorage
       const consentRecord = localStorage.getItem(COOKIE_CONSENT_KEY);
       
       if (consentRecord) {
@@ -47,9 +79,7 @@ export const CookieConsent = () => {
           const expiresAt = new Date(record.expiresAt);
           const now = new Date();
           
-          // Vérifier expiration et version
           if (now < expiresAt && record.version === CONSENT_VERSION) {
-            // Consentement valide
             const savedPrefs = localStorage.getItem(COOKIE_PREFERENCES_KEY);
             if (savedPrefs) {
               setPreferences(JSON.parse(savedPrefs));
@@ -57,11 +87,11 @@ export const CookieConsent = () => {
             return;
           }
         } catch {
-          // Consentement invalide, le redemander
+          // Consentement invalide
         }
       }
       
-      // Afficher la bannière avec délai pour UX
+      // Afficher la bannière
       const timer = setTimeout(() => {
         setIsVisible(true);
       }, 500);
@@ -69,13 +99,12 @@ export const CookieConsent = () => {
     };
 
     checkExistingConsent();
-  }, []);
+  }, [user]);
 
-  const saveConsent = (prefs: CookiePreferences) => {
+  const saveConsent = async (prefs: CookiePreferences) => {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + CONSENT_DURATION_MS);
     
-    // Enregistrement de consentement conforme RGPD
     const consentRecord: ConsentRecord = {
       version: CONSENT_VERSION,
       timestamp: now.toISOString(),
@@ -84,12 +113,24 @@ export const CookieConsent = () => {
       userAgent: navigator.userAgent,
     };
     
+    // Sauvegarder en localStorage
     localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consentRecord));
     localStorage.setItem(COOKIE_PREFERENCES_KEY, JSON.stringify(prefs));
     
+    // Si utilisateur connecté, sauvegarder en base de données pour synchronisation cross-browser
+    if (user) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ cookie_consent: consentRecord as unknown as Record<string, unknown> })
+          .eq('user_id', user.id);
+      } catch (error) {
+        console.error('Erreur sauvegarde consentement:', error);
+      }
+    }
+    
     setIsVisible(false);
     
-    // Émettre un événement pour les autres composants
     window.dispatchEvent(new CustomEvent("cookieConsentChanged", { 
       detail: { preferences: prefs, timestamp: now.toISOString() } 
     }));

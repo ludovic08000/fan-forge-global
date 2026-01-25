@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,53 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, ArrowLeft, Mail, UserCircle, Video, AlertTriangle, ShieldX, CalendarDays } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, Mail, UserCircle, Video } from 'lucide-react';
 import { signUpSchema } from '@/lib/validations';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { PasswordRequirements } from '@/components/PasswordRequirements';
 
-// Fonction pour calculer l'âge - retourne null si date invalide ou incomplète
-const calculateAge = (birthdate: string): number | null => {
-  if (!birthdate) return null;
-  
-  // Vérifier que le format est complet (YYYY-MM-DD)
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!dateRegex.test(birthdate)) return null;
-  
-  const [yearStr, monthStr, dayStr] = birthdate.split('-');
-  const year = parseInt(yearStr, 10);
-  const month = parseInt(monthStr, 10);
-  const day = parseInt(dayStr, 10);
-  
-  // Vérifier que les valeurs sont valides
-  if (year < 1900 || year > new Date().getFullYear()) return null;
-  if (month < 1 || month > 12) return null;
-  if (day < 1 || day > 31) return null;
-  
-  const birthDate = new Date(year, month - 1, day);
-  // Vérifier que la date créée correspond bien aux valeurs entrées (évite les dates invalides comme 31 février)
-  if (birthDate.getFullYear() !== year || birthDate.getMonth() !== month - 1 || birthDate.getDate() !== day) {
-    return null;
-  }
-  
-  const today = new Date();
-  // Vérifier que la date n'est pas dans le futur
-  if (birthDate > today) return null;
-  
-  const age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  const dayDiff = today.getDate() - birthDate.getDate();
-  return monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
-};
-
 const Signup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isMinorBlocked, setIsMinorBlocked] = useState(false);
-  const [birthdateTouched, setBirthdateTouched] = useState(false);
   const { signUp, signUpWithGoogle, user } = useAuth();
   const { checkRateLimit } = useRateLimitServer();
   const navigate = useNavigate();
@@ -76,22 +40,11 @@ const Signup = () => {
 
   const [signUpErrors, setSignUpErrors] = useState<Record<string, string>>({});
 
-  // Vérification d'âge - seulement après que l'utilisateur ait fini de sélectionner (onBlur)
-  const userAge = useMemo(() => calculateAge(signUpForm.birthdate), [signUpForm.birthdate]);
-  // Afficher l'erreur mineur uniquement si le champ a été "touché" (blur) ET l'âge est < 18
-  const isMinor = useMemo(() => birthdateTouched && userAge !== null && userAge < 18, [birthdateTouched, userAge]);
   useEffect(() => {
     if (user) {
       navigate('/');
     }
   }, [user, navigate]);
-
-  // Effet pour bloquer les mineurs
-  useEffect(() => {
-    if (isMinor) {
-      setIsMinorBlocked(true);
-    }
-  }, [isMinor]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,7 +65,7 @@ const Signup = () => {
         validatedData.lastName,
         validatedData.username,
         validatedData.role,
-        validatedData.birthdate,
+        validatedData.birthdate || undefined,
         validatedData.gender,
         validatedData.stageName,
         validatedData.category
@@ -151,56 +104,6 @@ const Signup = () => {
     await signUpWithGoogle();
     setIsLoading(false);
   };
-
-  // Écran de blocage pour les mineurs
-  if (isMinorBlocked) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md border-destructive bg-card/95 backdrop-blur-sm">
-          <CardHeader className="text-center space-y-4">
-            <div className="mx-auto bg-destructive/20 p-4 rounded-2xl w-fit animate-pulse">
-              <ShieldX className="h-16 w-16 text-destructive" />
-            </div>
-            <CardTitle className="text-2xl font-bold text-destructive">
-              Accès Refusé
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="bg-destructive/10 p-4 rounded-lg border border-destructive/30 space-y-3">
-              <div className="flex items-center gap-2 text-destructive font-semibold">
-                <AlertTriangle className="h-5 w-5" />
-                <span>Inscription interdite aux mineurs</span>
-              </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Vous avez déclaré avoir <strong className="text-destructive">{userAge} ans</strong>. 
-                Cette plateforme est strictement réservée aux personnes majeures (18 ans et plus).
-              </p>
-            </div>
-
-            <div className="bg-muted/50 p-4 rounded-lg border border-border">
-              <p className="text-xs text-muted-foreground text-center leading-relaxed">
-                <strong>Avertissement légal :</strong> Conformément à la législation française (Loi n° 2020-936), 
-                l'accès à ce site est strictement interdit aux personnes de moins de 18 ans. 
-                Toute tentative d'inscription frauduleuse avec une fausse date de naissance est passible de poursuites.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <Button 
-                onClick={() => window.location.href = 'https://www.google.com'}
-                className="w-full bg-destructive hover:bg-destructive/90"
-              >
-                Quitter le site
-              </Button>
-              <p className="text-xs text-center text-muted-foreground">
-                Vous serez redirigé vers Google
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 py-8">
@@ -356,43 +259,6 @@ const Signup = () => {
                 </div>
               )}
 
-              {/* Date de naissance OBLIGATOIRE pour tous */}
-              <div className="space-y-2">
-                <Label htmlFor="birthdate" className="flex items-center gap-2">
-                  <CalendarDays className="h-4 w-4 text-primary" />
-                  Date de naissance *
-                </Label>
-                <Input
-                  id="birthdate"
-                  type="date"
-                  required
-                  className={signUpErrors.birthdate || isMinor ? 'border-destructive' : ''}
-                  value={signUpForm.birthdate}
-                  onChange={(e) => {
-                    setSignUpForm({ ...signUpForm, birthdate: e.target.value });
-                    if (signUpErrors.birthdate) setSignUpErrors(prev => ({ ...prev, birthdate: '' }));
-                  }}
-                  onBlur={() => setBirthdateTouched(true)}
-                  max={new Date().toISOString().split('T')[0]}
-                />
-                {signUpErrors.birthdate ? (
-                  <p className="text-xs text-destructive">{signUpErrors.birthdate}</p>
-                ) : isMinor ? (
-                  <div className="flex items-center gap-2 text-destructive text-xs">
-                    <AlertTriangle className="h-3 w-3" />
-                    <span>Vous devez avoir au moins 18 ans pour vous inscrire</span>
-                  </div>
-                ) : userAge !== null && userAge >= 18 ? (
-                  <p className="text-xs text-green-500">
-                    ✓ Vous avez {userAge} ans - Éligible à l'inscription
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    Cette plateforme est réservée aux personnes majeures (18 ans et plus)
-                  </p>
-                )}
-              </div>
-
               {/* Champs spécifiques pour les créateurs */}
               {signUpForm.role === 'creator' && (
                 <>
@@ -422,12 +288,13 @@ const Signup = () => {
                         <SelectValue placeholder="Sélectionnez une catégorie" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="érotique">Érotique</SelectItem>
-                        <SelectItem value="glamour">Glamour</SelectItem>
                         <SelectItem value="fitness">Fitness</SelectItem>
                         <SelectItem value="lifestyle">Lifestyle</SelectItem>
                         <SelectItem value="art">Art</SelectItem>
                         <SelectItem value="mode">Mode</SelectItem>
+                        <SelectItem value="musique">Musique</SelectItem>
+                        <SelectItem value="gaming">Gaming</SelectItem>
+                        <SelectItem value="cuisine">Cuisine</SelectItem>
                         <SelectItem value="autre">Autre</SelectItem>
                       </SelectContent>
                     </Select>
@@ -447,7 +314,7 @@ const Signup = () => {
                         <SelectItem value="femme">Femme</SelectItem>
                         <SelectItem value="homme">Homme</SelectItem>
                         <SelectItem value="non-binaire">Non-binaire</SelectItem>
-                        <SelectItem value="trans">Trans</SelectItem>
+                        <SelectItem value="autre">Autre</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -574,19 +441,10 @@ const Signup = () => {
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={isLoading || (signUpForm.password !== signUpForm.confirmPassword) || isMinor || !signUpForm.birthdate || !signUpForm.termsAccepted || !signUpForm.privacyAccepted}
+                disabled={isLoading || (signUpForm.password !== signUpForm.confirmPassword) || !signUpForm.termsAccepted || !signUpForm.privacyAccepted}
               >
                 {isLoading ? 'Création...' : 'Créer un compte'}
               </Button>
-
-              {/* Avertissement pour les mineurs */}
-              {isMinor && (
-                <div className="bg-destructive/10 p-3 rounded-lg border border-destructive/30 text-center">
-                  <p className="text-xs text-destructive font-medium">
-                    L'inscription est impossible pour les personnes de moins de 18 ans.
-                  </p>
-                </div>
-              )}
             </form>
 
             <div className="mt-6 text-center text-sm">
