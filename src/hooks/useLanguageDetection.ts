@@ -115,8 +115,25 @@ export const useLanguageDetection = () => {
     document.documentElement.lang = language;
   }, [language]);
 
+  // Listen for storage changes (sync across tabs/components)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'preferred-language' && e.newValue) {
+        const supportedLangs: Language[] = ['en', 'fr', 'es', 'de', 'it', 'pt', 'nl'];
+        if (supportedLangs.includes(e.newValue as Language)) {
+          setLanguage(e.newValue as Language);
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const changeLanguage = (newLanguage: Language) => {
     setLanguage(newLanguage);
+    localStorage.setItem('preferred-language', newLanguage);
+    document.documentElement.lang = newLanguage;
   };
 
   return {

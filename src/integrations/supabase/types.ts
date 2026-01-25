@@ -741,6 +741,7 @@ export type Database = {
           paused_at: string | null
           payment_frequency: string | null
           platform_commission_rate: number | null
+          preferred_language: string | null
           stage_name: string | null
           stripe_account_id: string | null
           stripe_account_status: string | null
@@ -779,6 +780,7 @@ export type Database = {
           paused_at?: string | null
           payment_frequency?: string | null
           platform_commission_rate?: number | null
+          preferred_language?: string | null
           stage_name?: string | null
           stripe_account_id?: string | null
           stripe_account_status?: string | null
@@ -817,6 +819,7 @@ export type Database = {
           paused_at?: string | null
           payment_frequency?: string | null
           platform_commission_rate?: number | null
+          preferred_language?: string | null
           stage_name?: string | null
           stripe_account_id?: string | null
           stripe_account_status?: string | null
