@@ -126,7 +126,8 @@ export const PaymentRequestCard: React.FC = () => {
       const { data, error } = await supabase.functions.invoke('stripe-connect-login-link');
       if (error) throw error;
       if (data?.url) {
-        window.open(data.url, '_blank');
+        // Redirection directe pour éviter les problèmes COOP de Firefox
+        window.location.href = data.url;
       }
     } catch (e: any) {
       toast.error("Impossible d'ouvrir Stripe");
