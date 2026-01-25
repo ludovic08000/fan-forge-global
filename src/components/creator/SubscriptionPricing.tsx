@@ -19,6 +19,7 @@ const SubscriptionPricing: React.FC<SubscriptionPricingProps> = ({ creatorId }) 
   const [loading, setLoading] = useState(false);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [hasStripeProduct, setHasStripeProduct] = useState(false);
+  const [hasStripeConnect, setHasStripeConnect] = useState(false);
 
   useEffect(() => {
     loadCurrentPricing();
@@ -28,7 +29,7 @@ const SubscriptionPricing: React.FC<SubscriptionPricingProps> = ({ creatorId }) 
     try {
       const { data, error } = await supabase
         .from('creators')
-        .select('subscription_price, currency, stripe_product_id, stripe_price_id')
+        .select('subscription_price, currency, stripe_product_id, stripe_price_id, stripe_account_id, stripe_charges_enabled')
         .eq('id', creatorId)
         .single();
 
@@ -39,6 +40,8 @@ const SubscriptionPricing: React.FC<SubscriptionPricingProps> = ({ creatorId }) 
         setCurrency(data.currency || 'EUR');
         setPrice(data.subscription_price?.toString() || '9.99');
         setHasStripeProduct(!!(data.stripe_product_id && data.stripe_price_id));
+        // Stripe Connect est configuré si le compte existe et les paiements sont activés
+        setHasStripeConnect(!!(data.stripe_account_id && data.stripe_charges_enabled));
       }
     } catch (error) {
       console.error('Error loading pricing:', error);
@@ -76,7 +79,7 @@ const SubscriptionPricing: React.FC<SubscriptionPricingProps> = ({ creatorId }) 
       setCurrentPrice(priceValue);
       toast.success('Prix d\'abonnement mis à jour avec succès !');
       
-      if (!hasStripeProduct) {
+      if (!hasStripeConnect) {
         toast.info('Note : Vous devrez configurer Stripe Connect pour accepter les paiements dans l\'onglet Paiements.');
       }
       
@@ -140,10 +143,10 @@ const SubscriptionPricing: React.FC<SubscriptionPricingProps> = ({ creatorId }) 
                   <span className="text-sm font-normal text-muted-foreground">/mois</span>
                 </p>
               </div>
-              {hasStripeProduct && (
+              {hasStripeConnect && (
                 <Badge variant="default" className="gap-1">
                   <Check className="h-3 w-3" />
-                  Stripe configuré
+                  Stripe Connect actif
                 </Badge>
               )}
             </div>
@@ -220,7 +223,7 @@ const SubscriptionPricing: React.FC<SubscriptionPricingProps> = ({ creatorId }) 
           {loading ? 'Mise à jour...' : 'Enregistrer'}
         </Button>
 
-        {!hasStripeProduct && currentPrice !== null && currentPrice > 0 && (
+        {!hasStripeConnect && currentPrice !== null && currentPrice > 0 && (
           <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-4">
             <p className="text-sm text-orange-600">
               ⚠️ <strong>Important :</strong> Vous devez configurer Stripe Connect dans l'onglet "Paiements" pour commencer à accepter les paiements d'abonnement.
