@@ -1,24 +1,27 @@
 /**
- * Section Paiements du Dashboard créateur
- * Affiche les encaissements (abonnements, tips, contenus privés, lives)
- * et la configuration Stripe Connect
+ * Section Paiements du Dashboard créateur - Design Premium
+ * Layout: Encaissements (top) → Stats → Historique → Stripe (bottom)
  */
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { 
   Banknote, 
   Users, 
   Heart, 
   MessageCircle, 
   Radio,
-  Euro
+  TrendingUp,
+  ArrowDownRight,
+  Wallet,
+  Clock
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -42,52 +45,20 @@ interface DashboardPaymentsSectionProps {
 export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> = ({ creatorId }) => {
   const { user } = useAuth();
 
-  // Récupérer les abonnements - avec cache long
+  // Queries avec cache optimisé
   const { data: subscriptions, isLoading: subsLoading } = useQuery({
     queryKey: ['creator-subscriptions', creatorId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('subscriptions')
         .select(`
-          id,
-          price,
-          currency,
-          created_at,
-          subscriber_id,
+          id, price, currency, created_at, subscriber_id,
           profiles:subscriber_id(display_name, username)
         `)
         .eq('creator_id', creatorId)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(30);
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!creatorId,
-    staleTime: 2 * 60 * 1000, // Cache 2 minutes
-    gcTime: 5 * 60 * 1000,
-  });
-
-  // Récupérer les tips - avec cache long
-  const { data: tips, isLoading: tipsLoading } = useQuery({
-    queryKey: ['creator-tips', creatorId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tips')
-        .select(`
-          id,
-          amount,
-          currency,
-          message,
-          created_at,
-          sender_id,
-          profiles:sender_id(display_name, username)
-        `)
-        .eq('creator_id', creatorId)
-        .order('created_at', { ascending: false })
-        .limit(30);
-      
       if (error) throw error;
       return data;
     },
@@ -96,19 +67,33 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
     gcTime: 5 * 60 * 1000,
   });
 
-  // Récupérer les paiements de contenus privés - optimisé avec une seule requête via join
+  const { data: tips, isLoading: tipsLoading } = useQuery({
+    queryKey: ['creator-tips', creatorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tips')
+        .select(`
+          id, amount, currency, message, created_at, sender_id,
+          profiles:sender_id(display_name, username)
+        `)
+        .eq('creator_id', creatorId)
+        .order('created_at', { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!creatorId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
+
   const { data: privatePayments, isLoading: privateLoading } = useQuery({
     queryKey: ['creator-private-payments', creatorId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('private_content_payments')
         .select(`
-          id,
-          amount,
-          currency,
-          created_at,
-          subscriber_id,
-          message_id,
+          id, amount, currency, created_at, subscriber_id, message_id,
           profiles:subscriber_id(display_name, username),
           private_messages!inner(creator_id)
         `)
@@ -116,7 +101,6 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
         .eq('private_messages.creator_id', creatorId)
         .order('created_at', { ascending: false })
         .limit(30);
-      
       if (error) throw error;
       return data || [];
     },
@@ -125,19 +109,13 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
     gcTime: 5 * 60 * 1000,
   });
 
-  // Récupérer les paiements des lives - optimisé avec join
   const { data: livePayments, isLoading: liveLoading } = useQuery({
     queryKey: ['creator-live-payments', creatorId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('live_stream_payments')
         .select(`
-          id,
-          amount,
-          currency,
-          created_at,
-          subscriber_id,
-          live_stream_id,
+          id, amount, currency, created_at, subscriber_id, live_stream_id,
           profiles:subscriber_id(display_name, username),
           live_streams!inner(title, creator_id)
         `)
@@ -145,7 +123,6 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
         .eq('live_streams.creator_id', creatorId)
         .order('created_at', { ascending: false })
         .limit(30);
-      
       if (error) throw error;
       return data || [];
     },
@@ -179,7 +156,7 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
       type: 'private_content' as const,
       amount: p.amount,
       currency: p.currency || 'EUR',
-      description: 'Contenu privé débloqué',
+      description: 'Contenu privé',
       senderName: (p.profiles as any)?.display_name || (p.profiles as any)?.username || 'Anonyme',
       createdAt: p.created_at,
     })) || []),
@@ -188,7 +165,7 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
       type: 'live' as const,
       amount: p.amount,
       currency: p.currency || 'EUR',
-      description: `Accès live: ${(p.live_streams as any)?.title || 'Live'}`,
+      description: (p.live_streams as any)?.title || 'Live',
       senderName: (p.profiles as any)?.display_name || (p.profiles as any)?.username || 'Anonyme',
       createdAt: p.created_at,
     })) || []),
@@ -207,186 +184,197 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
 
   const isLoading = subsLoading || tipsLoading || privateLoading || liveLoading;
 
-  const getTypeIcon = (type: EncaissementItem['type']) => {
-    switch (type) {
-      case 'subscription': return <Users className="h-4 w-4" />;
-      case 'tip': return <Heart className="h-4 w-4" />;
-      case 'private_content': return <MessageCircle className="h-4 w-4" />;
-      case 'live': return <Radio className="h-4 w-4" />;
-    }
+  const getTypeConfig = (type: EncaissementItem['type']) => {
+    const configs = {
+      subscription: { icon: Users, label: 'Abo', color: 'bg-primary text-primary-foreground' },
+      tip: { icon: Heart, label: 'Tip', color: 'bg-pink-500 text-white' },
+      private_content: { icon: MessageCircle, label: 'MP', color: 'bg-purple-500 text-white' },
+      live: { icon: Radio, label: 'Live', color: 'bg-red-500 text-white' },
+    };
+    return configs[type];
   };
 
-  const getTypeBadge = (type: EncaissementItem['type']) => {
-    switch (type) {
-      case 'subscription': return <Badge variant="default">Abonnement</Badge>;
-      case 'tip': return <Badge className="bg-pink-500">Tip</Badge>;
-      case 'private_content': return <Badge className="bg-purple-500">Message privé</Badge>;
-      case 'live': return <Badge className="bg-red-500">Live</Badge>;
-    }
-  };
+  const formatAmount = (amount: number) => 
+    new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount);
 
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-48 w-full" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Section Header */}
-      <div className="flex items-center gap-3 pb-2 border-b">
-        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <Euro className="h-5 w-5 text-primary" />
-        </div>
-        <div>
-          <h2 className="text-xl font-semibold">Revenus</h2>
-          <p className="text-sm text-muted-foreground">Vue d'ensemble de vos encaissements</p>
-        </div>
-      </div>
+      {/* ══════════════════════════════════════════════════════════════════
+          1. ENCAISSEMENTS - Solde & Retrait (EN HAUT)
+      ══════════════════════════════════════════════════════════════════ */}
+      <PaymentRequestCard />
 
-      {/* Stats Cards - 4 colonnes alignées */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">Abonnements</p>
-                <p className="text-lg font-bold tabular-nums">{totals.subscriptions.toFixed(2)} €</p>
-              </div>
+      {/* ══════════════════════════════════════════════════════════════════
+          2. TABLEAU RÉCAPITULATIF DES REVENUS
+      ══════════════════════════════════════════════════════════════════ */}
+      <Card className="overflow-hidden border-0 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            Récapitulatif des revenus
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {/* Tableau aligné */}
+          <div className="divide-y divide-border">
+            {/* Header row */}
+            <div className="grid grid-cols-4 gap-0 text-xs font-medium text-muted-foreground bg-muted/30">
+              <div className="p-3 text-left">Source</div>
+              <div className="p-3 text-right">Montant</div>
+              <div className="p-3 text-right">Commission</div>
+              <div className="p-3 text-right">Net</div>
             </div>
-          </CardContent>
-        </Card>
-        <Card className="border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-pink-500/10 flex items-center justify-center shrink-0">
-                <Heart className="h-5 w-5 text-pink-500" />
+            
+            {/* Abonnements */}
+            <div className="grid grid-cols-4 gap-0 items-center hover:bg-muted/20 transition-colors">
+              <div className="p-3 flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Users className="h-4 w-4 text-primary" />
+                </div>
+                <span className="font-medium text-sm">Abonnements</span>
               </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">Tips</p>
-                <p className="text-lg font-bold tabular-nums">{totals.tips.toFixed(2)} €</p>
-              </div>
+              <div className="p-3 text-right font-mono text-sm">{formatAmount(totals.subscriptions)}</div>
+              <div className="p-3 text-right font-mono text-sm text-amber-600">-{formatAmount(totals.subscriptions * 0.15)}</div>
+              <div className="p-3 text-right font-mono text-sm font-semibold text-emerald-600">{formatAmount(totals.subscriptions * 0.85)}</div>
             </div>
-          </CardContent>
-        </Card>
-        <Card className="border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
-                <MessageCircle className="h-5 w-5 text-purple-500" />
+            
+            {/* Tips */}
+            <div className="grid grid-cols-4 gap-0 items-center hover:bg-muted/20 transition-colors">
+              <div className="p-3 flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-pink-500/10 flex items-center justify-center">
+                  <Heart className="h-4 w-4 text-pink-500" />
+                </div>
+                <span className="font-medium text-sm">Tips</span>
               </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">Messages privés</p>
-                <p className="text-lg font-bold tabular-nums">{totals.privateContent.toFixed(2)} €</p>
+              <div className="p-3 text-right font-mono text-sm">{formatAmount(totals.tips)}</div>
+              <div className="p-3 text-right font-mono text-sm text-amber-600">-{formatAmount(totals.tips * 0.15)}</div>
+              <div className="p-3 text-right font-mono text-sm font-semibold text-emerald-600">{formatAmount(totals.tips * 0.85)}</div>
+            </div>
+            
+            {/* Messages privés */}
+            <div className="grid grid-cols-4 gap-0 items-center hover:bg-muted/20 transition-colors">
+              <div className="p-3 flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                  <MessageCircle className="h-4 w-4 text-purple-500" />
+                </div>
+                <span className="font-medium text-sm">Messages privés</span>
               </div>
+              <div className="p-3 text-right font-mono text-sm">{formatAmount(totals.privateContent)}</div>
+              <div className="p-3 text-right font-mono text-sm text-amber-600">-{formatAmount(totals.privateContent * 0.15)}</div>
+              <div className="p-3 text-right font-mono text-sm font-semibold text-emerald-600">{formatAmount(totals.privateContent * 0.85)}</div>
             </div>
-          </CardContent>
-        </Card>
-        <Card className="border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
-                <Radio className="h-5 w-5 text-red-500" />
+            
+            {/* Lives */}
+            <div className="grid grid-cols-4 gap-0 items-center hover:bg-muted/20 transition-colors">
+              <div className="p-3 flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                  <Radio className="h-4 w-4 text-red-500" />
+                </div>
+                <span className="font-medium text-sm">Lives</span>
               </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">Lives</p>
-                <p className="text-lg font-bold tabular-nums">{totals.live.toFixed(2)} €</p>
+              <div className="p-3 text-right font-mono text-sm">{formatAmount(totals.live)}</div>
+              <div className="p-3 text-right font-mono text-sm text-amber-600">-{formatAmount(totals.live * 0.15)}</div>
+              <div className="p-3 text-right font-mono text-sm font-semibold text-emerald-600">{formatAmount(totals.live * 0.85)}</div>
+            </div>
+            
+            {/* Total row */}
+            <div className="grid grid-cols-4 gap-0 items-center bg-gradient-to-r from-primary/5 to-emerald-500/5">
+              <div className="p-4 flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                  <Wallet className="h-4 w-4 text-primary-foreground" />
+                </div>
+                <span className="font-bold text-sm">TOTAL</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Total Card - 3 colonnes égales */}
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-        <CardContent className="p-6">
-          <div className="grid grid-cols-3 gap-4 divide-x divide-border">
-            <div className="text-center px-2">
-              <p className="text-xs text-muted-foreground mb-1">Brut</p>
-              <p className="text-xl md:text-2xl font-bold tabular-nums">{totalGross.toFixed(2)} €</p>
-            </div>
-            <div className="text-center px-2">
-              <p className="text-xs text-muted-foreground mb-1">Commission 15%</p>
-              <p className="text-xl md:text-2xl font-bold tabular-nums text-amber-500">-{commission.toFixed(2)} €</p>
-            </div>
-            <div className="text-center px-2">
-              <p className="text-xs text-muted-foreground mb-1">Net</p>
-              <p className="text-xl md:text-2xl font-bold tabular-nums text-emerald-500">{totalNet.toFixed(2)} €</p>
+              <div className="p-4 text-right font-mono text-base font-bold">{formatAmount(totalGross)}</div>
+              <div className="p-4 text-right font-mono text-base font-bold text-amber-600">-{formatAmount(commission)}</div>
+              <div className="p-4 text-right font-mono text-lg font-bold text-emerald-600">{formatAmount(totalNet)}</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Solde disponible & Retrait */}
-      <PaymentRequestCard />
-
-      {/* Encaissements List */}
-      <Card>
+      {/* ══════════════════════════════════════════════════════════════════
+          3. HISTORIQUE DES TRANSACTIONS
+      ══════════════════════════════════════════════════════════════════ */}
+      <Card className="overflow-hidden border-0 shadow-lg">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Banknote className="h-4 w-4" />
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Clock className="h-5 w-5 text-muted-foreground" />
             Historique des encaissements
+            <Badge variant="secondary" className="ml-auto font-mono text-xs">
+              {allEncaissements.length} transactions
+            </Badge>
           </CardTitle>
-          <CardDescription className="text-xs">
-            Vos 30 dernières transactions
-          </CardDescription>
         </CardHeader>
-        <CardContent className="pt-0">
+        <CardContent className="p-0">
           {allEncaissements.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Euro className="h-10 w-10 mx-auto mb-3 opacity-20" />
-              <p className="text-sm">Aucun encaissement pour le moment</p>
+            <div className="text-center py-12 text-muted-foreground">
+              <Banknote className="h-12 w-12 mx-auto mb-3 opacity-20" />
+              <p className="text-sm">Aucune transaction pour le moment</p>
             </div>
           ) : (
-            <ScrollArea className="h-[320px] -mx-2">
-              <div className="space-y-2 px-2">
-                {allEncaissements.map((item) => (
-                  <div
-                    key={`${item.type}-${item.id}`}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                        {getTypeIcon(item.type)}
+            <ScrollArea className="h-[360px]">
+              <div className="divide-y divide-border">
+                {/* Header */}
+                <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground bg-muted/30 sticky top-0">
+                  <div className="col-span-2 p-3">Type</div>
+                  <div className="col-span-4 p-3">De</div>
+                  <div className="col-span-3 p-3 text-right">Montant</div>
+                  <div className="col-span-3 p-3 text-right">Date</div>
+                </div>
+                
+                {allEncaissements.map((item) => {
+                  const config = getTypeConfig(item.type);
+                  const Icon = config.icon;
+                  return (
+                    <div
+                      key={`${item.type}-${item.id}`}
+                      className="grid grid-cols-12 gap-2 items-center hover:bg-muted/20 transition-colors"
+                    >
+                      <div className="col-span-2 p-3">
+                        <Badge className={`${config.color} text-[10px] px-1.5 py-0.5`}>
+                          <Icon className="h-3 w-3 mr-1" />
+                          {config.label}
+                        </Badge>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {getTypeBadge(item.type)}
-                          <span className="text-xs text-muted-foreground truncate">
-                            de {item.senderName}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {item.description}
-                        </p>
+                      <div className="col-span-4 p-3">
+                        <p className="text-sm font-medium truncate">{item.senderName}</p>
+                        <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                      </div>
+                      <div className="col-span-3 p-3 text-right">
+                        <span className="font-mono text-sm font-semibold text-emerald-600">
+                          +{formatAmount(item.amount)}
+                        </span>
+                      </div>
+                      <div className="col-span-3 p-3 text-right">
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(item.createdAt), { 
+                            addSuffix: true, 
+                            locale: fr 
+                          })}
+                        </span>
                       </div>
                     </div>
-                    <div className="text-right shrink-0 ml-3">
-                      <p className="font-semibold text-emerald-500 tabular-nums">
-                        +{item.amount.toFixed(2)} €
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {formatDistanceToNow(new Date(item.createdAt), { 
-                          addSuffix: true, 
-                          locale: fr 
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
           )}
         </CardContent>
       </Card>
 
-      {/* Stripe Connect Setup - En fin de page */}
+      {/* ══════════════════════════════════════════════════════════════════
+          4. STRIPE CONNECT (EN BAS)
+      ══════════════════════════════════════════════════════════════════ */}
       <StripeConnectSetup />
     </div>
   );
