@@ -438,14 +438,13 @@ const CreatorPublicPage = () => {
       />
 
       {/* Header avec navigation */}
-      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center p-4 bg-gradient-to-b from-black/60 to-transparent">
         <button
           onClick={() => navigate(-1)}
           className="p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
         >
           <Home className="h-5 w-5" />
         </button>
-        <div className="flex gap-2" />
       </div>
 
       {/* Cover Photo */}
