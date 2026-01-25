@@ -24,6 +24,7 @@ const StripeConnectSetup: React.FC = () => {
   const [checking, setChecking] = useState(true);
   const [status, setStatus] = useState<StripeConnectStatus | null>(null);
   const [lastStripeUrl, setLastStripeUrl] = useState<string | null>(null);
+
   useEffect(() => {
     if (user) {
       checkStatus();
@@ -34,7 +35,6 @@ const StripeConnectSetup: React.FC = () => {
     setChecking(true);
     try {
       const { data, error } = await supabase.functions.invoke('check-stripe-connect-status');
-
       if (error) throw error;
       setStatus(data);
     } catch (error: any) {
@@ -44,17 +44,33 @@ const StripeConnectSetup: React.FC = () => {
     }
   };
 
+  const isInIframe = () => {
+    try {
+      return window.self !== window.top;
+    } catch {
+      return true;
+    }
+  };
+
   const handleConnectStripe = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('create-stripe-connect-account');
-
       if (error) throw error;
 
       if (data.onboarding_url) {
-        // Ouvrir l'onboarding Stripe dans un nouvel onglet
-        window.open(data.onboarding_url, '_blank');
-        toast.success('Onboarding Stripe ouvert - Complétez votre inscription');
+        // Si dans iframe, rediriger directement
+        if (isInIframe()) {
+          window.location.href = data.onboarding_url;
+          return;
+        }
+        // Sinon ouvrir dans un nouvel onglet
+        const popup = window.open(data.onboarding_url, '_blank');
+        if (!popup) {
+          window.location.href = data.onboarding_url;
+        } else {
+          toast.success('Onboarding Stripe ouvert - Complétez votre inscription');
+        }
       }
     } catch (error: any) {
       console.error('Erreur connexion Stripe:', error);
@@ -77,29 +93,35 @@ const StripeConnectSetup: React.FC = () => {
     return <Badge variant="outline">{status.status}</Badge>;
   };
 
-const handleOpenStripeDashboard = async () => {
-  setLoading(true);
-  try {
-    const { data, error } = await supabase.functions.invoke('stripe-connect-login-link');
-    if (error) throw error;
-    if (!data?.url) {
-      throw new Error('Lien de connexion Stripe indisponible');
-    }
+  const handleOpenStripeDashboard = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('stripe-connect-login-link');
+      if (error) throw error;
+      if (!data?.url) {
+        throw new Error('Lien de connexion Stripe indisponible');
+      }
 
-    setLastStripeUrl(data.url);
+      setLastStripeUrl(data.url);
 
-    // Ouvre Stripe dans un nouvel onglet pour éviter les blocages dans l’iframe de prévisualisation
-    const popup = window.open(data.url, '_blank', 'noopener');
-    if (!popup) {
-      toast.error("Impossible d'ouvrir Stripe. Autorisez les fenêtres pop-up puis réessayez, ou utilisez le lien de secours en dessous.");
+      // Si dans iframe (prévisualisation), rediriger directement
+      if (isInIframe()) {
+        window.location.href = data.url;
+        return;
+      }
+
+      // Sinon ouvrir dans un nouvel onglet
+      const popup = window.open(data.url, '_blank', 'noopener');
+      if (!popup) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      console.error('Erreur ouverture Stripe:', error);
+      toast.error(error.message || "Impossible d'ouvrir Stripe.");
+    } finally {
+      setLoading(false);
     }
-  } catch (error: any) {
-    console.error('Erreur ouverture Stripe:', error);
-    toast.error(error.message || "Impossible d'ouvrir Stripe.");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   if (checking) {
     return (
@@ -315,40 +337,40 @@ const handleOpenStripeDashboard = async () => {
               </div>
             )}
 
-<div className="space-y-2">
-  <Button
-    onClick={handleOpenStripeDashboard}
-    className="w-full"
-    size="sm"
-    disabled={loading}
-  >
-    <ExternalLink className="h-4 w-4 mr-2" />
-    Ouvrir Stripe
-  </Button>
-  <Button
-    onClick={checkStatus}
-    variant="outline"
-    className="w-full"
-    size="sm"
-    disabled={checking}
-  >
-    <RefreshCw className={`h-4 w-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
-    Vérifier le statut
-  </Button>
-  {lastStripeUrl && (
-    <div className="text-xs text-muted-foreground text-center">
-      Si la fenêtre ne s'ouvre pas, 
-      <a href={lastStripeUrl} target="_blank" rel="noopener" className="underline ml-1">cliquez ici</a>
-      <button
-        onClick={() => navigator.clipboard.writeText(lastStripeUrl)}
-        className="ml-2 underline"
-        aria-label="Copier le lien Stripe"
-      >
-        Copier le lien
-      </button>
-    </div>
-  )}
-</div>
+            <div className="space-y-2">
+              <Button
+                onClick={handleOpenStripeDashboard}
+                className="w-full"
+                size="sm"
+                disabled={loading}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Ouvrir Stripe
+              </Button>
+              <Button
+                onClick={checkStatus}
+                variant="outline"
+                className="w-full"
+                size="sm"
+                disabled={checking}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
+                Vérifier le statut
+              </Button>
+              {lastStripeUrl && (
+                <div className="text-xs text-muted-foreground text-center">
+                  Si la fenêtre ne s'ouvre pas, 
+                  <a href={lastStripeUrl} target="_blank" rel="noopener" className="underline ml-1">cliquez ici</a>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(lastStripeUrl)}
+                    className="ml-2 underline"
+                    aria-label="Copier le lien Stripe"
+                  >
+                    Copier le lien
+                  </button>
+                </div>
+              )}
+            </div>
           </>
         )}
       </CardContent>
