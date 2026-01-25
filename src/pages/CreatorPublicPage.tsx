@@ -445,21 +445,7 @@ const CreatorPublicPage = () => {
         >
           <Home className="h-5 w-5" />
         </button>
-        <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="p-2 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors">
-                <MoreHorizontal className="h-5 w-5" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigate(`/messagerie/${creator.id}`)}>
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Message privé
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <div className="flex gap-2" />
       </div>
 
       {/* Cover Photo */}
