@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CreditCard } from 'lucide-react';
 import CreatorSettings from '@/components/CreatorSettings';
 import StripeConnectSetup from '@/components/creator/StripeConnectSetup';
+import CreatorPrivacySettings from '@/components/creator/CreatorPrivacySettings';
 
 interface DashboardSettingsSectionProps {
   stripeConnected: boolean;
@@ -11,6 +12,7 @@ interface DashboardSettingsSectionProps {
 
 export const DashboardSettingsSection: React.FC<DashboardSettingsSectionProps> = ({
   stripeConnected,
+  creatorId,
 }) => {
   return (
     <div className="space-y-6">
@@ -24,6 +26,9 @@ export const DashboardSettingsSection: React.FC<DashboardSettingsSectionProps> =
           <CreatorSettings />
         </CardContent>
       </Card>
+
+      {/* Privacy Settings */}
+      <CreatorPrivacySettings creatorId={creatorId} />
 
       {/* Stripe Connect */}
       <Card>
