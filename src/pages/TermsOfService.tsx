@@ -9,9 +9,9 @@ const TermsOfService = () => {
   return (
     <main className="min-h-screen bg-background py-16">
       <SEOHead 
-        title="Conditions Générales d'Utilisation (CGU) - CreatorHub"
-        description="Lisez les Conditions Générales d'Utilisation de CreatorHub. Découvrez vos droits et obligations en tant qu'utilisateur de notre plateforme de créateurs de contenu pour adultes."
-        keywords="CGU, conditions utilisation, mentions légales, règlement, plateforme créateurs, contenu adulte"
+        title="Conditions Générales d'Utilisation (CGU) - Crub"
+        description="Lisez les Conditions Générales d'Utilisation de Crub. Découvrez vos droits et obligations en tant qu'utilisateur de notre plateforme de créateurs de contenu."
+        keywords="CGU, conditions utilisation, mentions légales, règlement, plateforme créateurs"
         url="https://crub.com/terms"
         noindex={false}
       />
@@ -20,79 +20,74 @@ const TermsOfService = () => {
         <p className="text-muted-foreground mb-8">Dernière mise à jour : {new Date().toLocaleDateString('fr-FR')}</p>
 
         <div className="prose prose-invert max-w-none space-y-8">
-          <section className="bg-destructive/10 border border-destructive/30 rounded-lg p-6">
-            <h2 className="text-2xl font-semibold mb-4 text-destructive">⚠️ AVERTISSEMENT - CONTENU POUR ADULTES</h2>
+          <section className="bg-primary/10 border border-primary/30 rounded-lg p-6">
+            <h2 className="text-2xl font-semibold mb-4 text-primary">📋 RÉSUMÉ DES CONDITIONS</h2>
             <p className="text-muted-foreground leading-relaxed">
-              <strong>Ce site contient du contenu explicite réservé exclusivement aux personnes majeures (18 ans et plus).</strong><br /><br />
-              En accédant à ce site, vous certifiez sur l'honneur avoir l'âge légal requis dans votre pays de résidence 
-              pour consulter du contenu pour adultes. L'accès à ce site est strictement interdit aux mineurs.<br /><br />
-              <strong>Si vous êtes mineur, quittez immédiatement ce site.</strong>
+              Crub est une plateforme de monétisation de contenu permettant aux créateurs de proposer des abonnements 
+              et du contenu payant à leur communauté. En utilisant notre plateforme, vous acceptez de respecter 
+              nos règles et la législation française et européenne en vigueur.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Objet et acceptation</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Les présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation de la plateforme CreatorHub, 
-              accessible à l'adresse crub.com. CreatorHub est une plateforme de monétisation de contenu pour adultes 
+              Les présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation de la plateforme Crub, 
+              accessible à l'adresse crub.com. Crub est une plateforme de monétisation de contenu 
               permettant aux créateurs de proposer des abonnements et du contenu payant à leurs abonnés.<br /><br />
               <strong>En accédant à notre plateforme, vous acceptez sans réserve les présentes conditions et certifiez :</strong>
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2 mt-4">
-              <li>Être majeur(e) selon la législation de votre pays (minimum 18 ans)</li>
-              <li>Ne pas être choqué(e) par du contenu explicite pour adultes</li>
-              <li>Accéder à ce site depuis un lieu où le contenu pour adultes est légal</li>
-              <li>Ne pas diffuser ce contenu à des mineurs</li>
+              <li>Avoir la capacité juridique de conclure un contrat</li>
+              <li>Fournir des informations exactes concernant votre identité</li>
+              <li>Respecter les lois en vigueur dans votre pays de résidence</li>
+              <li>Ne pas utiliser la plateforme à des fins illégales</li>
             </ul>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">2. Définitions</h2>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li><strong>Plateforme :</strong> Le site web et les services CreatorHub (crub.com)</li>
-              <li><strong>Utilisateur :</strong> Toute personne majeure accédant à la plateforme</li>
-              <li><strong>Créateur :</strong> Utilisateur majeur proposant du contenu pour adultes sur la plateforme</li>
-              <li><strong>Abonné :</strong> Utilisateur majeur souscrivant à un abonnement auprès d'un Créateur</li>
-              <li><strong>Contenu :</strong> Tout élément publié sur la plateforme (textes, images, vidéos pour adultes)</li>
-              <li><strong>Contenu pour adultes :</strong> Contenu à caractère sexuel explicite réservé aux personnes majeures</li>
+              <li><strong>Plateforme :</strong> Le site web et les services Crub (crub.com)</li>
+              <li><strong>Utilisateur :</strong> Toute personne accédant à la plateforme</li>
+              <li><strong>Créateur :</strong> Utilisateur proposant du contenu sur la plateforme</li>
+              <li><strong>Abonné :</strong> Utilisateur souscrivant à un abonnement auprès d'un Créateur</li>
+              <li><strong>Contenu :</strong> Tout élément publié sur la plateforme (textes, images, vidéos)</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">3. Conditions d'accès et vérification d'âge</h2>
+            <h2 className="text-2xl font-semibold mb-4">3. Conditions d'accès</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              <strong>L'accès à la plateforme est strictement réservé aux personnes majeures (18 ans et plus).</strong>
+              L'inscription sur la plateforme est gratuite et ouverte à tous.
             </p>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              En vous inscrivant et à chaque connexion, vous certifiez sur l'honneur :
+              En vous inscrivant, vous vous engagez à :
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Avoir au minimum 18 ans révolus</li>
-              <li>Avoir l'âge légal pour consulter du contenu pour adultes dans votre pays</li>
-              <li>Agir en votre nom propre et non pour le compte d'un tiers</li>
-              <li>Fournir des informations exactes concernant votre identité et votre âge</li>
+              <li>Fournir des informations exactes et à jour</li>
+              <li>Protéger la confidentialité de vos identifiants de connexion</li>
+              <li>Signaler immédiatement toute utilisation non autorisée de votre compte</li>
+              <li>Ne pas créer plusieurs comptes pour la même personne</li>
             </ul>
             <p className="text-muted-foreground leading-relaxed mt-4">
-              CreatorHub se réserve le droit de demander une vérification d'identité à tout moment et de 
-              suspendre immédiatement tout compte en cas de doute sur l'âge de l'utilisateur.
+              Crub se réserve le droit de demander une vérification d'identité à tout moment et de 
+              suspendre tout compte en cas de non-respect des conditions.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">4. Nature du contenu</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              CreatorHub est une plateforme dédiée au contenu pour adultes. Le contenu publié peut inclure :
+              Crub est une plateforme permettant aux créateurs de partager différents types de contenus :
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Nudité intégrale</li>
-              <li>Contenu à caractère sexuel explicite</li>
-              <li>Contenu érotique et sensuel</li>
-              <li>Lives pour adultes</li>
-              <li>Messages et médias privés à caractère adulte</li>
+              <li>Photos et images</li>
+              <li>Vidéos</li>
+              <li>Lives et diffusions en direct</li>
+              <li>Messages privés et contenus exclusifs</li>
+              <li>Tout autre format de création numérique</li>
             </ul>
-            <p className="text-muted-foreground leading-relaxed mt-4">
-              <strong>Ce contenu est strictement réservé aux personnes majeures et consentantes.</strong>
-            </p>
           </section>
 
           <section>
@@ -103,15 +98,15 @@ const TermsOfService = () => {
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li><strong>Contenu impliquant des mineurs</strong> (tolérance zéro)</li>
-              <li>Violence non consentie, torture, abus</li>
-              <li>Contenu zoophile ou bestialité</li>
-              <li>Contenu scatologique extrême</li>
+              <li>Violence, torture, abus</li>
+              <li>Contenu zoophile</li>
               <li>Incitation à la haine ou discrimination</li>
               <li>Contenu représentant des actes illégaux</li>
-              <li>Revenge porn ou contenu non consenti</li>
+              <li>Contenu non consenti ou revenge porn</li>
               <li>Usurpation d'identité ou deepfakes non consentis</li>
-              <li>Prostitution ou escorting</li>
+              <li>Activités illégales</li>
               <li>Trafic d'êtres humains</li>
+              <li>Contenu violant les droits d'auteur</li>
             </ul>
           </section>
 
@@ -119,15 +114,13 @@ const TermsOfService = () => {
             <h2 className="text-2xl font-semibold mb-4">6. Obligations des Créateurs</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">Les créateurs s'engagent à :</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li><strong>Être majeur(e) (18 ans minimum)</strong> et pouvoir le prouver sur demande</li>
-              <li>Conserver les preuves de consentement et de majorité de toute personne apparaissant dans le contenu</li>
               <li>Publier uniquement du contenu dont ils détiennent tous les droits</li>
-              <li>S'assurer que toutes les personnes figurant dans le contenu sont majeures et consentantes</li>
-              <li>Ne publier aucun contenu impliquant des mineurs, même suggéré</li>
-              <li>Respecter scrupuleusement les lois en vigueur concernant le contenu pour adultes</li>
+              <li>S'assurer que toutes les personnes figurant dans le contenu sont consentantes</li>
+              <li>Respecter scrupuleusement les lois en vigueur</li>
               <li>Déclarer leurs revenus aux autorités fiscales compétentes</li>
               <li>Configurer correctement leur compte Stripe Connect pour recevoir les paiements</li>
               <li>Répondre à toute demande de vérification dans les 48 heures</li>
+              <li>Ne pas publier de contenu trompeur ou mensonger</li>
             </ul>
           </section>
 
@@ -135,26 +128,23 @@ const TermsOfService = () => {
             <h2 className="text-2xl font-semibold mb-4">7. Obligations des Abonnés</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">Les abonnés s'engagent à :</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li><strong>Être majeur(e) (18 ans minimum)</strong></li>
               <li><strong>Ne jamais partager, copier ou distribuer le contenu</strong> des créateurs</li>
-              <li>Ne pas capturer, enregistrer ou télécharger le contenu</li>
+              <li>Ne pas capturer, enregistrer ou télécharger le contenu sans autorisation</li>
               <li>Respecter la vie privée et les droits des créateurs</li>
               <li>Ne pas contourner les mesures de protection du contenu (watermarks, etc.)</li>
-              <li>Ne pas diffuser le contenu à des mineurs</li>
               <li>Utiliser la plateforme de manière respectueuse</li>
               <li>Ne pas harceler les créateurs</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">8. Consentement et droits des performeurs</h2>
+            <h2 className="text-2xl font-semibold mb-4">8. Consentement et droits des participants</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              CreatorHub exige le respect strict des droits de toutes les personnes apparaissant dans le contenu :
+              Crub exige le respect strict des droits de toutes les personnes apparaissant dans le contenu :
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Tout contenu doit être créé avec le consentement éclairé de toutes les parties</li>
               <li>Les créateurs doivent conserver des preuves de consentement écrit</li>
-              <li>Les créateurs doivent conserver des preuves de majorité (copie de pièce d'identité)</li>
               <li>Ces documents doivent être conservés pendant toute la durée de publication + 5 ans</li>
               <li>Ils doivent être fournis sur demande de la plateforme ou des autorités</li>
             </ul>
@@ -200,7 +190,7 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">11. Protection du contenu et Technologies de sécurité</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              CreatorHub déploie un arsenal complet de technologies de protection pour sécuriser le contenu des créateurs et les données des utilisateurs :
+              Crub déploie un arsenal complet de technologies de protection pour sécuriser le contenu des créateurs et les données des utilisateurs :
             </p>
             
             <h3 className="text-xl font-semibold mt-6 mb-3">11.1 Protection anti-capture et anti-copie</h3>
@@ -214,27 +204,26 @@ const TermsOfService = () => {
 
             <h3 className="text-xl font-semibold mt-6 mb-3">11.2 Filigranes et traçabilité</h3>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li><strong>Filigrane forensique invisible</strong> : Watermark unique encodant l'identifiant utilisateur et l'horodatage, imperceptible à l'œil nu mais détectable par analyse</li>
+              <li><strong>Filigrane forensique invisible</strong> : Watermark unique encodant l'identifiant utilisateur et l'horodatage</li>
               <li><strong>Identifiant court unique</strong> : Hash cryptographique permettant d'identifier la source de toute fuite</li>
-              <li><strong>Filigrane visible optionnel</strong> : Possibilité d'afficher un watermark textuel sur les contenus sensibles</li>
-              <li><strong>Multi-positionnement</strong> : Filigranes placés à différents endroits avec opacités variables pour résister aux tentatives de suppression</li>
+              <li><strong>Filigrane visible optionnel</strong> : Possibilité d'afficher un watermark textuel sur les contenus</li>
+              <li><strong>Multi-positionnement</strong> : Filigranes placés à différents endroits pour résister aux tentatives de suppression</li>
             </ul>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">11.3 Analyse antivirus et sécurité des fichiers</h3>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li><strong>Scan antivirus automatique</strong> : Tous les fichiers uploadés sont analysés via l'API MetaDefender avant publication</li>
-              <li><strong>Détection multi-moteurs</strong> : Analyse par plusieurs moteurs antivirus simultanés pour une protection optimale</li>
+              <li><strong>Scan antivirus automatique</strong> : Tous les fichiers uploadés sont analysés avant publication</li>
+              <li><strong>Détection multi-moteurs</strong> : Analyse par plusieurs moteurs antivirus simultanés</li>
               <li><strong>Blocage des fichiers infectés</strong> : Les fichiers contenant des menaces sont automatiquement rejetés</li>
-              <li><strong>Validation des types de fichiers</strong> : Vérification stricte des formats autorisés (images, vidéos) et rejet des fichiers suspects</li>
-              <li><strong>Limite de taille</strong> : Contrôle des tailles de fichiers pour prévenir les abus (max 140 Mo par fichier scanné)</li>
+              <li><strong>Validation des types de fichiers</strong> : Vérification stricte des formats autorisés</li>
             </ul>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">11.4 Protection des comptes et authentification</h3>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li><strong>Protection anti brute-force</strong> : Blocage automatique après plusieurs tentatives de connexion échouées (5 tentatives max, blocage de 30 minutes)</li>
+              <li><strong>Protection anti brute-force</strong> : Blocage automatique après plusieurs tentatives échouées</li>
               <li><strong>Détection par IP</strong> : Surveillance des tentatives suspectes par adresse IP</li>
-              <li><strong>Jetons CSRF</strong> : Protection contre les attaques Cross-Site Request Forgery avec jetons à durée limitée</li>
-              <li><strong>Authentification à deux facteurs (2FA)</strong> : Option de sécurité renforcée via application d'authentification</li>
+              <li><strong>Jetons CSRF</strong> : Protection contre les attaques Cross-Site Request Forgery</li>
+              <li><strong>Authentification à deux facteurs (2FA)</strong> : Option de sécurité renforcée disponible</li>
               <li><strong>Sessions sécurisées</strong> : Gestion des sessions avec expiration automatique</li>
             </ul>
 
@@ -242,23 +231,22 @@ const TermsOfService = () => {
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li><strong>URLs signées temporaires</strong> : Les liens vers les médias expirent après un délai défini</li>
               <li><strong>Chiffrement des données</strong> : Transmission sécurisée via HTTPS/TLS</li>
-              <li><strong>Row Level Security (RLS)</strong> : Politiques de sécurité au niveau de la base de données limitant l'accès aux données autorisées</li>
-              <li><strong>Rate limiting</strong> : Limitation du nombre de requêtes pour prévenir les attaques par déni de service</li>
+              <li><strong>Row Level Security (RLS)</strong> : Politiques de sécurité au niveau de la base de données</li>
+              <li><strong>Rate limiting</strong> : Limitation du nombre de requêtes pour prévenir les abus</li>
             </ul>
 
             <h3 className="text-xl font-semibold mt-6 mb-3">11.6 Détection et réponse aux fuites</h3>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li><strong>Système de signalement</strong> : Interface dédiée pour reporter les fuites de contenu</li>
-              <li><strong>Décodage des watermarks</strong> : Capacité d'identifier l'utilisateur source via le filigrane forensique</li>
-              <li><strong>Suspension automatique</strong> : Les utilisateurs identifiés comme source de fuites sont immédiatement suspendus</li>
-              <li><strong>Suivi des récidivistes</strong> : Base de données des utilisateurs ayant commis plusieurs infractions</li>
+              <li><strong>Décodage des watermarks</strong> : Capacité d'identifier l'utilisateur source via le filigrane</li>
+              <li><strong>Suspension automatique</strong> : Les utilisateurs identifiés comme source de fuites sont suspendus</li>
               <li><strong>Actions légales</strong> : Conservation des preuves pour d'éventuelles poursuites judiciaires</li>
             </ul>
 
             <p className="text-muted-foreground leading-relaxed mt-6 bg-destructive/10 border border-destructive/30 rounded-lg p-4">
               <strong>⚠️ AVERTISSEMENT :</strong> Tout partage non autorisé de contenu entraînera la suspension immédiate du compte. 
               Grâce à notre système de filigrane forensique, nous sommes en mesure d'identifier la source de toute fuite et de prendre 
-              les mesures légales appropriées, y compris des poursuites judiciaires.
+              les mesures légales appropriées.
             </p>
           </section>
 
@@ -266,18 +254,18 @@ const TermsOfService = () => {
             <h2 className="text-2xl font-semibold mb-4">12. Propriété intellectuelle</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
               Les créateurs conservent l'intégralité de leurs droits de propriété intellectuelle sur leur contenu. 
-              En publiant sur CreatorHub, ils accordent à la plateforme une licence limitée et non exclusive pour 
+              En publiant sur Crub, ils accordent à la plateforme une licence limitée et non exclusive pour 
               héberger et diffuser le contenu aux abonnés autorisés.
             </p>
             <p className="text-muted-foreground leading-relaxed">
-              La marque CreatorHub, le logo et tous les éléments graphiques sont la propriété exclusive de la plateforme.
+              La marque Crub, le logo et tous les éléments graphiques sont la propriété exclusive de la plateforme.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">13. Modération et Signalements</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              CreatorHub dispose d'une équipe de modération active :
+              Crub dispose d'une équipe de modération active :
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Tout contenu illicite peut être signalé via le bouton dédié</li>
@@ -297,10 +285,10 @@ const TermsOfService = () => {
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Violation des présentes CGU</li>
               <li>Publication de contenu illégal</li>
-              <li>Suspicion de minorité</li>
               <li>Fraude ou tentative de fraude</li>
               <li>Harcèlement d'autres utilisateurs</li>
               <li>Partage non autorisé de contenu</li>
+              <li>Usurpation d'identité</li>
             </ul>
             <p className="text-muted-foreground leading-relaxed mt-4">
               En cas de résiliation normale, les gains non versés seront transférés au créateur dans un délai de 30 jours.
@@ -311,33 +299,47 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">15. Limitation de responsabilité</h2>
             <p className="text-muted-foreground leading-relaxed">
-              CreatorHub agit en qualité d'hébergeur au sens de la LCEN et ne peut être tenu responsable 
+              Crub agit en qualité d'hébergeur au sens de la LCEN et ne peut être tenu responsable 
               des contenus publiés par les utilisateurs. La plateforme s'engage à retirer promptement 
               tout contenu manifestement illicite qui lui serait signalé.<br /><br />
-              CreatorHub ne garantit pas une disponibilité continue du service et ne pourra être tenu 
+              Crub ne garantit pas une disponibilité continue du service et ne pourra être tenu 
               responsable des interruptions temporaires.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">16. Droit applicable et juridiction</h2>
+            <h2 className="text-2xl font-semibold mb-4">16. Conformité RGPD</h2>
+            <p className="text-muted-foreground leading-relaxed mb-4">
+              Conformément au Règlement Général sur la Protection des Données (RGPD) :
+            </p>
+            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+              <li>Vos données personnelles sont protégées et traitées de manière transparente</li>
+              <li>Vous disposez d'un droit d'accès, de rectification et de suppression de vos données</li>
+              <li>Vous pouvez exercer votre droit à la portabilité des données</li>
+              <li>Consultez notre <a href="/privacy" className="text-primary hover:underline">Politique de Confidentialité</a> pour plus de détails</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">17. Droit applicable et juridiction</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Les présentes CGU sont soumises au droit français. En cas de litige, les parties s'engagent 
-              à rechercher une solution amiable. À défaut, les tribunaux français seront seuls compétents.
+              Les présentes CGU sont soumises au droit français et au droit de l'Union Européenne. 
+              En cas de litige, les parties s'engagent à rechercher une solution amiable. 
+              À défaut, les tribunaux français seront seuls compétents.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">17. Modifications des CGU</h2>
+            <h2 className="text-2xl font-semibold mb-4">18. Modifications des CGU</h2>
             <p className="text-muted-foreground leading-relaxed">
-              CreatorHub se réserve le droit de modifier les présentes CGU à tout moment. 
+              Crub se réserve le droit de modifier les présentes CGU à tout moment. 
               Les utilisateurs seront informés par email et notification sur la plateforme. 
               La continuation de l'utilisation vaut acceptation des nouvelles conditions.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">18. Contact</h2>
+            <h2 className="text-2xl font-semibold mb-4">19. Contact</h2>
             <p className="text-muted-foreground leading-relaxed">
               Pour toute question concernant ces CGU :<br />
               Email : <a href="mailto:contact@crub.com" className="text-primary hover:underline">contact@crub.com</a><br />
