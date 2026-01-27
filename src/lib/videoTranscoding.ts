@@ -1,10 +1,10 @@
 /**
- * Conversion vidéo côté client
- * Convertit les formats non compatibles (MOV, etc.) en MP4
+ * Conversion vidéo côté client - Version optimisée
+ * Accepte plus de formats nativement, conversion uniquement si nécessaire
  */
 
 export interface TranscodingProgress {
-  stage: 'loading' | 'transcoding' | 'complete' | 'error';
+  stage: 'loading' | 'transcoding' | 'complete' | 'error' | 'skipped';
   progress: number;
   message: string;
 }
@@ -17,29 +17,73 @@ export interface TranscodingResult {
   error?: string;
 }
 
-// Formats qui nécessitent une conversion
-const FORMATS_NEEDING_CONVERSION = [
-  'video/quicktime',  // .mov
-  'video/x-msvideo',  // .avi
-  'video/x-matroska', // .mkv
+// Formats supportés nativement par la plupart des navigateurs
+const NATIVE_FORMATS = [
+  'video/mp4',
+  'video/webm',
+  'video/ogg',
 ];
 
-// Vérifier si le format nécessite une conversion
+// Formats qui nécessitent une conversion (vraiment incompatibles)
+const FORMATS_NEEDING_CONVERSION = [
+  'video/x-msvideo',  // .avi
+  'video/x-matroska', // .mkv
+  'video/x-flv',      // .flv
+  'video/x-ms-wmv',   // .wmv
+];
+
+/**
+ * Vérifier si le format nécessite une conversion
+ * MOV est maintenant accepté nativement (Safari + Chrome moderne le supportent)
+ */
 export function needsTranscoding(file: File): boolean {
   const mimeType = file.type.toLowerCase();
   const extension = file.name.split('.').pop()?.toLowerCase() || '';
   
-  return FORMATS_NEEDING_CONVERSION.includes(mimeType) || 
-         extension === 'mov' || 
-         extension === 'avi' || 
-         extension === 'mkv';
+  // MOV est maintenant accepté nativement
+  if (mimeType === 'video/quicktime' || extension === 'mov') {
+    return false; // Pas de conversion pour MOV
+  }
+  
+  // Vérifier si c'est un format problématique
+  if (FORMATS_NEEDING_CONVERSION.includes(mimeType)) {
+    return true;
+  }
+  
+  // Extensions problématiques
+  if (['avi', 'mkv', 'flv', 'wmv'].includes(extension)) {
+    return true;
+  }
+  
+  return false;
 }
 
-// Vérifier si le navigateur supporte MediaRecorder pour MP4
+/**
+ * Vérifier si le format est supporté nativement
+ */
+export function isNativeFormat(file: File): boolean {
+  const mimeType = file.type.toLowerCase();
+  const extension = file.name.split('.').pop()?.toLowerCase() || '';
+  
+  // MP4, WebM, OGG sont toujours supportés
+  if (NATIVE_FORMATS.includes(mimeType)) {
+    return true;
+  }
+  
+  // MOV est maintenant considéré comme natif
+  if (mimeType === 'video/quicktime' || extension === 'mov') {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * Vérifier si le navigateur supporte MediaRecorder pour la conversion
+ */
 export function supportsMediaRecorder(): boolean {
   if (typeof MediaRecorder === 'undefined') return false;
   
-  // Vérifier le support des codecs
   const types = [
     'video/mp4;codecs=avc1',
     'video/webm;codecs=vp9',
@@ -50,8 +94,8 @@ export function supportsMediaRecorder(): boolean {
 }
 
 /**
- * Convertit une vidéo en MP4/WebM compatible
- * Utilise Canvas + MediaRecorder pour le transcodage
+ * Transcoder une vidéo uniquement si vraiment nécessaire
+ * Optimisé : skip si format natif, conversion rapide sinon
  */
 export async function transcodeVideo(
   file: File,
@@ -59,8 +103,13 @@ export async function transcodeVideo(
 ): Promise<TranscodingResult> {
   const originalFormat = file.type || 'unknown';
   
-  // Si pas besoin de conversion
+  // Si format natif, pas besoin de conversion
   if (!needsTranscoding(file)) {
+    onProgress?.({ 
+      stage: 'skipped', 
+      progress: 100, 
+      message: 'Format compatible, pas de conversion nécessaire' 
+    });
     return {
       success: true,
       file,
@@ -76,7 +125,7 @@ export async function transcodeVideo(
       file,
       originalFormat,
       wasConverted: false,
-      error: 'Votre navigateur ne supporte pas la conversion vidéo. Veuillez utiliser Chrome ou Firefox.'
+      error: 'Votre navigateur ne supporte pas la conversion vidéo. Veuillez convertir en MP4 avant upload.'
     };
   }
   
@@ -101,11 +150,36 @@ export async function transcodeVideo(
       return;
     }
     
+    // Timeout pour éviter de bloquer indéfiniment
+    const timeout = setTimeout(() => {
+      resolve({
+        success: false,
+        file,
+        originalFormat,
+        wasConverted: false,
+        error: 'Timeout: la vidéo prend trop de temps à charger'
+      });
+    }, 30000);
+    
     video.onloadedmetadata = async () => {
+      clearTimeout(timeout);
+      
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       
       const duration = video.duration;
+      
+      // Limite: pas de conversion pour vidéos > 5 minutes
+      if (duration > 300) {
+        resolve({
+          success: false,
+          file,
+          originalFormat,
+          wasConverted: false,
+          error: 'Vidéo trop longue pour la conversion. Veuillez convertir en MP4 avec un logiciel externe.'
+        });
+        return;
+      }
       
       onProgress?.({ 
         stage: 'transcoding', 
@@ -129,7 +203,7 @@ export async function transcodeVideo(
       }
       
       // Capturer le stream du canvas
-      const stream = canvas.captureStream(30); // 30 FPS
+      const stream = canvas.captureStream(30);
       
       // Ajouter l'audio si présent
       try {
@@ -148,7 +222,7 @@ export async function transcodeVideo(
       
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: mimeType.split(';')[0],
-        videoBitsPerSecond: 5000000, // 5 Mbps
+        videoBitsPerSecond: 5000000,
       });
       
       const chunks: Blob[] = [];
@@ -166,7 +240,6 @@ export async function transcodeVideo(
         
         onProgress?.({ stage: 'complete', progress: 100, message: 'Conversion terminée!' });
         
-        // Cleanup
         URL.revokeObjectURL(video.src);
         
         resolve({
@@ -188,7 +261,7 @@ export async function transcodeVideo(
       };
       
       // Démarrer l'enregistrement
-      mediaRecorder.start(100); // Collecter toutes les 100ms
+      mediaRecorder.start(100);
       
       // Lire la vidéo et dessiner sur le canvas
       video.currentTime = 0;
@@ -201,7 +274,6 @@ export async function transcodeVideo(
         
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        // Mettre à jour la progression
         const progress = Math.min(95, 5 + (video.currentTime / duration) * 90);
         onProgress?.({ 
           stage: 'transcoding', 
@@ -232,6 +304,7 @@ export async function transcodeVideo(
     };
     
     video.onerror = () => {
+      clearTimeout(timeout);
       resolve({
         success: false,
         file,
@@ -241,7 +314,6 @@ export async function transcodeVideo(
       });
     };
     
-    // Charger la vidéo
     video.src = URL.createObjectURL(file);
     video.load();
   });

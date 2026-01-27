@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { validateFile } from '@/lib/fileValidation';
+import { uploadFileInChunks, formatFileSize, ChunkUploadProgress } from '@/lib/chunkedUpload';
+import { compressVideo, CompressionProgress } from '@/lib/mediaCompression';
 
 export interface ContentUploadData {
   title: string;
@@ -12,7 +14,7 @@ export interface ContentUploadData {
   file: File;
   width?: number;
   height?: number;
-  skipWatermark?: boolean; // Option to skip watermarking for faster upload
+  skipWatermark?: boolean;
 }
 
 /**
@@ -24,14 +26,20 @@ const generateWatermarkId = (): string => {
   return `WM-${timestamp}-${random}`.toUpperCase();
 };
 
+// Seuil de compression: 50 MB
+const COMPRESSION_THRESHOLD = 50 * 1024 * 1024;
+
 export const useContentUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState<string>('');
+  const [uploadSpeed, setUploadSpeed] = useState<string>('');
 
   const uploadContent = async (data: ContentUploadData, creatorId: string, userId: string) => {
     try {
       setUploading(true);
       setProgress(5);
+      setUploadStage('Validation...');
 
       // Quick validation (skip extension check for processed files)
       const validationResult = await validateFile(data.file, true);
@@ -47,55 +55,73 @@ export const useContentUpload = () => {
       const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
       const contentType = data.file.type.startsWith('video/') ? 'video' : 'image';
       
-      // Use original file directly - skip watermarking for speed
-      // Watermarking can be done async later or on-demand
-      const fileToUpload = data.file;
+      let fileToUpload = data.file;
 
-      setProgress(20);
+      // Compression vidéo pour les gros fichiers (> 50 MB)
+      if (contentType === 'video' && data.file.size > COMPRESSION_THRESHOLD) {
+        setUploadStage('Compression vidéo...');
+        setProgress(15);
+        
+        const compressionResult = await compressVideo(data.file, {
+          maxWidth: 1920,
+          maxHeight: 1080,
+          videoBitrate: 3000000, // 3 Mbps
+        }, (p: CompressionProgress) => {
+          setProgress(15 + Math.round(p.progress * 0.15));
+          setUploadStage(`Compression: ${p.message}`);
+        });
 
-      // Parallel uploads: content + thumbnail (for images)
-      const uploadPromises: Promise<any>[] = [];
-      
-      // Main content upload
-      uploadPromises.push(
-        supabase.storage.from('content').upload(fileName, fileToUpload)
+        if (compressionResult.success && compressionResult.wasCompressed) {
+          fileToUpload = compressionResult.file;
+          const savedMB = (data.file.size - fileToUpload.size) / (1024 * 1024);
+          if (savedMB > 1) {
+            toast.success(`Vidéo compressée (-${savedMB.toFixed(1)} MB)`);
+          }
+        }
+      }
+
+      setProgress(30);
+      setUploadStage('Upload en cours...');
+
+      // Upload avec chunks pour gros fichiers
+      const uploadResult = await uploadFileInChunks(
+        fileToUpload,
+        'content',
+        fileName,
+        (p: ChunkUploadProgress) => {
+          // Map chunk progress (0-100) to overall progress (30-85)
+          const mappedProgress = 30 + Math.round(p.progress * 0.55);
+          setProgress(mappedProgress);
+          setUploadStage(p.message);
+          if (p.speed) {
+            setUploadSpeed(p.speed);
+          }
+        }
       );
-      
-      // Thumbnail upload (same file for images, skip for videos)
+
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error || 'Erreur upload');
+      }
+
+      setProgress(85);
+      setUploadStage('Finalisation...');
+
+      const fileUrl = uploadResult.publicUrl;
+      let thumbnailUrl = fileUrl;
+
+      // Upload thumbnail pour images (en parallèle, non bloquant)
       if (contentType === 'image') {
-        uploadPromises.push(
-          supabase.storage.from('thumbnails').upload(fileName, fileToUpload)
-        );
+        supabase.storage.from('thumbnails').upload(fileName, fileToUpload)
+          .then(({ error }) => {
+            if (!error) {
+              const { data: thumbUrlData } = supabase.storage.from('thumbnails').getPublicUrl(fileName);
+              // Note: thumbnail URL mise à jour async, pas bloquant
+            }
+          })
+          .catch(() => {});
       }
 
-      setProgress(40);
-
-      // Execute uploads in parallel
-      const results = await Promise.allSettled(uploadPromises);
-      
-      // Check main upload result
-      const mainUploadResult = results[0];
-      if (mainUploadResult.status === 'rejected' || 
-          (mainUploadResult.status === 'fulfilled' && mainUploadResult.value.error)) {
-        const error = mainUploadResult.status === 'rejected' 
-          ? mainUploadResult.reason 
-          : mainUploadResult.value.error;
-        throw new Error(error.message || 'Erreur upload');
-      }
-
-      setProgress(70);
-
-      // Get URLs
-      const { data: fileUrlData } = supabase.storage.from('content').getPublicUrl(fileName);
-      const fileUrl = fileUrlData.publicUrl;
-
-      let thumbnailUrl = fileUrl; // Default to main file
-      if (contentType === 'image' && results[1]?.status === 'fulfilled' && !results[1].value.error) {
-        const { data: thumbUrlData } = supabase.storage.from('thumbnails').getPublicUrl(fileName);
-        thumbnailUrl = thumbUrlData.publicUrl;
-      }
-
-      setProgress(80);
+      setProgress(90);
 
       // Insert to database
       const { data: contentData, error: dbError } = await supabase
@@ -139,6 +165,7 @@ export const useContentUpload = () => {
       }).catch(err => console.warn('Fingerprint error (non-critical):', err));
 
       setProgress(100);
+      setUploadStage('Terminé!');
       toast.success('Contenu uploadé avec succès !');
       return contentData;
 
@@ -149,12 +176,16 @@ export const useContentUpload = () => {
     } finally {
       setUploading(false);
       setProgress(0);
+      setUploadStage('');
+      setUploadSpeed('');
     }
   };
 
   return {
     uploadContent,
     uploading,
-    progress
+    progress,
+    uploadStage,
+    uploadSpeed
   };
 };
