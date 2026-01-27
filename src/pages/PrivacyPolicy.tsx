@@ -9,9 +9,9 @@ const PrivacyPolicy = () => {
   return (
     <main className="min-h-screen bg-background py-16">
       <SEOHead 
-        title="Politique de Confidentialité RGPD - CreatorHub"
-        description="Politique de confidentialité de CreatorHub conforme au RGPD. Découvrez comment nous collectons, utilisons et protégeons vos données personnelles sur notre plateforme de contenu pour adultes."
-        keywords="politique confidentialité, RGPD, protection données, vie privée, données personnelles, contenu adulte"
+        title="Politique de Confidentialité RGPD - Crub"
+        description="Politique de confidentialité de Crub conforme au RGPD. Découvrez comment nous collectons, utilisons et protégeons vos données personnelles sur notre plateforme."
+        keywords="politique confidentialité, RGPD, protection données, vie privée, données personnelles"
         url="https://crub.com/privacy"
         noindex={false}
       />
@@ -20,22 +20,24 @@ const PrivacyPolicy = () => {
         <p className="text-muted-foreground mb-8">Dernière mise à jour : {new Date().toLocaleDateString('fr-FR')}</p>
 
         <div className="prose prose-invert max-w-none space-y-8">
-          <section className="bg-destructive/10 border border-destructive/30 rounded-lg p-6">
-            <h2 className="text-2xl font-semibold mb-4 text-destructive">⚠️ SITE RÉSERVÉ AUX ADULTES</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              CreatorHub est une plateforme de contenu pour adultes. Cette politique de confidentialité 
-              s'applique uniquement aux utilisateurs majeurs (18 ans et plus). 
-              <strong> Les mineurs ne sont pas autorisés à utiliser nos services.</strong>
-            </p>
+          <section className="bg-primary/10 border border-primary/30 rounded-lg p-6">
+            <h2 className="text-2xl font-semibold mb-4 text-primary">📋 RÉSUMÉ</h2>
+            <ul className="text-muted-foreground space-y-2">
+              <li>✅ Vos données sont protégées conformément au RGPD</li>
+              <li>✅ Nous ne vendons jamais vos données à des tiers</li>
+              <li>✅ Vous avez un contrôle total sur vos données (accès, rectification, suppression)</li>
+              <li>✅ Paiements sécurisés via Stripe (norme PCI-DSS)</li>
+              <li>✅ Hébergement sécurisé dans l'Union Européenne</li>
+            </ul>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Introduction</h2>
             <p className="text-muted-foreground leading-relaxed">
-              CreatorHub s'engage à protéger la vie privée de ses utilisateurs conformément au 
+              Crub s'engage à protéger la vie privée de ses utilisateurs conformément au 
               Règlement Général sur la Protection des Données (RGPD) et à la loi Informatique et Libertés.<br /><br />
               Cette politique décrit comment nous collectons, utilisons et protégeons vos données personnelles 
-              dans le cadre de notre plateforme de contenu pour adultes.
+              dans le cadre de notre plateforme de monétisation de contenu pour créateurs.
             </p>
           </section>
 
@@ -54,13 +56,12 @@ const PrivacyPolicy = () => {
             <h2 className="text-2xl font-semibold mb-4">3. Données collectées</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">Nous collectons les données suivantes :</p>
             
-            <h3 className="text-xl font-medium mb-3 mt-6">3.1 Données d'identification et de vérification d'âge</h3>
+            <h3 className="text-xl font-medium mb-3 mt-6">3.1 Données d'identification</h3>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Nom d'utilisateur / Pseudo</li>
               <li>Adresse email</li>
-              <li><strong>Date de naissance (obligatoire pour vérification de la majorité)</strong></li>
               <li>Photo de profil (optionnel)</li>
-              <li>Pièce d'identité (pour les créateurs, à des fins de vérification)</li>
+              <li>Biographie (optionnel)</li>
             </ul>
 
             <h3 className="text-xl font-medium mb-3 mt-6">3.2 Données financières (pour les créateurs)</h3>
@@ -93,7 +94,6 @@ const PrivacyPolicy = () => {
             <h2 className="text-2xl font-semibold mb-4">4. Finalités du traitement</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">Vos données sont traitées pour :</p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li><strong>Vérification de l'âge :</strong> S'assurer que tous les utilisateurs sont majeurs (obligation légale)</li>
               <li><strong>Exécution du contrat :</strong> Fourniture des services, gestion des comptes, traitement des paiements</li>
               <li><strong>Sécurité et modération :</strong> Protection contre la fraude, modération du contenu, protection des créateurs</li>
               <li><strong>Intérêt légitime :</strong> Amélioration des services, statistiques agrégées</li>
@@ -111,10 +111,6 @@ const PrivacyPolicy = () => {
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b border-border">
-                  <td className="py-3 px-4">Vérification de l'âge</td>
-                  <td className="py-3 px-4"><strong>Obligation légale</strong></td>
-                </tr>
                 <tr className="border-b border-border">
                   <td className="py-3 px-4">Création de compte</td>
                   <td className="py-3 px-4">Exécution du contrat</td>
@@ -157,7 +153,6 @@ const PrivacyPolicy = () => {
             <h2 className="text-2xl font-semibold mb-4">7. Durée de conservation</h2>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li><strong>Données de compte :</strong> Durée de l'utilisation + 3 ans après suppression</li>
-              <li><strong>Données de vérification d'âge :</strong> Durée de l'utilisation + 1 an</li>
               <li><strong>Données de transaction :</strong> 10 ans (obligation comptable et fiscale)</li>
               <li><strong>Logs de connexion :</strong> 1 an (obligation légale LCEN)</li>
               <li><strong>Messages privés :</strong> Durée de l'utilisation du compte</li>
@@ -207,8 +202,7 @@ const PrivacyPolicy = () => {
             <p className="text-muted-foreground leading-relaxed">
               Vos données sont principalement hébergées dans l'Union Européenne. En cas de transfert hors UE 
               (par exemple vers les serveurs de Stripe aux États-Unis), nous nous assurons que des garanties 
-              appropriées sont en place (clauses contractuelles types, certification Privacy Shield remplacée 
-              par le Data Privacy Framework).
+              appropriées sont en place (clauses contractuelles types, Data Privacy Framework).
             </p>
           </section>
 
@@ -229,19 +223,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">12. Protection des mineurs</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              <strong>Notre plateforme est strictement interdite aux mineurs.</strong><br /><br />
-              Nous ne collectons pas sciemment de données de personnes mineures. 
-              Si nous découvrons qu'un utilisateur est mineur, son compte sera immédiatement 
-              suspendu et ses données supprimées.<br /><br />
-              Si vous êtes parent ou tuteur et pensez qu'un mineur a créé un compte, 
-              contactez-nous immédiatement à <a href="mailto:abuse@crub.com" className="text-primary hover:underline">abuse@crub.com</a>.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">13. Réclamations</h2>
+            <h2 className="text-2xl font-semibold mb-4">12. Réclamations</h2>
             <p className="text-muted-foreground leading-relaxed">
               Si vous estimez que vos droits ne sont pas respectés, vous pouvez :<br /><br />
               1. Nous contacter à <a href="mailto:dpo@crub.com" className="text-primary hover:underline">dpo@crub.com</a><br /><br />
@@ -253,7 +235,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">14. Modifications</h2>
+            <h2 className="text-2xl font-semibold mb-4">13. Modifications</h2>
             <p className="text-muted-foreground leading-relaxed">
               Nous nous réservons le droit de modifier cette politique. Toute modification 
               significative sera notifiée par email et sur la plateforme au moins 30 jours avant 
@@ -262,7 +244,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">15. Contact DPO</h2>
+            <h2 className="text-2xl font-semibold mb-4">14. Contact DPO</h2>
             <p className="text-muted-foreground leading-relaxed">
               Délégué à la Protection des Données :<br />
               Email : <a href="mailto:dpo@crub.com" className="text-primary hover:underline">dpo@crub.com</a><br /><br />
