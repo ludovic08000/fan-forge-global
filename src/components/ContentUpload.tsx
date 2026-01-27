@@ -33,7 +33,7 @@ interface ContentUploadProps {
 
 const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const { user } = useAuth();
-  const { uploadContent, uploading, progress } = useContentUpload();
+  const { uploadContent, uploading, progress, uploadStage, uploadSpeed } = useContentUpload();
   const { checkRateLimit } = useRateLimitServer();
   const { scanFile, scanning } = useVirusScan();
   const { moderateContent, moderating } = useContentModeration();
@@ -529,7 +529,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
               </p>
             </div>
             
-            {/* Transcodage vidéo en cours */}
+            {/* Transcodage vidéo en cours - maintenant rare car MOV accepté */}
             {isTranscoding && (
               <div className="border-2 border-dashed border-primary/50 rounded-lg p-8 text-center bg-primary/5">
                 <RefreshCw className="h-12 w-12 mx-auto mb-4 text-primary animate-spin" />
@@ -539,7 +539,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
                 </p>
                 <Progress value={transcodingProgress?.progress || 0} className="w-full max-w-xs mx-auto" />
                 <p className="text-xs text-muted-foreground mt-2">
-                  {Math.round(transcodingProgress?.progress || 0)}% - Format MOV → MP4/WebM
+                  {Math.round(transcodingProgress?.progress || 0)}% - Format incompatible → WebM/MP4
                 </p>
               </div>
             )}
@@ -756,12 +756,18 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
 
           {/* Upload Progress */}
           {uploading && (
-            <div className="space-y-2">
+            <div className="space-y-3 p-4 bg-primary/5 border border-primary/20 rounded-lg">
               <div className="flex justify-between text-sm">
-                <span>Upload en cours...</span>
-                <span>{progress}%</span>
+                <span className="font-medium">{uploadStage || 'Upload en cours...'}</span>
+                <span className="text-primary font-semibold">{progress}%</span>
               </div>
-              <Progress value={progress} className="w-full" />
+              <Progress value={progress} className="w-full h-2" />
+              {uploadSpeed && (
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Vitesse: {uploadSpeed}</span>
+                  <span>{progress < 100 ? 'En cours...' : 'Terminé!'}</span>
+                </div>
+              )}
             </div>
           )}
 
