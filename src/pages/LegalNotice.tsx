@@ -9,9 +9,9 @@ const LegalNotice = () => {
   return (
     <main className="min-h-screen bg-background py-16">
       <SEOHead 
-        title="Mentions Légales - CreatorHub"
-        description="Mentions légales de CreatorHub. Informations sur l'éditeur, l'hébergeur, la propriété intellectuelle et les conditions d'utilisation du site de contenu pour adultes."
-        keywords="mentions légales, éditeur site, hébergeur, propriété intellectuelle, informations légales, contenu adulte"
+        title="Mentions Légales - Crub"
+        description="Mentions légales de Crub. Informations sur l'éditeur, l'hébergeur, la propriété intellectuelle et les conditions d'utilisation du site."
+        keywords="mentions légales, éditeur site, hébergeur, propriété intellectuelle, informations légales, RGPD"
         url="https://crub.com/legal"
         noindex={false}
       />
@@ -20,20 +20,20 @@ const LegalNotice = () => {
         <p className="text-muted-foreground mb-8">Dernière mise à jour : {new Date().toLocaleDateString('fr-FR')}</p>
 
         <div className="prose prose-invert max-w-none space-y-8">
-          <section className="bg-destructive/10 border border-destructive/30 rounded-lg p-6">
-            <h2 className="text-2xl font-semibold mb-4 text-destructive">⚠️ AVERTISSEMENT - SITE RÉSERVÉ AUX ADULTES</h2>
-            <p className="text-muted-foreground leading-relaxed">
-              <strong>Ce site contient du contenu explicite à caractère sexuel réservé exclusivement aux personnes majeures (18 ans et plus).</strong><br /><br />
-              En poursuivant votre navigation, vous certifiez avoir l'âge légal requis pour accéder à ce type de contenu 
-              dans votre pays de résidence.<br /><br />
-              <strong>L'accès à ce site est strictement interdit aux mineurs.</strong>
-            </p>
+          <section className="bg-primary/10 border border-primary/30 rounded-lg p-6">
+            <h2 className="text-2xl font-semibold mb-4 text-primary">📋 RÉSUMÉ</h2>
+            <ul className="text-muted-foreground space-y-2">
+              <li>✅ <strong>Crub</strong> est une plateforme de monétisation de contenu pour créateurs</li>
+              <li>✅ Société basée en France, conforme au RGPD</li>
+              <li>✅ Paiements sécurisés via Stripe</li>
+              <li>✅ Hébergement sécurisé via Supabase</li>
+            </ul>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Éditeur du site</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Le site CreatorHub (crub.com) est édité par :<br /><br />
+              Le site Crub (crub.com) est édité par :<br /><br />
               <strong>[Nom de la société]</strong><br />
               Forme juridique : [SAS / SARL / etc.]<br />
               Capital social : [Montant] €<br />
@@ -71,41 +71,27 @@ const LegalNotice = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">4. Nature du site et contenu pour adultes</h2>
+            <h2 className="text-2xl font-semibold mb-4">4. Nature du site</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              CreatorHub est une plateforme de monétisation de contenu pour adultes. 
-              Le site permet aux créateurs de contenu pour adultes de proposer des abonnements 
-              et du contenu payant à leurs abonnés majeurs.
+              Crub est une plateforme de monétisation de contenu pour créateurs. 
+              Le site permet aux créateurs de proposer des abonnements 
+              et du contenu payant à leurs abonnés.
             </p>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              <strong>Type de contenu hébergé :</strong>
+              <strong>Services proposés :</strong>
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Contenu à caractère sexuel explicite</li>
-              <li>Nudité intégrale</li>
-              <li>Contenu érotique et sensuel</li>
-              <li>Lives pour adultes</li>
-            </ul>
-            <p className="text-muted-foreground leading-relaxed mt-4">
-              <strong>L'accès à ce contenu est strictement réservé aux personnes majeures (18 ans et plus).</strong>
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">5. Vérification d'âge</h2>
-            <p className="text-muted-foreground leading-relaxed mb-4">
-              Conformément aux obligations légales relatives aux sites pour adultes :
-            </p>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Une vérification d'âge est effectuée à l'entrée du site</li>
-              <li>L'utilisateur doit certifier sa majorité pour accéder au contenu</li>
-              <li>Des vérifications complémentaires peuvent être demandées</li>
-              <li>Les créateurs doivent prouver leur majorité lors de l'inscription</li>
+              <li>Création de profils créateurs</li>
+              <li>Publication de contenu exclusif</li>
+              <li>Système d'abonnements</li>
+              <li>Messagerie privée</li>
+              <li>Diffusion en direct (Lives)</li>
+              <li>Système de pourboires</li>
             </ul>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">6. Prestataire de paiement</h2>
+            <h2 className="text-2xl font-semibold mb-4">5. Prestataire de paiement</h2>
             <p className="text-muted-foreground leading-relaxed">
               Les paiements sont traités par :<br /><br />
               <strong>Stripe Payments Europe, Ltd.</strong><br />
@@ -118,7 +104,7 @@ const LegalNotice = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">7. Propriété intellectuelle</h2>
+            <h2 className="text-2xl font-semibold mb-4">6. Propriété intellectuelle</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
               L'ensemble du contenu de ce site (structure, textes, logos, images, éléments graphiques, 
               charte graphique, base de données, logiciels) est la propriété exclusive de [Nom de la société] 
@@ -132,37 +118,37 @@ const LegalNotice = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">8. Contenu généré par les utilisateurs</h2>
+            <h2 className="text-2xl font-semibold mb-4">7. Contenu généré par les utilisateurs</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              CreatorHub est une plateforme permettant aux utilisateurs majeurs de publier du contenu pour adultes. 
+              Crub est une plateforme permettant aux utilisateurs de publier du contenu. 
               Les créateurs sont seuls responsables du contenu qu'ils publient et doivent :
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Être majeurs (18 ans minimum)</li>
               <li>Détenir tous les droits sur le contenu publié</li>
-              <li>S'assurer que toute personne figurant dans le contenu est majeure et consentante</li>
-              <li>Conserver les preuves de consentement et de majorité</li>
+              <li>Respecter les lois en vigueur</li>
+              <li>Respecter les droits des tiers</li>
+              <li>Se conformer aux conditions d'utilisation de la plateforme</li>
             </ul>
             <p className="text-muted-foreground leading-relaxed mt-4">
               Conformément à la loi pour la confiance dans l'économie numérique (LCEN), 
-              CreatorHub agit en qualité d'hébergeur et n'est pas responsable a priori du contenu 
+              Crub agit en qualité d'hébergeur et n'est pas responsable a priori du contenu 
               publié par les utilisateurs, sous réserve de retirer promptement tout contenu 
               manifestement illicite qui lui serait signalé.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">9. Contenu strictement interdit</h2>
+            <h2 className="text-2xl font-semibold mb-4">8. Contenu strictement interdit</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
               Les contenus suivants sont <strong>strictement interdits</strong> sur la plateforme :
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li><strong>Tout contenu impliquant des mineurs</strong> (tolérance zéro absolue)</li>
-              <li>Violence, torture, abus non consentis</li>
-              <li>Zoophilie et bestialité</li>
+              <li>Violence, torture, abus</li>
               <li>Incitation à la haine ou discrimination</li>
-              <li>Revenge porn ou contenu non consenti</li>
-              <li>Prostitution, escorting, trafic d'êtres humains</li>
+              <li>Contenu non consenti</li>
+              <li>Activités illégales</li>
+              <li>Atteinte aux droits de propriété intellectuelle</li>
             </ul>
             <p className="text-muted-foreground leading-relaxed mt-4">
               Tout contenu illégal sera immédiatement supprimé et signalé aux autorités compétentes.
@@ -170,7 +156,7 @@ const LegalNotice = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">10. Signalement de contenu illicite</h2>
+            <h2 className="text-2xl font-semibold mb-4">9. Signalement de contenu illicite</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
               Conformément à l'article 6-I-5 de la LCEN, vous pouvez nous signaler tout contenu 
               manifestement illicite en nous contactant à :
@@ -181,13 +167,12 @@ const LegalNotice = () => {
               - Vos coordonnées complètes<br />
               - La description du contenu litigieux et sa localisation précise (URL)<br />
               - Les motifs pour lesquels ce contenu doit être retiré<br />
-              - Une copie de la correspondance avec l'auteur (si applicable)<br /><br />
-              <strong>Les signalements concernant des mineurs sont traités en priorité absolue.</strong>
+              - Une copie de la correspondance avec l'auteur (si applicable)
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">11. Données personnelles</h2>
+            <h2 className="text-2xl font-semibold mb-4">10. Données personnelles</h2>
             <p className="text-muted-foreground leading-relaxed">
               Le traitement des données personnelles est détaillé dans notre 
               <a href="/privacy" className="text-primary hover:underline ml-1">Politique de Confidentialité</a>.
@@ -199,7 +184,7 @@ const LegalNotice = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">12. Cookies</h2>
+            <h2 className="text-2xl font-semibold mb-4">11. Cookies</h2>
             <p className="text-muted-foreground leading-relaxed">
               Ce site utilise des cookies essentiels au fonctionnement du service. 
               Pour en savoir plus sur leur utilisation et les gérer, 
@@ -208,7 +193,7 @@ const LegalNotice = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">13. Limitation de responsabilité</h2>
+            <h2 className="text-2xl font-semibold mb-4">12. Limitation de responsabilité</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
               [Nom de la société] ne pourra être tenue responsable des dommages directs ou indirects 
               résultant de l'utilisation du site ou de l'impossibilité de l'utiliser.
@@ -220,7 +205,7 @@ const LegalNotice = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">14. Droit applicable</h2>
+            <h2 className="text-2xl font-semibold mb-4">13. Droit applicable</h2>
             <p className="text-muted-foreground leading-relaxed">
               Les présentes mentions légales sont soumises au droit français. 
               En cas de litige, les tribunaux français seront seuls compétents.
@@ -228,7 +213,7 @@ const LegalNotice = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">15. Médiation de la consommation</h2>
+            <h2 className="text-2xl font-semibold mb-4">14. Médiation de la consommation</h2>
             <p className="text-muted-foreground leading-relaxed">
               Conformément aux articles L.616-1 et R.616-1 du Code de la consommation, 
               en cas de litige non résolu, vous pouvez recourir gratuitement au service 
@@ -240,9 +225,9 @@ const LegalNotice = () => {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">16. Crédits</h2>
+            <h2 className="text-2xl font-semibold mb-4">15. Crédits</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Conception et développement : CreatorHub<br />
+              Conception et développement : Crub<br />
               Icônes : Lucide React<br />
               Hébergement : Supabase / Lovable<br />
               Paiements : Stripe
