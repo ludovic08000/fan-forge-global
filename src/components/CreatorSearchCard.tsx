@@ -129,9 +129,6 @@ const CreatorSearchCard: React.FC<CreatorSearchCardProps> = ({ creator, compact 
           <h3 className="text-lg font-bold truncate group-hover:text-primary transition-colors">
             {creatorName}
           </h3>
-          {creator.username && (
-            <p className="text-sm text-muted-foreground">@{creator.username}</p>
-          )}
         </div>
 
         {creator.bio && (
