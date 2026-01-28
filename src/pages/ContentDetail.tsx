@@ -276,11 +276,6 @@ const ContentDetail: React.FC = () => {
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate">{creatorName}</p>
-                    {creator?.profile?.username && (
-                      <p className="text-sm text-muted-foreground">
-                        @{creator.profile.username}
-                      </p>
-                    )}
                   </div>
                 </div>
 
