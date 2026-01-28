@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { validateFile } from '@/lib/fileValidation';
-import { uploadFileInChunks, formatFileSize, ChunkUploadProgress } from '@/lib/chunkedUpload';
-import { compressVideo, CompressionProgress } from '@/lib/mediaCompression';
+import { uploadFileInChunks, ChunkUploadProgress } from '@/lib/chunkedUpload';
 
 export interface ContentUploadData {
   title: string;
@@ -25,9 +24,6 @@ const generateWatermarkId = (): string => {
   const random = Math.random().toString(36).substring(2, 8);
   return `WM-${timestamp}-${random}`.toUpperCase();
 };
-
-// Seuil de compression: 50 MB
-const COMPRESSION_THRESHOLD = 50 * 1024 * 1024;
 
 export const useContentUpload = () => {
   const [uploading, setUploading] = useState(false);
@@ -55,30 +51,8 @@ export const useContentUpload = () => {
       const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
       const contentType = data.file.type.startsWith('video/') ? 'video' : 'image';
       
-      let fileToUpload = data.file;
-
-      // Compression vidéo pour les gros fichiers (> 50 MB)
-      if (contentType === 'video' && data.file.size > COMPRESSION_THRESHOLD) {
-        setUploadStage('Compression vidéo...');
-        setProgress(15);
-        
-        const compressionResult = await compressVideo(data.file, {
-          maxWidth: 1920,
-          maxHeight: 1080,
-          videoBitrate: 3000000, // 3 Mbps
-        }, (p: CompressionProgress) => {
-          setProgress(15 + Math.round(p.progress * 0.15));
-          setUploadStage(`Compression: ${p.message}`);
-        });
-
-        if (compressionResult.success && compressionResult.wasCompressed) {
-          fileToUpload = compressionResult.file;
-          const savedMB = (data.file.size - fileToUpload.size) / (1024 * 1024);
-          if (savedMB > 1) {
-            toast.success(`Vidéo compressée (-${savedMB.toFixed(1)} MB)`);
-          }
-        }
-      }
+      // Upload direct sans compression (la compression vidéo client-side cause des désync audio)
+      const fileToUpload = data.file;
 
       setProgress(30);
       setUploadStage('Upload en cours...');
