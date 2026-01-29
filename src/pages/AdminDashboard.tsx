@@ -34,7 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp, Shield, ShieldAlert, Brain, BarChart3 } from 'lucide-react';
+import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp, Shield, ShieldAlert, Brain, BarChart3, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentRequestsManager from '@/components/admin/PaymentRequestsManager';
 import PlatformCommissions from '@/components/admin/PlatformCommissions';
@@ -47,6 +47,7 @@ import IdentityVerificationManager from '@/components/admin/IdentityVerification
 import { QuarantineManager } from '@/components/admin/QuarantineManager';
 import { AIModerationManager } from '@/components/admin/AIModerationManager';
 import AdvancedAnalytics from '@/components/admin/AdvancedAnalytics';
+import FailedPayments from '@/components/admin/FailedPayments';
 
 interface ContentReport {
   id: string;
@@ -428,11 +429,20 @@ const AdminDashboard = () => {
             <Brain className="h-3 w-3" />
             IA Modération
           </TabsTrigger>
+          <TabsTrigger value="failed-payments" className="flex items-center gap-1">
+            <XCircle className="h-3 w-3" />
+            Échecs paiements
+          </TabsTrigger>
         </TabsList>
 
         {/* Onglet Analytics Avancés */}
         <TabsContent value="analytics" className="space-y-4">
           <AdvancedAnalytics />
+        </TabsContent>
+
+        {/* Onglet Paiements échoués */}
+        <TabsContent value="failed-payments" className="space-y-4">
+          <FailedPayments />
         </TabsContent>
 
         {/* Onglet IA Modération */}
