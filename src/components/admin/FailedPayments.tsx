@@ -72,13 +72,26 @@ const FailedPayments: React.FC = () => {
   const [refundAmount, setRefundAmount] = useState<string>('');
   const [refundReason, setRefundReason] = useState<string>('requested_by_customer');
   const [isRefunding, setIsRefunding] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     loadFailedPayments();
   }, []);
 
-  const loadFailedPayments = async () => {
-    setLoading(true);
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    if (!autoRefresh) return;
+    
+    const interval = setInterval(() => {
+      loadFailedPayments(true);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
+
+  const loadFailedPayments = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('list-failed-payments');
       
@@ -87,12 +100,13 @@ const FailedPayments: React.FC = () => {
       if (data.success) {
         setFailedIntents(data.failed_intents || []);
         setProblematicCharges(data.problematic_charges || []);
+        setLastUpdated(new Date());
       } else {
         throw new Error(data.error);
       }
     } catch (error: any) {
       console.error('Erreur chargement paiements:', error);
-      toast.error('Erreur lors du chargement des paiements');
+      if (!silent) toast.error('Erreur lors du chargement des paiements');
     } finally {
       setLoading(false);
     }
@@ -183,12 +197,27 @@ const FailedPayments: React.FC = () => {
           </h2>
           <p className="text-muted-foreground mt-1">
             Suivi des paiements échoués, remboursés et contestés
+            {lastUpdated && (
+              <span className="ml-2 text-xs">
+                • Mis à jour {lastUpdated.toLocaleTimeString('fr-FR')}
+              </span>
+            )}
           </p>
         </div>
-        <Button variant="outline" onClick={loadFailedPayments} className="gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Actualiser
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={autoRefresh ? "default" : "outline"}
+            size="sm"
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            className="gap-1"
+          >
+            {autoRefresh ? "Auto ✓" : "Auto"}
+          </Button>
+          <Button variant="outline" onClick={() => loadFailedPayments()} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Actualiser
+          </Button>
+        </div>
       </div>
 
       {/* Statistiques */}
