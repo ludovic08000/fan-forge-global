@@ -131,34 +131,12 @@ serve(async (req) => {
     const session = await stripe.checkout.sessions.create(sessionParams);
     logStep("Checkout session created", { sessionId: session.id, elapsed: Date.now() - startTime });
 
-    // BACKGROUND TASK: Enregistrer le tip en pending (ne bloque pas la réponse)
-    const saveTipTask = async () => {
-      try {
-        const { error: tipError } = await supabaseClient
-          .from('tips')
-          .insert({
-            creator_id: creatorId,
-            sender_id: user.id,
-            amount: amount,
-            currency: 'EUR',
-            message: message || null,
-            stripe_payment_intent_id: session.payment_intent as string,
-          });
+    // NOTE: On ne crée PAS le tip ici !
+    // Le tip sera créé par le webhook stripe-subscription-webhook 
+    // après confirmation du paiement (checkout.session.completed)
+    // Cela évite les tips en double ou non payés
 
-        if (tipError) {
-          logStep("Background: Error saving tip", { error: tipError });
-        } else {
-          logStep("Background: Tip saved to database");
-        }
-      } catch (err) {
-        logStep("Background: Exception saving tip", { error: String(err) });
-      }
-    };
-
-    // Lancer en background sans attendre
-    EdgeRuntime.waitUntil(saveTipTask());
-
-    logStep("Response sent", { totalTime: Date.now() - startTime });
+    logStep("Response sent (tip will be created by webhook after payment)", { totalTime: Date.now() - startTime });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
