@@ -86,49 +86,50 @@ export const usePartnerships = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Récupérer le creator_id de l'utilisateur actuel - avec cache long
-  const { data: currentCreator, isLoading: creatorLoading } = useQuery({
-    queryKey: ['current-creator', user?.id],
+  // Récupérer le creator_id ET les partenariats en une seule requête combinée
+  const { data: combinedData, isLoading: combinedLoading } = useQuery({
+    queryKey: ['partnerships-combined', user?.id],
     queryFn: async () => {
-      if (!user) return null;
-      const { data, error } = await supabase
+      if (!user) return { creator: null, partnerships: [] };
+      
+      // Requête 1: Récupérer le creator_id
+      const { data: creatorData, error: creatorError } = await supabase
         .from('creators')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-    staleTime: 10 * 60 * 1000, // Cache 10 minutes (was 5)
-    gcTime: 30 * 60 * 1000, // Keep in memory 30 min
-  });
-
-  // Récupérer tous les partenariats (envoyés et reçus) - avec cache plus long
-  const { data: partnerships, isLoading, refetch } = useQuery({
-    queryKey: ['partnerships', currentCreator?.id],
-    queryFn: async () => {
-      if (!currentCreator?.id) return [];
       
-      const { data, error } = await supabase
+      if (creatorError) throw creatorError;
+      if (!creatorData) return { creator: null, partnerships: [] };
+      
+      // Requête 2: Récupérer les partenariats
+      const { data: partnershipsData, error: partnershipsError } = await supabase
         .from('creator_partnerships')
         .select(`
           *,
           requester:requester_id(id, stage_name, user_id, profiles:user_id(username, display_name, avatar_url, is_verified)),
           partner:partner_id(id, stage_name, user_id, profiles:user_id(username, display_name, avatar_url, is_verified))
         `)
-        .or(`requester_id.eq.${currentCreator.id},partner_id.eq.${currentCreator.id}`)
+        .or(`requester_id.eq.${creatorData.id},partner_id.eq.${creatorData.id}`)
         .order('created_at', { ascending: false })
         .limit(50);
       
-      if (error) throw error;
-      return (data as unknown as PartnershipRow[]).map(mapPartnershipWithProfiles);
+      if (partnershipsError) throw partnershipsError;
+      
+      return {
+        creator: creatorData,
+        partnerships: (partnershipsData as unknown as PartnershipRow[]).map(mapPartnershipWithProfiles),
+      };
     },
-    enabled: !!currentCreator?.id,
-    staleTime: 2 * 60 * 1000, // Cache 2 minutes (was 1)
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000, // Cache 2 minutes
     gcTime: 10 * 60 * 1000,
-    placeholderData: (previousData) => previousData, // Keep old data while loading
+    placeholderData: (previousData) => previousData, // Affichage instantané des anciennes données
   });
+
+  const currentCreator = combinedData?.creator ?? null;
+  const partnerships = combinedData?.partnerships ?? [];
+  const isLoading = combinedLoading;
 
   // Demandes reçues en attente
   const pendingReceived = partnerships?.filter(
@@ -306,15 +307,17 @@ export const usePartnerships = () => {
     });
   };
 
+  const refetch = () => queryClient.invalidateQueries({ queryKey: ['partnerships-combined'] });
+
   return {
     currentCreatorId: currentCreator?.id,
     isCreator: !!currentCreator,
-    isCreatorLoading: creatorLoading,
+    isCreatorLoading: isLoading,
     partnerships,
     pendingReceived,
     pendingSent,
     activePartnerships,
-    isLoading: creatorLoading || isLoading,
+    isLoading,
     refetch,
     createPartnership,
     acceptPartnership,
