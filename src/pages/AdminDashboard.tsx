@@ -34,7 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp, Shield, ShieldAlert, Brain } from 'lucide-react';
+import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp, Shield, ShieldAlert, Brain, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentRequestsManager from '@/components/admin/PaymentRequestsManager';
 import PlatformCommissions from '@/components/admin/PlatformCommissions';
@@ -46,6 +46,7 @@ import PopularProfiles from '@/components/admin/PopularProfiles';
 import IdentityVerificationManager from '@/components/admin/IdentityVerificationManager';
 import { QuarantineManager } from '@/components/admin/QuarantineManager';
 import { AIModerationManager } from '@/components/admin/AIModerationManager';
+import AdvancedAnalytics from '@/components/admin/AdvancedAnalytics';
 
 interface ContentReport {
   id: string;
@@ -384,8 +385,12 @@ const AdminDashboard = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="popular" className="space-y-4">
+      <Tabs defaultValue="analytics" className="space-y-4">
         <TabsList className="flex-wrap">
+          <TabsTrigger value="analytics" className="flex items-center gap-1">
+            <BarChart3 className="h-3 w-3" />
+            Analytics
+          </TabsTrigger>
           <TabsTrigger value="popular" className="flex items-center gap-1">
             <TrendingUp className="h-3 w-3" />
             Profils populaires
@@ -424,6 +429,11 @@ const AdminDashboard = () => {
             IA Modération
           </TabsTrigger>
         </TabsList>
+
+        {/* Onglet Analytics Avancés */}
+        <TabsContent value="analytics" className="space-y-4">
+          <AdvancedAnalytics />
+        </TabsContent>
 
         {/* Onglet IA Modération */}
         <TabsContent value="ai-moderation" className="space-y-4">
