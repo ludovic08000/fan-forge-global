@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -20,6 +20,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
   BarChart,
   Bar,
   LineChart,
@@ -36,18 +44,25 @@ import {
 } from 'recharts';
 import {
   TrendingUp,
+  TrendingDown,
   Users,
   DollarSign,
   Percent,
   RefreshCw,
   Crown,
   Activity,
+  Download,
+  AlertTriangle,
+  ArrowUpRight,
+  ArrowDownRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
+import { format, subDays, subMonths, isAfter, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+
+type PeriodFilter = '7d' | '30d' | '90d' | '1y' | 'all';
 
 interface NicheAnalytics {
   niche: string;
@@ -92,8 +107,79 @@ interface ArpuData {
   live_revenue: number;
 }
 
+interface AnalyticsAlert {
+  type: 'warning' | 'danger';
+  title: string;
+  message: string;
+}
+
+// CSV Export utility
+const exportToCSV = (data: Record<string, unknown>[], filename: string) => {
+  if (!data || data.length === 0) return;
+  
+  const headers = Object.keys(data[0]);
+  const csvContent = [
+    headers.join(','),
+    ...data.map(row => 
+      headers.map(header => {
+        const val = row[header];
+        // Escape quotes and wrap in quotes if contains comma
+        const strVal = String(val ?? '');
+        return strVal.includes(',') ? `"${strVal.replace(/"/g, '""')}"` : strVal;
+      }).join(',')
+    )
+  ].join('\n');
+  
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${filename}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+  link.click();
+};
+
+// Period filter utility
+const filterByPeriod = <T extends { cohort_month?: string; month?: string }>(
+  data: T[] | undefined,
+  period: PeriodFilter,
+  dateField: 'cohort_month' | 'month'
+): T[] => {
+  if (!data) return [];
+  if (period === 'all') return data;
+  
+  const now = new Date();
+  let cutoffDate: Date;
+  
+  switch (period) {
+    case '7d':
+      cutoffDate = subDays(now, 7);
+      break;
+    case '30d':
+      cutoffDate = subDays(now, 30);
+      break;
+    case '90d':
+      cutoffDate = subDays(now, 90);
+      break;
+    case '1y':
+      cutoffDate = subMonths(now, 12);
+      break;
+    default:
+      return data;
+  }
+  
+  return data.filter(item => {
+    const dateStr = item[dateField];
+    if (!dateStr) return false;
+    try {
+      return isAfter(parseISO(dateStr), cutoffDate);
+    } catch {
+      return false;
+    }
+  });
+};
+
 export const AdvancedAnalytics = () => {
   const [activeTab, setActiveTab] = useState('niches');
+  const [period, setPeriod] = useState<PeriodFilter>('30d');
 
   // Fetch niche analytics
   const { data: nicheData, isLoading: nicheLoading, refetch: refetchNiche } = useQuery({
@@ -145,6 +231,100 @@ export const AdvancedAnalytics = () => {
     },
   });
 
+  // Filter data by period
+  const filteredRetention = useMemo(() => 
+    filterByPeriod(retentionData, period, 'cohort_month'),
+    [retentionData, period]
+  );
+
+  const filteredArpu = useMemo(() => 
+    filterByPeriod(arpuData, period, 'month'),
+    [arpuData, period]
+  );
+
+  // Calculate period comparison (current vs previous)
+  const periodComparison = useMemo(() => {
+    if (!filteredArpu || filteredArpu.length < 2) return null;
+    
+    const sortedData = [...filteredArpu].sort((a, b) => 
+      new Date(b.month).getTime() - new Date(a.month).getTime()
+    );
+    
+    const current = sortedData[0];
+    const previous = sortedData[1];
+    
+    if (!current || !previous) return null;
+    
+    const revenueGrowth = previous.total_revenue > 0 
+      ? ((Number(current.total_revenue) - Number(previous.total_revenue)) / Number(previous.total_revenue)) * 100 
+      : 0;
+    
+    const usersGrowth = previous.paying_users > 0 
+      ? ((current.paying_users - previous.paying_users) / previous.paying_users) * 100 
+      : 0;
+    
+    const arpuGrowth = previous.arpu > 0 
+      ? ((Number(current.arpu) - Number(previous.arpu)) / Number(previous.arpu)) * 100 
+      : 0;
+    
+    return {
+      revenueGrowth: Math.round(revenueGrowth * 10) / 10,
+      usersGrowth: Math.round(usersGrowth * 10) / 10,
+      arpuGrowth: Math.round(arpuGrowth * 10) / 10,
+      currentMonth: current.month,
+      previousMonth: previous.month,
+    };
+  }, [filteredArpu]);
+
+  // Generate alerts
+  const alerts = useMemo<AnalyticsAlert[]>(() => {
+    const result: AnalyticsAlert[] = [];
+    
+    // Check churn rate
+    if (filteredRetention && filteredRetention.length > 0) {
+      const latestRetention = filteredRetention.reduce((latest, current) => 
+        new Date(current.cohort_month) > new Date(latest.cohort_month) ? current : latest
+      );
+      
+      if (Number(latestRetention.churn_rate) > 40) {
+        result.push({
+          type: 'danger',
+          title: 'Churn élevé détecté',
+          message: `Le taux de churn atteint ${latestRetention.churn_rate}% pour ${format(new Date(latestRetention.cohort_month), 'MMMM yyyy', { locale: fr })}. Action recommandée.`
+        });
+      } else if (Number(latestRetention.churn_rate) > 25) {
+        result.push({
+          type: 'warning',
+          title: 'Churn en hausse',
+          message: `Le taux de churn est de ${latestRetention.churn_rate}% pour ${format(new Date(latestRetention.cohort_month), 'MMMM yyyy', { locale: fr })}.`
+        });
+      }
+    }
+    
+    // Check conversion rate drop
+    if (nicheData) {
+      const lowConversion = nicheData.filter(n => Number(n.conversion_rate) < 10 && n.total_creators > 5);
+      if (lowConversion.length > 0) {
+        result.push({
+          type: 'warning',
+          title: 'Faible conversion',
+          message: `${lowConversion.length} niche(s) ont un taux de conversion < 10%: ${lowConversion.map(n => n.niche || 'Non catégorisé').join(', ')}`
+        });
+      }
+    }
+    
+    // Check revenue decline
+    if (periodComparison && periodComparison.revenueGrowth < -15) {
+      result.push({
+        type: 'danger',
+        title: 'Baisse de revenu significative',
+        message: `Le revenu a baissé de ${Math.abs(periodComparison.revenueGrowth)}% par rapport au mois précédent.`
+      });
+    }
+    
+    return result;
+  }, [filteredRetention, nicheData, periodComparison]);
+
   const handleRefresh = () => {
     refetchNiche();
     refetchCreator();
@@ -163,12 +343,23 @@ export const AdvancedAnalytics = () => {
   const totalPlatformRevenue = nicheData?.reduce((sum, n) => sum + Number(n.total_revenue), 0) || 0;
   const totalCreators = nicheData?.reduce((sum, n) => sum + n.total_creators, 0) || 0;
   const totalSubscribers = nicheData?.reduce((sum, n) => sum + n.unique_subscribers, 0) || 0;
-  const avgArpu = arpuData?.[0]?.arpu || 0;
+  const avgArpu = filteredArpu?.[0]?.arpu || 0;
+
+  const GrowthIndicator = ({ value }: { value: number }) => {
+    if (value === 0) return <span className="text-muted-foreground text-sm">--</span>;
+    const isPositive = value > 0;
+    return (
+      <span className={`flex items-center gap-1 text-sm font-medium ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
+        {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+        {isPositive ? '+' : ''}{value}%
+      </span>
+    );
+  };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <TrendingUp className="h-6 w-6 text-primary" />
@@ -178,13 +369,40 @@ export const AdvancedAnalytics = () => {
             Métriques détaillées de la plateforme
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleRefresh}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Actualiser
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select value={period} onValueChange={(v) => setPeriod(v as PeriodFilter)}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Période" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7d">7 jours</SelectItem>
+              <SelectItem value="30d">30 jours</SelectItem>
+              <SelectItem value="90d">90 jours</SelectItem>
+              <SelectItem value="1y">1 an</SelectItem>
+              <SelectItem value="all">Tout</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Actualiser
+          </Button>
+        </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Alerts */}
+      {alerts.length > 0 && (
+        <div className="space-y-2">
+          {alerts.map((alert, i) => (
+            <Alert key={i} variant={alert.type === 'danger' ? 'destructive' : 'default'}>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>{alert.title}</AlertTitle>
+              <AlertDescription>{alert.message}</AlertDescription>
+            </Alert>
+          ))}
+        </div>
+      )}
+
+      {/* Summary Cards with Growth */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -195,7 +413,10 @@ export const AdvancedAnalytics = () => {
             <div className="text-2xl font-bold text-emerald-600">
               {formatCurrency(totalPlatformRevenue)}
             </div>
-            <p className="text-xs text-muted-foreground">Toutes sources</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">Toutes sources</p>
+              {periodComparison && <GrowthIndicator value={periodComparison.revenueGrowth} />}
+            </div>
           </CardContent>
         </Card>
 
@@ -217,7 +438,10 @@ export const AdvancedAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalSubscribers}</div>
-            <p className="text-xs text-muted-foreground">Payants actifs</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">Payants actifs</p>
+              {periodComparison && <GrowthIndicator value={periodComparison.usersGrowth} />}
+            </div>
           </CardContent>
         </Card>
 
@@ -228,9 +452,12 @@ export const AdvancedAnalytics = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">
-              {formatCurrency(avgArpu)}
+              {formatCurrency(Number(avgArpu))}
             </div>
-            <p className="text-xs text-muted-foreground">Par utilisateur payant</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">Par utilisateur payant</p>
+              {periodComparison && <GrowthIndicator value={periodComparison.arpuGrowth} />}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -246,6 +473,17 @@ export const AdvancedAnalytics = () => {
 
         {/* Niche Analytics */}
         <TabsContent value="niches" className="space-y-4">
+          <div className="flex justify-end">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => nicheData && exportToCSV(nicheData as unknown as Record<string, unknown>[], 'niches_analytics')}
+              disabled={!nicheData}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             {/* Pie Chart */}
             <Card>
@@ -334,7 +572,7 @@ export const AdvancedAnalytics = () => {
                           {formatCurrency(Number(niche.total_revenue))}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Badge variant={Number(niche.conversion_rate) > 50 ? 'default' : 'secondary'}>
+                          <Badge variant={Number(niche.conversion_rate) > 50 ? 'default' : Number(niche.conversion_rate) < 10 ? 'destructive' : 'secondary'}>
                             {niche.conversion_rate}%
                           </Badge>
                         </TableCell>
@@ -352,6 +590,17 @@ export const AdvancedAnalytics = () => {
 
         {/* Top Creators */}
         <TabsContent value="creators" className="space-y-4">
+          <div className="flex justify-end">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => creatorData && exportToCSV(creatorData as unknown as Record<string, unknown>[], 'top_creators')}
+              disabled={!creatorData}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -423,13 +672,24 @@ export const AdvancedAnalytics = () => {
 
         {/* Retention */}
         <TabsContent value="retention" className="space-y-4">
+          <div className="flex justify-end">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => filteredRetention && exportToCSV(filteredRetention as unknown as Record<string, unknown>[], 'retention')}
+              disabled={!filteredRetention || filteredRetention.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Percent className="h-5 w-5 text-blue-500" />
                 Rétention des abonnés par cohorte
               </CardTitle>
-              <CardDescription>Évolution mensuelle du taux de rétention</CardDescription>
+              <CardDescription>Évolution mensuelle du taux de rétention ({period === 'all' ? 'toute la période' : period})</CardDescription>
             </CardHeader>
             <CardContent>
               {retentionLoading ? (
@@ -437,7 +697,7 @@ export const AdvancedAnalytics = () => {
               ) : (
                 <>
                   <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={retentionData?.slice().reverse()}>
+                    <LineChart data={filteredRetention?.slice().reverse()}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="cohort_month" 
@@ -481,7 +741,7 @@ export const AdvancedAnalytics = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {retentionData?.map((row) => (
+                      {filteredRetention?.map((row) => (
                         <TableRow key={row.cohort_month}>
                           <TableCell className="font-medium">
                             {format(new Date(row.cohort_month), 'MMMM yyyy', { locale: fr })}
@@ -511,13 +771,24 @@ export const AdvancedAnalytics = () => {
 
         {/* ARPU */}
         <TabsContent value="arpu" className="space-y-4">
+          <div className="flex justify-end">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => filteredArpu && exportToCSV(filteredArpu as unknown as Record<string, unknown>[], 'arpu')}
+              disabled={!filteredArpu || filteredArpu.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-purple-500" />
                 ARPU Mensuel & Breakdown des revenus
               </CardTitle>
-              <CardDescription>Average Revenue Per User sur 12 mois</CardDescription>
+              <CardDescription>Average Revenue Per User ({period === 'all' ? 'toute la période' : period})</CardDescription>
             </CardHeader>
             <CardContent>
               {arpuLoading ? (
@@ -525,7 +796,7 @@ export const AdvancedAnalytics = () => {
               ) : (
                 <>
                   <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={arpuData?.slice().reverse()}>
+                    <LineChart data={filteredArpu?.slice().reverse()}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="month" 
@@ -576,7 +847,7 @@ export const AdvancedAnalytics = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {arpuData?.map((row) => (
+                      {filteredArpu?.map((row) => (
                         <TableRow key={row.month}>
                           <TableCell className="font-medium">
                             {format(new Date(row.month), 'MMM yy', { locale: fr })}
