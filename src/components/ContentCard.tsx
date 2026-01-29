@@ -11,8 +11,7 @@ import { toast } from 'sonner';
 import { ReportContentDialog } from '@/components/ReportContentDialog';
 import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { supabase } from '@/integrations/supabase/client';
-import { preloadImage } from '@/components/ImageLightbox';
-import LazyContentImage, { preloadImageFast } from '@/components/LazyContentImage';
+import LazyContentImage, { preloadImage, preloadImageFast } from '@/components/LazyContentImage';
 import { SecureVideoPreviewCard } from '@/components/SecureVideoPreviewCard';
 
 interface ContentCardProps {
