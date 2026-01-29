@@ -13,11 +13,13 @@ const PopularCreators = () => {
   const { data: creators, isLoading } = useQuery({
     queryKey: ['popular-creators'],
     queryFn: async () => {
+      const now = new Date().toISOString();
+      
+      // Fetch all creators with featured status
       const { data: creatorsData, error: creatorsError } = await supabase
         .from('public_creators')
         .select('*')
-        .order('total_subscribers', { ascending: false })
-        .limit(12);
+        .limit(50);
 
       if (creatorsError) throw creatorsError;
       if (!creatorsData || creatorsData.length === 0) return [];
@@ -32,8 +34,21 @@ const PopularCreators = () => {
         (profilesData || []).map(p => [p.user_id, p])
       );
 
-      const combinedCreators: SearchCreator[] = creatorsData.map(creator => {
+      // Fetch featured_until from creators table for boost logic
+      const { data: boostData } = await supabase
+        .from('creators')
+        .select('id, featured_until')
+        .in('id', creatorsData.map(c => c.id));
+
+      const boostMap = new Map(
+        (boostData || []).map(b => [b.id, b.featured_until])
+      );
+
+      const combinedCreators: (SearchCreator & { boost_active: boolean })[] = creatorsData.map(creator => {
         const profile = profilesMap.get(creator.user_id);
+        const featuredUntil = boostMap.get(creator.id);
+        const boostActive = creator.is_featured && featuredUntil && new Date(featuredUntil) > new Date(now);
+        
         return {
           id: creator.id,
           user_id: creator.user_id,
@@ -53,12 +68,27 @@ const PopularCreators = () => {
           similarity_score: 1,
           gender: creator.gender || '',
           orientation: creator.orientation || '',
-          content_type: creator.content_type || []
+          content_type: creator.content_type || [],
+          boost_active: boostActive || false
         };
       });
 
-      return combinedCreators;
-    }
+      // ALGORITHM: Sort by boost first, then by subscribers
+      // 1. Boosted creators (with active featured_until) first
+      // 2. Then by total_subscribers descending
+      combinedCreators.sort((a, b) => {
+        // Boosted creators come first
+        if (a.boost_active && !b.boost_active) return -1;
+        if (!a.boost_active && b.boost_active) return 1;
+        
+        // Among same boost status, sort by subscribers
+        return (b.total_subscribers || 0) - (a.total_subscribers || 0);
+      });
+
+      // Return top 12
+      return combinedCreators.slice(0, 12) as SearchCreator[];
+    },
+    staleTime: 60 * 1000, // 1 minute cache
   });
 
   if (isLoading) {
