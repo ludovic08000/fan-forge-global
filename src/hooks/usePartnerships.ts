@@ -100,11 +100,11 @@ export const usePartnerships = () => {
       return data;
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // Cache 5 minutes
-    gcTime: 10 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // Cache 10 minutes (was 5)
+    gcTime: 30 * 60 * 1000, // Keep in memory 30 min
   });
 
-  // Récupérer tous les partenariats (envoyés et reçus) - avec cache
+  // Récupérer tous les partenariats (envoyés et reçus) - avec cache plus long
   const { data: partnerships, isLoading, refetch } = useQuery({
     queryKey: ['partnerships', currentCreator?.id],
     queryFn: async () => {
@@ -125,8 +125,9 @@ export const usePartnerships = () => {
       return (data as unknown as PartnershipRow[]).map(mapPartnershipWithProfiles);
     },
     enabled: !!currentCreator?.id,
-    staleTime: 60 * 1000, // Cache 1 minute
-    gcTime: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000, // Cache 2 minutes (was 1)
+    gcTime: 10 * 60 * 1000,
+    placeholderData: (previousData) => previousData, // Keep old data while loading
   });
 
   // Demandes reçues en attente
