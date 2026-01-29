@@ -77,9 +77,21 @@ serve(async (req) => {
       .update({ status: "processing" })
       .eq("id", requestId);
 
+    // Vérifier que le créateur a un compte Stripe Connect actif
+    if (!paymentRequest.creators.stripe_account_id) {
+      throw new Error("Le créateur n'a pas configuré son compte Stripe Connect");
+    }
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
+
+    // Vérifier le statut du compte
+    const account = await stripe.accounts.retrieve(paymentRequest.creators.stripe_account_id);
+    
+    if (!account.payouts_enabled) {
+      throw new Error("Le compte Stripe Connect du créateur n'est pas encore activé pour les virements");
+    }
 
     // Récupérer l'email du créateur
     const { data: { user: creatorUser } } = await supabaseClient.auth.admin.getUserById(
@@ -101,23 +113,6 @@ serve(async (req) => {
         description: `Creator: ${paymentRequest.creators.stage_name}`,
       });
       customerId = customer.id;
-    }
-
-    // Créer le paiement via Stripe Transfer vers le compte Connect
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
-    });
-
-    // Vérifier que le créateur a un compte Stripe Connect actif
-    if (!paymentRequest.creators.stripe_account_id) {
-      throw new Error("Le créateur n'a pas configuré son compte Stripe Connect");
-    }
-
-    // Vérifier le statut du compte
-    const account = await stripe.accounts.retrieve(paymentRequest.creators.stripe_account_id);
-    
-    if (!account.payouts_enabled) {
-      throw new Error("Le compte Stripe Connect du créateur n'est pas encore activé pour les virements");
     }
 
     // Créer le transfert vers le compte Connect du créateur
