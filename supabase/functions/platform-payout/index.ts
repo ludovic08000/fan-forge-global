@@ -63,13 +63,21 @@ serve(async (req) => {
     // Calculer le montant disponible en EUR (ou autre devise principale)
     const availableEur = balance.available.find(b => b.currency === 'eur');
     const availableAmount = availableEur?.amount || 0;
+    const pendingEur = balance.pending.find(b => b.currency === 'eur');
+    const pendingAmount = pendingEur?.amount || 0;
 
-    if (availableAmount <= 0) {
+    // Récupérer le body de la requête pour voir si on demande juste le solde ou un payout
+    const body = await req.json().catch(() => ({}));
+    const action = body.action || "balance"; // "balance" ou "payout"
+
+    if (action === "balance") {
+      // Retourner le solde (même négatif pour information)
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Aucun solde disponible pour le retrait",
-          balance: 0
+        JSON.stringify({
+          success: true,
+          balance: availableAmount / 100, // Convertir en euros
+          currency: "EUR",
+          pending: pendingAmount / 100
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -78,9 +86,20 @@ serve(async (req) => {
       );
     }
 
-    // Récupérer le body de la requête pour voir si on demande juste le solde ou un payout
-    const body = await req.json().catch(() => ({}));
-    const action = body.action || "balance"; // "balance" ou "payout"
+    // Pour le payout, vérifier qu'il y a un solde positif
+    if (availableAmount <= 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Aucun solde disponible pour le retrait",
+          balance: availableAmount / 100
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
+    }
 
     if (action === "balance") {
       // Retourner juste le solde
