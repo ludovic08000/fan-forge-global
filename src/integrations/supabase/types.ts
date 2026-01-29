@@ -181,6 +181,13 @@ export type Database = {
             foreignKeyName: "collaborative_content_primary_creator_id_fkey"
             columns: ["primary_creator_id"]
             isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "collaborative_content_primary_creator_id_fkey"
+            columns: ["primary_creator_id"]
+            isOneToOne: false
             referencedRelation: "creators"
             referencedColumns: ["id"]
           },
@@ -262,6 +269,13 @@ export type Database = {
           view_count?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "content_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
           {
             foreignKeyName: "content_creator_id_fkey"
             columns: ["creator_id"]
@@ -537,6 +551,13 @@ export type Database = {
             foreignKeyName: "creator_invoices_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "creator_invoices_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
             referencedRelation: "creators"
             referencedColumns: ["id"]
           },
@@ -608,6 +629,13 @@ export type Database = {
             foreignKeyName: "creator_partnerships_partner_id_fkey"
             columns: ["partner_id"]
             isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "creator_partnerships_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
             referencedRelation: "creators"
             referencedColumns: ["id"]
           },
@@ -624,6 +652,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "public_creators_safe"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_partnerships_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
           },
           {
             foreignKeyName: "creator_partnerships_requester_id_fkey"
@@ -695,6 +730,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "creator_payment_requests_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
           {
             foreignKeyName: "creator_payment_requests_creator_id_fkey"
             columns: ["creator_id"]
@@ -945,6 +987,13 @@ export type Database = {
           id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "follows_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
           {
             foreignKeyName: "follows_creator_id_fkey"
             columns: ["creator_id"]
@@ -1244,6 +1293,13 @@ export type Database = {
             foreignKeyName: "live_stream_revenue_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "live_stream_revenue_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
             referencedRelation: "creators"
             referencedColumns: ["id"]
           },
@@ -1448,6 +1504,13 @@ export type Database = {
             foreignKeyName: "live_streams_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "live_streams_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
             referencedRelation: "creators"
             referencedColumns: ["id"]
           },
@@ -1577,6 +1640,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "content"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_fingerprints_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
           },
           {
             foreignKeyName: "media_fingerprints_creator_id_fkey"
@@ -1778,6 +1848,13 @@ export type Database = {
           total_revenue?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "platform_commissions_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
           {
             foreignKeyName: "platform_commissions_creator_id_fkey"
             columns: ["creator_id"]
@@ -2165,6 +2242,13 @@ export type Database = {
             foreignKeyName: "referral_codes_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "referral_codes_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
             referencedRelation: "creators"
             referencedColumns: ["id"]
           },
@@ -2337,6 +2421,13 @@ export type Database = {
             foreignKeyName: "subscriptions_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
             referencedRelation: "creators"
             referencedColumns: ["id"]
           },
@@ -2397,6 +2488,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "content"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tips_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
           },
           {
             foreignKeyName: "tips_creator_id_fkey"
@@ -2554,6 +2652,60 @@ export type Database = {
       }
     }
     Views: {
+      admin_creator_revenue: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          creator_id: string | null
+          currency: string | null
+          live_revenue: number | null
+          private_content_revenue: number | null
+          stage_name: string | null
+          subscription_revenue: number | null
+          tips_revenue: number | null
+          total_content: number | null
+          total_revenue: number | null
+          total_subscribers: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      admin_niche_analytics: {
+        Row: {
+          active_subscriptions: number | null
+          arpu: number | null
+          conversion_rate: number | null
+          niche: string | null
+          total_creators: number | null
+          total_revenue: number | null
+          unique_subscribers: number | null
+        }
+        Relationships: []
+      }
+      admin_platform_arpu: {
+        Row: {
+          arpu: number | null
+          live_revenue: number | null
+          month: string | null
+          paying_users: number | null
+          private_content_revenue: number | null
+          subscription_revenue: number | null
+          tips_revenue: number | null
+          total_revenue: number | null
+        }
+        Relationships: []
+      }
+      admin_subscription_retention: {
+        Row: {
+          churn_rate: number | null
+          churned_subscribers: number | null
+          cohort_month: string | null
+          retained_subscribers: number | null
+          retention_rate: number | null
+          total_subscribers: number | null
+        }
+        Relationships: []
+      }
       public_creator_profiles: {
         Row: {
           avatar_url: string | null
@@ -2726,6 +2878,13 @@ export type Database = {
           viewer_count: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "live_streams_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
           {
             foreignKeyName: "live_streams_creator_id_fkey"
             columns: ["creator_id"]
