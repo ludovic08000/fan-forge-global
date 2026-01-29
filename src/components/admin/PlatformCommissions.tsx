@@ -119,6 +119,8 @@ const PlatformCommissions: React.FC = () => {
       setPayoutLoading(false);
     }
   };
+
+  const loadCommissions = async () => {
     setLoading(true);
     try {
       let query = supabase
