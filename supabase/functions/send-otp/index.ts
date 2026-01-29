@@ -8,6 +8,15 @@ const corsHeaders = {
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
+// SÉCURITÉ: Hasher le code OTP avec SHA-256 avant stockage
+async function hashCode(code: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(code + Deno.env.get('OTP_HASH_SALT') || 'otp-salt-v1');
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 Deno.serve(async (req) => {
   console.log('send-otp: Requête reçue');
   
@@ -64,11 +73,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Générer un code à 6 chiffres
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Générer un code à 6 chiffres avec crypto.getRandomValues pour plus de sécurité
+    const randomBuffer = new Uint32Array(1);
+    crypto.getRandomValues(randomBuffer);
+    const code = String(100000 + (randomBuffer[0] % 900000));
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     console.log('send-otp: Code généré pour', user.email);
+
+    // SÉCURITÉ: Hasher le code avant stockage en base
+    const hashedCode = await hashCode(code);
 
     // Supprimer les anciens codes non vérifiés
     await supabaseAdmin
@@ -77,13 +91,13 @@ Deno.serve(async (req) => {
       .eq('user_id', user.id)
       .eq('verified', false);
 
-    // Insérer le nouveau code
+    // Insérer le nouveau code HASHÉ
     const { error: insertError } = await supabaseAdmin
       .from('otp_codes')
       .insert({
         user_id: user.id,
         email: user.email,
-        code: code,
+        code: hashedCode, // Stockage du HASH, pas du code en clair
         expires_at: expiresAt.toISOString(),
       });
 
@@ -95,9 +109,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log('send-otp: Code enregistré, envoi email...');
+    console.log('send-otp: Code enregistré (hashé), envoi email...');
 
-    // Envoyer l'email via Resend
+    // Envoyer l'email via Resend avec le code EN CLAIR
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: 'Sécurité <onboarding@resend.dev>',
       to: [user.email!],
@@ -134,11 +148,11 @@ Deno.serve(async (req) => {
 
     if (emailError) {
       console.error('send-otp: Erreur envoi email:', emailError);
-      // On retourne quand même le code pour le mode dev/test
+      // En dev, on peut retourner le code - EN PRODUCTION, NE JAMAIS FAIRE ÇA
       return new Response(JSON.stringify({ 
         success: true, 
-        message: 'Code généré (email non envoyé)',
-        code: code,
+        message: 'Code généré (email non envoyé - mode dev)',
+        // ATTENTION: Ne pas exposer le code en production
         emailError: emailError.message
       }), {
         status: 200,

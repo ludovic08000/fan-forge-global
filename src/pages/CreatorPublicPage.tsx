@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Heart, Eye, Lock, Crown, CheckCircle2, MessageCircle, UserMinus, Play, Image, Video, Home, Grid3X3, ShoppingBag, SlidersHorizontal, ChevronDown, ChevronUp, Coins, Instagram, Youtube, ExternalLink, User, LogOut, Settings, Menu } from 'lucide-react';
+import { Heart, Eye, Lock, Crown, CheckCircle2, MessageCircle, UserMinus, Play, Image, Video, Home, Grid3X3, ShoppingBag, SlidersHorizontal, ChevronDown, ChevronUp, Coins, Instagram, Youtube, ExternalLink, User, LogOut, Settings, Menu, Calendar, Radio } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
 import SEOHead from '@/components/SEOHead';
@@ -43,6 +43,7 @@ const CreatorPublicPage = () => {
   const [contentFilter, setContentFilter] = useState<ContentFilter>('all');
   const [activeTab, setActiveTab] = useState<TabFilter>('posts');
   const [bioExpanded, setBioExpanded] = useState(false);
+  const [scheduledLives, setScheduledLives] = useState<any[]>([]);
 
   useContentProtection(!showCheckout && !selectedImage);
 
@@ -149,6 +150,30 @@ const CreatorPublicPage = () => {
 
     loadCreator();
   }, [username, user]);
+
+  // Charger les lives programmés du créateur
+  useEffect(() => {
+    const loadScheduledLives = async () => {
+      if (!creator?.id) return;
+      
+      try {
+        const { data: lives } = await supabase
+          .from('live_streams')
+          .select('id, title, scheduled_at, is_premium, price')
+          .eq('creator_id', creator.id)
+          .eq('status', 'scheduled')
+          .gt('scheduled_at', new Date().toISOString())
+          .order('scheduled_at', { ascending: true })
+          .limit(3);
+        
+        setScheduledLives(lives || []);
+      } catch (error) {
+        console.error('Error loading scheduled lives:', error);
+      }
+    };
+
+    loadScheduledLives();
+  }, [creator?.id]);
 
   useEffect(() => {
     const preloadCheckout = async () => {
@@ -569,7 +594,7 @@ const CreatorPublicPage = () => {
         </div>
 
         {/* Boutons d'action */}
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           {/* Bouton S'abonner */}
           {!user ? (
             <Link to="/login">
@@ -617,6 +642,18 @@ const CreatorPublicPage = () => {
               {creator.subscription_price > 0 
                 ? `S'abonner · ${creator.subscription_price}€` 
                 : "S'abonner"}
+            </Button>
+          )}
+
+          {/* Bouton Message - Visible uniquement pour les abonnés */}
+          {user && isSubscribed && creator && (
+            <Button
+              variant="outline"
+              className="rounded-full h-9 px-4 text-sm font-medium gap-2"
+              onClick={() => navigate(`/messagerie/${creator.id}`)}
+            >
+              <MessageCircle className="h-4 w-4" />
+              Message
             </Button>
           )}
 
@@ -701,6 +738,48 @@ const CreatorPublicPage = () => {
                 YouTube
               </a>
             )}
+          </div>
+        )}
+
+        {/* Section Prochains Lives programmés */}
+        {scheduledLives.length > 0 && (
+          <div className="mt-6 p-4 bg-gradient-to-r from-red-500/10 to-primary/10 rounded-xl border border-border">
+            <div className="flex items-center gap-2 mb-3">
+              <Radio className="h-5 w-5 text-red-500" />
+              <h3 className="font-semibold">Prochains Lives</h3>
+            </div>
+            <div className="space-y-2">
+              {scheduledLives.map((live) => (
+                <div 
+                  key={live.id}
+                  className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium text-sm">{live.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(live.scheduled_at).toLocaleDateString('fr-FR', {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {live.is_premium && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Crown className="h-3 w-3 mr-1" />
+                        {live.price ? `${live.price}€` : 'Premium'}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

@@ -5,6 +5,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// SÉCURITÉ: Même fonction de hachage que dans send-otp
+async function hashCode(code: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(code + Deno.env.get('OTP_HASH_SALT') || 'otp-salt-v1');
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// SÉCURITÉ: Comparaison en temps constant pour éviter les attaques timing
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    // Toujours effectuer la comparaison pour éviter les différences de timing
+    let dummy = 0;
+    for (let i = 0; i < a.length; i++) {
+      dummy |= a.charCodeAt(i) ^ b.charCodeAt(i % b.length);
+    }
+    return false;
+  }
+  
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -81,14 +108,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Incrémenter les tentatives
+    // Incrémenter les tentatives AVANT la vérification
     await supabaseAdmin
       .from('otp_codes')
       .update({ attempts: otpRecord.attempts + 1 })
       .eq('id', otpRecord.id);
 
-    // Vérifier le code
-    if (otpRecord.code !== code) {
+    // SÉCURITÉ: Hasher le code fourni et comparer avec le hash stocké
+    const hashedInputCode = await hashCode(code);
+    
+    // SÉCURITÉ: Comparaison en temps constant
+    if (!timingSafeEqual(otpRecord.code, hashedInputCode)) {
       const remaining = 4 - otpRecord.attempts;
       return new Response(JSON.stringify({ 
         error: `Code incorrect. ${remaining} tentative(s) restante(s).` 

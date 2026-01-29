@@ -8,7 +8,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Menu, X, User, LogOut, Settings, Crown, MessageCircle } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, Crown, MessageCircle, Receipt } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { NotificationBell } from '@/components/NotificationBell';
 
@@ -112,6 +112,12 @@ const Header = memo(() => {
                     <span>Mes abonnements</span>
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/my-payments" className="flex items-center">
+                    <Receipt className="mr-2 h-4 w-4" aria-hidden="true" />
+                    <span>Mes achats</span>
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => {
                   await signOut();
                   navigate('/');
@@ -207,6 +213,13 @@ const Header = memo(() => {
                     onClick={closeMenu}
                   >
                     Mes abonnements
+                  </Link>
+                  <Link 
+                    to="/my-payments" 
+                    className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                    onClick={closeMenu}
+                  >
+                    Mes achats
                   </Link>
                   <button
                     onClick={async () => {
