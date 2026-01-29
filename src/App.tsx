@@ -55,6 +55,7 @@ const CreatorChatPage = lazy(() => import("./pages/CreatorChatPage"));
 const ContentDetail = lazy(() => import("./pages/ContentDetail"));
 const Messages = lazy(() => import("./pages/Messages"));
 const VerifyOtp = lazy(() => import("./pages/VerifyOtp"));
+const MyPayments = lazy(() => import("./pages/MyPayments"));
 
 const IdentityVerification = lazy(() => import("./pages/IdentityVerification"));
 
@@ -147,6 +148,11 @@ const AppRoutes = () => {
           <Route path="/subscriptions" element={
             <ProtectedRoute>
               <MySubscriptions />
+            </ProtectedRoute>
+          } />
+          <Route path="/my-payments" element={
+            <ProtectedRoute>
+              <MyPayments />
             </ProtectedRoute>
           } />
           <Route path="/messages" element={
