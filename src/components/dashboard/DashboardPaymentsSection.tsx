@@ -45,6 +45,36 @@ interface DashboardPaymentsSectionProps {
 export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> = ({ creatorId }) => {
   const { user } = useAuth();
 
+  // Revenus réels via RPC (source de vérité)
+  const { data: revenueData, isLoading: revenueLoading } = useQuery({
+    queryKey: ['creator-revenue-rpc', creatorId],
+    queryFn: async () => {
+      const now = new Date();
+      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      
+      const { data, error } = await supabase.rpc('calculate_creator_revenue_with_commission', {
+        creator_uuid: creatorId,
+        start_date: periodStart.toISOString(),
+        end_date: now.toISOString(),
+      });
+      
+      if (error) throw error;
+      return data?.[0] as {
+        subscription_revenue: number;
+        tips_revenue: number;
+        live_revenue: number;
+        private_content_revenue: number;
+        total_before_commission: number;
+        commission_amount: number;
+        total_after_commission: number;
+      } | null;
+    },
+    enabled: !!creatorId,
+    staleTime: 30 * 1000,
+    gcTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+
   // Subscriptions avec refresh temps réel
   const { data: subscriptions, isLoading: subsLoading } = useQuery({
     queryKey: ['creator-subscriptions', creatorId],
@@ -177,18 +207,18 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
     })) || []),
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  // Calcul des totaux
+  // Utiliser les données RPC pour les totaux (source de vérité)
   const totals = {
-    subscriptions: subscriptions?.reduce((sum, s) => sum + (s.price || 0), 0) || 0,
-    tips: tips?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0,
-    privateContent: privatePayments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0,
-    live: livePayments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0,
+    subscriptions: revenueData?.subscription_revenue || 0,
+    tips: revenueData?.tips_revenue || 0,
+    privateContent: revenueData?.private_content_revenue || 0,
+    live: revenueData?.live_revenue || 0,
   };
-  const totalGross = totals.subscriptions + totals.tips + totals.privateContent + totals.live;
-  const commission = totalGross * 0.15;
-  const totalNet = totalGross - commission;
+  const totalGross = revenueData?.total_before_commission || 0;
+  const commission = revenueData?.commission_amount || 0;
+  const totalNet = revenueData?.total_after_commission || 0;
 
-  const isLoading = subsLoading || tipsLoading || privateLoading || liveLoading;
+  const isLoading = subsLoading || tipsLoading || privateLoading || liveLoading || revenueLoading;
 
   const getTypeConfig = (type: EncaissementItem['type']) => {
     const configs = {
