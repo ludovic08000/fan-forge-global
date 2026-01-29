@@ -45,7 +45,7 @@ interface DashboardPaymentsSectionProps {
 export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> = ({ creatorId }) => {
   const { user } = useAuth();
 
-  // Queries avec cache optimisé
+  // Subscriptions avec refresh temps réel
   const { data: subscriptions, isLoading: subsLoading } = useQuery({
     queryKey: ['creator-subscriptions', creatorId],
     queryFn: async () => {
@@ -63,28 +63,32 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
       return data;
     },
     enabled: !!creatorId,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    gcTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
   });
 
+  // Tips - SEULEMENT ceux avec stripe_payment_intent_id (réellement payés)
   const { data: tips, isLoading: tipsLoading } = useQuery({
     queryKey: ['creator-tips', creatorId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tips')
         .select(`
-          id, amount, currency, message, created_at, sender_id,
+          id, amount, currency, message, created_at, sender_id, stripe_payment_intent_id,
           profiles:sender_id(display_name, username)
         `)
         .eq('creator_id', creatorId)
+        .not('stripe_payment_intent_id', 'is', null)
         .order('created_at', { ascending: false })
         .limit(30);
       if (error) throw error;
       return data;
     },
     enabled: !!creatorId,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 secondes pour refresh plus fréquent
+    gcTime: 60 * 1000,
+    refetchInterval: 60 * 1000, // Auto-refresh toutes les minutes
   });
 
   const { data: privatePayments, isLoading: privateLoading } = useQuery({
@@ -97,7 +101,7 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
           profiles:subscriber_id(display_name, username),
           private_messages!inner(creator_id)
         `)
-        .eq('status', 'completed')
+        .eq('status', 'paid')
         .eq('private_messages.creator_id', creatorId)
         .order('created_at', { ascending: false })
         .limit(30);
@@ -105,8 +109,9 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
       return data || [];
     },
     enabled: !!creatorId,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    gcTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
   });
 
   const { data: livePayments, isLoading: liveLoading } = useQuery({
@@ -119,7 +124,7 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
           profiles:subscriber_id(display_name, username),
           live_streams!inner(title, creator_id)
         `)
-        .eq('status', 'completed')
+        .eq('status', 'paid')
         .eq('live_streams.creator_id', creatorId)
         .order('created_at', { ascending: false })
         .limit(30);
@@ -127,8 +132,9 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
       return data || [];
     },
     enabled: !!creatorId,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    gcTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
   });
 
   // Combiner tous les encaissements
