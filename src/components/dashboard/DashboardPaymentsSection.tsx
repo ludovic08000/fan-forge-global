@@ -45,7 +45,7 @@ interface DashboardPaymentsSectionProps {
 export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> = ({ creatorId }) => {
   const { user } = useAuth();
 
-  // Revenus réels via RPC (source de vérité)
+  // Revenus réels via RPC (source de vérité) - cache plus long pour éviter re-fetch
   const { data: revenueData, isLoading: revenueLoading } = useQuery({
     queryKey: ['creator-revenue-rpc', creatorId],
     queryFn: async () => {
@@ -70,12 +70,13 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
       } | null;
     },
     enabled: !!creatorId,
-    staleTime: 30 * 1000,
-    gcTime: 60 * 1000,
-    refetchInterval: 60 * 1000,
+    staleTime: 2 * 60 * 1000, // 2 minutes cache
+    gcTime: 5 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000, // Refresh every 2 min
+    placeholderData: (previousData) => previousData,
   });
 
-  // Subscriptions avec refresh temps réel
+  // Subscriptions avec cache optimisé
   const { data: subscriptions, isLoading: subsLoading } = useQuery({
     queryKey: ['creator-subscriptions', creatorId],
     queryFn: async () => {
@@ -93,9 +94,10 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
       return data;
     },
     enabled: !!creatorId,
-    staleTime: 30 * 1000,
-    gcTime: 60 * 1000,
-    refetchInterval: 60 * 1000,
+    staleTime: 2 * 60 * 1000, // 2 min cache
+    gcTime: 5 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
+    placeholderData: (previousData) => previousData,
   });
 
   // Tips - SEULEMENT ceux avec stripe_payment_intent_id (réellement payés)
@@ -116,9 +118,10 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
       return data;
     },
     enabled: !!creatorId,
-    staleTime: 30 * 1000, // 30 secondes pour refresh plus fréquent
-    gcTime: 60 * 1000,
-    refetchInterval: 60 * 1000, // Auto-refresh toutes les minutes
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: privatePayments, isLoading: privateLoading } = useQuery({
@@ -139,9 +142,10 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
       return data || [];
     },
     enabled: !!creatorId,
-    staleTime: 30 * 1000,
-    gcTime: 60 * 1000,
-    refetchInterval: 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: livePayments, isLoading: liveLoading } = useQuery({
@@ -162,9 +166,10 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
       return data || [];
     },
     enabled: !!creatorId,
-    staleTime: 30 * 1000,
-    gcTime: 60 * 1000,
-    refetchInterval: 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
+    placeholderData: (previousData) => previousData,
   });
 
   // Combiner tous les encaissements
