@@ -1,16 +1,13 @@
 /**
  * Compact Payment Card for Dashboard
- * Shows earnings summary and links to Stripe Dashboard
- * 
- * Note: With Stripe Connect and transfer_data, payments are sent instantly to creators.
- * No manual withdrawal is needed - this card shows earnings overview and Stripe access.
+ * Shows earnings summary with Stripe Dashboard link + Encaissement button
  */
 
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Banknote, Loader2, ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Banknote, Loader2, ExternalLink, CheckCircle2, AlertCircle, RefreshCw, ArrowDownToLine } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,8 +24,10 @@ interface RevenueBreakdown {
 
 export const PaymentRequestCard: React.FC = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const { data: creatorData } = useQuery({
+  const { data: creatorData, isLoading, refetch } = useQuery({
     queryKey: ['creator-payment-info', user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -64,8 +63,9 @@ export const PaymentRequestCard: React.FC = () => {
       };
     },
     enabled: !!user,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 secondes
+    gcTime: 60 * 1000,
+    refetchInterval: 60 * 1000, // Auto-refresh toutes les minutes
   });
 
   const creatorInfo = creatorData?.creator;
@@ -97,6 +97,23 @@ export const PaymentRequestCard: React.FC = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+      // Invalider aussi les autres queries de paiement
+      queryClient.invalidateQueries({ queryKey: ['creator-subscriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['creator-tips'] });
+      queryClient.invalidateQueries({ queryKey: ['creator-private-payments'] });
+      queryClient.invalidateQueries({ queryKey: ['creator-live-payments'] });
+      toast.success("Données actualisées");
+    } catch (e) {
+      toast.error("Erreur lors de l'actualisation");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const currency = creatorInfo?.currency || 'EUR';
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(amount);
@@ -105,7 +122,7 @@ export const PaymentRequestCard: React.FC = () => {
   const totalNet = revenueBreakdown?.total_after_commission || 0;
   const totalGross = revenueBreakdown?.total_before_commission || 0;
 
-  if (!creatorInfo) {
+  if (!creatorInfo || isLoading) {
     return (
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
         <CardContent className="p-6 flex items-center justify-center">
@@ -160,16 +177,37 @@ export const PaymentRequestCard: React.FC = () => {
 
           {/* Right: Action buttons */}
           <div className="flex items-center gap-2 shrink-0">
+            <Button
+              onClick={handleRefresh}
+              size="sm"
+              variant="ghost"
+              disabled={isRefreshing}
+              className="gap-1"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+            
             {stripeConnected ? (
-              <Button
-                onClick={handleOpenStripe}
-                size="sm"
-                variant="outline"
-                className="gap-2"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Dashboard Stripe
-              </Button>
+              <>
+                <Button
+                  onClick={handleOpenStripe}
+                  size="sm"
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <ArrowDownToLine className="h-4 w-4" />
+                  Encaisser
+                </Button>
+                <Button
+                  onClick={handleOpenStripe}
+                  size="sm"
+                  variant="ghost"
+                  className="gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Stripe
+                </Button>
+              </>
             ) : (
               <Button onClick={handleConnectStripe} size="sm" variant="default">
                 Connecter Stripe
