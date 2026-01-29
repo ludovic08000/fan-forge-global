@@ -39,6 +39,17 @@ const processPreloadQueue = () => {
 };
 
 /**
+ * Précharger une image immédiatement (pour lightbox)
+ */
+export const preloadImage = (url: string): void => {
+  if (!url || loadedImagesCache.has(url)) return;
+  const img = new Image();
+  img.decoding = 'sync';
+  img.src = url;
+  img.onload = () => loadedImagesCache.add(url);
+};
+
+/**
  * Précharger une image en background avec queue
  */
 export const preloadImageFast = (url: string): void => {
