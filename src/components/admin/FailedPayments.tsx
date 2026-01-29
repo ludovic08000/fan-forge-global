@@ -11,7 +11,24 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, XCircle, RefreshCw, Loader2, Ban, RotateCcw } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { AlertTriangle, XCircle, RefreshCw, Loader2, Ban, RotateCcw, Undo2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -48,6 +65,13 @@ const FailedPayments: React.FC = () => {
   const [failedIntents, setFailedIntents] = useState<FailedIntent[]>([]);
   const [problematicCharges, setProblematicCharges] = useState<ProblematicCharge[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refundDialog, setRefundDialog] = useState<{ open: boolean; charge: ProblematicCharge | null }>({
+    open: false,
+    charge: null,
+  });
+  const [refundAmount, setRefundAmount] = useState<string>('');
+  const [refundReason, setRefundReason] = useState<string>('requested_by_customer');
+  const [isRefunding, setIsRefunding] = useState(false);
 
   useEffect(() => {
     loadFailedPayments();
@@ -72,6 +96,45 @@ const FailedPayments: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefund = async () => {
+    if (!refundDialog.charge) return;
+
+    setIsRefunding(true);
+    try {
+      const amount = refundAmount ? parseFloat(refundAmount) : undefined;
+      
+      const { data, error } = await supabase.functions.invoke('admin-refund-payment', {
+        body: {
+          charge_id: refundDialog.charge.id,
+          amount,
+          reason: refundReason,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success(`Remboursement de ${data.refund.amount} ${data.refund.currency.toUpperCase()} effectué`);
+        setRefundDialog({ open: false, charge: null });
+        setRefundAmount('');
+        loadFailedPayments();
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error: any) {
+      console.error('Erreur remboursement:', error);
+      toast.error(error.message || 'Erreur lors du remboursement');
+    } finally {
+      setIsRefunding(false);
+    }
+  };
+
+  const openRefundDialog = (charge: ProblematicCharge) => {
+    setRefundDialog({ open: true, charge });
+    setRefundAmount('');
+    setRefundReason('requested_by_customer');
   };
 
   const getStatusBadge = (status: string, disputed?: boolean, refunded?: boolean) => {
@@ -286,7 +349,7 @@ const FailedPayments: React.FC = () => {
                       <TableHead>Montant</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead>Remboursé</TableHead>
-                      <TableHead>Raison</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -322,8 +385,18 @@ const FailedPayments: React.FC = () => {
                             </span>
                           ) : '-'}
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground max-w-xs truncate">
-                          {charge.failure_message || '-'}
+                        <TableCell>
+                          {!charge.refunded && !charge.disputed && charge.status === 'succeeded' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openRefundDialog(charge)}
+                              className="gap-1"
+                            >
+                              <Undo2 className="h-3 w-3" />
+                              Rembourser
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -334,6 +407,72 @@ const FailedPayments: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Refund Dialog */}
+      <Dialog open={refundDialog.open} onOpenChange={(open) => setRefundDialog({ open, charge: refundDialog.charge })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rembourser le paiement</DialogTitle>
+            <DialogDescription>
+              {refundDialog.charge && (
+                <>
+                  Client: {refundDialog.charge.customer_email || 'Non renseigné'}<br />
+                  Montant total: {new Intl.NumberFormat('fr-FR', {
+                    style: 'currency',
+                    currency: refundDialog.charge.currency,
+                  }).format(refundDialog.charge.amount)}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="refund-amount">Montant à rembourser (laisser vide pour remboursement total)</Label>
+              <Input
+                id="refund-amount"
+                type="number"
+                step="0.01"
+                min="0"
+                max={refundDialog.charge?.amount}
+                placeholder={refundDialog.charge?.amount.toString()}
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="refund-reason">Raison du remboursement</Label>
+              <Select value={refundReason} onValueChange={setRefundReason}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="requested_by_customer">Demandé par le client</SelectItem>
+                  <SelectItem value="duplicate">Paiement en double</SelectItem>
+                  <SelectItem value="fraudulent">Frauduleux</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRefundDialog({ open: false, charge: null })}>
+              Annuler
+            </Button>
+            <Button onClick={handleRefund} disabled={isRefunding} variant="destructive">
+              {isRefunding ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Remboursement...
+                </>
+              ) : (
+                'Confirmer le remboursement'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
