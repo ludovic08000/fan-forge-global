@@ -331,19 +331,23 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
                 <td className="p-3 text-right font-mono text-sm tabular-nums font-semibold text-emerald-600">{formatAmount(totals.live * 0.85)}</td>
               </tr>
             </tbody>
+            {/* Total row dans tfoot pour alignement parfait */}
+            <tfoot>
+              <tr className="bg-gradient-to-r from-primary/5 to-emerald-500/5 border-t-2 border-border">
+                <td className="p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+                      <Wallet className="h-4 w-4 text-primary-foreground" />
+                    </div>
+                    <span className="font-bold text-sm">TOTAL</span>
+                  </div>
+                </td>
+                <td className="p-4 text-right font-mono text-base tabular-nums font-bold">{formatAmount(totalGross)}</td>
+                <td className="p-4 text-right font-mono text-base tabular-nums font-bold text-amber-600">-{formatAmount(commission)}</td>
+                <td className="p-4 text-right font-mono text-base tabular-nums font-bold text-emerald-600">{formatAmount(totalNet)}</td>
+              </tr>
+            </tfoot>
           </table>
-          {/* Total row - hors du tableau pour alignement parfait */}
-          <div className="grid grid-cols-[40%_20%_20%_20%] bg-gradient-to-r from-primary/5 to-emerald-500/5 border-t-2 border-border">
-            <div className="p-4 flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-                <Wallet className="h-4 w-4 text-primary-foreground" />
-              </div>
-              <span className="font-bold text-sm">TOTAL</span>
-            </div>
-            <div className="p-4 text-right font-mono text-base tabular-nums font-bold">{formatAmount(totalGross)}</div>
-            <div className="p-4 text-right font-mono text-base tabular-nums font-bold text-amber-600">-{formatAmount(commission)}</div>
-            <div className="p-4 text-right font-mono text-base tabular-nums font-bold text-emerald-600">{formatAmount(totalNet)}</div>
-          </div>
         </CardContent>
       </Card>
 
