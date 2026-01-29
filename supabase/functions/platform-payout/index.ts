@@ -38,14 +38,15 @@ serve(async (req) => {
       throw new Error("Non authentifié");
     }
 
-    // Vérifier le rôle admin
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("profiles")
+    // Vérifier le rôle admin via la table user_roles
+    const { data: adminRole, error: roleError } = await supabaseClient
+      .from("user_roles")
       .select("role")
-      .eq("id", user.id)
-      .single();
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
 
-    if (profileError || profile?.role !== "admin") {
+    if (roleError || !adminRole) {
       throw new Error("Accès refusé - Admin uniquement");
     }
     logStep("Admin vérifié", { userId: user.id });
