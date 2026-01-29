@@ -65,16 +65,17 @@ export default function MyPayments() {
     staleTime: 2 * 60 * 1000,
   });
 
-  // Charger les tips envoyés
+  // Charger les tips envoyés - SEULEMENT ceux avec stripe_payment_intent_id (réellement payés)
   const { data: tips, isLoading: tipsLoading } = useQuery({
     queryKey: ['my-tips-sent', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tips')
         .select(`
-          id, amount, currency, message, created_at, creator_id
+          id, amount, currency, message, created_at, creator_id, stripe_payment_intent_id
         `)
         .eq('sender_id', user!.id)
+        .not('stripe_payment_intent_id', 'is', null) // Seulement les tips réellement payés
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;
