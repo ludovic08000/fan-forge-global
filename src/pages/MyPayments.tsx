@@ -72,14 +72,28 @@ export default function MyPayments() {
       const { data, error } = await supabase
         .from('tips')
         .select(`
-          id, amount, currency, message, created_at,
-          creators!inner(id, stage_name, user_id)
+          id, amount, currency, message, created_at, creator_id
         `)
         .eq('sender_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;
-      return data;
+      
+      // Récupérer les noms des créateurs séparément
+      if (data && data.length > 0) {
+        const creatorIds = [...new Set(data.map(t => t.creator_id))];
+        const { data: creators } = await supabase
+          .from('creators')
+          .select('id, stage_name')
+          .in('id', creatorIds);
+        
+        const creatorsMap = new Map(creators?.map(c => [c.id, c.stage_name]) || []);
+        return data.map(t => ({
+          ...t,
+          creator_name: creatorsMap.get(t.creator_id) || 'Créateur'
+        }));
+      }
+      return data || [];
     },
     enabled: !!user?.id,
     staleTime: 2 * 60 * 1000,
@@ -144,7 +158,7 @@ export default function MyPayments() {
       amount: t.amount,
       currency: t.currency || 'EUR',
       description: t.message || 'Tip envoyé',
-      recipientName: (t.creators as any)?.stage_name || 'Créateur',
+      recipientName: (t as any).creator_name || 'Créateur',
       recipientUsername: null,
       createdAt: t.created_at,
       status: 'completed',

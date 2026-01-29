@@ -170,13 +170,22 @@ const Dashboard = () => {
     try {
       const { data: creatorData } = await supabase
         .from('creators')
-        .select('id, total_earnings, total_subscribers, total_content, featured_until, stripe_account_status, stripe_charges_enabled, stripe_payouts_enabled')
+        .select('id, total_subscribers, total_content, featured_until, stripe_account_status, stripe_charges_enabled, stripe_payouts_enabled')
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (creatorData) {
         setCreatorProfile(creatorData);
         setStripeConnected(creatorData.stripe_account_status === 'active' && creatorData.stripe_payouts_enabled);
+        
+        // Calcul dynamique des revenus via RPC (plus précis que total_earnings)
+        const { data: revenueData } = await supabase.rpc('calculate_creator_revenue_with_commission', {
+          creator_uuid: creatorData.id,
+          start_date: new Date(0).toISOString(), // Depuis le début
+          end_date: new Date().toISOString(),
+        });
+        
+        const totalEarnings = revenueData?.[0]?.total_after_commission || 0;
         
         const { data: contentStats } = await supabase
           .from('content')
@@ -187,7 +196,7 @@ const Dashboard = () => {
         const totalLikes = contentStats?.reduce((sum, content) => sum + (content.like_count || 0), 0) || 0;
 
         setCreatorStats({
-          totalEarnings: creatorData.total_earnings || 0,
+          totalEarnings,
           totalSubscribers: creatorData.total_subscribers || 0,
           totalViews,
           totalLikes
