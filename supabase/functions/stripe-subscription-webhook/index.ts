@@ -227,17 +227,50 @@ serve(async (req) => {
         }
       }
 
-      // Gérer les tips (live_tip)
-      if (session.mode === 'payment' && session.metadata?.type === 'live_tip') {
+      // Gérer les tips (live_tip ET creator_tip)
+      if (session.mode === 'payment' && (session.metadata?.type === 'live_tip' || session.metadata?.type === 'creator_tip')) {
         const creatorId = session.metadata.creator_id;
         const senderId = session.metadata.sender_id;
         const liveStreamId = session.metadata.live_stream_id;
         const tipMessage = session.metadata.message || '';
         const amount = session.amount_total ? session.amount_total / 100 : 0;
+        const paymentIntentId = session.payment_intent as string;
 
-        logStep("Processing live tip", { creatorId, senderId, amount });
+        logStep("Processing tip payment", { type: session.metadata.type, creatorId, senderId, amount, paymentIntentId });
 
         if (creatorId && senderId && amount > 0) {
+          // Mettre à jour le tip existant OU en créer un nouveau
+          const { data: existingTip } = await supabaseClient
+            .from('tips')
+            .select('id')
+            .eq('stripe_payment_intent_id', paymentIntentId)
+            .maybeSingle();
+
+          if (existingTip) {
+            // Tip déjà enregistré, juste confirmer qu'il est payé (rien à faire, il est déjà là)
+            logStep("Tip already exists in database", { tipId: existingTip.id });
+          } else {
+            // Créer le tip s'il n'existe pas (fallback)
+            const { data: newTip, error: tipInsertError } = await supabaseClient
+              .from('tips')
+              .insert({
+                creator_id: creatorId,
+                sender_id: senderId,
+                amount: amount,
+                currency: 'EUR',
+                message: tipMessage || null,
+                stripe_payment_intent_id: paymentIntentId,
+              })
+              .select()
+              .single();
+
+            if (tipInsertError) {
+              logStep("Error inserting tip", { error: tipInsertError.message });
+            } else {
+              logStep("Tip inserted via webhook", { tipId: newTip?.id });
+            }
+          }
+
           // Récupérer le taux de commission du créateur
           const { data: creator } = await supabaseClient
             .from('creators')
@@ -245,35 +278,8 @@ serve(async (req) => {
             .eq('id', creatorId)
             .single();
 
-          const commissionRate = creator?.platform_commission_rate || 0.15;
-          const commissionAmount = amount * commissionRate;
-          const creatorPayout = amount - commissionAmount;
-
-          const now = new Date().toISOString();
-
-          // Enregistrer la commission
-          const { error: commissionError } = await supabaseClient
-            .from('platform_commissions')
-            .insert({
-              creator_id: creatorId,
-              total_revenue: amount,
-              subscription_revenue: 0,
-              tips_revenue: amount,
-              live_revenue: 0,
-              private_content_revenue: 0,
-              commission_rate: commissionRate,
-              commission_amount: commissionAmount,
-              creator_payout: creatorPayout,
-              currency: 'EUR',
-              period_start: now,
-              period_end: now
-            });
-
-          if (commissionError) {
-            logStep("Error recording tip commission", { error: commissionError.message });
-          } else {
-            logStep("Tip commission recorded", { revenue: amount, commission: commissionAmount });
-          }
+          // Note: Commission sur tips = 0 (pas de commission sur les pourboires selon la RPC)
+          // Mais on log quand même pour le tracking
 
           // Notification au créateur
           if (creator?.user_id) {
@@ -297,7 +303,7 @@ serve(async (req) => {
                 data: {
                   sender_id: senderId,
                   amount,
-                  live_stream_id: liveStreamId
+                  live_stream_id: liveStreamId || null
                 }
               });
 
