@@ -306,30 +306,25 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
 
       if (uploadError) throw uploadError;
 
-      // Obtenir l'URL publique
-      const { data: urlData } = supabase.storage
-        .from('content')
-        .getPublicUrl(filePath);
-
-      const newFileUrl = urlData.publicUrl;
+      // Stocker le filePath au lieu de l'URL publique (sécurité)
+      const newFilePath = filePath;
 
       // Supprimer l'ancienne image du storage
       const oldUrl = content.file_url;
       if (oldUrl) {
+        // Support both old URL format and new filePath format
         const oldPathMatch = oldUrl.match(/\/storage\/v1\/object\/public\/content\/(.+)/);
-        if (oldPathMatch && oldPathMatch[1]) {
-          const oldPath = decodeURIComponent(oldPathMatch[1]);
-          console.log('Suppression de l\'ancienne image:', oldPath);
-          await supabase.storage.from('content').remove([oldPath]);
-        }
+        const oldPath = oldPathMatch ? decodeURIComponent(oldPathMatch[1]) : oldUrl;
+        console.log('Suppression de l\'ancienne image:', oldPath);
+        await supabase.storage.from('content').remove([oldPath]);
       }
 
-      // Mettre à jour le contenu avec la nouvelle URL
+      // Mettre à jour le contenu avec le nouveau filePath
       const { error: updateError } = await supabase
         .from('content')
         .update({ 
-          file_url: newFileUrl,
-          thumbnail_url: newFileUrl,
+          file_url: newFilePath,
+          thumbnail_url: newFilePath,
           updated_at: new Date().toISOString()
         })
         .eq('id', contentId);

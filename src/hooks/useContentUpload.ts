@@ -80,24 +80,26 @@ export const useContentUpload = () => {
       setProgress(85);
       setUploadStage('Finalisation...');
 
-      const fileUrl = uploadResult.publicUrl;
-      let thumbnailUrl = fileUrl;
+      // Stocker le file_path au lieu de l'URL publique (sécurité)
+      const filePath = uploadResult.filePath;
+      const bucket = uploadResult.bucket;
+      
+      // Construire le chemin pour la DB (format: bucket/filePath)
+      const storagePath = filePath;
+      let thumbnailPath = storagePath;
 
       // Upload thumbnail pour images (en parallèle, non bloquant)
       if (contentType === 'image') {
         supabase.storage.from('thumbnails').upload(fileName, fileToUpload)
-          .then(({ error }) => {
-            if (!error) {
-              const { data: thumbUrlData } = supabase.storage.from('thumbnails').getPublicUrl(fileName);
-              // Note: thumbnail URL mise à jour async, pas bloquant
-            }
+          .then(() => {
+            // Thumbnail uploadé, chemin identique dans bucket thumbnails
           })
           .catch(() => {});
       }
 
       setProgress(90);
 
-      // Insert to database
+      // Insert to database - stocker le filePath, pas l'URL publique
       const { data: contentData, error: dbError } = await supabase
         .from('content')
         .insert({
@@ -105,8 +107,8 @@ export const useContentUpload = () => {
           title: data.title,
           description: data.description,
           content_type: contentType,
-          file_url: fileUrl,
-          thumbnail_url: thumbnailUrl,
+          file_url: storagePath, // filePath au lieu de publicUrl
+          thumbnail_url: thumbnailPath,
           is_premium: data.isPremium,
           is_preview: data.isPreview || false,
           price: data.isPremium ? (data.price || 0) : 0,
@@ -125,7 +127,8 @@ export const useContentUpload = () => {
       const watermarkId = generateWatermarkId();
       supabase.functions.invoke('compute-media-fingerprint', {
         body: {
-          fileUrl: fileUrl,
+          filePath: storagePath,
+          bucket: bucket,
           contentId: contentData.id,
           creatorId: creatorId,
           fileType: contentType,

@@ -81,29 +81,30 @@ serve(async (req) => {
       );
     }
 
-    // Extract file path and bucket from the stored URL
+    // Extract file path from the stored URL or use directly if it's a path
     const fileUrl = content.file_url;
     let actualBucket: string;
     let actualFilePath: string;
 
-    // Parse the Supabase storage URL to extract bucket and path
-    const storageUrlMatch = fileUrl.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)/);
-    if (storageUrlMatch) {
-      actualBucket = storageUrlMatch[1];
-      actualFilePath = decodeURIComponent(storageUrlMatch[2]);
-    } else {
-      // Handle direct path format
-      const pathParts = fileUrl.split('/');
-      if (pathParts.length >= 2) {
-        actualBucket = bucket || 'content';
-        actualFilePath = fileUrl;
+    // Check if it's a full URL or just a file path
+    if (fileUrl.startsWith('http')) {
+      // Parse the Supabase storage URL to extract bucket and path
+      const storageUrlMatch = fileUrl.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)/);
+      if (storageUrlMatch) {
+        actualBucket = storageUrlMatch[1];
+        actualFilePath = decodeURIComponent(storageUrlMatch[2]);
       } else {
+        // Handle other URL formats
         logStep('Invalid file URL format', { fileUrl, requestId });
         return new Response(
           JSON.stringify({ error: 'Invalid file URL', requestId }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+    } else {
+      // It's already a file path, use bucket from request or default to 'content'
+      actualBucket = bucket || 'content';
+      actualFilePath = fileUrl;
     }
 
     // Verify bucket is allowed

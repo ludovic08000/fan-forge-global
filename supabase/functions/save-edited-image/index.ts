@@ -116,20 +116,16 @@ serve(async (req) => {
 
     console.log('Upload successful:', uploadData);
 
-    // Obtenir l'URL publique
-    const { data: urlData } = supabaseAdmin.storage
-      .from('content')
-      .getPublicUrl(filePath);
+    // Stocker le filePath au lieu de l'URL publique (sécurité)
+    const newFilePath = filePath;
+    console.log('New file path:', newFilePath);
 
-    const newFileUrl = urlData.publicUrl;
-    console.log('New file URL:', newFileUrl);
-
-    // Mettre à jour le contenu avec la nouvelle URL
+    // Mettre à jour le contenu avec le nouveau filePath
     const { error: updateError } = await supabaseAdmin
       .from('content')
       .update({ 
-        file_url: newFileUrl,
-        thumbnail_url: newFileUrl, // Mettre à jour aussi la miniature
+        file_url: newFilePath,
+        thumbnail_url: newFilePath, // Mettre à jour aussi la miniature
         updated_at: new Date().toISOString()
       })
       .eq('id', contentId);
@@ -147,9 +143,10 @@ serve(async (req) => {
     // Optionnel: supprimer l'ancienne image si elle existe
     try {
       const oldUrl = content.file_url;
+      // Support both old URL format and new filePath format
       const oldPathMatch = oldUrl.match(/\/storage\/v1\/object\/public\/content\/(.+)/);
-      if (oldPathMatch && oldPathMatch[1]) {
-        const oldPath = oldPathMatch[1];
+      const oldPath = oldPathMatch ? oldPathMatch[1] : oldUrl;
+      if (oldPath && oldPath !== filePath) {
         console.log('Attempting to delete old file:', oldPath);
         await supabaseAdmin.storage.from('content').remove([oldPath]);
       }
@@ -160,7 +157,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        newFileUrl,
+        newFilePath,
         message: 'Image saved successfully'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
