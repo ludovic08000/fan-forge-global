@@ -14,10 +14,16 @@ const urlCache = new Map<string, SignedUrlCache>();
 const pendingRequests = new Map<string, Promise<string | null>>();
 
 /**
- * Extraire le chemin du fichier depuis l'URL
+ * Extraire le chemin du fichier depuis l'URL ou retourner tel quel si c'est déjà un path
  */
 const extractFilePath = (url: string): string | null => {
   try {
+    // Si c'est déjà un file path (pas une URL complète)
+    if (!url.startsWith('http')) {
+      return url;
+    }
+    
+    // URL Supabase storage
     const match = url.match(/\/storage\/v1\/object\/(?:public|sign)\/([^/]+)\/(.+)/);
     if (match) return match[2];
     
