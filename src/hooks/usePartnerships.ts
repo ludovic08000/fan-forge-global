@@ -172,7 +172,7 @@ export const usePartnerships = () => {
     },
     onSuccess: () => {
       toast.success('Demande de partenariat envoyée !');
-      queryClient.invalidateQueries({ queryKey: ['partnerships'] });
+      queryClient.invalidateQueries({ queryKey: ['partnerships-combined'] });
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -195,7 +195,7 @@ export const usePartnerships = () => {
     },
     onSuccess: () => {
       toast.success('Partenariat accepté !');
-      queryClient.invalidateQueries({ queryKey: ['partnerships'] });
+      queryClient.invalidateQueries({ queryKey: ['partnerships-combined'] });
     },
     onError: () => {
       toast.error('Erreur lors de l\'acceptation');
@@ -215,7 +215,7 @@ export const usePartnerships = () => {
     },
     onSuccess: () => {
       toast.success('Partenariat refusé');
-      queryClient.invalidateQueries({ queryKey: ['partnerships'] });
+      queryClient.invalidateQueries({ queryKey: ['partnerships-combined'] });
     },
     onError: () => {
       toast.error('Erreur lors du refus');
@@ -236,7 +236,7 @@ export const usePartnerships = () => {
     },
     onSuccess: () => {
       toast.success('Demande annulée');
-      queryClient.invalidateQueries({ queryKey: ['partnerships'] });
+      queryClient.invalidateQueries({ queryKey: ['partnerships-combined'] });
     },
     onError: () => {
       toast.error('Erreur lors de l\'annulation');
@@ -255,7 +255,7 @@ export const usePartnerships = () => {
     },
     onSuccess: () => {
       toast.success('Partenariat terminé');
-      queryClient.invalidateQueries({ queryKey: ['partnerships'] });
+      queryClient.invalidateQueries({ queryKey: ['partnerships-combined'] });
     },
     onError: () => {
       toast.error('Erreur lors de la terminaison');
