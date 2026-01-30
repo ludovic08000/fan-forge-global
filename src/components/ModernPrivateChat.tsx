@@ -219,21 +219,20 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('content')
-        .getPublicUrl(fileName);
+      // Stocker le filePath au lieu de l'URL publique (sécurité)
+      const mediaFilePath = fileName;
 
       if (isSubscriberUpload) {
         // Abonné envoie une demande de média
         await sendMediaRequest.mutateAsync({
-          mediaUrl: publicUrl,
+          mediaUrl: mediaFilePath,
           creatorId,
           messageType: previewFile.type,
         });
       } else {
         // Créateur envoie du contenu payant - utiliser targetId (l'abonné)
         await sendPaidContent.mutateAsync({
-          mediaUrl: publicUrl,
+          mediaUrl: mediaFilePath,
           price: Number(contentPrice) || 1,
           creatorId: targetId || creatorId,
           messageType: previewFile.type,

@@ -19,7 +19,7 @@ export interface ChunkUploadProgress {
 export interface ChunkUploadResult {
   success: boolean;
   filePath: string;
-  publicUrl: string;
+  bucket: string;
   error?: string;
 }
 
@@ -62,13 +62,11 @@ export async function uploadFileInChunks(
       return {
         success: false,
         filePath,
-        publicUrl: '',
+        bucket,
         error: error.message,
       };
     }
 
-    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
-    
     onProgress?.({
       stage: 'complete',
       progress: 100,
@@ -82,7 +80,7 @@ export async function uploadFileInChunks(
     return {
       success: true,
       filePath,
-      publicUrl: urlData.publicUrl,
+      bucket,
     };
   }
 
@@ -145,7 +143,7 @@ export async function uploadFileInChunks(
       return {
         success: false,
         filePath,
-        publicUrl: '',
+        bucket,
         error: lastError?.message || 'Échec de l\'upload',
       };
     }
@@ -192,15 +190,13 @@ export async function uploadFileInChunks(
       return {
         success: false,
         filePath,
-        publicUrl: '',
+        bucket,
         error: finalError.message,
       };
     }
 
     // Nettoyer les chunks
     await cleanupChunks(bucket, chunkPaths);
-
-    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
 
     onProgress?.({
       stage: 'complete',
@@ -215,14 +211,14 @@ export async function uploadFileInChunks(
     return {
       success: true,
       filePath,
-      publicUrl: urlData.publicUrl,
+      bucket,
     };
   } catch (err) {
     await cleanupChunks(bucket, chunkPaths);
     return {
       success: false,
       filePath,
-      publicUrl: '',
+      bucket,
       error: err instanceof Error ? err.message : 'Erreur d\'assemblage',
     };
   }
