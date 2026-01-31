@@ -15,9 +15,14 @@ const r2UrlCache = new Map<string, R2UrlCache>();
 const pendingRequests = new Map<string, Promise<string | null>>();
 
 /**
- * Extrait le chemin du fichier depuis une URL R2 publique (memoized)
+ * Extrait le chemin du fichier depuis une URL R2 publique ou retourne le chemin direct
  */
 const extractR2FilePath = (url: string): string | null => {
+  // Si c'est déjà un chemin de fichier (pas une URL), le retourner directement
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return url;
+  }
+  
   try {
     const urlObj = new URL(url);
     
@@ -39,11 +44,24 @@ const extractR2FilePath = (url: string): string | null => {
 };
 
 /**
- * Vérifie si une URL est une URL R2 externe
+ * Vérifie si une URL/path nécessite une URL signée R2
+ * Reconnaît: URLs R2 complètes OU chemins de fichiers directs (replays/, content/, etc.)
  */
 export const isR2Url = (url: string | null | undefined): boolean => {
   if (!url) return false;
-  return url.includes('.r2.dev') || url.includes('.r2.cloudflarestorage.com');
+  
+  // URLs R2 complètes
+  if (url.includes('.r2.dev') || url.includes('.r2.cloudflarestorage.com')) {
+    return true;
+  }
+  
+  // Chemins de fichiers directs (format path-only pour sécurité)
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    // C'est un chemin de fichier, pas une URL publique - nécessite une URL signée
+    return true;
+  }
+  
+  return false;
 };
 
 /**
