@@ -64,6 +64,7 @@ const PartnershipManager: React.FC = () => {
   const {
     currentCreatorId,
     isCreator,
+    isCreatorLoading,
     partnerships,
     pendingReceived,
     pendingSent,
@@ -164,7 +165,9 @@ const PartnershipManager: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  // CRITICAL: Check loading state FIRST before checking isCreator
+  // This prevents showing "not creator" message during initial data fetch
+  if (isCreatorLoading || isLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-12 w-full" />
