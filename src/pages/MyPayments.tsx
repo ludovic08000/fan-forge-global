@@ -63,6 +63,8 @@ export default function MyPayments() {
     },
     enabled: !!user?.id,
     staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    placeholderData: (prev) => prev,
   });
 
   // Charger les tips envoyés - SEULEMENT ceux avec stripe_payment_intent_id (réellement payés)
@@ -75,12 +77,11 @@ export default function MyPayments() {
           id, amount, currency, message, created_at, creator_id, stripe_payment_intent_id
         `)
         .eq('sender_id', user!.id)
-        .not('stripe_payment_intent_id', 'is', null) // Seulement les tips réellement payés
+        .not('stripe_payment_intent_id', 'is', null)
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;
       
-      // Récupérer les noms des créateurs séparément
       if (data && data.length > 0) {
         const creatorIds = [...new Set(data.map(t => t.creator_id))];
         const { data: creators } = await supabase
@@ -98,6 +99,8 @@ export default function MyPayments() {
     },
     enabled: !!user?.id,
     staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    placeholderData: (prev) => prev,
   });
 
   // Charger les contenus privés achetés
@@ -118,6 +121,8 @@ export default function MyPayments() {
     },
     enabled: !!user?.id,
     staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    placeholderData: (prev) => prev,
   });
 
   // Charger les paiements live (accès payants)
@@ -138,6 +143,8 @@ export default function MyPayments() {
     },
     enabled: !!user?.id,
     staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    placeholderData: (prev) => prev,
   });
 
   // Combiner tous les paiements
@@ -197,7 +204,9 @@ export default function MyPayments() {
   };
   const totalSpent = totals.subscriptions + totals.tips + totals.privateContent + totals.live;
 
-  const isLoading = subsLoading || tipsLoading || privateLoading || liveLoading;
+  // Ne bloquer que si aucune donnée n'est disponible (premier chargement)
+  const hasData = subscriptions || tips || privatePayments || livePayments;
+  const isLoading = !hasData && (subsLoading || tipsLoading || privateLoading || liveLoading);
 
   const getTypeConfig = (type: PaymentItem['type']) => {
     const configs = {
