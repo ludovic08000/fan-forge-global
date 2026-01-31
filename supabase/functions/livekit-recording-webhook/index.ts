@@ -96,33 +96,34 @@ serve(async (req) => {
           fileSize
         });
 
-        // Utiliser l'URL location fournie par LiveKit (endpoint S3 direct)
-        // ou construire une URL publique R2 si un domaine personnalisé est configuré
-        let r2PublicDomain = Deno.env.get('R2_PUBLIC_DOMAIN') || '';
+        // SECURITY: Store only the file PATH, not a public URL
+        // Signed URLs will be generated on-demand via get-replay-url
+        // This prevents public access to premium replay content
         
-        // Nettoyer le domaine s'il contient https:// ou http://
-        r2PublicDomain = r2PublicDomain.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        // Extract only the file path from the location or filename
+        let r2FilePath = filepath;
         
-        let publicUrl = '';
-        if (r2PublicDomain && filepath) {
-          // Utiliser le domaine public personnalisé si configuré
-          publicUrl = `https://${r2PublicDomain}/${filepath}`;
-        } else if (fileResult.location) {
-          // Utiliser l'URL location de LiveKit (endpoint S3 CloudFlare)
-          publicUrl = fileResult.location;
-        } else if (fileResult.downloadUrl) {
-          // Fallback sur downloadUrl si disponible
-          publicUrl = fileResult.downloadUrl;
+        // If filepath is empty, try to extract from location
+        if (!r2FilePath && fileResult.location) {
+          try {
+            const locationUrl = new URL(fileResult.location);
+            // Remove bucket name from path (first segment)
+            const pathParts = locationUrl.pathname.split('/').filter(p => p);
+            // If first part is bucket name, skip it
+            r2FilePath = pathParts.slice(1).join('/');
+          } catch {
+            r2FilePath = fileResult.location;
+          }
         }
         
-        console.log('[LiveKit Recording Webhook] Public URL:', publicUrl);
+        console.log('[LiveKit Recording Webhook] Storing file path (NOT public URL):', r2FilePath);
 
-        if (publicUrl) {
+        if (r2FilePath) {
           // Vérifier si le replay n'a pas déjà été créé (éviter les doublons)
           const { data: existingContent } = await supabaseAdmin
             .from('content')
             .select('id')
-            .eq('file_url', publicUrl)
+            .eq('file_url', r2FilePath)
             .limit(1);
 
           if (existingContent && existingContent.length > 0) {
@@ -133,23 +134,24 @@ serve(async (req) => {
             );
           }
 
-          // Mettre à jour le live stream avec l'URL de l'enregistrement
+          // SECURITY: Store ONLY the file path - no public URLs
+          // Frontend must use get-replay-url edge function to get signed URLs
           await supabaseAdmin
             .from('live_streams')
             .update({ 
-              recording_url: publicUrl,
+              recording_url: r2FilePath, // PATH ONLY, not public URL
               recording_completed_at: new Date().toISOString()
             })
             .eq('id', stream.id);
 
           // Créer automatiquement un contenu vidéo dans la galerie du créateur
-          // Note: Les replays expirent automatiquement après 7 jours
+          // SECURITY: file_url contains only the path, signed URLs generated on-demand
           const { error: contentError } = await supabaseAdmin
             .from('content')
             .insert({
               creator_id: stream.creator_id,
               title: `Replay: ${stream.title}`,
-              file_url: publicUrl,
+              file_url: r2FilePath, // PATH ONLY - signed URLs via get-signed-url
               content_type: 'video',
               is_premium: true, // Les replays sont premium par défaut
               status: 'published',
@@ -162,14 +164,14 @@ serve(async (req) => {
           if (contentError) {
             console.error('[LiveKit Recording Webhook] Content creation error:', contentError);
           } else {
-            console.log('[LiveKit Recording Webhook] Content created successfully for replay');
+            console.log('[LiveKit Recording Webhook] Content created with file path (secured):', r2FilePath);
           }
         } else {
-          console.error('[LiveKit Recording Webhook] No public URL available');
+          console.error('[LiveKit Recording Webhook] No file path available from recording');
           await supabaseAdmin
             .from('live_streams')
             .update({ 
-              recording_error: 'No public URL available for recording',
+              recording_error: 'No file path available for recording',
               recording_completed_at: new Date().toISOString()
             })
             .eq('id', stream.id);
