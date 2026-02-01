@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LucideIcon } from 'lucide-react';
 
-export type DashboardSection = 'overview' | 'content' | 'live' | 'messages' | 'analytics' | 'partnerships' | 'payments' | 'pricing' | 'settings';
+export type DashboardSection = 'overview' | 'content' | 'live' | 'messages' | 'analytics' | 'payments' | 'pricing' | 'settings';
 
 interface MenuItem {
   id: DashboardSection;

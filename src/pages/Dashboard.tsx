@@ -6,7 +6,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
-import { Loader2, BarChart3, ImageIcon, Radio, MessageCircle, Sparkles, Settings, Banknote, Handshake } from 'lucide-react';
+import { Loader2, BarChart3, ImageIcon, Radio, MessageCircle, Sparkles, Settings, Banknote } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -36,7 +36,6 @@ const CreatorMessages = lazy(() => import('@/components/CreatorMessages'));
 const CreatorAnalyticsDashboard = lazy(() => import('@/components/analytics/CreatorAnalyticsDashboard'));
 const PaymentRequest = lazy(() => import('@/components/creator/PaymentRequest'));
 const PaymentRequestCard = lazy(() => import('@/components/dashboard/PaymentRequestCard'));
-const PartnershipManager = lazy(() => import('@/components/creator/PartnershipManager'));
 const MediaLightbox = lazy(() => import('@/components/MediaLightbox'));
 const PhotoEditor = lazy(() => import('@/components/PhotoEditor'));
 const LiveHistory = lazy(() => import('@/components/live/LiveHistory'));
@@ -344,7 +343,6 @@ const Dashboard = () => {
     { id: 'live' as DashboardSection, label: 'Live', icon: Radio, badge: 0 },
     { id: 'messages' as DashboardSection, label: 'Messages', icon: MessageCircle, badge: unreadCount },
     { id: 'analytics' as DashboardSection, label: 'Statistiques', icon: BarChart3, badge: 0 },
-    { id: 'partnerships' as DashboardSection, label: 'Partenariats', icon: Handshake, badge: 0 },
     { id: 'payments' as DashboardSection, label: 'Paiements', icon: Banknote, badge: 0 },
     { id: 'pricing' as DashboardSection, label: 'Abonnement & Boost', icon: Sparkles, badge: 0 },
     { id: 'settings' as DashboardSection, label: 'Paramètres', icon: Settings, badge: 0 },
@@ -447,13 +445,6 @@ const Dashboard = () => {
         {activeSection === 'analytics' && (
           <Suspense fallback={<LoadingFallback />}>
             <CreatorAnalyticsDashboard />
-          </Suspense>
-        )}
-
-        {/* Section: Partnerships */}
-        {activeSection === 'partnerships' && (
-          <Suspense fallback={<LoadingFallback />}>
-            <PartnershipManager />
           </Suspense>
         )}
 
