@@ -91,6 +91,17 @@ export const useSearch = () => {
     return results.slice(0, 5);
   }, [results]);
 
+  // Liste des niches prédéfinies
+  const predefinedCategories = [
+    'Coach sportif',
+    'Gaming',
+    'Cuisine',
+    'Glamour',
+    'Lifestyle',
+    'DJing',
+    'Mannequin',
+  ];
+
   // Get popular categories avec cache long - utilise la vue publique
   const { data: categories } = useQuery({
     queryKey: ['popular-categories'],
@@ -101,11 +112,11 @@ export const useSearch = () => {
         .not('category', 'is', null)
         .neq('category', '')
         .order('total_subscribers', { ascending: false })
-        .limit(20);
+        .limit(100);
 
       if (error) throw error;
       
-      // Count occurrences and return unique categories
+      // Count occurrences
       const categoryCount = data.reduce((acc, item) => {
         if (item.category) {
           acc[item.category] = (acc[item.category] || 0) + 1;
@@ -113,10 +124,20 @@ export const useSearch = () => {
         return acc;
       }, {} as Record<string, number>);
 
-      return Object.entries(categoryCount)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 10)
-        .map(([category, count]) => ({ category, count }));
+      // Fusionner avec les catégories prédéfinies (toujours afficher toutes les niches)
+      const allCategories = predefinedCategories.map(category => ({
+        category,
+        count: categoryCount[category] || 0,
+      }));
+
+      // Ajouter les catégories de la DB qui ne sont pas dans les prédéfinies
+      Object.entries(categoryCount).forEach(([category, count]) => {
+        if (!predefinedCategories.includes(category)) {
+          allCategories.push({ category, count });
+        }
+      });
+
+      return allCategories.sort((a, b) => b.count - a.count);
     },
     staleTime: 5 * 60 * 1000, // Cache 5 minutes
     gcTime: 10 * 60 * 1000, // Garde 10 minutes
