@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Shield, AlertTriangle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Shield, AlertTriangle, Key } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AdminGuardProps {
   children: React.ReactNode;
@@ -13,11 +14,14 @@ interface AdminGuardProps {
 /**
  * Composant de protection pour les pages admin
  * Vérifie le rôle admin côté serveur avec protection CSRF
+ * EXIGE 2FA pour les admins
  */
 export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
   const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const [isVerifying, setIsVerifying] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [has2FA, setHas2FA] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [attempts, setAttempts] = useState(0);
 
@@ -56,6 +60,11 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
         } else if (data) {
           setIsAdmin(true);
           setError(null);
+          
+          // Vérifier si 2FA est activé
+          const { data: mfaData } = await supabase.auth.mfa.listFactors();
+          const hasTOTP = (mfaData?.totp?.length || 0) > 0;
+          setHas2FA(hasTOTP);
           
           // Logger l'accès admin réussi
           await supabase.from('login_attempts').insert({
@@ -139,7 +148,63 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
     );
   }
 
-  // Admin vérifié
+  // Admin sans 2FA - exiger l'activation
+  if (!has2FA) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="max-w-lg w-full">
+          <CardHeader className="text-center">
+            <Key className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+            <CardTitle>Authentification à deux facteurs requise</CardTitle>
+            <CardDescription>
+              Pour accéder à la zone d'administration, vous devez activer l'authentification à deux facteurs (2FA).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <Alert className="border-yellow-500 bg-yellow-500/10">
+              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              <AlertDescription className="text-yellow-700 dark:text-yellow-300">
+                <strong>Sécurité obligatoire</strong>
+                <p className="mt-1 text-sm">
+                  En tant qu'administrateur, vous avez accès à des données sensibles. 
+                  Le 2FA protège votre compte et les utilisateurs de la plateforme.
+                </p>
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-3">
+              <h4 className="font-medium">Pourquoi c'est important :</h4>
+              <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
+                <li>Protection contre le vol de mot de passe</li>
+                <li>Sécurisation des données utilisateurs</li>
+                <li>Conformité aux bonnes pratiques de sécurité</li>
+                <li>Prévention des accès non autorisés</li>
+              </ul>
+            </div>
+
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/dashboard')}
+                className="flex-1"
+              >
+                Retour au tableau de bord
+              </Button>
+              <Button 
+                onClick={() => navigate('/security')}
+                className="flex-1"
+              >
+                <Key className="h-4 w-4 mr-2" />
+                Activer le 2FA
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Admin vérifié avec 2FA
   return <>{children}</>;
 };
 
