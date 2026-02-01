@@ -96,7 +96,7 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
   
   // Si l'utilisateur est le créateur, on passe creatorId + subscriberId
   // Sinon, on passe juste le creatorId (targetId = créateur avec qui on parle)
-  const { messages, isLoading, sendMessage, sendPaidContent, sendMediaRequest, respondToMediaRequest, payForContent, payForMediaRequest, deleteMessage } = usePrivateMessages(
+  const { messages, isLoading, sendMessage, sendPaidContent, sendMediaRequest, respondToMediaRequest, payForContent, payForMediaRequest, deleteMessage, markAsRead } = usePrivateMessages(
     creatorId,
     isUserCreator ? subscriberId : undefined
   );
@@ -143,6 +143,21 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Marquer les messages reçus comme lus quand ils sont affichés
+  useEffect(() => {
+    if (!messages || messages.length === 0 || !user) return;
+
+    // Filtrer les messages qui ne sont pas de moi et pas encore lus
+    const unreadMessages = messages.filter(
+      (msg) => msg.sender_id !== user.id && !msg.read_at && !msg.is_deleted
+    );
+
+    if (unreadMessages.length > 0) {
+      const messageIds = unreadMessages.map((msg) => msg.id);
+      markAsRead.mutate(messageIds);
+    }
+  }, [messages, user, markAsRead]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || sendMessage.isPending) return;
