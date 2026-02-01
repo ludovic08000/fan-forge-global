@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { X, ChevronLeft, ChevronRight, Shield, Loader2 } from 'lucide-react';
 import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MediaLightboxProps {
   isOpen: boolean;
@@ -25,6 +26,17 @@ const detectMediaType = (url: string): 'image' | 'video' => {
   return videoExtensions.some(ext => lowerUrl.includes(ext)) ? 'video' : 'image';
 };
 
+// Check if it's a relative path (not a full URL)
+const isRelativePath = (url: string): boolean => {
+  return !url.startsWith('http://') && !url.startsWith('https://') && !isR2Url(url);
+};
+
+// Build the full public URL from a relative path
+const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
+const buildPublicUrl = (path: string, bucket: string = 'content'): string => {
+  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
+};
+
 const MediaLightbox: React.FC<MediaLightboxProps> = ({
   isOpen,
   onClose,
@@ -46,6 +58,15 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
   const resolvedMediaType = mediaType || detectMediaType(mediaUrl);
   const isExternalR2 = isR2Url(mediaUrl);
   const isVideo = resolvedMediaType === 'video';
+  
+  // Convert relative paths to full URLs for non-premium content
+  const normalizedMediaUrl = useMemo(() => {
+    if (!mediaUrl) return mediaUrl;
+    if (isRelativePath(mediaUrl) && !isPremium) {
+      return buildPublicUrl(mediaUrl, 'content');
+    }
+    return mediaUrl;
+  }, [mediaUrl, isPremium]);
 
   // Hook pour URLs R2 sécurisées (replays Cloudflare)
   const { secureUrl: r2SecureUrl, loading: r2Loading, error: r2Error } = useSecureR2Url(
@@ -69,7 +90,7 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
   // URL sécurisée finale à utiliser
   const secureMediaUrl = isExternalR2 
     ? (r2SecureUrl || mediaUrl)
-    : (isPremium ? (supabaseSignedUrl || mediaUrl) : mediaUrl);
+    : (isPremium ? (supabaseSignedUrl || mediaUrl) : normalizedMediaUrl);
   
   const urlLoading = isExternalR2 ? r2Loading : (isPremium ? supabaseLoading : false);
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Eye, Heart, Wand2, Plus, ImageIcon } from 'lucide-react';
 
@@ -20,6 +20,27 @@ interface DashboardRecentContentProps {
   onNewContent: () => void;
   onViewAll: () => void;
 }
+
+const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
+
+// Check if it's a relative path (not a full URL)
+const isRelativePath = (url: string): boolean => {
+  return !url.startsWith('http://') && !url.startsWith('https://');
+};
+
+// Build the full public URL from a relative path
+const buildPublicUrl = (path: string, bucket: string = 'content'): string => {
+  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
+};
+
+// Get the display URL for a content item
+const getDisplayUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  if (isRelativePath(url)) {
+    return buildPublicUrl(url, 'content');
+  }
+  return url;
+};
 
 export const DashboardRecentContent: React.FC<DashboardRecentContentProps> = ({
   content,
@@ -51,7 +72,7 @@ export const DashboardRecentContent: React.FC<DashboardRecentContentProps> = ({
                 onClick={() => onOpenLightbox(item, index)}
               >
                 <img
-                  src={item.thumbnail_url || item.file_url}
+                  src={getDisplayUrl(item.thumbnail_url) || getDisplayUrl(item.file_url) || ''}
                   alt={item.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
