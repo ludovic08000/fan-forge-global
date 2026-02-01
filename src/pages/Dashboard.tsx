@@ -290,13 +290,35 @@ const Dashboard = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     
-    if (urlParams.get('boost_success') === 'true') {
+    // Handle boost activation after Stripe checkout
+    const sessionId = urlParams.get('session_id');
+    if (urlParams.get('boost_success') === 'true' && sessionId) {
+      toast.loading('Activation du boost en cours...');
+      supabase.functions.invoke('activate-creator-boost', {
+        body: { session_id: sessionId }
+      })
+        .then(({ data, error }) => {
+          toast.dismiss();
+          if (error) {
+            console.error('Boost activation error:', error);
+            toast.error('Erreur lors de l\'activation du boost');
+          } else if (data?.success) {
+            toast.success('🚀 Boost activé ! Votre profil est maintenant en tête des résultats.');
+          } else if (data?.error) {
+            toast.error(data.error);
+          }
+        })
+        .finally(() => {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          loadCreatorStats(); // Refresh stats to show new boost status
+        });
+    } else if (urlParams.get('boost_success') === 'true') {
+      // No session_id - might already be processed
       toast.success('Boost activé !');
-      setTimeout(() => window.location.reload(), 2000);
       window.history.replaceState({}, document.title, window.location.pathname);
     }
     
-    if (urlParams.get('boost_canceled') === 'true') {
+    if (urlParams.get('boost_cancelled') === 'true' || urlParams.get('boost_canceled') === 'true') {
       toast.error('Achat de boost annulé.');
       window.history.replaceState({}, document.title, window.location.pathname);
     }
