@@ -25,9 +25,16 @@ serve(async (req) => {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
-    const supabaseClient = createClient(
+    // Client anon pour l'authentification utilisateur
+    const supabaseAnon = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+    
+    // Client service role pour accéder aux données des créateurs (stripe_account_id)
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
@@ -39,7 +46,7 @@ serve(async (req) => {
 
     // PARALLÉLISER: Auth + Parse body en même temps
     const [authResult, body] = await Promise.all([
-      supabaseClient.auth.getUser(token),
+      supabaseAnon.auth.getUser(token),
       req.json()
     ]);
 
@@ -60,9 +67,9 @@ serve(async (req) => {
       throw new Error("Minimum tip amount is 1€");
     }
 
-    // PARALLÉLISER: Récupérer créateur + Vérifier client Stripe en même temps
+    // PARALLÉLISER: Récupérer créateur (via admin pour accès stripe_account_id) + Vérifier client Stripe
     const [creatorResult, customersResult] = await Promise.all([
-      supabaseClient
+      supabaseAdmin
         .from('creators')
         .select('stripe_account_id, stage_name, user_id')
         .eq('id', creatorId)
@@ -71,6 +78,7 @@ serve(async (req) => {
     ]);
 
     if (creatorResult.error || !creatorResult.data) {
+      logStep("Creator query failed", { error: creatorResult.error, creatorId });
       throw new Error("Creator not found");
     }
 
@@ -127,7 +135,7 @@ serve(async (req) => {
     // BACKGROUND TASK: Enregistrer le tip en pending (ne bloque pas la réponse)
     const saveTipTask = async () => {
       try {
-        const { error: tipError } = await supabaseClient
+        const { error: tipError } = await supabaseAdmin
           .from('tips')
           .insert({
             creator_id: creatorId,
