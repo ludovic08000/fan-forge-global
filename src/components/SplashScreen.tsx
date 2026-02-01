@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import splashPortrait from '@/assets/splash-portrait.jpg';
+import creatorsHero from '@/assets/creators-hero.jpg';
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -69,30 +69,37 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
           {/* Background image with Ken Burns effect */}
           <motion.div
             className="absolute inset-0"
-            initial={{ scale: 1.2, opacity: 0 }}
+            initial={{ scale: 1.15, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 1.8, ease: [0.4, 0, 0.2, 1] }}
           >
             <motion.img 
-              src={splashPortrait} 
-              alt="" 
+              src={creatorsHero} 
+              alt="Créateurs Crub" 
               className="w-full h-full object-cover"
               style={{ 
-                filter: 'brightness(1.2) contrast(1.05) saturate(1.15)',
+                filter: 'brightness(1.1) contrast(1.1) saturate(1.2)',
                 objectPosition: 'center 25%',
               }}
-              animate={{ scale: [1, 1.05] }}
-              transition={{ duration: 3, ease: 'easeOut' }}
+              animate={{ scale: [1, 1.08] }}
+              transition={{ duration: 3.5, ease: 'easeOut' }}
             />
             
-            {/* Gradient overlay animé */}
+            {/* Gradient overlay cinématique avec reflets dorés */}
             <motion.div 
               className="absolute inset-0"
-              initial={{ opacity: 0.8 }}
-              animate={{ opacity: 0.5 }}
+              initial={{ opacity: 0.9 }}
+              animate={{ opacity: 0.6 }}
               transition={{ duration: 1.5, delay: 0.5 }}
               style={{
-                background: 'radial-gradient(ellipse at center 30%, transparent 30%, rgba(0,0,0,0.6) 100%)',
+                background: 'radial-gradient(ellipse at center 35%, transparent 25%, rgba(0,0,0,0.7) 100%)',
+              }}
+            />
+            {/* Golden vignette effect */}
+            <div 
+              className="absolute inset-0 opacity-30"
+              style={{
+                background: 'radial-gradient(ellipse at center, rgba(212,175,55,0.15) 0%, transparent 60%)',
               }}
             />
           </motion.div>

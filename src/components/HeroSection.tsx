@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight } from "lucide-react";
 import { memo } from "react";
-import splashPortrait from "@/assets/splash-portrait.jpg";
+import creatorsHero from "@/assets/creators-hero.jpg";
 
 const HeroSection = memo(() => {
   const navigate = useNavigate();
@@ -25,16 +25,17 @@ const HeroSection = memo(() => {
       {/* Image de fond plein écran */}
       <div className="absolute inset-0 z-0">
         <img 
-          src={splashPortrait} 
-          alt="" 
+          src={creatorsHero} 
+          alt="Créateurs diversifiés - Fitness, Gaming, Cuisine, Glamour, Lifestyle" 
           className="w-full h-full object-cover"
           style={{ 
-            filter: 'brightness(1.1) contrast(1.05) saturate(1.1)',
-            objectPosition: 'center 20%',
+            filter: 'brightness(1.05) contrast(1.1) saturate(1.15)',
+            objectPosition: 'center 25%',
           }}
         />
-        {/* Overlay gradient pour lisibilité du texte */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
+        {/* Overlay gradient cinématique avec reflets dorés */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/70" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/40" />
       </div>
 
       {/* Decorations lumineuses */}
