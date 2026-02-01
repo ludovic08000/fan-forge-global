@@ -27,12 +27,12 @@ interface PrivateMessage {
   subscriber?: { display_name: string | null; avatar_url: string | null };
 }
 
-export const usePrivateMessages = (creatorId?: string) => {
+export const usePrivateMessages = (targetId?: string, subscriberId?: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
-  // Validation: creatorId doit être un UUID valide, pas une chaîne vide
-  const isValidUuid = creatorId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(creatorId);
+  // Validation: targetId doit être un UUID valide, pas une chaîne vide
+  const isValidUuid = targetId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
   const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Query paginée avec infinite scroll
@@ -43,7 +43,7 @@ export const usePrivateMessages = (creatorId?: string) => {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['private-messages', creatorId, user?.id],
+    queryKey: ['private-messages', targetId, subscriberId, user?.id],
     queryFn: async ({ pageParam = 0 }) => {
       // Double validation avec isValidUuid qui vérifie aussi que ce n'est pas une chaîne vide
       if (!user || !isValidUuid) return { messages: [], nextCursor: null };
@@ -60,22 +60,23 @@ export const usePrivateMessages = (creatorId?: string) => {
       
       const myCreatorId = myCreator?.id;
       
-      // Construire le filtre pour couvrir tous les cas:
-      // 1. Message du créateur cible vers moi (subscriber ou créateur)
-      // 2. Message de moi (subscriber ou créateur) vers le créateur cible
+      // Construire le filtre pour couvrir tous les cas de conversation
       let filterParts: string[] = [];
       
-      // Cas où je suis subscriber (user.id)
-      filterParts.push(`and(creator_id.eq.${creatorId},subscriber_id.eq.${user.id})`);
-      
-      // Cas où le créateur cible est subscriber (improbable mais possible)
-      if (myCreatorId) {
-        filterParts.push(`and(creator_id.eq.${myCreatorId},subscriber_id.eq.${creatorId})`);
-      }
-      
-      // Cas entre deux créateurs
-      if (myCreatorId && myCreatorId !== creatorId) {
-        filterParts.push(`and(creator_id.eq.${creatorId},subscriber_id.eq.${myCreatorId})`);
+      // Si subscriberId est fourni, c'est un créateur qui consulte ses messages avec un abonné
+      if (subscriberId && myCreatorId) {
+        // Conversation entre le créateur (moi) et l'abonné spécifié
+        filterParts.push(`and(creator_id.eq.${myCreatorId},subscriber_id.eq.${subscriberId})`);
+      } else {
+        // Je suis un subscriber qui consulte une conversation avec un créateur
+        // targetId = creator_id
+        filterParts.push(`and(creator_id.eq.${targetId},subscriber_id.eq.${user.id})`);
+        
+        // Cas où je suis aussi créateur et j'ai une conversation avec un autre créateur
+        if (myCreatorId && myCreatorId !== targetId) {
+          filterParts.push(`and(creator_id.eq.${myCreatorId},subscriber_id.eq.${targetId})`);
+          filterParts.push(`and(creator_id.eq.${targetId},subscriber_id.eq.${myCreatorId})`);
+        }
       }
 
       const { data, error } = await supabase
@@ -127,7 +128,7 @@ export const usePrivateMessages = (creatorId?: string) => {
     }
 
     const channel = supabase
-      .channel(`private-messages-${creatorId}-${user.id}`)
+      .channel(`private-messages-${targetId}-${subscriberId || ''}-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -148,21 +149,29 @@ export const usePrivateMessages = (creatorId?: string) => {
           const myCreatorId = myCreator?.id;
           
           // Vérifier si le message concerne cette conversation
-          // Cas 1: Je suis subscriber, message entre moi et le créateur cible
-          const isSubscriberConversation = 
-            newMessage.creator_id === creatorId && newMessage.subscriber_id === user.id;
+          let isRelevantMessage = false;
           
-          // Cas 2: Je suis créateur, message entre moi (créateur) et l'abonné (creatorId = targetId qui est l'abonné ici)
-          const isCreatorConversation = 
-            myCreatorId && (
-              (newMessage.creator_id === myCreatorId && newMessage.subscriber_id === creatorId) ||
-              (newMessage.creator_id === creatorId && newMessage.subscriber_id === myCreatorId)
-            );
+          if (subscriberId && myCreatorId) {
+            // Je suis créateur et je parle avec un subscriber spécifique
+            isRelevantMessage = 
+              newMessage.creator_id === myCreatorId && newMessage.subscriber_id === subscriberId;
+          } else {
+            // Je suis subscriber, message entre moi et le créateur cible
+            isRelevantMessage = 
+              newMessage.creator_id === targetId && newMessage.subscriber_id === user.id;
+            
+            // Ou entre deux créateurs
+            if (!isRelevantMessage && myCreatorId) {
+              isRelevantMessage = 
+                (newMessage.creator_id === myCreatorId && newMessage.subscriber_id === targetId) ||
+                (newMessage.creator_id === targetId && newMessage.subscriber_id === myCreatorId);
+            }
+          }
           
-          if (!isSubscriberConversation && !isCreatorConversation) return;
+          if (!isRelevantMessage) return;
           
           queryClient.setQueryData(
-            ['private-messages', creatorId, user.id],
+            ['private-messages', targetId, subscriberId, user.id],
             (old: any) => {
               if (!old?.pages?.length) return old;
               
@@ -203,7 +212,7 @@ export const usePrivateMessages = (creatorId?: string) => {
           const updatedMessage = payload.new as PrivateMessage;
           
           queryClient.setQueryData(
-            ['private-messages', creatorId, user.id],
+            ['private-messages', targetId, subscriberId, user.id],
             (old: any) => {
               if (!old?.pages?.length) return old;
               
@@ -229,7 +238,7 @@ export const usePrivateMessages = (creatorId?: string) => {
           const deletedMessage = payload.old as { id: string };
           
           queryClient.setQueryData(
-            ['private-messages', creatorId, user.id],
+            ['private-messages', targetId, subscriberId, user.id],
             (old: any) => {
               if (!old?.pages?.length) return old;
               
@@ -250,7 +259,7 @@ export const usePrivateMessages = (creatorId?: string) => {
       channel.unsubscribe();
       subscriptionRef.current = null;
     };
-  }, [user?.id, creatorId, queryClient]);
+  }, [user?.id, targetId, subscriberId, queryClient]);
 
   // Envoyer un message texte avec update optimiste
   const sendMessage = useMutation({
@@ -313,13 +322,13 @@ export const usePrivateMessages = (creatorId?: string) => {
       return data;
     },
     onMutate: async ({ content, creatorId: targetCreatorId }) => {
-      await queryClient.cancelQueries({ queryKey: ['private-messages', creatorId, user?.id] });
+      await queryClient.cancelQueries({ queryKey: ['private-messages', targetId, subscriberId, user?.id] });
 
-      const previousMessages = queryClient.getQueryData(['private-messages', creatorId, user?.id]);
+      const previousMessages = queryClient.getQueryData(['private-messages', targetId, subscriberId, user?.id]);
 
       const optimisticMessage: PrivateMessage = {
         id: `temp-${Date.now()}`,
-        creator_id: creatorId || targetCreatorId,
+        creator_id: targetId || targetCreatorId,
         subscriber_id: user?.id || '',
         sender_id: user?.id || '',
         message_type: 'text',
@@ -335,7 +344,7 @@ export const usePrivateMessages = (creatorId?: string) => {
       };
 
       queryClient.setQueryData(
-        ['private-messages', creatorId, user?.id],
+        ['private-messages', targetId, subscriberId, user?.id],
         (old: any) => {
           if (!old?.pages?.length) {
             return { pages: [{ messages: [optimisticMessage], nextCursor: null }], pageParams: [0] };
@@ -353,7 +362,7 @@ export const usePrivateMessages = (creatorId?: string) => {
     },
     onError: (err, _, context) => {
       if (context?.previousMessages) {
-        queryClient.setQueryData(['private-messages', creatorId, user?.id], context.previousMessages);
+        queryClient.setQueryData(['private-messages', targetId, subscriberId, user?.id], context.previousMessages);
       }
       toast.error(`Erreur lors de l'envoi: ${err.message}`);
     },
@@ -603,13 +612,13 @@ export const usePrivateMessages = (creatorId?: string) => {
       return { messageId };
     },
     onMutate: async (messageId) => {
-      await queryClient.cancelQueries({ queryKey: ['private-messages', creatorId, user?.id] });
+      await queryClient.cancelQueries({ queryKey: ['private-messages', targetId, subscriberId, user?.id] });
 
-      const previousMessages = queryClient.getQueryData(['private-messages', creatorId, user?.id]);
+      const previousMessages = queryClient.getQueryData(['private-messages', targetId, subscriberId, user?.id]);
 
       // Update optimiste
       queryClient.setQueryData(
-        ['private-messages', creatorId, user?.id],
+        ['private-messages', targetId, subscriberId, user?.id],
         (old: any) => {
           if (!old?.pages?.length) return old;
           
@@ -629,7 +638,7 @@ export const usePrivateMessages = (creatorId?: string) => {
     },
     onError: (err, _, context) => {
       if (context?.previousMessages) {
-        queryClient.setQueryData(['private-messages', creatorId, user?.id], context.previousMessages);
+        queryClient.setQueryData(['private-messages', targetId, subscriberId, user?.id], context.previousMessages);
       }
       toast.error(err.message);
     },

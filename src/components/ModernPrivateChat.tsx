@@ -94,7 +94,12 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
   const isUserCreator = userCreatorData?.id === creatorId;
   const targetId = isUserCreator ? subscriberId : creatorId;
   
-  const { messages, isLoading, sendMessage, sendPaidContent, sendMediaRequest, respondToMediaRequest, payForContent, payForMediaRequest, deleteMessage } = usePrivateMessages(targetId);
+  // Si l'utilisateur est le créateur, on passe creatorId + subscriberId
+  // Sinon, on passe juste le creatorId (targetId = créateur avec qui on parle)
+  const { messages, isLoading, sendMessage, sendPaidContent, sendMediaRequest, respondToMediaRequest, payForContent, payForMediaRequest, deleteMessage } = usePrivateMessages(
+    creatorId,
+    isUserCreator ? subscriberId : undefined
+  );
   const [newMessage, setNewMessage] = useState('');
   const [contentPrice, setContentPrice] = useState<number | string>(10);
   const [showPriceInput, setShowPriceInput] = useState(false);
