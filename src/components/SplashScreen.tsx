@@ -66,42 +66,53 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
             ))}
           </div>
 
-          {/* Background image with Ken Burns effect */}
+          {/* Background image with Ken Burns effect - Mobile optimized */}
           <motion.div
-            className="absolute inset-0 flex items-center justify-center"
+            className="absolute inset-0 flex items-center justify-center overflow-hidden"
             initial={{ scale: 1.1, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 1.8, ease: [0.4, 0, 0.2, 1] }}
           >
             {/* Background fill */}
-            <div className="absolute inset-0 bg-black" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-900 to-black" />
             
-            <motion.img 
-              src={creatorsHero} 
-              alt="Créateurs Crub" 
-              className="relative w-full h-auto max-h-full object-contain"
-              style={{ 
-                filter: 'brightness(1.1) contrast(1.1) saturate(1.2)',
-              }}
+            {/* Image container responsive */}
+            <motion.div
+              className="relative w-full h-full flex items-center justify-center"
               animate={{ scale: [1, 1.05] }}
               transition={{ duration: 3.5, ease: 'easeOut' }}
-            />
+            >
+              <img 
+                src={creatorsHero} 
+                alt="Créateurs Crub" 
+                className="w-full h-auto max-w-[140%] sm:max-w-full md:w-full md:h-full md:object-cover"
+                style={{ 
+                  filter: 'brightness(1.1) contrast(1.1) saturate(1.2)',
+                  objectPosition: 'center center',
+                }}
+              />
+            </motion.div>
             
-            {/* Gradient overlay cinématique avec reflets dorés */}
+            {/* Gradient overlay cinématique - ajusté pour mobile */}
             <motion.div 
-              className="absolute inset-0"
+              className="absolute inset-0 pointer-events-none"
               initial={{ opacity: 0.9 }}
-              animate={{ opacity: 0.5 }}
+              animate={{ opacity: 0.6 }}
               transition={{ duration: 1.5, delay: 0.5 }}
               style={{
-                background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.85) 100%)',
+                background: 'radial-gradient(ellipse 120% 80% at center 40%, transparent 20%, rgba(0,0,0,0.9) 100%)',
               }}
             />
+            
+            {/* Top and bottom fades for mobile */}
+            <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black to-transparent pointer-events-none" />
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent pointer-events-none" />
+            
             {/* Golden vignette effect */}
             <div 
-              className="absolute inset-0 opacity-40"
+              className="absolute inset-0 opacity-30 pointer-events-none"
               style={{
-                background: 'radial-gradient(ellipse at center, rgba(212,175,55,0.2) 0%, transparent 70%)',
+                background: 'radial-gradient(ellipse at center, rgba(212,175,55,0.25) 0%, transparent 60%)',
               }}
             />
           </motion.div>
