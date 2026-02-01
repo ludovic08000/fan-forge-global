@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { validateCsrfFromRequest, csrfErrorResponse } from "../_shared/csrf.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rateLimit.ts";
+import { logPaymentEvent } from "../_shared/auditLog.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,6 +27,26 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
+
+    // Rate limiting check
+    const authHeader = req.headers.get("Authorization");
+    let userId: string | null = null;
+    
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const authClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      );
+      const { data: userData } = await authClient.auth.getUser(token);
+      userId = userData.user?.id || null;
+    }
+
+    const rateLimitResult = await checkRateLimit(req, userId, 'checkout');
+    if (!rateLimitResult.allowed) {
+      logStep("Rate limit exceeded", { userId });
+      return rateLimitResponse(rateLimitResult, corsHeaders);
+    }
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
