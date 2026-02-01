@@ -127,8 +127,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
       {/* Suggestions Dropdown */}
       {showResults && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-lg shadow-2xl z-[9999] max-h-96 overflow-y-auto">
-          <div className="p-3 bg-card">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-lg shadow-2xl z-[99999] max-h-96 overflow-y-auto backdrop-blur-sm">
+          <div className="p-3 bg-card rounded-lg">
             {/* Search Term Results */}
             {searchTerm.length >= 2 && (
               <div>
