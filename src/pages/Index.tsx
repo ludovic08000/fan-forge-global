@@ -22,7 +22,7 @@ const Index = () => {
           {/* Recherche et créateurs visibles uniquement pour les utilisateurs connectés */}
           {user && (
             <>
-              <section className="py-8 bg-muted/20">
+              <section className="py-8 bg-muted/20 relative z-50">
                 <div className="container mx-auto px-4 flex justify-center">
                   <SearchBar />
                 </div>
