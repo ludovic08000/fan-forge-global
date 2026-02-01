@@ -1,21 +1,20 @@
 /**
  * Composant pour afficher les replays du créateur
- * Se rafraîchit automatiquement quand un nouveau replay est disponible
+ * Optimisé pour affichage instantané avec thumbnails + préchargement batch
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Video, Eye, Clock, Play, Loader2, Trash2, RefreshCw } from 'lucide-react';
+import { Video, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import SecureVideoPreviewCard from '@/components/SecureVideoPreviewCard';
-import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
+import { ReplayCard } from './ReplayCard';
+import { ReplayModal } from './ReplayModal';
+import { useBatchSignedUrls } from '@/hooks/useBatchSignedUrls';
 
 interface Replay {
   id: string;
@@ -35,10 +34,23 @@ export const CreatorReplays = () => {
   const [creatorId, setCreatorId] = useState<string | null>(null);
   const [selectedReplay, setSelectedReplay] = useState<Replay | null>(null);
 
+  // Préparer les fichiers pour le batch signing
+  const filesToSign = useMemo(() => 
+    replays.map(r => ({
+      id: r.id,
+      url: r.recording_url,
+      liveStreamId: r.id
+    })),
+    [replays]
+  );
+
+  // Hook pour obtenir toutes les URLs signées en batch
+  const { getUrl, loading: urlsLoading } = useBatchSignedUrls(filesToSign);
+
   /**
    * Charger les replays du créateur
    */
-  const loadReplays = async () => {
+  const loadReplays = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -72,12 +84,12 @@ export const CreatorReplays = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   // Charger les replays au montage
   useEffect(() => {
     loadReplays();
-  }, [user]);
+  }, [loadReplays]);
 
   // Subscription realtime pour rafraîchir automatiquement
   useEffect(() => {
@@ -94,7 +106,6 @@ export const CreatorReplays = () => {
           filter: `creator_id=eq.${creatorId}`,
         },
         (payload) => {
-          // Si le recording_url vient d'être ajouté, rafraîchir
           if (payload.new.recording_url && payload.new.status === 'ended') {
             console.log('[CreatorReplays] New replay available, refreshing...');
             loadReplays();
@@ -106,12 +117,12 @@ export const CreatorReplays = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [creatorId]);
+  }, [creatorId, loadReplays]);
 
   /**
    * Supprimer un replay
    */
-  const handleDeleteReplay = async (replayId: string) => {
+  const handleDeleteReplay = useCallback(async (replayId: string) => {
     if (!confirm('Supprimer ce replay ? Cette action est irréversible.')) return;
 
     try {
@@ -128,7 +139,10 @@ export const CreatorReplays = () => {
       console.error('Erreur suppression replay:', error);
       toast.error('Erreur lors de la suppression');
     }
-  };
+  }, []);
+
+  // URL signée pour le replay sélectionné
+  const selectedReplayUrl = selectedReplay ? getUrl(selectedReplay.id) : null;
 
   if (loading) {
     return (
@@ -176,127 +190,28 @@ export const CreatorReplays = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {replays.map((replay) => (
-              <div 
+              <ReplayCard
                 key={replay.id}
-                className="group relative rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors cursor-pointer"
-                onClick={() => setSelectedReplay(replay)}
-              >
-                {/* Preview vidéo */}
-                <div className="aspect-video relative">
-                  <SecureVideoPreviewCard
-                    src={replay.recording_url}
-                    liveStreamId={replay.id}
-                    poster={replay.thumbnail_url}
-                    isPremium={replay.is_premium}
-                    className="w-full h-full"
-                    showPlayButton={true}
-                  >
-                    {/* Badge premium */}
-                    {replay.is_premium && (
-                      <Badge className="absolute top-2 left-2 z-20 bg-amber-500">
-                        Premium
-                      </Badge>
-                    )}
-                  </SecureVideoPreviewCard>
-                </div>
-
-                {/* Infos */}
-                <div className="p-3 space-y-1">
-                  <h4 className="font-medium truncate">{replay.title}</h4>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Eye className="h-3 w-3" />
-                      {replay.peak_viewer_count || 0}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {formatDistanceToNow(new Date(replay.ended_at), { 
-                        addSuffix: true,
-                        locale: fr 
-                      })}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Bouton supprimer */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 bg-black/60 hover:bg-red-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteReplay(replay.id);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 text-white" />
-                </Button>
-              </div>
+                replay={replay}
+                signedUrl={getUrl(replay.id)}
+                onSelect={setSelectedReplay}
+                onDelete={handleDeleteReplay}
+              />
             ))}
           </div>
         )}
 
-        {/* Modal lecture avec URL sécurisée */}
+        {/* Modal lecture */}
         {selectedReplay && (
           <ReplayModal 
-            replay={selectedReplay} 
+            replay={selectedReplay}
+            signedUrl={selectedReplayUrl}
+            loading={urlsLoading && !selectedReplayUrl}
             onClose={() => setSelectedReplay(null)} 
           />
         )}
       </CardContent>
     </Card>
-  );
-};
-
-/**
- * Modal de lecture avec URL sécurisée
- */
-const ReplayModal = ({ replay, onClose }: { replay: Replay; onClose: () => void }) => {
-  const isR2 = isR2Url(replay.recording_url);
-  
-  const { secureUrl, loading } = useSecureR2Url(
-    isR2 ? replay.recording_url : null,
-    { liveStreamId: replay.id, enabled: isR2 }
-  );
-  
-  const videoUrl = isR2 ? secureUrl : replay.recording_url;
-  
-  return (
-    <div 
-      className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div className="max-w-4xl w-full" onClick={e => e.stopPropagation()}>
-        {loading ? (
-          <div className="aspect-video flex items-center justify-center bg-black rounded-lg">
-            <Loader2 className="h-8 w-8 animate-spin text-white" />
-          </div>
-        ) : videoUrl ? (
-          <video
-            src={videoUrl}
-            controls
-            autoPlay
-            className="w-full rounded-lg"
-          />
-        ) : (
-          <div className="aspect-video flex items-center justify-center bg-black rounded-lg text-white">
-            Erreur de chargement
-          </div>
-        )}
-        <div className="mt-4 text-white">
-          <h3 className="text-xl font-bold">{replay.title}</h3>
-          {replay.description && (
-            <p className="text-white/70 mt-1">{replay.description}</p>
-          )}
-        </div>
-        <Button 
-          variant="outline" 
-          className="mt-4"
-          onClick={onClose}
-        >
-          Fermer
-        </Button>
-      </div>
-    </div>
   );
 };
 
