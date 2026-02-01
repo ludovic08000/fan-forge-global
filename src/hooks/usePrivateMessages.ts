@@ -218,8 +218,44 @@ export const usePrivateMessages = (targetId?: string, subscriberId?: string) => 
           schema: 'public',
           table: 'private_messages',
         },
-        (payload) => {
+        async (payload) => {
           const updatedMessage = payload.new as PrivateMessage;
+          
+          console.log('[usePrivateMessages] UPDATE received:', {
+            messageId: updatedMessage.id,
+            status: updatedMessage.status,
+            price: updatedMessage.price
+          });
+          
+          // Récupérer l'ID créateur de l'utilisateur actuel pour vérifier la pertinence
+          const { data: myCreator } = await supabase
+            .from('creators')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          const myCreatorId = myCreator?.id;
+          
+          // Vérifier si le message concerne cette conversation
+          let isRelevantMessage = false;
+          
+          if (subscriberId && myCreatorId) {
+            isRelevantMessage = 
+              updatedMessage.creator_id === myCreatorId && updatedMessage.subscriber_id === subscriberId;
+          } else {
+            isRelevantMessage = 
+              updatedMessage.creator_id === targetId && updatedMessage.subscriber_id === user.id;
+            
+            if (!isRelevantMessage && myCreatorId) {
+              isRelevantMessage = 
+                (updatedMessage.creator_id === myCreatorId && updatedMessage.subscriber_id === targetId) ||
+                (updatedMessage.creator_id === targetId && updatedMessage.subscriber_id === myCreatorId);
+            }
+          }
+          
+          console.log('[usePrivateMessages] UPDATE is relevant:', isRelevantMessage);
+          
+          if (!isRelevantMessage) return;
           
           queryClient.setQueryData(
             ['private-messages', targetId, subscriberId, user.id],
@@ -229,7 +265,7 @@ export const usePrivateMessages = (targetId?: string, subscriberId?: string) => 
               const newPages = old.pages.map((page: any) => ({
                 ...page,
                 messages: page.messages.map((m: PrivateMessage) =>
-                  m.id === updatedMessage.id ? updatedMessage : m
+                  m.id === updatedMessage.id ? { ...m, ...updatedMessage } : m
                 ),
               }));
               return { ...old, pages: newPages };
