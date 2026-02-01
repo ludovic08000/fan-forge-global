@@ -83,11 +83,11 @@ const mapPartnershipWithProfiles = (row: PartnershipRow): PartnershipWithProfile
 });
 
 export const usePartnerships = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const queryClient = useQueryClient();
 
   // Récupérer le creator_id ET les partenariats en une seule requête combinée
-  const { data: combinedData, isLoading: combinedLoading } = useQuery({
+  const { data: combinedData, isLoading: combinedLoading, isFetching } = useQuery({
     queryKey: ['partnerships-combined', user?.id],
     queryFn: async () => {
       if (!user) return { creator: null, partnerships: [] };
@@ -99,8 +99,15 @@ export const usePartnerships = () => {
         .eq('user_id', user.id)
         .maybeSingle();
       
-      if (creatorError) throw creatorError;
-      if (!creatorData) return { creator: null, partnerships: [] };
+      if (creatorError) {
+        console.error('Error fetching creator:', creatorError);
+        throw creatorError;
+      }
+      
+      if (!creatorData) {
+        console.log('No creator found for user:', user.id);
+        return { creator: null, partnerships: [] };
+      }
       
       // Requête 2: Récupérer les partenariats
       const { data: partnershipsData, error: partnershipsError } = await supabase
@@ -114,22 +121,26 @@ export const usePartnerships = () => {
         .order('created_at', { ascending: false })
         .limit(50);
       
-      if (partnershipsError) throw partnershipsError;
+      if (partnershipsError) {
+        console.error('Error fetching partnerships:', partnershipsError);
+        throw partnershipsError;
+      }
       
       return {
         creator: creatorData,
         partnerships: (partnershipsData as unknown as PartnershipRow[]).map(mapPartnershipWithProfiles),
       };
     },
-    enabled: !!user,
-    staleTime: 2 * 60 * 1000, // Cache 2 minutes
+    enabled: !!user && !authLoading,
+    staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    placeholderData: (previousData) => previousData, // Affichage instantané des anciennes données
+    placeholderData: (previousData) => previousData,
   });
 
   const currentCreator = combinedData?.creator ?? null;
   const partnerships = combinedData?.partnerships ?? [];
-  const isLoading = combinedLoading;
+  // Include authLoading in the loading state to prevent premature "not creator" message
+  const isLoading = authLoading || combinedLoading || (!!user && !combinedData && isFetching);
 
   // Demandes reçues en attente
   const pendingReceived = partnerships?.filter(
