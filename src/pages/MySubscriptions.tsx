@@ -4,7 +4,7 @@ import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { LiveStream } from '@/hooks/useLiveStream';
-import SearchBar from '@/components/SearchBar';
+import DiscoveryFilters from '@/components/DiscoveryFilters';
 import { MySubscriptionsSection } from '@/components/subscriptions/MySubscriptionsSection';
 import { LiveStreamsSection } from '@/components/subscriptions/LiveStreamsSection';
 import { ActiveCreatorsSection } from '@/components/subscriptions/ActiveCreatorsSection';
@@ -252,9 +252,9 @@ const MySubscriptions = () => {
           </p>
         </div>
 
-        {/* Barre de recherche - Plus compacte */}
-        <div className="max-w-lg mx-auto mb-10">
-          <SearchBar placeholder="Rechercher un créateur..." />
+        {/* Filtres de découverte */}
+        <div className="max-w-2xl mx-auto mb-10">
+          <DiscoveryFilters />
         </div>
 
         {/* Mes abonnements */}
