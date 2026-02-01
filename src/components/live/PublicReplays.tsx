@@ -113,9 +113,17 @@ export const PublicReplays = ({ creatorId, isSubscribed, creatorName }: PublicRe
                     isPremium={replay.is_premium}
                     className="w-full h-full"
                     blurred={!canAccess}
-                  />
+                    showPlayButton={true}
+                  >
+                    {/* Badge premium */}
+                    {replay.is_premium && (
+                      <Badge className="absolute top-2 left-2 z-20 bg-amber-500">
+                        Premium
+                      </Badge>
+                    )}
+                  </SecureVideoPreviewCard>
                 ) : (
-                  <div className="w-full h-full bg-muted flex items-center justify-center">
+                  <div className="w-full h-full bg-muted flex items-center justify-center relative">
                     {replay.thumbnail_url ? (
                       <img 
                         src={replay.thumbnail_url} 
@@ -125,27 +133,19 @@ export const PublicReplays = ({ creatorId, isSubscribed, creatorName }: PublicRe
                     ) : (
                       <Video className="h-12 w-12 text-muted-foreground/50" />
                     )}
-                  </div>
-                )}
-                
-                {/* Overlay play ou lock */}
-                <div className={`absolute inset-0 flex items-center justify-center transition-opacity ${
-                  canAccess ? 'bg-black/40 opacity-0 group-hover:opacity-100' : 'bg-black/60'
-                }`}>
-                  <div className="bg-white/90 rounded-full p-3">
-                    {canAccess ? (
-                      <Play className="h-6 w-6 text-black fill-black" />
-                    ) : (
-                      <Lock className="h-6 w-6 text-black" />
+                    {/* Overlay lock pour non-abonnés */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                      <div className="bg-white/90 rounded-full p-3">
+                        <Lock className="h-6 w-6 text-black" />
+                      </div>
+                    </div>
+                    {/* Badge premium */}
+                    {replay.is_premium && (
+                      <Badge className="absolute top-2 left-2 z-20 bg-amber-500">
+                        Premium
+                      </Badge>
                     )}
                   </div>
-                </div>
-                
-                {/* Badge premium */}
-                {replay.is_premium && (
-                  <Badge className="absolute top-2 left-2 bg-amber-500">
-                    Premium
-                  </Badge>
                 )}
               </div>
 
