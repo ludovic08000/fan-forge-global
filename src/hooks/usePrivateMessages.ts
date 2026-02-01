@@ -63,14 +63,23 @@ export const usePrivateMessages = (targetId?: string, subscriberId?: string) => 
       // Construire le filtre pour couvrir tous les cas de conversation
       let filterParts: string[] = [];
       
+      console.log('[usePrivateMessages] Building filter:', {
+        targetId,
+        subscriberId,
+        myCreatorId,
+        userId: user.id
+      });
+      
       // Si subscriberId est fourni, c'est un créateur qui consulte ses messages avec un abonné
       if (subscriberId && myCreatorId) {
         // Conversation entre le créateur (moi) et l'abonné spécifié
         filterParts.push(`and(creator_id.eq.${myCreatorId},subscriber_id.eq.${subscriberId})`);
+        console.log('[usePrivateMessages] Creator view - filter:', filterParts[0]);
       } else {
         // Je suis un subscriber qui consulte une conversation avec un créateur
         // targetId = creator_id
         filterParts.push(`and(creator_id.eq.${targetId},subscriber_id.eq.${user.id})`);
+        console.log('[usePrivateMessages] Subscriber view - filter:', filterParts[0]);
         
         // Cas où je suis aussi créateur et j'ai une conversation avec un autre créateur
         if (myCreatorId && myCreatorId !== targetId) {
@@ -100,6 +109,7 @@ export const usePrivateMessages = (targetId?: string, subscriberId?: string) => 
           read_at
         `)
         .or(filterParts.join(','))
+        .eq('is_deleted', false)
         .order('created_at', { ascending: false })
         .range(from, to);
 
