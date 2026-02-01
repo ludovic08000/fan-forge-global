@@ -205,7 +205,7 @@ const SearchPage: React.FC = () => {
                 <div>
                   <Label className="text-sm font-medium mb-2 block">Catégories suggérées</Label>
                   <div className="flex flex-wrap gap-2">
-                    {['Glamour', 'Agriculture', 'DJing', 'Mannequin', 'Pilote voiture', 'Gaming', 'Fitness', 'Musique', 'Art'].map((cat) => (
+                    {['Glamour', 'Gaming', 'Coach sportif', 'Cuisine', 'DJing', 'Lifestyle', 'Mannequin'].map((cat) => (
                       <Badge
                         key={cat}
                         variant={filters.category === cat ? "default" : "outline"}
