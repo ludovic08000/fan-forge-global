@@ -11,8 +11,10 @@ import {
 import { Menu, X, User, LogOut, Settings, Crown, MessageCircle, Receipt } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { NotificationBell } from '@/components/NotificationBell';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const Header = memo(() => {
+  const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, signOut, userRole, userProfile } = useAuth();
   const navigate = useNavigate();
@@ -91,31 +93,31 @@ const Header = memo(() => {
                 <DropdownMenuItem asChild>
                   <Link to="/dashboard" className="flex items-center">
                     <User className="mr-2 h-4 w-4" aria-hidden="true" />
-                    <span>Tableau de bord</span>
+                    <span>{t('header.dashboard')}</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/profile" className="flex items-center">
                     <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
-                    <span>Mon profil</span>
+                    <span>{t('header.myProfile')}</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/messages" className="flex items-center">
                     <MessageCircle className="mr-2 h-4 w-4" aria-hidden="true" />
-                    <span>Messages</span>
+                    <span>{t('header.messages')}</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/subscriptions" className="flex items-center">
                     <Crown className="mr-2 h-4 w-4" aria-hidden="true" />
-                    <span>Mes abonnements</span>
+                    <span>{t('header.mySubscriptions')}</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/my-payments" className="flex items-center">
                     <Receipt className="mr-2 h-4 w-4" aria-hidden="true" />
-                    <span>Mes achats</span>
+                    <span>{t('header.myPurchases')}</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => {
@@ -123,17 +125,17 @@ const Header = memo(() => {
                   navigate('/');
                 }}>
                   <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
-                  <span>Se déconnecter</span>
+                  <span>{t('header.logout')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <div className="flex items-center space-x-2">
               <Button variant="ghost" asChild className="hover:text-primary">
-                <Link to="/login">Connexion</Link>
+                <Link to="/login">{t('header.signIn')}</Link>
               </Button>
               <Button asChild className="bg-gradient-to-r from-primary to-primary-glow hover:scale-105 transition-transform shadow-lg shadow-primary/30">
-                <Link to="/signup">Inscription</Link>
+                <Link to="/signup">{t('header.signUp')}</Link>
               </Button>
             </div>
           )}
@@ -165,7 +167,7 @@ const Header = memo(() => {
                 className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
                 onClick={closeMenu}
               >
-                Accueil
+                {t('header.home')}
               </Link>
               {!user ? (
                 <>
@@ -174,14 +176,14 @@ const Header = memo(() => {
                     className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
                     onClick={closeMenu}
                   >
-                    Connexion
+                    {t('header.signIn')}
                   </Link>
                   <Link 
                     to="/signup" 
                     className="block px-3 py-2 text-primary hover:text-primary/80 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-primary rounded"
                     onClick={closeMenu}
                   >
-                    Inscription
+                    {t('header.signUp')}
                   </Link>
                 </>
               ) : (
@@ -191,35 +193,35 @@ const Header = memo(() => {
                     className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
                     onClick={closeMenu}
                   >
-                    Tableau de bord
+                    {t('header.dashboard')}
                   </Link>
                   <Link 
                     to="/profile" 
                     className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
                     onClick={closeMenu}
                   >
-                    Mon profil
+                    {t('header.myProfile')}
                   </Link>
                   <Link 
                     to="/messages" 
                     className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
                     onClick={closeMenu}
                   >
-                    Messages
+                    {t('header.messages')}
                   </Link>
                   <Link 
                     to="/subscriptions" 
                     className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
                     onClick={closeMenu}
                   >
-                    Mes abonnements
+                    {t('header.mySubscriptions')}
                   </Link>
                   <Link 
                     to="/my-payments" 
                     className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
                     onClick={closeMenu}
                   >
-                    Mes achats
+                    {t('header.myPurchases')}
                   </Link>
                   <button
                     onClick={async () => {
@@ -229,7 +231,7 @@ const Header = memo(() => {
                     }}
                     className="block w-full text-left px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
                   >
-                    Déconnexion
+                    {t('header.logout')}
                   </button>
                 </>
               )}

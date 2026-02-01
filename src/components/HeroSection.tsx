@@ -4,8 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight } from "lucide-react";
 import { memo } from "react";
 import creatorsHero from "@/assets/creators-hero.jpg";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 const HeroSection = memo(() => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -48,13 +50,12 @@ const HeroSection = memo(() => {
             id="hero-heading"
             className="text-4xl md:text-5xl lg:text-7xl font-display font-bold tracking-tight text-white leading-tight drop-shadow-2xl"
           >
-            Partagez ce qui vous rend{" "}
-            <span className="text-primary">unique</span>
+            {t('hero.title')}{" "}
+            <span className="text-primary">{t('hero.titleHighlight')}</span>
           </h1>
 
           <p className="text-lg md:text-xl text-white/90 max-w-xl mx-auto leading-relaxed drop-shadow-lg">
-            Créez votre espace, connectez avec votre communauté, 
-            et monétisez votre contenu en toute sécurité.
+            {t('hero.description')}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
@@ -62,9 +63,9 @@ const HeroSection = memo(() => {
               size="lg"
               onClick={handleCTA}
               className="group text-base px-8 py-6 rounded-xl font-medium shadow-xl"
-              aria-label={user ? "Accéder à mon espace" : "Commencer gratuitement sur Crub"}
+              aria-label={user ? t('hero.mySpace') : t('hero.joinAsCreator')}
             >
-              {user ? "Mon espace" : "Commencer gratuitement"}
+              {user ? t('hero.mySpace') : t('hero.joinAsCreator')}
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
             </Button>
             
@@ -74,9 +75,9 @@ const HeroSection = memo(() => {
                 size="lg"
                 onClick={() => navigate('/search')}
                 className="text-base px-8 py-6 rounded-xl font-medium bg-white/10 border-white/30 text-white hover:bg-white/20"
-                aria-label="Découvrir les créateurs de la plateforme"
+                aria-label={t('hero.exploreContent')}
               >
-                Découvrir les créateurs
+                {t('hero.exploreContent')}
               </Button>
             )}
           </div>
