@@ -189,21 +189,15 @@ export const CreatorReplays = () => {
                     poster={replay.thumbnail_url}
                     isPremium={replay.is_premium}
                     className="w-full h-full"
-                  />
-                  
-                  {/* Overlay play */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="bg-white/90 rounded-full p-3">
-                      <Play className="h-6 w-6 text-black fill-black" />
-                    </div>
-                  </div>
-                  
-                  {/* Badge premium */}
-                  {replay.is_premium && (
-                    <Badge className="absolute top-2 left-2 bg-amber-500">
-                      Premium
-                    </Badge>
-                  )}
+                    showPlayButton={true}
+                  >
+                    {/* Badge premium */}
+                    {replay.is_premium && (
+                      <Badge className="absolute top-2 left-2 z-20 bg-amber-500">
+                        Premium
+                      </Badge>
+                    )}
+                  </SecureVideoPreviewCard>
                 </div>
 
                 {/* Infos */}
