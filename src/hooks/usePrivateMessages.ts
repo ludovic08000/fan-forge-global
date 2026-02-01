@@ -693,16 +693,19 @@ export const usePrivateMessages = (targetId?: string, subscriberId?: string) => 
     },
   });
 
-  // Marquer les messages comme lus
+  // Marquer les messages comme lus (met à jour read_at pour le receipt de lecture)
   const markAsRead = useMutation({
     mutationFn: async (messageIds: string[]) => {
       if (!user || messageIds.length === 0) return;
 
       const { error } = await supabase
         .from('private_messages')
-        .update({ status: 'read' })
+        .update({ 
+          status: 'read',
+          read_at: new Date().toISOString()
+        })
         .in('id', messageIds)
-        .neq('status', 'read');
+        .is('read_at', null); // Seulement si pas encore lu
 
       if (error) throw error;
     },
