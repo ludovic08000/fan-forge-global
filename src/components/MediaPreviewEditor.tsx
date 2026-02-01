@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { compressImage, compressVideo, formatFileSize, calculateSavings, type CompressionProgress } from '@/lib/mediaCompression';
+import { compressImage, formatFileSize, calculateSavings, type CompressionProgress } from '@/lib/mediaCompression';
 // Premium Instagram-like filters with more variety
 const PHOTO_FILTERS = [
   // Basic
@@ -402,28 +402,20 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
         
         let finalFile = file;
         
-        // Apply video compression if enabled
-        if (compressionEnabled) {
-          setCompressionProgress({ stage: 'analyzing', progress: 0, message: 'Analyse vidéo...' });
-          
-          const result = await compressVideo(file, {
-            maxWidth: 1920,
-            maxHeight: 1080,
-            videoBitrate: 2500000,
-            frameRate: 30,
-          }, setCompressionProgress);
-          
-          if (result.success && result.wasCompressed) {
-            finalFile = result.file;
-            const savings = calculateSavings(result.originalSize, result.compressedSize);
-            toast.success(`Vidéo compressée: -${savings}% (${formatFileSize(result.compressedSize)})`);
-          }
-        }
+        // NOTE: Client-side video compression is DISABLED because MediaRecorder causes
+        // audio/video desynchronization issues. Videos are uploaded as-is.
+        // Server-side processing will be done via the process-video edge function if needed.
         
         onConfirm(finalFile, thumbnailBlob);
       }
     } catch (error) {
       console.error('Processing error:', error);
+      // For videos, still allow upload even if processing fails
+      if (isVideo) {
+        toast.warning('Traitement ignoré, upload direct...');
+        onConfirm(file);
+        return;
+      }
       toast.error('Erreur lors du traitement');
     } finally {
       setIsProcessing(false);
