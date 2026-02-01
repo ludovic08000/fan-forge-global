@@ -68,25 +68,24 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
 
           {/* Background image with Ken Burns effect */}
           <motion.div
-            className="absolute inset-0"
+            className="absolute inset-0 flex items-center justify-center"
             initial={{ scale: 1.1, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 1.8, ease: [0.4, 0, 0.2, 1] }}
           >
+            {/* Background fill */}
+            <div className="absolute inset-0 bg-black" />
+            
             <motion.img 
               src={creatorsHero} 
               alt="Créateurs Crub" 
-              className="w-full h-full object-contain md:object-cover"
+              className="relative w-full h-auto max-h-full object-contain"
               style={{ 
                 filter: 'brightness(1.1) contrast(1.1) saturate(1.2)',
-                objectPosition: 'center center',
               }}
               animate={{ scale: [1, 1.05] }}
               transition={{ duration: 3.5, ease: 'easeOut' }}
             />
-            
-            {/* Background fill pour les zones vides */}
-            <div className="absolute inset-0 -z-10 bg-black" />
             
             {/* Gradient overlay cinématique avec reflets dorés */}
             <motion.div 
@@ -95,7 +94,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
               animate={{ opacity: 0.5 }}
               transition={{ duration: 1.5, delay: 0.5 }}
               style={{
-                background: 'radial-gradient(ellipse at center 50%, transparent 30%, rgba(0,0,0,0.8) 100%)',
+                background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.85) 100%)',
               }}
             />
             {/* Golden vignette effect */}
