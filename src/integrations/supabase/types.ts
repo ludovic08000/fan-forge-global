@@ -760,6 +760,65 @@ export type Database = {
           },
         ]
       }
+      creator_stories: {
+        Row: {
+          caption: string | null
+          created_at: string
+          creator_id: string
+          expires_at: string
+          id: string
+          image_url: string
+          view_count: number
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          creator_id: string
+          expires_at?: string
+          id?: string
+          image_url: string
+          view_count?: number
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          creator_id?: string
+          expires_at?: string
+          id?: string
+          image_url?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_stories_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "creator_stories_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_stories_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_stories_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creators: {
         Row: {
           bank_account_holder: string | null
@@ -2373,6 +2432,35 @@ export type Database = {
         }
         Relationships: []
       }
+      story_views: {
+        Row: {
+          id: string
+          story_id: string
+          viewed_at: string
+          viewer_id: string
+        }
+        Insert: {
+          id?: string
+          story_id: string
+          viewed_at?: string
+          viewer_id: string
+        }
+        Update: {
+          id?: string
+          story_id?: string
+          viewed_at?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_views_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "creator_stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           auto_renew: boolean | null
@@ -3174,6 +3262,7 @@ export type Database = {
         }
         Returns: string
       }
+      record_story_view: { Args: { p_story_id: string }; Returns: undefined }
       search_creators:
         | {
             Args: {
