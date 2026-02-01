@@ -208,11 +208,12 @@ const ModernPrivateChat: React.FC<ModernPrivateChatProps> = ({
   };
 
   const handleSendMedia = async () => {
-    if (!previewFile) return;
+    if (!previewFile || !user) return;
 
     setIsValidatingFile(true);
     try {
-      const fileName = `${Date.now()}-${previewFile.file.name}`;
+      // IMPORTANT: Le fichier doit être dans un dossier avec l'ID utilisateur pour respecter les RLS
+      const fileName = `${user.id}/${Date.now()}-${previewFile.file.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('content')
         .upload(fileName, previewFile.file);
