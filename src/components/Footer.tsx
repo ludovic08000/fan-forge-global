@@ -1,8 +1,10 @@
 import { Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { memo } from "react";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 const Footer = memo(() => {
+  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
   
   return (
@@ -20,35 +22,35 @@ const Footer = memo(() => {
               </span>
             </div>
             <p className="text-muted-foreground mb-2">
-              Crub est une plateforme premium dédiée aux créateurs et à leur communauté.
+              {t('footer.tagline')}
             </p>
             <p className="text-muted-foreground text-sm">
-              Un hub moderne, sécurisé et conçu pour la création de contenu exclusif. Crub – La nouvelle génération de plateformes créatives.
+              {t('footer.description')}
             </p>
           </div>
 
           {/* Legal Links */}
-          <nav aria-label="Liens légaux">
-            <h2 className="text-lg font-semibold mb-4">Informations légales</h2>
+          <nav aria-label={t('footer.legalTitle')}>
+            <h2 className="text-lg font-semibold mb-4">{t('footer.legalTitle')}</h2>
             <ul className="space-y-2 text-muted-foreground">
               <li>
                 <Link to="/terms" className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded">
-                  Conditions d'Utilisation
+                  {t('footer.terms')}
                 </Link>
               </li>
               <li>
                 <Link to="/privacy" className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded">
-                  Politique de Confidentialité
+                  {t('footer.privacy')}
                 </Link>
               </li>
               <li>
                 <Link to="/cookies" className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded">
-                  Politique des Cookies
+                  {t('footer.cookies')}
                 </Link>
               </li>
               <li>
                 <Link to="/legal" className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded">
-                  Mentions Légales
+                  {t('footer.legal')}
                 </Link>
               </li>
             </ul>
@@ -59,12 +61,12 @@ const Footer = memo(() => {
         <div className="pt-8 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-muted-foreground text-sm">
-              © {currentYear} Crub. Tous droits réservés.
+              © {currentYear} Crub. {t('footer.copyright')}
             </div>
             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-              <span>Conforme RGPD</span>
+              <span>{t('footer.gdprCompliant')}</span>
               <span aria-hidden="true">•</span>
-              <span>Plateforme 18+</span>
+              <span>{t('footer.adultPlatform')}</span>
             </div>
           </div>
         </div>
