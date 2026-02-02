@@ -2,6 +2,7 @@ import HeroSection from "@/components/HeroSection";
 import SearchBar from "@/components/SearchBar";
 import PopularCreators from "@/components/PopularCreators";
 import LiveNowSection from "@/components/LiveNowSection";
+import ContentGallery from "@/components/ContentGallery";
 import AgeVerificationGate from "@/components/AgeVerificationGate";
 import SEOHead from "@/components/SEOHead";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,6 +30,14 @@ const Index = () => {
               </section>
 
               <PopularCreators />
+              
+              {/* Section Médias */}
+              <section className="py-12 bg-background">
+                <div className="container mx-auto px-4">
+                  <h2 className="text-2xl font-bold mb-6">Découvrir les médias</h2>
+                  <ContentGallery />
+                </div>
+              </section>
             </>
           )}
           
