@@ -66,18 +66,20 @@ const CreatorSettings: React.FC = () => {
   const MAX_BIO_LENGTH = 500;
 
   const categories = [
-    'Art & Design',
-    'Musique',
-    'Vidéo & Film',
-    'Photographie',
-    'Écriture',
-    'Cuisine',
+    'Glamour',
+    'Gaming',
     'Fitness & Sport',
+    'Cuisine',
+    'Musique',
+    'Lifestyle',
     'Mode & Beauté',
+    'Art & Design',
+    'Photographie',
+    'Vidéo & Film',
+    'Écriture',
     'Technologie',
     'Éducation',
     'Divertissement',
-    'Publication érotique',
     'Autre'
   ];
 
