@@ -2,20 +2,20 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { 
   X, Check, Sun, Contrast, Droplets, Sparkles, Palette, CloudFog, 
-  Flame, Snowflake, Moon, Heart, RotateCcw, Scissors, Image as ImageIcon,
-  Play, Pause, Loader2, Wand2, CircleDot, Zap, Waves, 
+  Flame, Snowflake, Moon, Heart, RotateCcw, 
+  Loader2, Wand2, CircleDot, Zap, Waves, 
   Mountain, Sunset, TreePine, Building, Camera, Star, Crown, 
   FileDown, TrendingDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { compressImage, formatFileSize, calculateSavings, type CompressionProgress } from '@/lib/mediaCompression';
+
 // Premium Instagram-like filters with more variety
 const PHOTO_FILTERS = [
   // Basic
@@ -71,6 +71,18 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
   const isVideo = file.type.startsWith('video/');
   const isImage = file.type.startsWith('image/');
   
+  // For videos, skip editor and confirm directly (no video editing)
+  useEffect(() => {
+    if (isVideo) {
+      onConfirm(file);
+    }
+  }, [isVideo, file, onConfirm]);
+  
+  // Only render editor for images
+  if (isVideo) {
+    return null;
+  }
+  
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [selectedFilter, setSelectedFilter] = useState('normal');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -86,17 +98,7 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
   const [compressionProgress, setCompressionProgress] = useState<CompressionProgress | null>(null);
   const [compressionEnabled, setCompressionEnabled] = useState(true);
   
-  // Video specific states
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [trimStart, setTrimStart] = useState(0);
-  const [trimEnd, setTrimEnd] = useState(0);
-  const [coverTime, setCoverTime] = useState<number | null>(null);
-  const [activeVideoTab, setActiveVideoTab] = useState('filters');
-  
   const imageRef = useRef<HTMLImageElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Initialize preview URL
@@ -265,62 +267,9 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
     setVignette(0);
     setGrain(0);
     setFade(0);
-    if (isVideo) {
-      setTrimStart(0);
-      setTrimEnd(duration);
-      setCoverTime(null);
-    }
   };
 
-  // Video controls
-  const togglePlay = () => {
-    if (!videoRef.current) return;
-    if (isPlaying) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleVideoLoaded = () => {
-    if (videoRef.current) {
-      const dur = videoRef.current.duration;
-      setDuration(dur);
-      setTrimEnd(dur);
-    }
-  };
-
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
-      if (videoRef.current.currentTime >= trimEnd) {
-        videoRef.current.currentTime = trimStart;
-      }
-    }
-  };
-
-  const seekTo = (time: number) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = time;
-      setCurrentTime(time);
-    }
-  };
-
-  const setCoverFromCurrent = () => {
-    if (videoRef.current) {
-      setCoverTime(videoRef.current.currentTime);
-      toast.success('Couverture définie');
-    }
-  };
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Confirm and process
+  // Confirm and process image
   const handleConfirm = async () => {
     setIsProcessing(true);
     setCompressionProgress(null);
@@ -331,7 +280,7 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Context not available');
 
-      if (isImage && imageRef.current) {
+      if (imageRef.current) {
         const img = imageRef.current;
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;
@@ -356,11 +305,10 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
             maxHeight: 2048,
             quality: 0.82,
             targetSizeKB: 800,
-            preferWebP: false, // Keep JPEG to avoid extension mismatch
+            preferWebP: false,
           }, setCompressionProgress);
           
           if (result.success && result.wasCompressed) {
-            // Ensure filename extension matches the actual file type
             const mimeType = result.file.type;
             const extension = mimeType === 'image/webp' ? 'webp' : 
                              mimeType === 'image/png' ? 'png' : 'jpg';
@@ -371,51 +319,9 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
         }
         
         onConfirm(editedFile);
-        
-      } else if (isVideo && videoRef.current) {
-        let thumbnailBlob: Blob | undefined;
-        
-        if (coverTime !== null) {
-          const video = videoRef.current;
-          const currentPos = video.currentTime;
-          video.currentTime = coverTime;
-          await new Promise(r => setTimeout(r, 200));
-          
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          ctx.drawImage(video, 0, 0);
-          applyFiltersToCanvas(ctx, canvas.width, canvas.height);
-          
-          thumbnailBlob = await new Promise<Blob>((resolve, reject) => {
-            canvas.toBlob((b) => b ? resolve(b) : reject(new Error('Blob failed')), 'image/jpeg', 0.9);
-          });
-          
-          video.currentTime = currentPos;
-        }
-        
-        sessionStorage.setItem('videoEditSettings', JSON.stringify({
-          trimStart,
-          trimEnd,
-          coverTime,
-          filters: { brightness, contrast, saturation, selectedFilter, warmth, vignette, grain, fade }
-        }));
-        
-        let finalFile = file;
-        
-        // NOTE: Client-side video compression is DISABLED because MediaRecorder causes
-        // audio/video desynchronization issues. Videos are uploaded as-is.
-        // Server-side processing will be done via the process-video edge function if needed.
-        
-        onConfirm(finalFile, thumbnailBlob);
       }
     } catch (error) {
       console.error('Processing error:', error);
-      // For videos, still allow upload even if processing fails
-      if (isVideo) {
-        toast.warning('Traitement ignoré, upload direct...');
-        onConfirm(file);
-        return;
-      }
       toast.error('Erreur lors du traitement');
     } finally {
       setIsProcessing(false);
@@ -437,12 +343,10 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
           
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
-              {isImage ? <Camera className="w-5 h-5 text-primary" /> : <Play className="w-5 h-5 text-primary" />}
+              <Camera className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-white font-semibold text-base">
-                {isImage ? 'Édition Photo' : 'Édition Vidéo'}
-              </h2>
+              <h2 className="text-white font-semibold text-base">Édition Photo</h2>
               <p className="text-white/40 text-xs">Filtres premium</p>
             </div>
           </div>
@@ -531,423 +435,263 @@ const MediaPreviewEditor: React.FC<MediaPreviewEditorProps> = ({ file, onConfirm
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5 pointer-events-none" />
           
           <div className="relative rounded-2xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10">
-            {isImage && (
-              <motion.img
-                ref={imageRef}
-                src={previewUrl}
-                alt="Preview"
-                style={getFilterStyle()}
-                className="max-w-full max-h-[50vh] object-contain"
-                crossOrigin="anonymous"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3 }}
-              />
-            )}
-            
-            {isVideo && (
-              <div className="relative">
-                <video
-                  ref={videoRef}
-                  src={previewUrl}
-                  style={getFilterStyle()}
-                  className="max-w-full max-h-[50vh] object-contain"
-                  onLoadedMetadata={handleVideoLoaded}
-                  onTimeUpdate={handleTimeUpdate}
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
-                  playsInline
-                  loop
-                />
-                
-                <button
-                  onClick={togglePlay}
-                  className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 hover:opacity-100 transition-opacity"
-                >
-                  <motion.div 
-                    className="bg-black/60 backdrop-blur-sm rounded-full p-5 ring-1 ring-white/20"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {isPlaying ? (
-                      <Pause className="h-8 w-8 text-white" />
-                    ) : (
-                      <Play className="h-8 w-8 text-white fill-white" />
-                    )}
-                  </motion.div>
-                </button>
-              </div>
-            )}
+            <motion.img
+              ref={imageRef}
+              src={previewUrl}
+              alt="Preview"
+              style={getFilterStyle()}
+              className="max-w-full max-h-[50vh] object-contain"
+              crossOrigin="anonymous"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            />
           </div>
           
           <canvas ref={canvasRef} className="hidden" />
         </div>
 
-        {/* Video Timeline */}
-        {isVideo && duration > 0 && (
-          <div className="px-6 py-3 border-t border-white/5">
-            <div className="flex justify-between text-xs text-white/50 mb-2">
-              <span className="font-mono">{formatTime(currentTime)}</span>
-              <span className="font-mono">{formatTime(duration)}</span>
-            </div>
-            <Slider
-              value={[currentTime]}
-              min={0}
-              max={duration}
-              step={0.1}
-              onValueChange={([v]) => seekTo(v)}
-              className="cursor-pointer"
-            />
-          </div>
-        )}
-
         {/* Controls Panel */}
-        <div className="border-t border-white/10 bg-black/40 backdrop-blur-sm">
-          {isVideo && (
-            <Tabs value={activeVideoTab} onValueChange={setActiveVideoTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-transparent border-b border-white/5 rounded-none h-12">
-                <TabsTrigger 
-                  value="filters" 
-                  className="text-white/60 data-[state=active]:text-white data-[state=active]:bg-white/5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary transition-all"
-                >
-                  <Palette className="w-4 h-4 mr-2" />
-                  Filtres
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="trim" 
-                  className="text-white/60 data-[state=active]:text-white data-[state=active]:bg-white/5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary transition-all"
-                >
-                  <Scissors className="w-4 h-4 mr-2" />
-                  Découpe
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="cover" 
-                  className="text-white/60 data-[state=active]:text-white data-[state=active]:bg-white/5 rounded-none border-b-2 border-transparent data-[state=active]:border-primary transition-all"
-                >
-                  <ImageIcon className="w-4 h-4 mr-2" />
-                  Couverture
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="trim" className="p-4 space-y-4">
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-white/70 text-sm font-medium">Début</label>
-                      <span className="text-primary text-sm font-mono">{formatTime(trimStart)}</span>
-                    </div>
-                    <Slider
-                      value={[trimStart]}
-                      min={0}
-                      max={trimEnd - 1}
-                      step={0.1}
-                      onValueChange={([v]) => setTrimStart(v)}
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-white/70 text-sm font-medium">Fin</label>
-                      <span className="text-primary text-sm font-mono">{formatTime(trimEnd)}</span>
-                    </div>
-                    <Slider
-                      value={[trimEnd]}
-                      min={trimStart + 1}
-                      max={duration}
-                      step={0.1}
-                      onValueChange={([v]) => setTrimEnd(v)}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center justify-center pt-2">
-                  <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5">
-                    <Scissors className="w-3 h-3 mr-1.5" />
-                    Durée: {formatTime(trimEnd - trimStart)}
-                  </Badge>
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="cover" className="p-6">
-                <div className="text-center space-y-4">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 mb-2">
-                    <ImageIcon className="w-8 h-8 text-primary" />
-                  </div>
-                  <p className="text-white/60 text-sm max-w-md mx-auto">
-                    Naviguez dans la vidéo pour sélectionner l'image de couverture parfaite
-                  </p>
-                  <Button 
-                    onClick={setCoverFromCurrent} 
-                    variant="outline" 
-                    className="border-white/20 text-white hover:bg-white/10 rounded-full px-6"
-                  >
-                    <Camera className="w-4 h-4 mr-2" />
-                    Capturer l'image actuelle
-                  </Button>
-                  <AnimatePresence>
-                    {coverTime !== null && (
-                      <motion.div 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        className="flex items-center justify-center gap-2 text-green-400"
-                      >
-                        <Check className="w-4 h-4" />
-                        <span className="text-sm">Couverture définie à {formatTime(coverTime)}</span>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </TabsContent>
-            </Tabs>
-          )}
-
-          {/* Filters Panel */}
-          {(isImage || activeVideoTab === 'filters') && (
-            <div className={`${isVideo ? '' : 'p-4'} space-y-4`}>
-              {/* Category Pills */}
-              <div className={`${isVideo ? 'px-4 pt-4' : ''}`}>
-                <ScrollArea className="w-full whitespace-nowrap">
-                  <div className="flex gap-2 pb-2">
-                    {FILTER_CATEGORIES.map((cat) => (
-                      <button
-                        key={cat.id}
-                        onClick={() => setSelectedCategory(cat.id)}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-                          selectedCategory === cat.id 
-                            ? 'bg-primary text-white shadow-lg shadow-primary/30' 
-                            : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
-                        }`}
-                      >
-                        {cat.icon}
-                        {cat.name}
-                      </button>
-                    ))}
-                  </div>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-              </div>
-
-              {/* Filter Grid */}
-              <div className={`${isVideo ? 'px-4' : ''}`}>
-                <ScrollArea className="w-full">
-                  <div className="flex gap-3 pb-3">
-                    <AnimatePresence mode="popLayout">
-                      {filteredFilters.map((filter, index) => (
-                        <motion.button
-                          key={filter.id}
-                          layout
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ delay: index * 0.03 }}
-                          onClick={() => applyFilterPreset(filter.id)}
-                          className={`flex-shrink-0 flex flex-col items-center gap-2 transition-all duration-200 group ${
-                            selectedFilter === filter.id ? 'scale-105' : ''
-                          }`}
-                        >
-                          <div 
-                            className={`relative w-20 h-20 rounded-xl overflow-hidden ring-2 transition-all duration-200 ${
-                              selectedFilter === filter.id 
-                                ? 'ring-primary shadow-lg shadow-primary/30' 
-                                : 'ring-white/10 group-hover:ring-white/30'
-                            }`}
-                          >
-                            <img 
-                              src={previewUrl}
-                              alt={filter.name}
-                              className="w-full h-full object-cover"
-                              style={{
-                                filter: (() => {
-                                  const parts: string[] = [];
-                                  parts.push(`brightness(${filter.adjustments.brightness || 100}%)`);
-                                  parts.push(`contrast(${filter.adjustments.contrast || 100}%)`);
-                                  parts.push(`saturate(${filter.adjustments.saturation || 100}%)`);
-                                  if (filter.adjustments.grayscale) parts.push(`grayscale(${filter.adjustments.grayscale}%)`);
-                                  if (filter.adjustments.sepia) parts.push(`sepia(${filter.adjustments.sepia}%)`);
-                                  if (filter.adjustments.hueRotate) parts.push(`hue-rotate(${filter.adjustments.hueRotate}deg)`);
-                                  return parts.join(' ');
-                                })()
-                              }}
-                            />
-                            {selectedFilter === filter.id && (
-                              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                                <Check className="w-6 h-6 text-white drop-shadow-lg" />
-                              </div>
-                            )}
-                          </div>
-                          <span className={`text-xs font-medium transition-colors ${
-                            selectedFilter === filter.id ? 'text-primary' : 'text-white/60 group-hover:text-white'
-                          }`}>
-                            {filter.name}
-                          </span>
-                        </motion.button>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-              </div>
-
-              {/* Adjustments */}
-              <div className={`space-y-4 ${isVideo ? 'px-4 pb-4' : ''}`}>
-                {/* Toggle Advanced */}
+        <div className="border-t border-white/10 bg-black/40 backdrop-blur-sm p-4 space-y-4">
+          {/* Category Pills */}
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex gap-2 pb-2">
+              {FILTER_CATEGORIES.map((cat) => (
                 <button
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex items-center gap-2 text-white/60 hover:text-white text-sm transition-colors"
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                    selectedCategory === cat.id 
+                      ? 'bg-primary text-white shadow-lg shadow-primary/30' 
+                      : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                  }`}
                 >
-                  <Wand2 className="w-4 h-4" />
-                  <span>Ajustements {showAdvanced ? 'basiques' : 'avancés'}</span>
-                  <motion.span 
-                    animate={{ rotate: showAdvanced ? 180 : 0 }}
-                    className="text-xs"
-                  >
-                    ▼
-                  </motion.span>
+                  {cat.icon}
+                  {cat.name}
                 </button>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {/* Basic Adjustments */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-white/60 text-xs flex items-center gap-1.5">
-                        <Sun className="w-3.5 h-3.5" /> Luminosité
-                      </label>
-                      <span className="text-primary text-xs font-mono">{brightness}%</span>
-                    </div>
-                    <Slider
-                      value={[brightness]}
-                      onValueChange={([v]) => setBrightness(v)}
-                      min={50}
-                      max={150}
-                      step={1}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-white/60 text-xs flex items-center gap-1.5">
-                        <Contrast className="w-3.5 h-3.5" /> Contraste
-                      </label>
-                      <span className="text-primary text-xs font-mono">{contrast}%</span>
-                    </div>
-                    <Slider
-                      value={[contrast]}
-                      onValueChange={([v]) => setContrast(v)}
-                      min={50}
-                      max={150}
-                      step={1}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-white/60 text-xs flex items-center gap-1.5">
-                        <Droplets className="w-3.5 h-3.5" /> Saturation
-                      </label>
-                      <span className="text-primary text-xs font-mono">{saturation}%</span>
-                    </div>
-                    <Slider
-                      value={[saturation]}
-                      onValueChange={([v]) => setSaturation(v)}
-                      min={0}
-                      max={200}
-                      step={1}
-                    />
-                  </div>
-
-                  {/* Advanced Adjustments */}
-                  <AnimatePresence>
-                    {showAdvanced && (
-                      <>
-                        <motion.div 
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="space-y-2"
-                        >
-                          <div className="flex items-center justify-between">
-                            <label className="text-white/60 text-xs flex items-center gap-1.5">
-                              <Flame className="w-3.5 h-3.5" /> Chaleur
-                            </label>
-                            <span className="text-primary text-xs font-mono">{warmth > 0 ? '+' : ''}{warmth}</span>
-                          </div>
-                          <Slider
-                            value={[warmth]}
-                            onValueChange={([v]) => setWarmth(v)}
-                            min={-50}
-                            max={50}
-                            step={1}
-                          />
-                        </motion.div>
-                        
-                        <motion.div 
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="space-y-2"
-                        >
-                          <div className="flex items-center justify-between">
-                            <label className="text-white/60 text-xs flex items-center gap-1.5">
-                              <CircleDot className="w-3.5 h-3.5" /> Vignette
-                            </label>
-                            <span className="text-primary text-xs font-mono">{vignette}%</span>
-                          </div>
-                          <Slider
-                            value={[vignette]}
-                            onValueChange={([v]) => setVignette(v)}
-                            min={0}
-                            max={100}
-                            step={1}
-                          />
-                        </motion.div>
-                        
-                        <motion.div 
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="space-y-2"
-                        >
-                          <div className="flex items-center justify-between">
-                            <label className="text-white/60 text-xs flex items-center gap-1.5">
-                              <Sparkles className="w-3.5 h-3.5" /> Grain
-                            </label>
-                            <span className="text-primary text-xs font-mono">{grain}%</span>
-                          </div>
-                          <Slider
-                            value={[grain]}
-                            onValueChange={([v]) => setGrain(v)}
-                            min={0}
-                            max={100}
-                            step={1}
-                          />
-                        </motion.div>
-                        
-                        <motion.div 
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="space-y-2 md:col-span-3"
-                        >
-                          <div className="flex items-center justify-between">
-                            <label className="text-white/60 text-xs flex items-center gap-1.5">
-                              <CloudFog className="w-3.5 h-3.5" /> Fade
-                            </label>
-                            <span className="text-primary text-xs font-mono">{fade}%</span>
-                          </div>
-                          <Slider
-                            value={[fade]}
-                            onValueChange={([v]) => setFade(v)}
-                            min={0}
-                            max={100}
-                            step={1}
-                          />
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
+              ))}
             </div>
-          )}
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+
+          {/* Filter Grid */}
+          <ScrollArea className="w-full">
+            <div className="flex gap-3 pb-3">
+              <AnimatePresence mode="popLayout">
+                {filteredFilters.map((filter, index) => (
+                  <motion.button
+                    key={filter.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ delay: index * 0.03 }}
+                    onClick={() => applyFilterPreset(filter.id)}
+                    className={`flex-shrink-0 flex flex-col items-center gap-2 transition-all duration-200 group ${
+                      selectedFilter === filter.id ? 'scale-105' : ''
+                    }`}
+                  >
+                    <div 
+                      className={`relative w-20 h-20 rounded-xl overflow-hidden ring-2 transition-all duration-200 ${
+                        selectedFilter === filter.id 
+                          ? 'ring-primary shadow-lg shadow-primary/30' 
+                          : 'ring-white/10 group-hover:ring-white/30'
+                      }`}
+                    >
+                      <img 
+                        src={previewUrl}
+                        alt={filter.name}
+                        className="w-full h-full object-cover"
+                        style={{
+                          filter: (() => {
+                            const parts: string[] = [];
+                            parts.push(`brightness(${filter.adjustments.brightness || 100}%)`);
+                            parts.push(`contrast(${filter.adjustments.contrast || 100}%)`);
+                            parts.push(`saturate(${filter.adjustments.saturation || 100}%)`);
+                            if (filter.adjustments.grayscale) parts.push(`grayscale(${filter.adjustments.grayscale}%)`);
+                            if (filter.adjustments.sepia) parts.push(`sepia(${filter.adjustments.sepia}%)`);
+                            if (filter.adjustments.hueRotate) parts.push(`hue-rotate(${filter.adjustments.hueRotate}deg)`);
+                            return parts.join(' ');
+                          })()
+                        }}
+                      />
+                      {selectedFilter === filter.id && (
+                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                          <Check className="w-6 h-6 text-white drop-shadow-lg" />
+                        </div>
+                      )}
+                    </div>
+                    <span className={`text-xs font-medium transition-colors ${
+                      selectedFilter === filter.id ? 'text-primary' : 'text-white/60 group-hover:text-white'
+                    }`}>
+                      {filter.name}
+                    </span>
+                  </motion.button>
+                ))}
+              </AnimatePresence>
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+
+          {/* Adjustments */}
+          <div className="space-y-4">
+            {/* Toggle Advanced */}
+            <button
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex items-center gap-2 text-white/60 hover:text-white text-sm transition-colors"
+            >
+              <Wand2 className="w-4 h-4" />
+              <span>Ajustements {showAdvanced ? 'basiques' : 'avancés'}</span>
+              <motion.span 
+                animate={{ rotate: showAdvanced ? 180 : 0 }}
+                className="text-xs"
+              >
+                ▼
+              </motion.span>
+            </button>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {/* Basic Adjustments */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-white/60 text-xs flex items-center gap-1.5">
+                    <Sun className="w-3.5 h-3.5" /> Luminosité
+                  </label>
+                  <span className="text-primary text-xs font-mono">{brightness}%</span>
+                </div>
+                <Slider
+                  value={[brightness]}
+                  onValueChange={([v]) => setBrightness(v)}
+                  min={50}
+                  max={150}
+                  step={1}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-white/60 text-xs flex items-center gap-1.5">
+                    <Contrast className="w-3.5 h-3.5" /> Contraste
+                  </label>
+                  <span className="text-primary text-xs font-mono">{contrast}%</span>
+                </div>
+                <Slider
+                  value={[contrast]}
+                  onValueChange={([v]) => setContrast(v)}
+                  min={50}
+                  max={150}
+                  step={1}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-white/60 text-xs flex items-center gap-1.5">
+                    <Droplets className="w-3.5 h-3.5" /> Saturation
+                  </label>
+                  <span className="text-primary text-xs font-mono">{saturation}%</span>
+                </div>
+                <Slider
+                  value={[saturation]}
+                  onValueChange={([v]) => setSaturation(v)}
+                  min={0}
+                  max={200}
+                  step={1}
+                />
+              </div>
+
+              {/* Advanced Adjustments */}
+              <AnimatePresence>
+                {showAdvanced && (
+                  <>
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <label className="text-white/60 text-xs flex items-center gap-1.5">
+                          <Flame className="w-3.5 h-3.5" /> Chaleur
+                        </label>
+                        <span className="text-primary text-xs font-mono">{warmth > 0 ? '+' : ''}{warmth}</span>
+                      </div>
+                      <Slider
+                        value={[warmth]}
+                        onValueChange={([v]) => setWarmth(v)}
+                        min={-50}
+                        max={50}
+                        step={1}
+                      />
+                    </motion.div>
+                    
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <label className="text-white/60 text-xs flex items-center gap-1.5">
+                          <CircleDot className="w-3.5 h-3.5" /> Vignette
+                        </label>
+                        <span className="text-primary text-xs font-mono">{vignette}%</span>
+                      </div>
+                      <Slider
+                        value={[vignette]}
+                        onValueChange={([v]) => setVignette(v)}
+                        min={0}
+                        max={100}
+                        step={1}
+                      />
+                    </motion.div>
+                    
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <label className="text-white/60 text-xs flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5" /> Grain
+                        </label>
+                        <span className="text-primary text-xs font-mono">{grain}%</span>
+                      </div>
+                      <Slider
+                        value={[grain]}
+                        onValueChange={([v]) => setGrain(v)}
+                        min={0}
+                        max={100}
+                        step={1}
+                      />
+                    </motion.div>
+                    
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-2 md:col-span-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <label className="text-white/60 text-xs flex items-center gap-1.5">
+                          <CloudFog className="w-3.5 h-3.5" /> Fade
+                        </label>
+                        <span className="text-primary text-xs font-mono">{fade}%</span>
+                      </div>
+                      <Slider
+                        value={[fade]}
+                        onValueChange={([v]) => setFade(v)}
+                        min={0}
+                        max={100}
+                        step={1}
+                      />
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
