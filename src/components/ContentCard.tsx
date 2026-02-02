@@ -120,19 +120,26 @@ const ContentCard: React.FC<ContentCardProps> = ({
 
   const creatorInitials = creatorName.charAt(0).toUpperCase();
 
-  // URL avec cache-buster - mémorisée
-  const cacheBuster = useMemo(() => {
-    return content.updated_at ? `?t=${new Date(content.updated_at).getTime()}` : '';
-  }, [content.updated_at]);
-  
+  // URLs propres sans cache-buster (le composant vidéo gère la construction)
   const imageUrl = useMemo(() => {
-    return (content.thumbnail_url || content.file_url) + cacheBuster;
-  }, [content.thumbnail_url, content.file_url, cacheBuster]);
+    return content.thumbnail_url || content.file_url;
+  }, [content.thumbnail_url, content.file_url]);
 
   // URL vidéo séparée (utilise file_url, pas thumbnail)
   const videoUrl = useMemo(() => {
-    return content.file_url + cacheBuster;
-  }, [content.file_url, cacheBuster]);
+    return content.file_url;
+  }, [content.file_url]);
+  
+  // Poster pour les vidéos (seulement si c'est une vraie image, pas la vidéo elle-même)
+  const videoPoster = useMemo(() => {
+    if (!content.thumbnail_url) return undefined;
+    const thumb = content.thumbnail_url.split('?')[0].toLowerCase();
+    // Si le thumbnail pointe vers une vidéo, ne pas l'utiliser comme poster
+    if (thumb.endsWith('.mp4') || thumb.endsWith('.mov') || thumb.endsWith('.webm')) {
+      return undefined;
+    }
+    return content.thumbnail_url;
+  }, [content.thumbnail_url]);
 
   // Précharger agressivement au hover pour affichage instantané
   const handleMouseEnter = useCallback(() => {
@@ -183,7 +190,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
           <SecureVideoPreviewCard
             src={videoUrl}
             contentId={content.id}
-            poster={content.thumbnail_url ? content.thumbnail_url + cacheBuster : undefined}
+            poster={videoPoster}
             className="w-full h-full"
             blurred={shouldBlur}
             showPlayButton={!shouldBlur}
