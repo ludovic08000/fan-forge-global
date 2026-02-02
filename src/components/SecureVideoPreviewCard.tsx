@@ -1,7 +1,21 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Play, Volume2, VolumeX, Loader2, Shield } from 'lucide-react';
 import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
+
+// Build public URL from relative path
+const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
+const buildPublicUrl = (path: string, bucket: string = 'content'): string => {
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
+};
+
+// Check if it's a real R2 URL (not just a relative path)
+const isRealR2Url = (url: string): boolean => {
+  return url.includes('.r2.dev') || url.includes('.r2.cloudflarestorage.com');
+};
 
 interface SecureVideoPreviewCardProps {
   src: string;
@@ -17,7 +31,8 @@ interface SecureVideoPreviewCardProps {
 
 /**
  * Composant vidéo sécurisé avec lecture automatique au survol
- * Utilise des URLs signées pour le contenu R2 (Cloudflare) et Supabase
+ * Utilise des URLs signées pour le contenu R2 (Cloudflare) et Supabase premium
+ * Utilise des URLs publiques pour le contenu gratuit
  */
 export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   src,
@@ -39,15 +54,19 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   const [posterError, setPosterError] = useState(false);
   const [previewReady, setPreviewReady] = useState(false);
 
-  // Détecter si c'est une URL R2 externe ou un chemin de fichier (stockage sécurisé)
-  // isR2Url retourne true pour: URLs R2 complètes OU chemins de fichiers directs
-  const needsR2SignedUrl = isR2Url(src);
+  // Détecter si c'est une vraie URL R2 externe (bucket privé Cloudflare)
+  const isExternalR2 = isRealR2Url(src);
   
-  // Vérifier si c'est une URL publique Supabase Storage (legacy - à éviter)
-  const isSupabasePublicUrl = src.includes('supabase.co/storage/v1/object/public/');
+  // Pour le contenu non-premium, utiliser l'URL publique directement
+  const publicUrl = useMemo(() => {
+    if (!isPremium && !isExternalR2) {
+      return buildPublicUrl(src, 'content');
+    }
+    return null;
+  }, [src, isPremium, isExternalR2]);
 
-  // Hook pour URLs R2 sécurisées (Cloudflare) - utilise get-replay-url avec clés API
-  // Activé pour: URLs R2 complètes ET chemins de fichiers directs
+  // Hook pour URLs R2 sécurisées - UNIQUEMENT pour le contenu premium R2
+  const needsR2SignedUrl = isExternalR2 && isPremium;
   const { secureUrl: r2SecureUrl, loading: r2Loading, error: r2Error } = useSecureR2Url(
     needsR2SignedUrl ? src : null,
     {
@@ -57,9 +76,8 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
     }
   );
 
-  // Hook pour URLs Supabase signées (contenu stocké sur Supabase Storage)
-  // Seulement pour le contenu premium qui n'est PAS sur R2
-  const needsSupabaseSignedUrl = !needsR2SignedUrl && isPremium && !isSupabasePublicUrl;
+  // Hook pour URLs Supabase signées - UNIQUEMENT pour le contenu premium Supabase
+  const needsSupabaseSignedUrl = !isExternalR2 && isPremium;
   const { signedUrl: supabaseSignedUrl, loading: supabaseLoading } = useSignedUrl(
     needsSupabaseSignedUrl ? src : null,
     {
@@ -70,12 +88,20 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   );
 
   const getSecureVideoUrl = (): string => {
+    // Non-premium: utiliser l'URL publique directement
+    if (!isPremium && publicUrl) {
+      return publicUrl;
+    }
+    // Premium R2
     if (needsR2SignedUrl) {
       if (r2Loading) return '';
       if (r2Error) return '';
       return r2SecureUrl || '';
-    } else if (isPremium && supabaseSignedUrl) {
-      return supabaseSignedUrl;
+    }
+    // Premium Supabase
+    if (needsSupabaseSignedUrl) {
+      if (supabaseLoading) return '';
+      return supabaseSignedUrl || '';
     }
     return src;
   };
@@ -196,8 +222,8 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
         )}
       </div>
 
-      {/* Badge sécurisé pour les vidéos avec URL signée */}
-      {needsR2SignedUrl && r2SecureUrl && isHovering && !videoError && !isLoading && (
+      {/* Badge sécurisé pour les vidéos premium avec URL signée */}
+      {isPremium && (r2SecureUrl || supabaseSignedUrl) && isHovering && !videoError && !isLoading && (
         <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-green-500/90 px-2 py-0.5 rounded-full">
           <Shield className="h-3 w-3 text-white" />
           <span className="text-[10px] font-semibold text-white">
