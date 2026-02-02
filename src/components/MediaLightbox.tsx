@@ -26,14 +26,17 @@ const detectMediaType = (url: string): 'image' | 'video' => {
   return videoExtensions.some(ext => lowerUrl.includes(ext)) ? 'video' : 'image';
 };
 
-// Check if it's a relative path (not a full URL)
-const isRelativePath = (url: string): boolean => {
-  return !url.startsWith('http://') && !url.startsWith('https://') && !isR2Url(url);
+// Check if it's a real R2 URL (not just a relative path)
+const isRealR2Url = (url: string): boolean => {
+  return url.includes('.r2.dev') || url.includes('.r2.cloudflarestorage.com');
 };
 
 // Build the full public URL from a relative path
 const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
 const buildPublicUrl = (path: string, bucket: string = 'content'): string => {
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
   return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
 };
 
@@ -56,28 +59,23 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const resolvedMediaType = mediaType || detectMediaType(mediaUrl);
-  const isExternalR2 = isR2Url(mediaUrl);
+  const isExternalR2 = isRealR2Url(mediaUrl);
   const isVideo = resolvedMediaType === 'video';
   
-  // Convert relative paths to full public URLs for non-premium content
-  const normalizedMediaUrl = useMemo(() => {
-    if (!mediaUrl) return mediaUrl;
-    // Non-premium content: use public URL directly
-    if (!isPremium && isRelativePath(mediaUrl)) {
+  // Pour le contenu non-premium, utiliser l'URL publique directement
+  const publicUrl = useMemo(() => {
+    if (!mediaUrl) return null;
+    if (!isPremium && !isExternalR2) {
       return buildPublicUrl(mediaUrl, 'content');
     }
-    // Non-R2 full URL: use as-is
-    if (!isPremium && !isExternalR2) {
-      return mediaUrl;
-    }
-    return mediaUrl;
+    return null;
   }, [mediaUrl, isPremium, isExternalR2]);
 
-  // Only use secure hooks for premium content or R2 URLs
+  // Hooks sécurisés UNIQUEMENT pour le contenu premium
   const needsR2Signing = isExternalR2 && isPremium;
   const needsSupabaseSigning = !isExternalR2 && isPremium;
 
-  // Hook pour URLs R2 sécurisées (replays Cloudflare) - only for premium R2 content
+  // Hook pour URLs R2 sécurisées - UNIQUEMENT pour le contenu premium R2
   const { secureUrl: r2SecureUrl, loading: r2Loading, error: r2Error } = useSecureR2Url(
     isOpen && needsR2Signing ? mediaUrl : null,
     {
@@ -86,7 +84,7 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
     }
   );
 
-  // Hook pour URLs Supabase signées (contenu premium stocké sur Supabase)
+  // Hook pour URLs Supabase signées - UNIQUEMENT pour le contenu premium Supabase
   const { signedUrl: supabaseSignedUrl, loading: supabaseLoading } = useSignedUrl(
     isOpen && needsSupabaseSigning ? mediaUrl : null,
     {
@@ -98,20 +96,24 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
 
   // URL sécurisée finale à utiliser
   const secureMediaUrl = useMemo(() => {
-    // Non-premium: always use public URL
-    if (!isPremium) {
-      return normalizedMediaUrl;
+    // Non-premium: utiliser l'URL publique directement
+    if (!isPremium && publicUrl) {
+      return publicUrl;
     }
     // Premium R2 content
     if (needsR2Signing) {
-      return r2SecureUrl || mediaUrl;
+      if (r2Loading) return '';
+      if (r2Error) return '';
+      return r2SecureUrl || '';
     }
     // Premium Supabase content
     if (needsSupabaseSigning) {
-      return supabaseSignedUrl || mediaUrl;
+      if (supabaseLoading) return '';
+      return supabaseSignedUrl || '';
     }
-    return normalizedMediaUrl;
-  }, [isPremium, needsR2Signing, needsSupabaseSigning, normalizedMediaUrl, r2SecureUrl, supabaseSignedUrl, mediaUrl]);
+    // Fallback
+    return publicUrl || mediaUrl;
+  }, [isPremium, needsR2Signing, needsSupabaseSigning, publicUrl, r2SecureUrl, supabaseSignedUrl, mediaUrl, r2Loading, r2Error, supabaseLoading]);
   
   const urlLoading = needsR2Signing ? r2Loading : (needsSupabaseSigning ? supabaseLoading : false);
 
