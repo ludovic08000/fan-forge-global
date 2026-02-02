@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { Play, Volume2, VolumeX, Loader2, Shield } from 'lucide-react';
-import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
+import { Play, Volume2, VolumeX, Loader2 } from 'lucide-react';
+import { useSecureR2Url } from '@/hooks/useSecureR2Url';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 // Build public URL from relative path
@@ -222,15 +222,6 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
         )}
       </div>
 
-      {/* Badge sécurisé pour les vidéos premium avec URL signée */}
-      {isPremium && (r2SecureUrl || supabaseSignedUrl) && isHovering && !videoError && !isLoading && (
-        <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-green-500/90 px-2 py-0.5 rounded-full">
-          <Shield className="h-3 w-3 text-white" />
-          <span className="text-[10px] font-semibold text-white">
-            Sécurisé
-          </span>
-        </div>
-      )}
 
       {/* Play button overlay - visible quand pas en hover et pas flouté */}
       {showPlayButton && !isHovering && !blurred && !isLoading && (
