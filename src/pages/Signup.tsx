@@ -306,15 +306,21 @@ const Signup = () => {
                         <SelectValue placeholder="Sélectionnez une catégorie" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="glamour">Glamour</SelectItem>
-                        <SelectItem value="fitness">Fitness</SelectItem>
-                        <SelectItem value="lifestyle">Lifestyle</SelectItem>
-                        <SelectItem value="art">Art</SelectItem>
-                        <SelectItem value="mode">Mode</SelectItem>
-                        <SelectItem value="musique">Musique</SelectItem>
-                        <SelectItem value="gaming">Gaming</SelectItem>
-                        <SelectItem value="cuisine">Cuisine</SelectItem>
-                        <SelectItem value="autre">Autre</SelectItem>
+                        <SelectItem value="Glamour">Glamour</SelectItem>
+                        <SelectItem value="Gaming">Gaming</SelectItem>
+                        <SelectItem value="Fitness & Sport">Coach sportif / Fitness</SelectItem>
+                        <SelectItem value="Cuisine">Cuisine</SelectItem>
+                        <SelectItem value="Musique">DJing / Musique</SelectItem>
+                        <SelectItem value="Lifestyle">Lifestyle</SelectItem>
+                        <SelectItem value="Mode & Beauté">Mannequin / Mode</SelectItem>
+                        <SelectItem value="Art & Design">Art & Design</SelectItem>
+                        <SelectItem value="Photographie">Photographie</SelectItem>
+                        <SelectItem value="Vidéo & Film">Vidéo & Film</SelectItem>
+                        <SelectItem value="Écriture">Écriture</SelectItem>
+                        <SelectItem value="Technologie">Technologie</SelectItem>
+                        <SelectItem value="Éducation">Éducation</SelectItem>
+                        <SelectItem value="Divertissement">Divertissement</SelectItem>
+                        <SelectItem value="Autre">Autre</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
