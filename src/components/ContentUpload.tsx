@@ -40,7 +40,8 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
     title: '',
     description: '',
     isPremium: false,
-    isPreview: false
+    isPreview: false,
+    price: ''
   });
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -250,11 +251,12 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
 
     try {
       // Valider avec Zod
+      const priceValue = formData.price ? parseFloat(formData.price) : 0;
       const validatedData = contentUploadSchema.parse({
         title: formData.title,
         description: formData.description,
         isPremium: formData.isPremium,
-        price: 0,
+        price: priceValue,
       });
       
       if (!validatedData.title.trim()) {
@@ -278,7 +280,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
         description: validatedData.description || undefined,
         isPremium: validatedData.isPremium,
         isPreview: formData.isPreview,
-        price: 0,
+        price: validatedData.price,
         file: selectedFile
       }, creatorData.id, user.id);
 
@@ -294,7 +296,8 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
         title: '',
         description: '',
         isPremium: false,
-        isPreview: false
+        isPreview: false,
+        price: ''
       });
       setSelectedFile(null);
       setPreviewUrl('');
@@ -637,21 +640,52 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
             
             {/* Preview Toggle - Only show when content is premium */}
             {formData.isPremium && (
-              <div className="flex items-center justify-between gap-4 p-3 bg-muted/50 rounded-lg border border-border">
-                <div className="space-y-0.5 flex-1">
-                  <Label htmlFor="preview" className="flex items-center gap-2">
-                    👁️ Photo d'aperçu
+              <>
+                <div className="flex items-center justify-between gap-4 p-3 bg-muted/50 rounded-lg border border-border">
+                  <div className="space-y-0.5 flex-1">
+                    <Label htmlFor="preview" className="flex items-center gap-2">
+                      👁️ Photo d'aperçu
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Visible par tous (non-abonnés voient une version floutée)
+                    </p>
+                  </div>
+                  <Switch
+                    id="preview"
+                    checked={formData.isPreview}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPreview: checked }))}
+                  />
+                </div>
+
+                {/* Price field for premium content */}
+                <div className="p-3 bg-muted/50 rounded-lg border border-border space-y-2">
+                  <Label htmlFor="price" className="flex items-center gap-2">
+                    💰 Prix à l'unité (optionnel)
                   </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Visible par tous (non-abonnés voient une version floutée)
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Les abonnés peuvent acheter ce contenu individuellement
+                  </p>
+                  <div className="relative">
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="999"
+                      placeholder="0.00"
+                      value={formData.price}
+                      onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                      className="pr-8"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+                      €
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Laissez vide ou 0 pour ne pas vendre à l'unité
                   </p>
                 </div>
-                <Switch
-                  id="preview"
-                  checked={formData.isPreview}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPreview: checked }))}
-                />
-              </div>
+              </>
             )}
             
             <p className="text-xs text-muted-foreground bg-muted p-3 rounded-lg">

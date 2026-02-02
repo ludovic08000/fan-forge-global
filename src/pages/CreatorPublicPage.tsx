@@ -851,9 +851,9 @@ const CreatorPublicPage = () => {
         </DropdownMenu>
       </div>
 
-      {/* Grille de contenu - 3 colonnes uniformes */}
+      {/* Grille de contenu - responsive avec plus de colonnes sur desktop */}
       {activeTab === 'posts' && (
-        <div className="grid grid-cols-3 gap-0.5">
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0.5">
           {filteredContent.map((item) => {
             const canView = !item.is_premium || isSubscribed;
             
@@ -903,11 +903,21 @@ const CreatorPublicPage = () => {
                     </div>
                   )}
 
-                  {/* Icône verrou pour premium non débloqué */}
+                  {/* Icône verrou pour premium non débloqué ou prix pour abonnés */}
                   {item.is_premium && !isSubscribed && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                       <div className="bg-black/60 rounded-full p-3">
                         <Lock className="h-6 w-6 text-white" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Prix affiché pour contenu premium accessible aux abonnés */}
+                  {item.is_premium && isSubscribed && item.price && item.price > 0 && (
+                    <div className="absolute bottom-2 left-2 z-20">
+                      <div className="bg-primary/90 backdrop-blur-sm text-primary-foreground text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                        <Coins className="h-3 w-3" />
+                        {item.price.toFixed(2)}€
                       </div>
                     </div>
                   )}
