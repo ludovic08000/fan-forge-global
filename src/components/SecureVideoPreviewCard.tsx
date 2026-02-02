@@ -25,14 +25,11 @@ interface SecureVideoPreviewCardProps {
 }
 
 /**
- * Composant vidéo avec autoplay INSTANTANÉ au hover
- * - Précharge la vidéo dès l'entrée dans le viewport
- * - Démarre automatiquement quand la souris survole
+ * Composant vidéo avec prévisualisation et autoplay au hover
+ * Affiche la première frame de la vidéo immédiatement
  */
 export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   src,
-  contentId,
-  liveStreamId,
   poster,
   className = '',
   blurred = false,
@@ -48,30 +45,25 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   const [isInView, setIsInView] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
 
-  // URL finale - toujours construite immédiatement pour contenu non-premium
+  // URL vidéo publique
   const videoUrl = useMemo(() => {
     if (!src) return '';
-    // Pour le contenu non-premium, construire l'URL publique directement
-    if (!isPremium) {
-      return buildPublicUrl(src, 'content');
-    }
-    // Pour le contenu premium, on utilise aussi l'URL publique pour la preview
-    // (la protection se fait au niveau du flou et du clic)
     return buildPublicUrl(src, 'content');
-  }, [src, isPremium]);
+  }, [src]);
 
-  // Poster propre
+  // Poster propre - seulement si c'est une vraie image
   const effectivePoster = useMemo(() => {
     if (!poster || poster.trim() === '') return undefined;
     const posterClean = poster.split('?')[0].toLowerCase();
-    if (posterClean.endsWith('.mp4') || posterClean.endsWith('.mov') || posterClean.endsWith('.webm')) {
+    // Ne pas utiliser de vidéo comme poster
+    if (posterClean.endsWith('.mp4') || posterClean.endsWith('.mov') || posterClean.endsWith('.webm') || posterClean.endsWith('.avi')) {
       return undefined;
     }
     if (poster.startsWith('http')) return poster;
     return buildPublicUrl(poster, 'content');
   }, [poster]);
 
-  // Observer pour précharger au viewport
+  // Observer pour déclencher le chargement au viewport
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -85,37 +77,34 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
           }
         });
       },
-      { rootMargin: '200px', threshold: 0.01 }
+      { rootMargin: '100px', threshold: 0.01 }
     );
 
     observer.observe(container);
     return () => observer.disconnect();
   }, []);
 
-  // Précharger la vidéo quand dans le viewport
+  // Charger la vidéo quand visible
   useEffect(() => {
     if (!isInView || !videoUrl) return;
     
     const video = videoRef.current;
-    if (video && video.src !== videoUrl) {
+    if (video) {
       video.src = videoUrl;
       video.load();
     }
   }, [isInView, videoUrl]);
 
-  // AUTOPLAY AU HOVER - Immédiat
+  // AUTOPLAY AU HOVER
   const handleMouseEnter = useCallback(() => {
     setIsHovering(true);
     
     const video = videoRef.current;
-    if (video && !videoError && !blurred && videoUrl) {
-      video.currentTime = 0;
+    if (video && !videoError && !blurred) {
       video.muted = true;
-      video.play().catch(() => {
-        // Silently handle autoplay block
-      });
+      video.play().catch(() => {});
     }
-  }, [videoError, blurred, videoUrl]);
+  }, [videoError, blurred]);
 
   const handleMouseLeave = useCallback(() => {
     setIsHovering(false);
@@ -148,38 +137,22 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Background gradient */}
-      <div className={`absolute inset-0 bg-gradient-to-br from-muted to-muted/50 transition-opacity duration-100 ${
+      {/* Background gradient - visible pendant chargement */}
+      <div className={`absolute inset-0 bg-gradient-to-br from-muted to-muted/50 ${
         videoReady ? 'opacity-0' : 'opacity-100'
       }`} />
 
-      {/* Poster statique */}
-      {effectivePoster && (
-        <img
-          src={effectivePoster}
-          alt=""
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-100 ${
-            isHovering && videoReady && !blurred ? 'opacity-0' : 'opacity-100'
-          } ${blurred ? 'blur-lg' : ''}`}
-          draggable={false}
-          onContextMenu={(e) => e.preventDefault()}
-        />
-      )}
-
-      {/* Video - toujours présent pour préchargement */}
-      {isInView && videoUrl && (
+      {/* Video - affiche la première frame automatiquement */}
+      {isInView && (
         <video
           ref={videoRef}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-100 ${
-            (isHovering && videoReady && !blurred) ? 'opacity-100 z-10' : 
-            (videoReady && !effectivePoster ? 'opacity-100' : 'opacity-0')
-          } ${blurred ? 'blur-lg' : ''}`}
+          className={`absolute inset-0 w-full h-full object-cover ${blurred ? 'blur-lg' : ''}`}
           muted
           loop
           playsInline
           preload="metadata"
+          poster={effectivePoster}
           onLoadedData={() => setVideoReady(true)}
-          onCanPlay={() => setVideoReady(true)}
           onError={() => setVideoError(true)}
           controlsList="nodownload noplaybackrate"
           disablePictureInPicture
@@ -187,8 +160,8 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
         />
       )}
 
-      {/* Play button - visible seulement si pas en hover */}
-      {showPlayButton && !isHovering && !blurred && (
+      {/* Play button overlay - visible quand pas en hover */}
+      {showPlayButton && !isHovering && !blurred && videoReady && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
           <div className="bg-black/60 rounded-full p-3 shadow-lg">
             <Play className="h-6 w-6 text-white fill-white" />
