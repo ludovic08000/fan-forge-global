@@ -59,40 +59,61 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
   const isExternalR2 = isR2Url(mediaUrl);
   const isVideo = resolvedMediaType === 'video';
   
-  // Convert relative paths to full URLs for non-premium content
+  // Convert relative paths to full public URLs for non-premium content
   const normalizedMediaUrl = useMemo(() => {
     if (!mediaUrl) return mediaUrl;
-    if (isRelativePath(mediaUrl) && !isPremium) {
+    // Non-premium content: use public URL directly
+    if (!isPremium && isRelativePath(mediaUrl)) {
       return buildPublicUrl(mediaUrl, 'content');
     }
+    // Non-R2 full URL: use as-is
+    if (!isPremium && !isExternalR2) {
+      return mediaUrl;
+    }
     return mediaUrl;
-  }, [mediaUrl, isPremium]);
+  }, [mediaUrl, isPremium, isExternalR2]);
 
-  // Hook pour URLs R2 sécurisées (replays Cloudflare)
+  // Only use secure hooks for premium content or R2 URLs
+  const needsR2Signing = isExternalR2 && isPremium;
+  const needsSupabaseSigning = !isExternalR2 && isPremium;
+
+  // Hook pour URLs R2 sécurisées (replays Cloudflare) - only for premium R2 content
   const { secureUrl: r2SecureUrl, loading: r2Loading, error: r2Error } = useSecureR2Url(
-    isOpen && isExternalR2 ? mediaUrl : null,
+    isOpen && needsR2Signing ? mediaUrl : null,
     {
       contentId,
-      enabled: isOpen && isExternalR2
+      enabled: isOpen && needsR2Signing
     }
   );
 
-  // Hook pour URLs Supabase signées (contenu stocké sur Supabase)
+  // Hook pour URLs Supabase signées (contenu premium stocké sur Supabase)
   const { signedUrl: supabaseSignedUrl, loading: supabaseLoading } = useSignedUrl(
-    isOpen && !isExternalR2 && isPremium ? mediaUrl : null,
+    isOpen && needsSupabaseSigning ? mediaUrl : null,
     {
       bucket: 'content',
       contentId,
-      enabled: isOpen && !isExternalR2 && isPremium
+      enabled: isOpen && needsSupabaseSigning
     }
   );
 
   // URL sécurisée finale à utiliser
-  const secureMediaUrl = isExternalR2 
-    ? (r2SecureUrl || mediaUrl)
-    : (isPremium ? (supabaseSignedUrl || mediaUrl) : normalizedMediaUrl);
+  const secureMediaUrl = useMemo(() => {
+    // Non-premium: always use public URL
+    if (!isPremium) {
+      return normalizedMediaUrl;
+    }
+    // Premium R2 content
+    if (needsR2Signing) {
+      return r2SecureUrl || mediaUrl;
+    }
+    // Premium Supabase content
+    if (needsSupabaseSigning) {
+      return supabaseSignedUrl || mediaUrl;
+    }
+    return normalizedMediaUrl;
+  }, [isPremium, needsR2Signing, needsSupabaseSigning, normalizedMediaUrl, r2SecureUrl, supabaseSignedUrl, mediaUrl]);
   
-  const urlLoading = isExternalR2 ? r2Loading : (isPremium ? supabaseLoading : false);
+  const urlLoading = needsR2Signing ? r2Loading : (needsSupabaseSigning ? supabaseLoading : false);
 
   // Reset quand le média change
   useEffect(() => {
