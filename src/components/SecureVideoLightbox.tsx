@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Loader2 } from 'lucide-react';
 import { useSecureR2Url } from '@/hooks/useSecureR2Url';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Build public URL from relative path
 const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
@@ -101,35 +101,20 @@ export const SecureVideoLightbox: React.FC<SecureVideoLightboxProps> = ({
     setVideoError(false);
   }, [secureVideoUrl]);
 
-  // Loading state
-  if (isLoading) {
+  // Skeleton discret pendant le chargement - aucun texte
+  if (isLoading || !secureVideoUrl) {
     return (
-      <div className={`flex items-center justify-center bg-black/50 rounded-lg ${className}`} style={{ minHeight: '300px' }}>
-        <div className="text-center text-white">
-          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-2" />
-          <p className="text-sm">Chargement sécurisé...</p>
-        </div>
+      <div className={`relative rounded-lg overflow-hidden ${className}`} style={{ minHeight: '300px' }}>
+        <Skeleton className="absolute inset-0" />
       </div>
     );
   }
 
-  // Error state (only for R2 content or video playback errors)
+  // Error state silencieux - affiche juste un placeholder sombre
   if ((isExternalR2 && r2Error) || videoError) {
     return (
-      <div className={`flex items-center justify-center bg-black/50 rounded-lg ${className}`} style={{ minHeight: '300px' }}>
-        <div className="text-center text-white">
-          <p className="text-red-400 mb-2">Erreur de chargement</p>
-          <p className="text-sm text-white/60">{r2Error || 'Impossible de charger la vidéo'}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // No URL available yet
-  if (!secureVideoUrl) {
-    return (
-      <div className={`flex items-center justify-center bg-black/50 rounded-lg ${className}`} style={{ minHeight: '300px' }}>
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
+      <div className={`flex items-center justify-center bg-black/80 rounded-lg ${className}`} style={{ minHeight: '300px' }}>
+        <div className="w-12 h-12 rounded-full bg-white/10" />
       </div>
     );
   }
