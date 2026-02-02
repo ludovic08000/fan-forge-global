@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Upload, Image, Video, X, Shield, AlertTriangle, Bug, CheckCircle, XCircle, Clock, Brain, Scissors, Palette, Loader2, Sparkles, RefreshCw } from 'lucide-react';
+import { Upload, Image, Video, X, Shield, AlertTriangle, Bug, CheckCircle, XCircle, Clock, Brain, Palette, Loader2, Sparkles, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useContentUpload } from '@/hooks/useContentUpload';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
@@ -20,8 +20,6 @@ import { validateFile } from '@/lib/fileValidation';
 import { processImageForUpload, ProcessedImage } from '@/lib/imageProcessing';
 import { needsTranscoding, transcodeVideo, TranscodingProgress } from '@/lib/videoTranscoding';
 import { z } from 'zod';
-import { VideoEditor } from '@/components/video-editor';
-import { VideoEditSettings } from '@/hooks/useVideoEditor';
 
 // Lazy load editors
 const PhotoEditor = lazy(() => import('@/components/PhotoEditor'));
@@ -53,10 +51,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const [virusScanStatus, setVirusScanStatus] = useState<'idle' | 'scanning' | 'clean' | 'infected' | 'quarantined' | 'skipped'>('idle');
   const [moderationStatus, setModerationStatus] = useState<'idle' | 'moderating' | 'approved' | 'review' | 'rejected'>('idle');
   
-  // Video editor state (legacy)
-  const [showVideoEditor, setShowVideoEditor] = useState(false);
-  const [videoEditSettings, setVideoEditSettings] = useState<VideoEditSettings | null>(null);
-  const [coverBlob, setCoverBlob] = useState<Blob | null>(null);
+  // Photo editor state (legacy)
 
   // Photo editor state (legacy)
   const [showPhotoEditor, setShowPhotoEditor] = useState(false);
@@ -369,8 +364,6 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
     setValidationStatus('idle');
     setVirusScanStatus('idle');
     setModerationStatus('idle');
-    setVideoEditSettings(null);
-    setCoverBlob(null);
     setProcessedImageInfo(null);
     setEditedImageDataUrl(null);
     if (fileInputRef.current) {
@@ -381,20 +374,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
   const isVideo = selectedFile?.type.startsWith('video/');
   const isImage = selectedFile?.type.startsWith('image/');
 
-  // Handle video editor save
-  const handleVideoEditorSave = async (settings: VideoEditSettings, cover: Blob | null) => {
-    setVideoEditSettings(settings);
-    setCoverBlob(cover);
-    setShowVideoEditor(false);
-    toast.success('Paramètres vidéo enregistrés');
-  };
-
-  // Open video editor
-  const openVideoEditor = () => {
-    if (selectedFile && isVideo) {
-      setShowVideoEditor(true);
-    }
-  };
+  // Handle photo editor save
 
   // Handle photo editor save
   const handlePhotoEditorSave = (editedDataUrl: string) => {
@@ -624,20 +604,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
                   </div>
 
                   {/* Video Editor Button */}
-                  {isVideo && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full mt-3"
-                      onClick={openVideoEditor}
-                    >
-                      <Scissors className="h-4 w-4 mr-2" />
-                      Éditer la vidéo (trim, cover, filtres...)
-                      {videoEditSettings && (
-                        <CheckCircle className="h-4 w-4 ml-2 text-green-500" />
-                      )}
-                    </Button>
-                  )}
+                  {/* Photo Editor Button */}
 
                   {/* Photo Editor Button */}
                   {isImage && (
@@ -787,18 +754,7 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
           </Button>
         </form>
 
-        {/* Video Editor Dialog */}
-        <Dialog open={showVideoEditor} onOpenChange={setShowVideoEditor}>
-          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
-            {selectedFile && isVideo && (
-              <VideoEditor
-                videoFile={selectedFile}
-                onSave={handleVideoEditorSave}
-                onCancel={() => setShowVideoEditor(false)}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
+        {/* Photo Editor (legacy - for editing after upload) */}
 
         {/* Photo Editor (legacy - for editing after upload) */}
         {isImage && previewUrl && (
