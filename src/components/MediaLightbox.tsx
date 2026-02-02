@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { X, ChevronLeft, ChevronRight, Shield, Loader2 } from 'lucide-react';
-import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
+import { X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { useSecureR2Url } from '@/hooks/useSecureR2Url';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -175,15 +175,6 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
         <X className="w-6 h-6 text-white" />
       </button>
 
-      {/* Badge sécurisé */}
-      {(isExternalR2 || isPremium) && !urlLoading && !error && (
-        <div className="absolute top-4 left-4 z-10 flex items-center gap-1.5 bg-green-500/90 px-3 py-1.5 rounded-full">
-          <Shield className="h-4 w-4 text-white" />
-          <span className="text-sm font-medium text-white">
-            {isExternalR2 ? 'R2 Sécurisé' : 'Sécurisé'}
-          </span>
-        </div>
-      )}
 
       {/* Navigation précédent */}
       {hasPrevious && onPrevious && (
