@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { Play, Volume2, VolumeX, Loader2 } from 'lucide-react';
+import { Play, Volume2, VolumeX } from 'lucide-react';
 import { useSecureR2Url } from '@/hooks/useSecureR2Url';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Build public URL from relative path
 const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
@@ -31,8 +32,7 @@ interface SecureVideoPreviewCardProps {
 
 /**
  * Composant vidéo sécurisé avec lecture automatique au survol
- * Utilise des URLs signées pour le contenu R2 (Cloudflare) et Supabase premium
- * Utilise des URLs publiques pour le contenu gratuit
+ * Affiche un skeleton discret pendant le chargement - pas de message texte
  */
 export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   src,
@@ -149,11 +149,9 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Loading state pour URL sécurisée */}
+      {/* Skeleton discret pendant le chargement - pas de texte */}
       {isLoading && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/80">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </div>
+        <Skeleton className="absolute inset-0 z-30" />
       )}
 
       {/* Video principale pour le hover */}

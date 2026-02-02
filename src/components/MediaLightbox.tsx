@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSecureR2Url } from '@/hooks/useSecureR2Url';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
-import { supabase } from '@/integrations/supabase/client';
-
+import { Skeleton } from '@/components/ui/skeleton';
 interface MediaLightboxProps {
   isOpen: boolean;
   onClose: () => void;
@@ -200,25 +199,17 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
 
       {/* Contenu */}
       <div className="flex flex-col items-center max-w-[95vw] max-h-[95vh]">
-        {/* Loader pour URL sécurisée */}
-        {urlLoading && (
-          <div className="flex flex-col items-center gap-3 text-white">
-            <Loader2 className="w-10 h-10 animate-spin" />
-            <span className="text-sm">Chargement sécurisé...</span>
+        {/* Skeleton discret pendant le chargement - aucun texte */}
+        {(urlLoading || (!loaded && !error)) && (
+          <div className="w-[60vw] max-w-xl aspect-video rounded-lg overflow-hidden">
+            <Skeleton className="w-full h-full" />
           </div>
         )}
 
-        {/* Loader pour média */}
-        {!urlLoading && !loaded && !error && (
-          <div className="w-[60vw] max-w-xl aspect-video bg-white/5 animate-pulse rounded-lg" />
-        )}
-
-        {/* Erreur */}
-        {error && (
-          <div className="flex flex-col items-center gap-3 text-red-400">
-            <X className="w-12 h-12" />
-            <span>Impossible de charger le média</span>
-            {r2Error && <span className="text-xs text-red-300">{r2Error}</span>}
+        {/* Erreur silencieuse - placeholder sombre */}
+        {error && !urlLoading && (
+          <div className="w-[60vw] max-w-xl aspect-video bg-black/80 rounded-lg flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-white/10" />
           </div>
         )}
 
