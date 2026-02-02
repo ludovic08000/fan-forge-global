@@ -1,10 +1,9 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Eye, Heart, Wand2, Plus, Upload, Trash2, Play, Video, Crown, Volume2, VolumeX, Shield } from 'lucide-react';
-import { useSignedUrl } from '@/hooks/useSignedUrl';
-import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
+import { Loader2, Eye, Heart, Wand2, Plus, Upload, Trash2, Crown } from 'lucide-react';
+import { SecureVideoPreviewCard } from '@/components/SecureVideoPreviewCard';
 
 interface Content {
   id: string;
@@ -26,189 +25,59 @@ interface DashboardContentGridProps {
   onNewContent: () => void;
 }
 
-// Composant pour une carte de contenu avec preview vidéo sécurisée
-const SecureContentCard: React.FC<{
+// Composant unifié pour une carte de contenu - même comportement côté créateur et utilisateur
+const ContentCard: React.FC<{
   item: Content;
   index: number;
   onOpenLightbox: (content: Content, index: number) => void;
   onEditContent: (content: Content) => void;
   onDeleteContent: (contentId: string) => void;
 }> = ({ item, index, onOpenLightbox, onEditContent, onDeleteContent }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isHovering, setIsHovering] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
-  const [videoError, setVideoError] = useState(false);
-  
   const isVideo = item.content_type === 'video';
-  const isReplay = item.title?.toLowerCase().includes('replay');
   const isPremium = item.is_premium === true;
-  const isExternalR2 = isR2Url(item.file_url);
-
-  // Hook pour URLs R2 sécurisées (replays Cloudflare)
-  const { secureUrl: r2SecureUrl, loading: r2Loading } = useSecureR2Url(
-    isVideo && isExternalR2 ? item.file_url : null,
-    {
-      contentId: item.id,
-      enabled: isVideo && isExternalR2
-    }
-  );
-
-  // Hook pour URLs Supabase signées (contenu stocké sur Supabase)
-  const { signedUrl: supabaseSignedUrl, loading: supabaseLoading } = useSignedUrl(
-    isVideo && !isExternalR2 ? item.file_url : null,
-    {
-      bucket: 'content',
-      contentId: item.id,
-      enabled: isVideo && isPremium && !isExternalR2
-    }
-  );
-
-  // URL sécurisée finale à utiliser
-  const secureVideoUrl = isExternalR2 
-    ? r2SecureUrl 
-    : (isPremium ? supabaseSignedUrl : item.file_url);
-  
-  const urlLoading = isExternalR2 ? r2Loading : supabaseLoading;
-
-  const handleMouseEnter = () => {
-    setIsHovering(true);
-    if (videoRef.current && isVideo && secureVideoUrl && !videoError) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {
-        setVideoError(true);
-      });
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovering(false);
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
-  };
-
-  const toggleMute = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsMuted(!isMuted);
-  };
-
-  // Reset error state when URL changes
-  useEffect(() => {
-    setVideoError(false);
-  }, [secureVideoUrl]);
 
   return (
     <Card className="overflow-hidden group card-premium">
       <div 
         className="aspect-square bg-muted overflow-hidden relative cursor-pointer"
         onClick={() => onOpenLightbox(item, index)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
       >
-        {/* Video player pour les vidéos */}
-        {isVideo && (
+        {/* Video avec SecureVideoPreviewCard unifié - lecture instantanée au hover */}
+        {isVideo ? (
+          <SecureVideoPreviewCard
+            src={item.file_url}
+            contentId={item.id}
+            poster={item.thumbnail_url}
+            className="w-full h-full"
+            isPremium={isPremium}
+            showPlayButton={true}
+          >
+            {/* Premium badge */}
+            {isPremium && (
+              <div className="absolute top-2 left-2 flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 rounded-full z-20">
+                <Crown className="h-3 w-3 text-white" />
+                <span className="text-[10px] font-semibold text-white">Premium</span>
+              </div>
+            )}
+          </SecureVideoPreviewCard>
+        ) : (
+          /* Image */
           <>
-            {/* Loading state pour URL signée */}
-            {urlLoading && (isExternalR2 || isPremium) && (
-              <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/80">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            )}
-
-            {/* Video element sécurisé - toujours présent mais caché quand pas en hover */}
-            {secureVideoUrl && !videoError && (
-              <video
-                ref={videoRef}
-                src={secureVideoUrl}
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
-                  isHovering ? 'opacity-100' : 'opacity-0'
-                }`}
-                muted={isMuted}
-                loop
-                playsInline
-                preload="metadata"
-                // crossOrigin seulement pour Supabase, pas pour R2 externe
-                {...(!isExternalR2 && { crossOrigin: "anonymous" })}
-                onError={() => setVideoError(true)}
-                // Protection contre le téléchargement
-                controlsList="nodownload noplaybackrate"
-                disablePictureInPicture
-                onContextMenu={(e) => e.preventDefault()}
-                style={{ pointerEvents: isHovering ? 'auto' : 'none' }}
-              />
-            )}
-            
-            {/* Overlay statique quand pas en hover */}
-            <div className={`absolute inset-0 w-full h-full bg-gradient-to-br from-primary/20 via-background to-primary/10 flex flex-col items-center justify-center transition-opacity duration-300 ${
-              isHovering && !videoError ? 'opacity-0 pointer-events-none' : 'opacity-100'
-            }`}>
-              {/* Background pattern */}
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute inset-0" style={{
-                  backgroundImage: 'radial-gradient(circle at 25% 25%, hsl(var(--primary)) 2px, transparent 2px)',
-                  backgroundSize: '20px 20px'
-                }} />
-              </div>
-              
-              {/* Play button premium */}
-              <div className="relative z-10 flex flex-col items-center gap-3">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform">
-                  <Play className="h-7 w-7 text-primary-foreground ml-1" fill="currentColor" />
-                </div>
-                
-                {isReplay && (
-                  <div className="flex items-center gap-1.5 bg-background/80 backdrop-blur-sm px-3 py-1 rounded-full">
-                    <Video className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-xs font-medium text-foreground">Replay Live</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Indicateur de contenu sécurisé R2 ou Premium */}
-            {(isExternalR2 || isPremium) && isHovering && !videoError && (
-              <div className="absolute top-2 left-2 z-20 flex items-center gap-1 bg-green-500/90 px-2 py-0.5 rounded-full">
-                <Shield className="h-3 w-3 text-white" />
-                <span className="text-[10px] font-semibold text-white">
-                  {isExternalR2 ? 'R2 Sécurisé' : 'Sécurisé'}
-                </span>
-              </div>
-            )}
-
-            {/* Mute button pendant le hover */}
-            {isHovering && !videoError && secureVideoUrl && (
-              <button
-                onClick={toggleMute}
-                className="absolute bottom-2 left-2 z-20 p-2 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
-              >
-                {isMuted ? (
-                  <VolumeX className="h-4 w-4 text-white" />
-                ) : (
-                  <Volume2 className="h-4 w-4 text-white" />
-                )}
-              </button>
-            )}
-
-            {/* Premium badge overlay */}
-            {isPremium && !isHovering && (
+            <img
+              src={item.thumbnail_url || item.file_url}
+              alt={item.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              onContextMenu={(e) => e.preventDefault()}
+              draggable={false}
+              loading="lazy"
+            />
+            {isPremium && (
               <div className="absolute top-2 left-2 flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 rounded-full z-10">
                 <Crown className="h-3 w-3 text-white" />
                 <span className="text-[10px] font-semibold text-white">Premium</span>
               </div>
             )}
           </>
-        )}
-
-        {/* Image pour les contenus non-vidéo */}
-        {!isVideo && (
-          <img
-            src={item.thumbnail_url || item.file_url}
-            alt={item.title}
-            className="w-full h-full object-cover"
-            onContextMenu={(e) => e.preventDefault()}
-            draggable={false}
-          />
         )}
         
         {/* Action buttons */}
@@ -277,7 +146,7 @@ export const DashboardContentGrid: React.FC<DashboardContentGridProps> = ({
       ) : content && content.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {content.map((item, index) => (
-            <SecureContentCard
+            <ContentCard
               key={item.id}
               item={item}
               index={index}
