@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { Play, Volume2, VolumeX } from 'lucide-react';
 
 // Build public URL from relative path
@@ -25,8 +25,8 @@ interface SecureVideoPreviewCardProps {
 }
 
 /**
- * Composant vidéo avec prévisualisation et autoplay au hover
- * Affiche la première frame de la vidéo immédiatement
+ * Composant vidéo avec preview et autoplay au hover
+ * Affiche la première frame automatiquement
  */
 export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   src,
@@ -34,84 +34,66 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   className = '',
   blurred = false,
   showPlayButton = true,
-  isPremium = false,
   children,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovering, setIsHovering] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
-  const [videoError, setVideoError] = useState(false);
-  const [isInView, setIsInView] = useState(false);
-  const [videoReady, setVideoReady] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   // URL vidéo publique
-  const videoUrl = useMemo(() => {
-    if (!src) return '';
-    return buildPublicUrl(src, 'content');
-  }, [src]);
+  const videoUrl = buildPublicUrl(src, 'content');
 
-  // Poster propre - seulement si c'est une vraie image
-  const effectivePoster = useMemo(() => {
-    if (!poster || poster.trim() === '') return undefined;
-    const posterClean = poster.split('?')[0].toLowerCase();
-    // Ne pas utiliser de vidéo comme poster
-    if (posterClean.endsWith('.mp4') || posterClean.endsWith('.mov') || posterClean.endsWith('.webm') || posterClean.endsWith('.avi')) {
-      return undefined;
-    }
-    if (poster.startsWith('http')) return poster;
-    return buildPublicUrl(poster, 'content');
-  }, [poster]);
+  // Détecter si poster est une vraie image (pas une vidéo)
+  const isValidPoster = poster && 
+    !poster.toLowerCase().endsWith('.mp4') && 
+    !poster.toLowerCase().endsWith('.mov') &&
+    !poster.toLowerCase().endsWith('.webm');
+  
+  const posterUrl = isValidPoster ? buildPublicUrl(poster, 'content') : undefined;
 
-  // Observer pour déclencher le chargement au viewport
+  // Forcer l'affichage de la première frame
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setIsInView(true);
-            observer.disconnect();
-          }
-        });
-      },
-      { rootMargin: '100px', threshold: 0.01 }
-    );
-
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
-
-  // Charger la vidéo quand visible
-  useEffect(() => {
-    if (!isInView || !videoUrl) return;
-    
     const video = videoRef.current;
-    if (video) {
-      video.src = videoUrl;
-      video.load();
+    if (!video || hasLoaded) return;
+
+    const showFirstFrame = () => {
+      // Avancer à 0.01s pour afficher le premier frame
+      if (video.readyState >= 1) {
+        video.currentTime = 0.01;
+        setHasLoaded(true);
+      }
+    };
+
+    video.addEventListener('loadedmetadata', showFirstFrame);
+    // Si déjà chargé
+    if (video.readyState >= 1) {
+      showFirstFrame();
     }
-  }, [isInView, videoUrl]);
+
+    return () => {
+      video.removeEventListener('loadedmetadata', showFirstFrame);
+    };
+  }, [videoUrl, hasLoaded]);
 
   // AUTOPLAY AU HOVER
   const handleMouseEnter = useCallback(() => {
     setIsHovering(true);
-    
     const video = videoRef.current;
-    if (video && !videoError && !blurred) {
+    if (video && !blurred) {
+      video.currentTime = 0;
       video.muted = true;
       video.play().catch(() => {});
     }
-  }, [videoError, blurred]);
+  }, [blurred]);
 
   const handleMouseLeave = useCallback(() => {
     setIsHovering(false);
     const video = videoRef.current;
     if (video) {
       video.pause();
-      video.currentTime = 0;
+      // Revenir à la première frame
+      video.currentTime = 0.01;
     }
   }, []);
 
@@ -121,47 +103,33 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
     const video = videoRef.current;
     if (video) {
       video.muted = !video.muted;
-      setIsMuted(!isMuted);
+      setIsMuted(prev => !prev);
     }
-  }, [isMuted]);
-
-  useEffect(() => {
-    setVideoError(false);
-    setVideoReady(false);
-  }, [videoUrl]);
+  }, []);
 
   return (
     <div
-      ref={containerRef}
-      className={`relative w-full h-full ${className}`}
+      className={`relative w-full h-full bg-muted ${className}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Background gradient - visible pendant chargement */}
-      <div className={`absolute inset-0 bg-gradient-to-br from-muted to-muted/50 ${
-        videoReady ? 'opacity-0' : 'opacity-100'
-      }`} />
+      {/* Video - affiche la première frame via currentTime */}
+      <video
+        ref={videoRef}
+        src={videoUrl}
+        className={`absolute inset-0 w-full h-full object-cover ${blurred ? 'blur-lg' : ''}`}
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        poster={posterUrl}
+        controlsList="nodownload noplaybackrate"
+        disablePictureInPicture
+        onContextMenu={(e) => e.preventDefault()}
+      />
 
-      {/* Video - affiche la première frame automatiquement */}
-      {isInView && (
-        <video
-          ref={videoRef}
-          className={`absolute inset-0 w-full h-full object-cover ${blurred ? 'blur-lg' : ''}`}
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          poster={effectivePoster}
-          onLoadedData={() => setVideoReady(true)}
-          onError={() => setVideoError(true)}
-          controlsList="nodownload noplaybackrate"
-          disablePictureInPicture
-          onContextMenu={(e) => e.preventDefault()}
-        />
-      )}
-
-      {/* Play button overlay - visible quand pas en hover */}
-      {showPlayButton && !isHovering && !blurred && videoReady && (
+      {/* Play button overlay - toujours visible quand pas en hover */}
+      {showPlayButton && !isHovering && !blurred && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
           <div className="bg-black/60 rounded-full p-3 shadow-lg">
             <Play className="h-6 w-6 text-white fill-white" />
@@ -170,7 +138,7 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
       )}
 
       {/* Mute button pendant hover */}
-      {isHovering && !videoError && !blurred && videoReady && (
+      {isHovering && !blurred && (
         <button
           onClick={toggleMute}
           className="absolute bottom-2 left-2 z-30 p-2 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
