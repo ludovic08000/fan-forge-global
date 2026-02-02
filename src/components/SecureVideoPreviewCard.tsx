@@ -1,20 +1,15 @@
 import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import { Play, Volume2, VolumeX } from 'lucide-react';
-import { useSecureR2Url } from '@/hooks/useSecureR2Url';
-import { useSignedUrl } from '@/hooks/useSignedUrl';
 
 // Build public URL from relative path
 const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
 const buildPublicUrl = (path: string, bucket: string = 'content'): string => {
+  if (!path) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
   const cleanPath = path.split('?')[0];
   return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${cleanPath}`;
-};
-
-const isRealR2Url = (url: string): boolean => {
-  return url.includes('.r2.dev') || url.includes('.r2.cloudflarestorage.com');
 };
 
 interface SecureVideoPreviewCardProps {
@@ -52,50 +47,28 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   const [videoError, setVideoError] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false);
 
-  const cleanSrc = useMemo(() => src.split('?')[0], [src]);
-  const isExternalR2 = isRealR2Url(cleanSrc);
-  
-  // URL publique pour contenu gratuit (instantané)
-  const publicUrl = useMemo(() => {
-    if (!isPremium && !isExternalR2) {
-      return buildPublicUrl(cleanSrc, 'content');
+  // URL finale - toujours construite immédiatement pour contenu non-premium
+  const videoUrl = useMemo(() => {
+    if (!src) return '';
+    // Pour le contenu non-premium, construire l'URL publique directement
+    if (!isPremium) {
+      return buildPublicUrl(src, 'content');
     }
-    return null;
-  }, [cleanSrc, isPremium, isExternalR2]);
-
-  const needsR2SignedUrl = isExternalR2 && isPremium;
-  const { secureUrl: r2SecureUrl, loading: r2Loading } = useSecureR2Url(
-    needsR2SignedUrl ? cleanSrc : null,
-    { contentId, liveStreamId, enabled: needsR2SignedUrl }
-  );
-
-  const needsSupabaseSignedUrl = !isExternalR2 && isPremium;
-  const { signedUrl: supabaseSignedUrl, loading: supabaseLoading } = useSignedUrl(
-    needsSupabaseSignedUrl ? cleanSrc : null,
-    { bucket: 'content', contentId, enabled: needsSupabaseSignedUrl }
-  );
-
-  // URL finale
-  const secureVideoUrl = useMemo(() => {
-    if (!isPremium && publicUrl) return publicUrl;
-    if (needsR2SignedUrl && r2SecureUrl) return r2SecureUrl;
-    if (needsSupabaseSignedUrl && supabaseSignedUrl) return supabaseSignedUrl;
-    return publicUrl || buildPublicUrl(cleanSrc, 'content');
-  }, [isPremium, publicUrl, needsR2SignedUrl, r2SecureUrl, needsSupabaseSignedUrl, supabaseSignedUrl, cleanSrc]);
-
-  const isLoading = isPremium && (needsR2SignedUrl ? r2Loading : (needsSupabaseSignedUrl ? supabaseLoading : false));
+    // Pour le contenu premium, on utilise aussi l'URL publique pour la preview
+    // (la protection se fait au niveau du flou et du clic)
+    return buildPublicUrl(src, 'content');
+  }, [src, isPremium]);
 
   // Poster propre
   const effectivePoster = useMemo(() => {
     if (!poster || poster.trim() === '') return undefined;
-    const posterClean = poster.split('?')[0];
+    const posterClean = poster.split('?')[0].toLowerCase();
     if (posterClean.endsWith('.mp4') || posterClean.endsWith('.mov') || posterClean.endsWith('.webm')) {
       return undefined;
     }
-    if (posterClean.startsWith('http')) return poster;
-    return buildPublicUrl(posterClean, 'content');
+    if (poster.startsWith('http')) return poster;
+    return buildPublicUrl(poster, 'content');
   }, [poster]);
 
   // Observer pour précharger au viewport
@@ -112,7 +85,7 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
           }
         });
       },
-      { rootMargin: '400px', threshold: 0.01 }
+      { rootMargin: '200px', threshold: 0.01 }
     );
 
     observer.observe(container);
@@ -121,31 +94,28 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
 
   // Précharger la vidéo quand dans le viewport
   useEffect(() => {
-    if (!isInView || !secureVideoUrl || isLoading) return;
+    if (!isInView || !videoUrl) return;
     
     const video = videoRef.current;
-    if (video) {
-      // Force le chargement des métadonnées et du buffer
+    if (video && video.src !== videoUrl) {
+      video.src = videoUrl;
       video.load();
     }
-  }, [isInView, secureVideoUrl, isLoading]);
+  }, [isInView, videoUrl]);
 
   // AUTOPLAY AU HOVER - Immédiat
   const handleMouseEnter = useCallback(() => {
     setIsHovering(true);
-    setHasInteracted(true);
     
     const video = videoRef.current;
-    if (video && !videoError && !blurred && secureVideoUrl) {
+    if (video && !videoError && !blurred && videoUrl) {
       video.currentTime = 0;
-      video.muted = true; // Toujours muted pour autoplay
-      
-      // Play immédiat
-      video.play().catch((err) => {
-        console.log('Autoplay blocked:', err.message);
+      video.muted = true;
+      video.play().catch(() => {
+        // Silently handle autoplay block
       });
     }
-  }, [videoError, blurred, secureVideoUrl]);
+  }, [videoError, blurred, videoUrl]);
 
   const handleMouseLeave = useCallback(() => {
     setIsHovering(false);
@@ -169,7 +139,7 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   useEffect(() => {
     setVideoError(false);
     setVideoReady(false);
-  }, [secureVideoUrl]);
+  }, [videoUrl]);
 
   return (
     <div
@@ -197,10 +167,9 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
       )}
 
       {/* Video - toujours présent pour préchargement */}
-      {secureVideoUrl && isInView && !isLoading && (
+      {isInView && videoUrl && (
         <video
           ref={videoRef}
-          src={secureVideoUrl}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-100 ${
             (isHovering && videoReady && !blurred) ? 'opacity-100 z-10' : 
             (videoReady && !effectivePoster ? 'opacity-100' : 'opacity-0')
@@ -208,7 +177,7 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
           muted
           loop
           playsInline
-          preload="auto"
+          preload="metadata"
           onLoadedData={() => setVideoReady(true)}
           onCanPlay={() => setVideoReady(true)}
           onError={() => setVideoError(true)}
@@ -239,13 +208,6 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
             <Volume2 className="h-4 w-4 text-white" />
           )}
         </button>
-      )}
-
-      {/* Loading pour premium */}
-      {isLoading && isPremium && (
-        <div className="absolute inset-0 flex items-center justify-center z-20">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
       )}
 
       {children}
