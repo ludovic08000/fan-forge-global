@@ -309,11 +309,12 @@ serve(async (req) => {
       expiresIn
     );
 
-    console.log(`[get-replay-url] Generated signed URL for content ${contentId} for user ${userId}`);
+    console.log(`[get-replay-url] Generated signed URL for ${liveStreamId || contentId} for user ${userId}`);
 
     return new Response(
       JSON.stringify({
-        signedUrl,
+        url: signedUrl,  // Frontend expects "url" not "signedUrl"
+        signedUrl,       // Keep for backwards compatibility
         expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
         expiresIn,
       }),
