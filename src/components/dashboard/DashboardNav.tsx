@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LucideIcon } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export type DashboardSection = 'overview' | 'content' | 'live' | 'messages' | 'analytics' | 'partnerships' | 'payments' | 'pricing' | 'settings';
 
@@ -23,6 +24,8 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
   activeSection,
   onSectionChange,
 }) => {
+  const isMobile = useIsMobile();
+
   return (
     <div className="flex gap-1.5 mb-8 overflow-x-auto pb-2 scrollbar-hide">
       {menuItems.map((item) => (
@@ -36,19 +39,21 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
               ? "shadow-lg shadow-primary/20" 
               : "hover:bg-muted/60"
           }`}
+          title={item.label}
         >
           <item.icon className="h-4 w-4" />
-          <span className="flex items-center gap-1.5">
+          {/* Afficher le label complet sur desktop, masqué sur mobile sauf actif */}
+          <span className={`flex items-center gap-1.5 ${isMobile && activeSection !== item.id ? 'hidden' : ''}`}>
             {item.label}
-            {item.badge > 0 && (
-              <Badge 
-                variant="destructive" 
-                className="h-5 min-w-5 px-1.5 text-[10px] font-bold"
-              >
-                {item.badge > 99 ? '99+' : item.badge}
-              </Badge>
-            )}
           </span>
+          {item.badge > 0 && (
+            <Badge 
+              variant="destructive" 
+              className="h-5 min-w-5 px-1.5 text-[10px] font-bold"
+            >
+              {item.badge > 99 ? '99+' : item.badge}
+            </Badge>
+          )}
         </Button>
       ))}
     </div>
