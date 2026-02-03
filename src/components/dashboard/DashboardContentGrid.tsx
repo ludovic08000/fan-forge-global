@@ -2,10 +2,16 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Eye, Heart, Wand2, Plus, Upload, Trash2, Play, Video, Crown, Volume2, VolumeX, Shield } from 'lucide-react';
+import { Eye, Heart, Wand2, Plus, Upload, Trash2, Play, Video, Crown, Volume2, VolumeX, Shield, Lock, Users, Euro, Loader2 } from 'lucide-react';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface Content {
   id: string;
@@ -16,6 +22,20 @@ interface Content {
   view_count: number | null;
   like_count: number | null;
   is_premium: boolean | null;
+}
+
+interface PrivateReplay {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnail_url: string | null;
+  file_path: string;
+  duration: number | null;
+  original_price: number;
+  replay_price: number;
+  is_available: boolean;
+  purchase_count: number;
+  created_at: string;
 }
 
 interface DashboardContentGridProps {
@@ -265,6 +285,279 @@ const SecureContentCard: React.FC<{
   );
 };
 
+// Composant pour une carte de replay privé (côté créateur)
+const PrivateReplayCard: React.FC<{
+  replay: PrivateReplay;
+  onToggleAvailability: (id: string, isAvailable: boolean) => void;
+  onUpdatePrice: (id: string, newPrice: number) => void;
+  onDelete: (id: string) => void;
+}> = ({ replay, onToggleAvailability, onUpdatePrice, onDelete }) => {
+  const [showPriceEdit, setShowPriceEdit] = useState(false);
+  const [newPrice, setNewPrice] = useState(replay.replay_price);
+  const [updating, setUpdating] = useState(false);
+
+  const handleSavePrice = async () => {
+    if (newPrice < 1) {
+      toast.error('Le prix minimum est 1€');
+      return;
+    }
+    setUpdating(true);
+    await onUpdatePrice(replay.id, newPrice);
+    setUpdating(false);
+    setShowPriceEdit(false);
+  };
+
+  const formatDuration = (seconds: number | null) => {
+    if (!seconds) return '--:--';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const durationSeconds = replay.duration;
+
+  return (
+    <Card className="overflow-hidden group card-premium">
+      <div className="aspect-video relative">
+        {/* Thumbnail floutée avec overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-background/80 to-primary/20">
+          {replay.thumbnail_url && (
+            <img
+              src={replay.thumbnail_url}
+              alt={replay.title}
+              className="w-full h-full object-cover blur-md opacity-50"
+            />
+          )}
+        </div>
+
+        {/* Overlay avec infos */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center mb-3">
+            <Lock className="h-5 w-5 text-primary-foreground" />
+          </div>
+          <span className="text-lg font-bold text-foreground">{replay.replay_price}€</span>
+          <span className="text-xs text-muted-foreground mt-1">
+            Prix original: {replay.original_price}€
+          </span>
+        </div>
+
+        {/* Badge durée */}
+        {durationSeconds && (
+          <div className="absolute bottom-2 left-2 bg-black/70 px-2 py-0.5 rounded text-xs text-white">
+            {formatDuration(durationSeconds)}
+          </div>
+        )}
+
+        {/* Badge statut */}
+        <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-medium ${
+          replay.is_available 
+            ? 'bg-green-500/90 text-white' 
+            : 'bg-muted text-muted-foreground'
+        }`}>
+          {replay.is_available ? 'En vente' : 'Masqué'}
+        </div>
+      </div>
+
+      <CardContent className="p-3 space-y-2">
+        <h3 className="font-medium text-sm line-clamp-1">{replay.title}</h3>
+        
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Users className="h-3 w-3" />
+            {replay.purchase_count} achat{replay.purchase_count > 1 ? 's' : ''}
+          </span>
+          <span className="flex items-center gap-1">
+            <Euro className="h-3 w-3" />
+            {(replay.purchase_count * replay.replay_price * 0.85).toFixed(0)}€ gagnés
+          </span>
+        </div>
+
+        <div className="flex gap-1 pt-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 text-xs h-7"
+            onClick={() => setShowPriceEdit(true)}
+          >
+            <Euro className="h-3 w-3 mr-1" />
+            Prix
+          </Button>
+          <Button
+            variant={replay.is_available ? "secondary" : "default"}
+            size="sm"
+            className="flex-1 text-xs h-7"
+            onClick={() => onToggleAvailability(replay.id, !replay.is_available)}
+          >
+            {replay.is_available ? 'Masquer' : 'Activer'}
+          </Button>
+          <Button
+            variant="destructive"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => {
+              if (confirm('Supprimer ce replay définitivement ?')) {
+                onDelete(replay.id);
+              }
+            }}
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      </CardContent>
+
+      {/* Dialog édition prix */}
+      <Dialog open={showPriceEdit} onOpenChange={setShowPriceEdit}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Modifier le prix du replay</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Prix de vente (€)</label>
+              <input
+                type="number"
+                min={1}
+                step={0.5}
+                value={newPrice}
+                onChange={(e) => setNewPrice(parseFloat(e.target.value) || 0)}
+                className="w-full px-3 py-2 border rounded-md bg-background"
+              />
+              <p className="text-xs text-muted-foreground">
+                Prix original du show: {replay.original_price}€ • Vous recevrez 85% ({(newPrice * 0.85).toFixed(2)}€)
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowPriceEdit(false)} className="flex-1">
+                Annuler
+              </Button>
+              <Button onClick={handleSavePrice} disabled={updating} className="flex-1">
+                {updating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enregistrer'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+};
+
+// Section des replays privés payants
+const PrivateReplaysSection: React.FC = () => {
+  const { user } = useAuth();
+
+  const { data: replays, isLoading, refetch } = useQuery({
+    queryKey: ['creator-private-replays', user?.id],
+    queryFn: async () => {
+      // Récupérer le creator_id
+      const { data: creator } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (!creator) return [];
+
+      const { data, error } = await supabase
+        .from('private_live_replays')
+        .select('*')
+        .eq('creator_id', creator.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as PrivateReplay[];
+    },
+    enabled: !!user,
+  });
+
+  const handleToggleAvailability = async (id: string, isAvailable: boolean) => {
+    const { error } = await supabase
+      .from('private_live_replays')
+      .update({ is_available: isAvailable })
+      .eq('id', id);
+
+    if (error) {
+      toast.error('Erreur lors de la mise à jour');
+    } else {
+      toast.success(isAvailable ? 'Replay mis en vente' : 'Replay masqué');
+      refetch();
+    }
+  };
+
+  const handleUpdatePrice = async (id: string, newPrice: number) => {
+    const { error } = await supabase
+      .from('private_live_replays')
+      .update({ replay_price: newPrice })
+      .eq('id', id);
+
+    if (error) {
+      toast.error('Erreur lors de la mise à jour du prix');
+    } else {
+      toast.success('Prix mis à jour');
+      refetch();
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase
+      .from('private_live_replays')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      toast.error('Erreur lors de la suppression');
+    } else {
+      toast.success('Replay supprimé');
+      refetch();
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="aspect-video rounded-lg" />
+        ))}
+      </div>
+    );
+  }
+
+  if (!replays || replays.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <Video className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <h3 className="text-lg font-medium mb-2">Aucun replay privé</h3>
+        <p className="text-muted-foreground">
+          Les replays de vos shows privés apparaîtront ici automatiquement après chaque session
+        </p>
+      </div>
+    );
+  }
+
+  const totalEarnings = replays.reduce((sum, r) => sum + (r.purchase_count * r.replay_price * 0.85), 0);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          {replays.length} replay{replays.length > 1 ? 's' : ''} • 
+          <span className="text-primary font-medium ml-1">{totalEarnings.toFixed(0)}€ gagnés</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {replays.map((replay) => (
+          <PrivateReplayCard
+            key={replay.id}
+            replay={replay}
+            onToggleAvailability={handleToggleAvailability}
+            onUpdatePrice={handleUpdatePrice}
+            onDelete={handleDelete}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export const DashboardContentGrid: React.FC<DashboardContentGridProps> = ({
   content,
   isLoading,
@@ -280,38 +573,57 @@ export const DashboardContentGrid: React.FC<DashboardContentGridProps> = ({
         <Badge variant="outline">{content?.length || 0} contenu{(content?.length || 0) > 1 ? 's' : ''}</Badge>
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0 w-full">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="aspect-square rounded-lg" />
-            ))}
-          </div>
-        </div>
-      ) : content && content.length > 0 ? (
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0">
-          {content.map((item, index) => (
-            <SecureContentCard
-              key={item.id}
-              item={item}
-              index={index}
-              onOpenLightbox={onOpenLightbox}
-              onEditContent={onEditContent}
-              onDeleteContent={onDeleteContent}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-medium mb-2">Aucun contenu</h3>
-          <p className="text-muted-foreground mb-4">Commencez à partager avec votre audience</p>
-          <Button onClick={onNewContent} variant="premium">
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter du contenu
-          </Button>
-        </div>
-      )}
+      <Tabs defaultValue="gallery" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="gallery" className="flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            Ma galerie
+          </TabsTrigger>
+          <TabsTrigger value="private-replays" className="flex items-center gap-2">
+            <Lock className="h-4 w-4" />
+            Replays privés
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="gallery" className="mt-6">
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0 w-full">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="aspect-square rounded-lg" />
+                ))}
+              </div>
+            </div>
+          ) : content && content.length > 0 ? (
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0">
+              {content.map((item, index) => (
+                <SecureContentCard
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  onOpenLightbox={onOpenLightbox}
+                  onEditContent={onEditContent}
+                  onDeleteContent={onDeleteContent}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-medium mb-2">Aucun contenu</h3>
+              <p className="text-muted-foreground mb-4">Commencez à partager avec votre audience</p>
+              <Button onClick={onNewContent} variant="premium">
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter du contenu
+              </Button>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="private-replays" className="mt-6">
+          <PrivateReplaysSection />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
