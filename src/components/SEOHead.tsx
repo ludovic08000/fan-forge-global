@@ -116,7 +116,8 @@ const SEOHead = ({
 
     // Profile-specific OG tags
     if (type === 'profile' && creator) {
-      setMeta('og:profile:username', creator.username, true);
+      // Utiliser le stage_name (creator.name) pour l'affichage public, pas le username technique
+      setMeta('og:profile:username', creator.name || creator.username, true);
       if (creator.name) {
         const nameParts = creator.name.split(' ');
         if (nameParts.length > 0) {
@@ -136,10 +137,10 @@ const SEOHead = ({
       setMeta('article:modified_time', modifiedTime, true);
     }
 
-    // Twitter Card tags
+    // Twitter Card tags - utiliser le stage_name pour l'affichage
     setMeta('twitter:card', 'summary_large_image');
     setMeta('twitter:site', '@CrubFr');
-    setMeta('twitter:creator', creator ? `@${creator.username}` : '@CrubFr');
+    setMeta('twitter:creator', creator ? (creator.name || `@${creator.username}`) : '@CrubFr');
     setMeta('twitter:url', cleanUrl);
     setMeta('twitter:title', fullTitle);
     setMeta('twitter:description', description);
