@@ -1,6 +1,7 @@
 /**
  * Compact Payment Card for Dashboard
  * Shows earnings summary with Stripe Dashboard link + Encaissement button
+ * Optimized: receives revenue data from parent to avoid duplicate queries
  */
 
 import React, { useState } from 'react';
@@ -22,19 +23,28 @@ interface RevenueBreakdown {
   total_after_commission: number;
 }
 
-export const PaymentRequestCard: React.FC = () => {
+interface PaymentRequestCardProps {
+  creatorId?: string;
+  revenueData?: RevenueBreakdown | null;
+}
+
+export const PaymentRequestCard: React.FC<PaymentRequestCardProps> = ({ 
+  creatorId: propCreatorId,
+  revenueData: propRevenueData 
+}) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Optimisation: Query légère pour infos Stripe seulement
   const { data: creatorData, isLoading, refetch } = useQuery({
-    queryKey: ['creator-payment-info', user?.id],
+    queryKey: ['creator-stripe-info', user?.id],
     queryFn: async () => {
       if (!user) return null;
 
       const { data: creator, error } = await supabase
         .from('creators')
-        .select('*')
+        .select('id, stripe_account_id, stripe_onboarding_completed, stripe_payouts_enabled, currency')
         .eq('user_id', user.id)
         .single();
 
@@ -46,31 +56,23 @@ export const PaymentRequestCard: React.FC = () => {
         creator.stripe_payouts_enabled
       );
 
-      // Calculate period - current month
-      const now = new Date();
-      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-      const { data: revenue } = await supabase.rpc('calculate_creator_revenue_with_commission', {
-        creator_uuid: creator.id,
-        start_date: periodStart.toISOString(),
-        end_date: now.toISOString(),
-      });
-
       return {
         creator,
         stripeConnected,
-        revenueBreakdown: revenue?.[0] as RevenueBreakdown | null,
       };
     },
     enabled: !!user,
-    staleTime: 30 * 1000, // 30 secondes
-    gcTime: 60 * 1000,
-    refetchInterval: 60 * 1000, // Auto-refresh toutes les minutes
+    staleTime: 60 * 1000, // 1 minute cache
+    gcTime: 5 * 60 * 1000,
   });
 
+  const creatorId = propCreatorId || creatorData?.creator?.id;
   const creatorInfo = creatorData?.creator;
   const stripeConnected = creatorData?.stripeConnected ?? false;
-  const revenueBreakdown = creatorData?.revenueBreakdown;
+  
+  // Utiliser les données de revenus passées en prop ou du cache parent
+  const cachedPaymentsData = queryClient.getQueryData<any>(['creator-payments-all', creatorId]);
+  const revenueBreakdown = propRevenueData || cachedPaymentsData?.revenue as RevenueBreakdown | null;
 
   const handleConnectStripe = async () => {
     try {
@@ -101,11 +103,10 @@ export const PaymentRequestCard: React.FC = () => {
     setIsRefreshing(true);
     try {
       await refetch();
-      // Invalider aussi les autres queries de paiement
-      queryClient.invalidateQueries({ queryKey: ['creator-subscriptions'] });
-      queryClient.invalidateQueries({ queryKey: ['creator-tips'] });
-      queryClient.invalidateQueries({ queryKey: ['creator-private-payments'] });
-      queryClient.invalidateQueries({ queryKey: ['creator-live-payments'] });
+      // Invalider la query principale de paiements
+      if (creatorId) {
+        queryClient.invalidateQueries({ queryKey: ['creator-payments-all', creatorId] });
+      }
       toast.success("Données actualisées");
     } catch (e) {
       toast.error("Erreur lors de l'actualisation");

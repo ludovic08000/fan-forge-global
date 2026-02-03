@@ -51,21 +51,114 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
   const [isAcceptingTips, setIsAcceptingTips] = useState(true);
   const [savingTips, setSavingTips] = useState(false);
 
-  // Load tips setting
+  // ══════════════════════════════════════════════════════════════════
+  // OPTIMISATION: Une seule query pour TOUTES les données de paiement
+  // ══════════════════════════════════════════════════════════════════
+  const { data: paymentData, isLoading } = useQuery({
+    queryKey: ['creator-payments-all', creatorId],
+    queryFn: async () => {
+      const now = new Date();
+      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      // Exécuter TOUTES les requêtes en parallèle
+      const [
+        revenueResult,
+        creatorResult,
+        subscriptionsResult,
+        tipsResult,
+        privateResult,
+        liveResult
+      ] = await Promise.all([
+        // 1. Revenue RPC
+        supabase.rpc('calculate_creator_revenue_with_commission', {
+          creator_uuid: creatorId,
+          start_date: periodStart.toISOString(),
+          end_date: now.toISOString(),
+        }),
+        // 2. Creator info (tips setting)
+        supabase
+          .from('creators')
+          .select('is_accepting_tips')
+          .eq('id', creatorId)
+          .single(),
+        // 3. Subscriptions
+        supabase
+          .from('subscriptions')
+          .select(`
+            id, price, currency, created_at, subscriber_id,
+            profiles:subscriber_id(display_name, username)
+          `)
+          .eq('creator_id', creatorId)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(20),
+        // 4. Tips (only paid)
+        supabase
+          .from('tips')
+          .select(`
+            id, amount, currency, message, created_at, sender_id,
+            profiles:sender_id(display_name, username)
+          `)
+          .eq('creator_id', creatorId)
+          .not('stripe_payment_intent_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(20),
+        // 5. Private content payments
+        supabase
+          .from('private_content_payments')
+          .select(`
+            id, amount, currency, created_at, subscriber_id,
+            profiles:subscriber_id(display_name, username),
+            private_messages!inner(creator_id)
+          `)
+          .eq('status', 'paid')
+          .eq('private_messages.creator_id', creatorId)
+          .order('created_at', { ascending: false })
+          .limit(20),
+        // 6. Live payments
+        supabase
+          .from('live_stream_payments')
+          .select(`
+            id, amount, currency, created_at, subscriber_id,
+            profiles:subscriber_id(display_name, username),
+            live_streams!inner(title, creator_id)
+          `)
+          .eq('status', 'paid')
+          .eq('live_streams.creator_id', creatorId)
+          .order('created_at', { ascending: false })
+          .limit(20),
+      ]);
+
+      return {
+        revenue: revenueResult.data?.[0] as {
+          subscription_revenue: number;
+          tips_revenue: number;
+          live_revenue: number;
+          private_content_revenue: number;
+          total_before_commission: number;
+          commission_amount: number;
+          total_after_commission: number;
+        } | null,
+        isAcceptingTips: creatorResult.data?.is_accepting_tips ?? true,
+        subscriptions: subscriptionsResult.data || [],
+        tips: tipsResult.data || [],
+        privatePayments: privateResult.data || [],
+        livePayments: liveResult.data || [],
+      };
+    },
+    enabled: !!creatorId,
+    staleTime: 60 * 1000, // 1 minute cache
+    gcTime: 5 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
+    placeholderData: (previousData) => previousData,
+  });
+
+  // Sync tips setting from query
   useEffect(() => {
-    const loadTipsSetting = async () => {
-      if (!creatorId) return;
-      const { data } = await supabase
-        .from('creators')
-        .select('is_accepting_tips')
-        .eq('id', creatorId)
-        .single();
-      if (data) {
-        setIsAcceptingTips(data.is_accepting_tips ?? true);
-      }
-    };
-    loadTipsSetting();
-  }, [creatorId]);
+    if (paymentData?.isAcceptingTips !== undefined) {
+      setIsAcceptingTips(paymentData.isAcceptingTips);
+    }
+  }, [paymentData?.isAcceptingTips]);
 
   const handleTipsToggle = async (checked: boolean) => {
     setSavingTips(true);
@@ -86,132 +179,12 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
     }
   };
 
-  // Revenus réels via RPC (source de vérité) - cache plus long pour éviter re-fetch
-  const { data: revenueData, isLoading: revenueLoading } = useQuery({
-    queryKey: ['creator-revenue-rpc', creatorId],
-    queryFn: async () => {
-      const now = new Date();
-      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      
-      const { data, error } = await supabase.rpc('calculate_creator_revenue_with_commission', {
-        creator_uuid: creatorId,
-        start_date: periodStart.toISOString(),
-        end_date: now.toISOString(),
-      });
-      
-      if (error) throw error;
-      return data?.[0] as {
-        subscription_revenue: number;
-        tips_revenue: number;
-        live_revenue: number;
-        private_content_revenue: number;
-        total_before_commission: number;
-        commission_amount: number;
-        total_after_commission: number;
-      } | null;
-    },
-    enabled: !!creatorId,
-    staleTime: 2 * 60 * 1000, // 2 minutes cache
-    gcTime: 5 * 60 * 1000,
-    refetchInterval: 2 * 60 * 1000, // Refresh every 2 min
-    placeholderData: (previousData) => previousData,
-  });
-
-  // Subscriptions avec cache optimisé
-  const { data: subscriptions, isLoading: subsLoading } = useQuery({
-    queryKey: ['creator-subscriptions', creatorId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select(`
-          id, price, currency, created_at, subscriber_id,
-          profiles:subscriber_id(display_name, username)
-        `)
-        .eq('creator_id', creatorId)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(30);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!creatorId,
-    staleTime: 2 * 60 * 1000, // 2 min cache
-    gcTime: 5 * 60 * 1000,
-    refetchInterval: 2 * 60 * 1000,
-    placeholderData: (previousData) => previousData,
-  });
-
-  // Tips - SEULEMENT ceux avec stripe_payment_intent_id (réellement payés)
-  const { data: tips, isLoading: tipsLoading } = useQuery({
-    queryKey: ['creator-tips', creatorId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tips')
-        .select(`
-          id, amount, currency, message, created_at, sender_id, stripe_payment_intent_id,
-          profiles:sender_id(display_name, username)
-        `)
-        .eq('creator_id', creatorId)
-        .not('stripe_payment_intent_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(30);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!creatorId,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchInterval: 2 * 60 * 1000,
-    placeholderData: (previousData) => previousData,
-  });
-
-  const { data: privatePayments, isLoading: privateLoading } = useQuery({
-    queryKey: ['creator-private-payments', creatorId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('private_content_payments')
-        .select(`
-          id, amount, currency, created_at, subscriber_id, message_id,
-          profiles:subscriber_id(display_name, username),
-          private_messages!inner(creator_id)
-        `)
-        .eq('status', 'paid')
-        .eq('private_messages.creator_id', creatorId)
-        .order('created_at', { ascending: false })
-        .limit(30);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!creatorId,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchInterval: 2 * 60 * 1000,
-    placeholderData: (previousData) => previousData,
-  });
-
-  const { data: livePayments, isLoading: liveLoading } = useQuery({
-    queryKey: ['creator-live-payments', creatorId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('live_stream_payments')
-        .select(`
-          id, amount, currency, created_at, subscriber_id, live_stream_id,
-          profiles:subscriber_id(display_name, username),
-          live_streams!inner(title, creator_id)
-        `)
-        .eq('status', 'paid')
-        .eq('live_streams.creator_id', creatorId)
-        .order('created_at', { ascending: false })
-        .limit(30);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!creatorId,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchInterval: 2 * 60 * 1000,
-    placeholderData: (previousData) => previousData,
-  });
+  // Extract data from unified query
+  const revenueData = paymentData?.revenue;
+  const subscriptions = paymentData?.subscriptions;
+  const tips = paymentData?.tips;
+  const privatePayments = paymentData?.privatePayments;
+  const livePayments = paymentData?.livePayments;
 
   // Combiner tous les encaissements
   const allEncaissements: EncaissementItem[] = [
@@ -264,7 +237,7 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
   const commission = revenueData?.commission_amount || 0;
   const totalNet = revenueData?.total_after_commission || 0;
 
-  const isLoading = subsLoading || tipsLoading || privateLoading || liveLoading || revenueLoading;
+  // isLoading is already defined from the unified query above
 
   const getTypeConfig = (type: EncaissementItem['type']) => {
     const configs = {
@@ -293,7 +266,7 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
       {/* ══════════════════════════════════════════════════════════════════
           1. ENCAISSEMENTS - Solde & Retrait (EN HAUT)
       ══════════════════════════════════════════════════════════════════ */}
-      <PaymentRequestCard />
+      <PaymentRequestCard creatorId={creatorId} revenueData={revenueData} />
 
       {/* ══════════════════════════════════════════════════════════════════
           2. TABLEAU RÉCAPITULATIF DES REVENUS
