@@ -56,3 +56,6 @@ export function handleCorsOptions(request: Request): Response {
     headers: getCorsHeaders(request) 
   });
 }
+
+// Alias pour compatibilité
+export const handleCorsPreflightRequest = handleCorsOptions;
