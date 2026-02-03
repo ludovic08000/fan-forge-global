@@ -151,29 +151,36 @@ const Dashboard = () => {
     const loadUserProfile = async () => {
       if (!user) return;
       try {
-        // Récupérer le username du profil ET le stage_name du créateur
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('user_id', user.id)
-          .single();
-        
+        // Récupérer le stage_name du créateur pour l'URL de partage
         const { data: creatorData } = await supabase
           .from('creators')
           .select('stage_name')
           .eq('user_id', user.id)
           .single();
         
-        // Le lien de partage utilise le username technique pour l'URL (routing)
-        if (profileData?.username) {
-          setShareLink(`${window.location.origin}/${profileData.username}`);
-        }
-        
-        // Mais on affiche le stage_name (surnom) pour le partage
+        // Créer le slug du stage_name pour l'URL (ex: "Ice Scream" -> "ice-scream")
         if (creatorData?.stage_name) {
+          const stageNameSlug = creatorData.stage_name
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+            .replace(/[^a-z0-9]+/g, '-') // Remplacer les caractères spéciaux par des tirets
+            .replace(/^-|-$/g, ''); // Supprimer les tirets au début/fin
+          
+          setShareLink(`${window.location.origin}/${stageNameSlug}`);
           setShareDisplayName(creatorData.stage_name);
-        } else if (profileData?.username) {
-          setShareDisplayName(profileData.username);
+        } else {
+          // Fallback sur le username si pas de stage_name
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (profileData?.username) {
+            setShareLink(`${window.location.origin}/${profileData.username}`);
+            setShareDisplayName(profileData.username);
+          }
         }
       } catch (error) {
         console.error('Error loading profile:', error);
