@@ -8,7 +8,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Menu, X, User, LogOut, Settings, Crown, MessageCircle, Receipt, Handshake } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, Crown, MessageCircle, Receipt, Handshake, Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { NotificationBell } from '@/components/NotificationBell';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -118,6 +118,12 @@ const Header = memo(() => {
                   <Link to="/my-payments" className="flex items-center">
                     <Receipt className="mr-2 h-4 w-4" aria-hidden="true" />
                     <span>{t('header.myPurchases')}</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/live-calendar" className="flex items-center">
+                    <Calendar className="mr-2 h-4 w-4" aria-hidden="true" />
+                    <span>Mes lives privés</span>
                   </Link>
                 </DropdownMenuItem>
                 {(userRole === 'creator' || userRole === 'admin') && (
@@ -230,6 +236,13 @@ const Header = memo(() => {
                     onClick={closeMenu}
                   >
                     {t('header.myPurchases')}
+                  </Link>
+                  <Link 
+                    to="/live-calendar" 
+                    className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                    onClick={closeMenu}
+                  >
+                    Mes lives privés
                   </Link>
                   {(userRole === 'creator' || userRole === 'admin') && (
                     <Link 
