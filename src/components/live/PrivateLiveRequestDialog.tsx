@@ -195,9 +195,10 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
           {/* Date */}
           <div className="space-y-2">
             <Label>Date souhaitée</Label>
-            <Popover>
+            <Popover modal={true}>
               <PopoverTrigger asChild>
                 <Button
+                  type="button"
                   variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal",
@@ -208,19 +209,25 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
                   {date ? format(date, "EEEE d MMMM yyyy", { locale: fr }) : "Sélectionner une date"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 z-[200] bg-popover" align="start">
+              <PopoverContent 
+                className="w-auto p-0 z-[9999] bg-popover pointer-events-auto" 
+                align="start"
+                side="bottom"
+                sideOffset={4}
+                onOpenAutoFocus={(e) => e.preventDefault()}
+              >
                 <Calendar
                   mode="single"
                   selected={date}
-                  onSelect={setDate}
+                  onSelect={(newDate) => {
+                    setDate(newDate);
+                  }}
                   disabled={(d) => {
-                    // Minimum 48h à l'avance
                     const minDate = new Date();
                     minDate.setHours(minDate.getHours() + 48);
                     minDate.setHours(0, 0, 0, 0);
                     return d < minDate;
                   }}
-                  initialFocus
                   locale={fr}
                   className="p-3 pointer-events-auto"
                 />
@@ -232,11 +239,15 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
           <div className="space-y-2">
             <Label>Heure souhaitée</Label>
             <Select value={time} onValueChange={setTime}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <Clock className="mr-2 h-4 w-4" />
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="max-h-60 z-[200] bg-popover">
+              <SelectContent 
+                className="max-h-60 z-[9999] bg-popover pointer-events-auto"
+                position="popper"
+                sideOffset={4}
+              >
                 {timeSlots.map((slot) => (
                   <SelectItem key={slot} value={slot}>
                     {slot}
@@ -250,10 +261,14 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
           <div className="space-y-2">
             <Label>Durée souhaitée (max 20 min)</Label>
             <Select value={duration} onValueChange={setDuration}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="z-[200] bg-popover">
+              <SelectContent 
+                className="z-[9999] bg-popover pointer-events-auto"
+                position="popper"
+                sideOffset={4}
+              >
                 <SelectItem value="10">10 minutes</SelectItem>
                 <SelectItem value="15">15 minutes</SelectItem>
                 <SelectItem value="20">20 minutes</SelectItem>
