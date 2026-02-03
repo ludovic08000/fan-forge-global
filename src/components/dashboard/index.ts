@@ -8,3 +8,4 @@ export { DashboardStripeAlert } from './DashboardStripeAlert';
 export { DashboardPricingSection } from './DashboardPricingSection';
 export { DashboardSettingsSection } from './DashboardSettingsSection';
 export { DashboardPaymentsSection } from './DashboardPaymentsSection';
+export { DashboardPartnershipsSection } from './DashboardPartnershipsSection';
