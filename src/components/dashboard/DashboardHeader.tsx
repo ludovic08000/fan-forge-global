@@ -37,7 +37,9 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
               Mon espace créateur
             </h1>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
+            <p className="text-sm text-muted-foreground">
+              {user.user_metadata?.stage_name || user.user_metadata?.display_name || user.user_metadata?.username || user.email}
+            </p>
           </div>
         </div>
 
