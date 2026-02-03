@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { getCollaborativeContentInfo } from "../_shared/collaborativeRevenue.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -169,8 +170,19 @@ serve(async (req) => {
       },
     };
 
-    // Si le créateur a Stripe Connect, ajouter le transfer avec 15% commission
-    if (messageWithCreator.creator?.stripe_account_id) {
+    // Vérifier si c'est un contenu collaboratif
+    // Pour le contenu collaboratif, on ne peut pas utiliser transfer_data car le paiement doit être splitté
+    // On laisse la plateforme recevoir le paiement et le webhook fera les transferts séparés
+    let isCollaborativeContent = false;
+    if (messageData.content_id) {
+      const collabInfo = await getCollaborativeContentInfo(supabaseAdmin, messageData.content_id);
+      isCollaborativeContent = collabInfo.isCollaborative;
+      logStep("Collaborative content check", { isCollaborative: isCollaborativeContent });
+    }
+
+    // Si le créateur a Stripe Connect ET ce n'est pas un contenu collaboratif
+    // Pour le contenu collaboratif, les transferts sont gérés par le webhook
+    if (messageWithCreator.creator?.stripe_account_id && !isCollaborativeContent) {
       sessionParams.payment_intent_data = {
         transfer_data: {
           destination: messageWithCreator.creator.stripe_account_id,
@@ -181,6 +193,14 @@ serve(async (req) => {
         destination: messageWithCreator.creator.stripe_account_id,
         fee: Math.round(amountInCents * 0.15)
       });
+    } else if (isCollaborativeContent) {
+      // Pour le contenu collaboratif, on stocke les infos pour le webhook
+      sessionParams.metadata = {
+        ...sessionParams.metadata,
+        is_collaborative: 'true',
+        content_id: messageData.content_id,
+      };
+      logStep("Collaborative content - transfers will be handled by webhook");
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);

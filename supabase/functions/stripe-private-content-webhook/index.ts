@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { processCollaborativeRevenue, getCollaborativeContentInfo } from "../_shared/collaborativeRevenue.ts";
+import { getCollaborativeContentInfo } from "../_shared/collaborativeRevenue.ts";
 // CORS restreint aux domaines autorisés
 const ALLOWED_ORIGINS = [
   "https://lovable.dev",
@@ -201,22 +201,106 @@ serve(async (req) => {
 
       // Vérifier si c'est un contenu collaboratif et traiter le partage des revenus
       const contentId = session.metadata?.content_id;
-      if (contentId) {
+      const isCollaborative = session.metadata?.is_collaborative === 'true';
+      
+      if (contentId && isCollaborative) {
         const collabInfo = await getCollaborativeContentInfo(supabaseAdmin, contentId);
         
         if (collabInfo.isCollaborative && collabInfo.partnership) {
           logStep("Processing collaborative revenue share", { contentId, creatorPayout });
           
-          const result = await processCollaborativeRevenue(stripe, supabaseAdmin, {
-            contentId,
-            primaryCreatorId: messageData.creator_id,
-            totalAmount: creatorPayout, // Montant après commission plateforme
+          // Pour le contenu collaboratif, on doit transférer aux DEUX créateurs
+          // Le paiement n'a pas utilisé transfer_data, donc tout est sur le compte plateforme
+          const partnership = collabInfo.partnership;
+          const isPrimaryRequester = messageData.creator_id === partnership.requester_id;
+          const primaryShare = isPrimaryRequester 
+            ? partnership.revenue_share_requester 
+            : partnership.revenue_share_partner;
+          const partnerShare = isPrimaryRequester 
+            ? partnership.revenue_share_partner 
+            : partnership.revenue_share_requester;
+          const partnerId = isPrimaryRequester 
+            ? partnership.partner_id 
+            : partnership.requester_id;
+          
+          const primaryAmount = (creatorPayout * primaryShare) / 100;
+          const partnerAmount = (creatorPayout * partnerShare) / 100;
+          
+          logStep("Revenue split calculated", { primaryAmount, partnerAmount, primaryShare, partnerShare });
+          
+          // Récupérer les comptes Stripe des deux créateurs
+          const { data: creators } = await supabaseAdmin
+            .from('creators')
+            .select('id, stripe_account_id, user_id')
+            .in('id', [messageData.creator_id, partnerId]);
+          
+          const primaryCreator = creators?.find(c => c.id === messageData.creator_id);
+          const partnerCreator = creators?.find(c => c.id === partnerId);
+          
+          // Transférer au créateur principal
+          if (primaryCreator?.stripe_account_id && primaryAmount >= 0.50) {
+            try {
+              const primaryTransfer = await stripe.transfers.create({
+                amount: Math.round(primaryAmount * 100),
+                currency: 'eur',
+                destination: primaryCreator.stripe_account_id,
+                transfer_group: session.payment_intent as string,
+                metadata: {
+                  type: 'collaborative_primary',
+                  content_id: contentId,
+                  partnership_id: partnership.id,
+                }
+              });
+              logStep("Primary creator transfer done", { transferId: primaryTransfer.id, amount: primaryAmount });
+            } catch (err) {
+              logStep("Error transferring to primary creator", { error: String(err) });
+            }
+          }
+          
+          // Transférer au partenaire
+          if (partnerCreator?.stripe_account_id && partnerAmount >= 0.50) {
+            try {
+              const partnerTransfer = await stripe.transfers.create({
+                amount: Math.round(partnerAmount * 100),
+                currency: 'eur',
+                destination: partnerCreator.stripe_account_id,
+                transfer_group: session.payment_intent as string,
+                metadata: {
+                  type: 'collaborative_partner',
+                  content_id: contentId,
+                  partnership_id: partnership.id,
+                }
+              });
+              logStep("Partner creator transfer done", { transferId: partnerTransfer.id, amount: partnerAmount });
+              
+              // Notifier le partenaire
+              await supabaseAdmin.from('notifications').insert({
+                user_id: partnerCreator.user_id,
+                type: 'collaborative_revenue',
+                title: 'Revenu collaboratif reçu !',
+                message: `Vous avez reçu ${partnerAmount.toFixed(2)}€ pour un contenu collaboratif.`,
+                data: { content_id: contentId, amount: partnerAmount }
+              });
+            } catch (err) {
+              logStep("Error transferring to partner", { error: String(err) });
+            }
+          }
+          
+          // Enregistrer la transaction
+          await supabaseAdmin.from('collaborative_revenue_transactions').insert({
+            content_id: contentId,
+            partnership_id: partnership.id,
+            primary_creator_id: messageData.creator_id,
+            partner_creator_id: partnerId,
+            total_amount: creatorPayout,
+            primary_amount: primaryAmount,
+            partner_amount: partnerAmount,
             currency: 'EUR',
-            paymentIntentId: session.payment_intent as string,
-            revenueType: 'private_content'
+            revenue_type: 'private_content',
+            status: 'completed'
           });
           
-          logStep("Collaborative revenue result", { success: result.success, transfers: result.transfers });
+          logStep("Collaborative revenue transaction recorded");
         }
       }
     }
