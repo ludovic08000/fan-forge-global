@@ -1,15 +1,15 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { Volume2, VolumeX, Video } from 'lucide-react';
+import React, { useRef, useState, useCallback } from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
 
 // Build public URL from relative path
 const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
-const buildPublicUrl = (path: string, bucket: string = 'content'): string => {
+const buildPublicUrl = (path: string): string => {
   if (!path) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
   const cleanPath = path.split('?')[0];
-  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${cleanPath}`;
+  return `${SUPABASE_URL}/storage/v1/object/public/content/${cleanPath}`;
 };
 
 interface SecureVideoPreviewCardProps {
@@ -25,79 +25,18 @@ interface SecureVideoPreviewCardProps {
 }
 
 /**
- * Lecteur vidéo inline - affiche la vidéo DIRECTEMENT comme une image
- * Pas de bouton play, pas de clic requis - lecture automatique muette
+ * Lecteur vidéo SIMPLE - affiche directement la vidéo comme une image
  */
 export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   src,
-  poster,
   className = '',
   blurred = false,
   children,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(true);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
 
-  // URL vidéo publique - construite immédiatement
-  const videoUrl = buildPublicUrl(src, 'content');
-
-  // Forcer la lecture dès le montage
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || blurred) return;
-
-    setIsLoaded(false);
-    setHasError(false);
-
-    // Jouer immédiatement
-    const attemptPlay = () => {
-      setIsLoaded(true);
-      video.play().catch(() => {});
-    };
-
-    const handleError = () => {
-      setHasError(true);
-      setIsLoaded(true);
-    };
-
-    // Si déjà prêt, jouer maintenant
-    if (video.readyState >= 1) {
-      attemptPlay();
-    }
-    
-    // Écouter les événements de chargement
-    video.addEventListener('loadedmetadata', attemptPlay);
-    video.addEventListener('canplay', attemptPlay);
-    video.addEventListener('error', handleError);
-    
-    return () => {
-      video.removeEventListener('loadedmetadata', attemptPlay);
-      video.removeEventListener('canplay', attemptPlay);
-      video.removeEventListener('error', handleError);
-    };
-  }, [blurred, videoUrl]);
-
-  // Pause quand hors viewport pour économiser la batterie
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || blurred) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          video.play().catch(() => {});
-        } else {
-          video.pause();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    observer.observe(video);
-    return () => observer.disconnect();
-  }, [blurred]);
+  const videoUrl = buildPublicUrl(src);
 
   const toggleMute = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
@@ -110,46 +49,22 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   }, []);
 
   return (
-    <div className={`relative w-full h-full bg-neutral-900 ${className}`}>
-      {/* Indicateur de chargement */}
-      {!isLoaded && !hasError && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Video className="h-8 w-8 text-white/40 animate-pulse" />
-        </div>
-      )}
-
-      {/* Erreur */}
-      {hasError && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Video className="h-8 w-8 text-white/30" />
-        </div>
-      )}
-
-      {/* Vidéo directe - visible immédiatement comme une image */}
+    <div className={`relative w-full h-full ${className}`}>
       <video
         ref={videoRef}
         src={videoUrl}
-        className={`absolute inset-0 w-full h-full object-cover ${blurred ? 'blur-lg' : ''} ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        className={`w-full h-full object-cover ${blurred ? 'blur-lg' : ''}`}
         muted
         loop
         autoPlay
         playsInline
         preload="auto"
-        controlsList="nodownload noplaybackrate"
-        disablePictureInPicture
-        onContextMenu={(e) => e.preventDefault()}
       />
 
-      {/* Bouton son - discret en bas à gauche */}
-      {!blurred && isLoaded && !hasError && (
+      {!blurred && (
         <button
           onClick={toggleMute}
-          onTouchEnd={(e) => {
-            e.preventDefault();
-            toggleMute(e);
-          }}
-          className="absolute bottom-2 left-2 z-30 p-1.5 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
-          aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
+          className="absolute bottom-2 left-2 z-30 p-1.5 rounded-full bg-black/60"
         >
           {isMuted ? (
             <VolumeX className="h-3.5 w-3.5 text-white" />
