@@ -26,7 +26,7 @@ interface SecureVideoPreviewCardProps {
 
 /**
  * Composant vidéo avec preview et autoplay au hover
- * Affiche la première frame automatiquement
+ * Charge la vidéo immédiatement et joue au survol
  */
 export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   src,
@@ -37,11 +37,12 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   children,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
 
-  // URL vidéo publique
+  // URL vidéo publique - construite immédiatement
   const videoUrl = buildPublicUrl(src, 'content');
 
   // Détecter si poster est une vraie image (pas une vidéo)
@@ -52,38 +53,55 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   
   const posterUrl = isValidPoster ? buildPublicUrl(poster, 'content') : undefined;
 
-  // Forcer l'affichage de la première frame
+  // Charger la vidéo dès le montage et afficher la première frame
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || hasLoaded) return;
+    if (!video || !videoUrl) return;
 
-    const showFirstFrame = () => {
-      // Avancer à 0.01s pour afficher le premier frame
+    // Forcer le chargement de la vidéo
+    video.src = videoUrl;
+    video.load();
+
+    const handleLoadedData = () => {
+      // Aller à 0.1s pour afficher le premier frame (pas 0 car parfois noir)
+      video.currentTime = 0.1;
+      setIsVideoLoaded(true);
+    };
+
+    const handleLoadedMetadata = () => {
+      // Fallback: afficher frame dès que les metadata sont chargées
       if (video.readyState >= 1) {
-        video.currentTime = 0.01;
-        setHasLoaded(true);
+        video.currentTime = 0.1;
       }
     };
 
-    video.addEventListener('loadedmetadata', showFirstFrame);
-    // Si déjà chargé
-    if (video.readyState >= 1) {
-      showFirstFrame();
-    }
+    video.addEventListener('loadeddata', handleLoadedData);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
 
     return () => {
-      video.removeEventListener('loadedmetadata', showFirstFrame);
+      video.removeEventListener('loadeddata', handleLoadedData);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
-  }, [videoUrl, hasLoaded]);
+  }, [videoUrl]);
 
-  // AUTOPLAY AU HOVER
+  // AUTOPLAY AU HOVER - sans clic nécessaire
   const handleMouseEnter = useCallback(() => {
+    if (blurred) return;
+    
     setIsHovering(true);
     const video = videoRef.current;
-    if (video && !blurred) {
+    if (video) {
       video.currentTime = 0;
-      video.muted = true;
-      video.play().catch(() => {});
+      video.muted = true; // Obligatoire pour autoplay navigateur
+      
+      // Tenter de jouer immédiatement
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Autoplay bloqué - on garde le premier frame visible
+          console.log('[Video] Autoplay blocked by browser');
+        });
+      }
     }
   }, [blurred]);
 
@@ -93,7 +111,7 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
     if (video) {
       video.pause();
       // Revenir à la première frame
-      video.currentTime = 0.01;
+      video.currentTime = 0.1;
     }
   }, []);
 
@@ -109,27 +127,34 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
 
   return (
     <div
+      ref={containerRef}
       className={`relative w-full h-full bg-muted ${className}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onTouchStart={handleMouseEnter}
+      onTouchEnd={handleMouseLeave}
     >
-      {/* Video - affiche la première frame via currentTime */}
+      {/* Video - toujours présente, affiche la première frame */}
       <video
         ref={videoRef}
-        src={videoUrl}
-        className={`absolute inset-0 w-full h-full object-cover ${blurred ? 'blur-lg' : ''}`}
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${blurred ? 'blur-lg' : ''} ${isVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
         muted
         loop
         playsInline
-        preload="metadata"
+        preload="auto"
         poster={posterUrl}
         controlsList="nodownload noplaybackrate"
         disablePictureInPicture
         onContextMenu={(e) => e.preventDefault()}
       />
 
-      {/* Play button overlay - toujours visible quand pas en hover */}
-      {showPlayButton && !isHovering && !blurred && (
+      {/* Gradient de chargement avant que la vidéo soit prête */}
+      {!isVideoLoaded && (
+        <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted-foreground/20 animate-pulse" />
+      )}
+
+      {/* Play button overlay - visible quand pas en hover ET vidéo chargée */}
+      {showPlayButton && !isHovering && !blurred && isVideoLoaded && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
           <div className="bg-black/60 rounded-full p-3 shadow-lg">
             <Play className="h-6 w-6 text-white fill-white" />
