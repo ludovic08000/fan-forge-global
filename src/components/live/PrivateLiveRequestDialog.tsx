@@ -184,22 +184,13 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
-        ) : isSubscribed === false ? (
-          <div className="py-6 text-center space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-              <Video className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg">Abonnement requis</h3>
-              <p className="text-muted-foreground mt-1">
-                Vous devez être abonné à {creatorName} pour demander un live privé.
-              </p>
-            </div>
-            <Button onClick={() => onOpenChange(false)} variant="outline">
-              Fermer
-            </Button>
-          </div>
         ) : (
+        <>
+          {isSubscribed === false && (
+            <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-600 dark:text-amber-400">
+              ⚠️ Vous devez être abonné à {creatorName} pour envoyer cette demande.
+            </div>
+          )}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Date */}
           <div className="space-y-2">
@@ -311,6 +302,7 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
             </Button>
           </DialogFooter>
         </form>
+        </>
         )}
       </DialogContent>
     </Dialog>
