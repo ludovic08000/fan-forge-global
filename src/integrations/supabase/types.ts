@@ -2270,6 +2270,187 @@ export type Database = {
         }
         Relationships: []
       }
+      private_live_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          creator_id: string
+          creator_response: string | null
+          currency: string | null
+          id: string
+          live_stream_id: string | null
+          message: string | null
+          paid_at: string | null
+          price: number | null
+          proposed_date: string
+          proposed_duration: number | null
+          requester_id: string
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          creator_id: string
+          creator_response?: string | null
+          currency?: string | null
+          id?: string
+          live_stream_id?: string | null
+          message?: string | null
+          paid_at?: string | null
+          price?: number | null
+          proposed_date: string
+          proposed_duration?: number | null
+          requester_id: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          creator_id?: string
+          creator_response?: string | null
+          currency?: string | null
+          id?: string
+          live_stream_id?: string | null
+          message?: string | null
+          paid_at?: string | null
+          price?: number | null
+          proposed_date?: string
+          proposed_duration?: number | null
+          requester_id?: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_live_requests_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "private_live_requests_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_live_requests_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_live_requests_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_live_requests_live_stream_id_fkey"
+            columns: ["live_stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_live_requests_live_stream_id_fkey"
+            columns: ["live_stream_id"]
+            isOneToOne: false
+            referencedRelation: "public_live_streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      private_live_revenue: {
+        Row: {
+          created_at: string
+          creator_amount: number
+          creator_id: string
+          currency: string | null
+          gross_amount: number
+          id: string
+          platform_commission: number
+          private_live_request_id: string
+          requester_id: string
+          stripe_payment_intent_id: string | null
+          stripe_transfer_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          creator_amount: number
+          creator_id: string
+          currency?: string | null
+          gross_amount: number
+          id?: string
+          platform_commission: number
+          private_live_request_id: string
+          requester_id: string
+          stripe_payment_intent_id?: string | null
+          stripe_transfer_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          creator_amount?: number
+          creator_id?: string
+          currency?: string | null
+          gross_amount?: number
+          id?: string
+          platform_commission?: number
+          private_live_request_id?: string
+          requester_id?: string
+          stripe_payment_intent_id?: string | null
+          stripe_transfer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_live_revenue_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "private_live_revenue_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_live_revenue_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_live_revenue_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_live_revenue_private_live_request_id_fkey"
+            columns: ["private_live_request_id"]
+            isOneToOne: false
+            referencedRelation: "private_live_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       private_messages: {
         Row: {
           content: string | null

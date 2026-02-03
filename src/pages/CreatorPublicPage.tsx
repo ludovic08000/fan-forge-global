@@ -19,6 +19,7 @@ import { SecureVideoLightbox } from '@/components/SecureVideoLightbox';
 import { PublicReplays } from '@/components/live/PublicReplays';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { CreatorTipButton } from '@/components/CreatorTipButton';
+import PrivateLiveRequestDialog from '@/components/live/PrivateLiveRequestDialog';
 
 type ContentFilter = 'all' | 'image' | 'video';
 type TabFilter = 'posts' | 'medias';
@@ -44,6 +45,7 @@ const CreatorPublicPage = () => {
   const [activeTab, setActiveTab] = useState<TabFilter>('posts');
   const [bioExpanded, setBioExpanded] = useState(false);
   const [scheduledLives, setScheduledLives] = useState<any[]>([]);
+  const [showPrivateLiveDialog, setShowPrivateLiveDialog] = useState(false);
 
   useContentProtection(!showCheckout && !selectedImage);
 
@@ -593,6 +595,18 @@ const CreatorPublicPage = () => {
             variant="outline"
             size="sm"
           />
+
+          {/* Bouton Demander un live privé */}
+          {user && (
+            <Button
+              variant="outline"
+              className="rounded-full h-9 px-4 text-sm font-medium gap-2"
+              onClick={() => setShowPrivateLiveDialog(true)}
+            >
+              <Video className="h-4 w-4" />
+              Live privé
+            </Button>
+          )}
         </div>
 
         {/* Bio avec "Voir plus" */}
@@ -976,6 +990,13 @@ const CreatorPublicPage = () => {
           </div>
         </div>
       )}
+      {/* Dialog demande de live privé */}
+      <PrivateLiveRequestDialog
+        open={showPrivateLiveDialog}
+        onOpenChange={setShowPrivateLiveDialog}
+        creatorId={creator.id}
+        creatorName={creatorName}
+      />
     </div>
   );
 };

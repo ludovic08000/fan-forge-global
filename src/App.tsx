@@ -58,6 +58,7 @@ const VerifyOtp = lazy(() => import("./pages/VerifyOtp"));
 const MyPayments = lazy(() => import("./pages/MyPayments"));
 const Partnerships = lazy(() => import("./pages/Partnerships"));
 const IdentityVerification = lazy(() => import("./pages/IdentityVerification"));
+const LiveCalendar = lazy(() => import("./pages/LiveCalendar"));
 
 
 // Composant de chargement optimisé avec skeleton
@@ -188,6 +189,11 @@ const AppRoutes = () => {
           <Route path="/live-analytics/:liveStreamId" element={
             <ProtectedRoute>
               <LiveAnalytics />
+            </ProtectedRoute>
+          } />
+          <Route path="/live-calendar" element={
+            <ProtectedRoute>
+              <LiveCalendar />
             </ProtectedRoute>
           } />
           <Route path="/backstage" element={

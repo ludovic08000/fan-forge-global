@@ -5,9 +5,10 @@
 
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
-import { Loader2, BarChart3, ImageIcon, Radio, MessageCircle, Sparkles, Settings, Banknote, Handshake } from 'lucide-react';
+import { Navigate, Link } from 'react-router-dom';
+import { Loader2, BarChart3, ImageIcon, Radio, MessageCircle, Sparkles, Settings, Banknote, Handshake, Calendar } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAnalytics } from '@/lib/analytics';
@@ -449,6 +450,19 @@ const Dashboard = () => {
         {/* Section: Live */}
         {activeSection === 'live' && (
           <div className="space-y-6">
+            {/* Lien vers le calendrier des lives privés */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">Studio Live</h3>
+                <p className="text-sm text-muted-foreground">Diffusez en direct pour vos abonnés</p>
+              </div>
+              <Link to="/live-calendar">
+                <Button variant="outline" className="gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Lives privés
+                </Button>
+              </Link>
+            </div>
             <Suspense fallback={<LoadingFallback message="Chargement du studio live..." />}>
               <LiveStreamStudio />
             </Suspense>
