@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-
+import { processCollaborativeRevenue, getCollaborativeContentInfo } from "../_shared/collaborativeRevenue.ts";
 // CORS restreint aux domaines autorisés
 const ALLOWED_ORIGINS = [
   "https://lovable.dev",
@@ -197,6 +197,27 @@ serve(async (req) => {
         logStep("Error recording commission", { error: commissionError.message });
       } else {
         logStep("Commission recorded", { revenue, commission: commissionAmount });
+      }
+
+      // Vérifier si c'est un contenu collaboratif et traiter le partage des revenus
+      const contentId = session.metadata?.content_id;
+      if (contentId) {
+        const collabInfo = await getCollaborativeContentInfo(supabaseAdmin, contentId);
+        
+        if (collabInfo.isCollaborative && collabInfo.partnership) {
+          logStep("Processing collaborative revenue share", { contentId, creatorPayout });
+          
+          const result = await processCollaborativeRevenue(stripe, supabaseAdmin, {
+            contentId,
+            primaryCreatorId: messageData.creator_id,
+            totalAmount: creatorPayout, // Montant après commission plateforme
+            currency: 'EUR',
+            paymentIntentId: session.payment_intent as string,
+            revenueType: 'private_content'
+          });
+          
+          logStep("Collaborative revenue result", { success: result.success, transfers: result.transfers });
+        }
       }
     }
 

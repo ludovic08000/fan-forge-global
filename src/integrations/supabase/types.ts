@@ -236,6 +236,131 @@ export type Database = {
           },
         ]
       }
+      collaborative_revenue_transactions: {
+        Row: {
+          content_id: string | null
+          created_at: string
+          currency: string
+          error_message: string | null
+          id: string
+          partner_amount: number
+          partner_creator_id: string
+          partnership_id: string | null
+          primary_amount: number
+          primary_creator_id: string
+          revenue_type: string
+          status: string
+          stripe_transfer_id: string | null
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          content_id?: string | null
+          created_at?: string
+          currency?: string
+          error_message?: string | null
+          id?: string
+          partner_amount?: number
+          partner_creator_id: string
+          partnership_id?: string | null
+          primary_amount?: number
+          primary_creator_id: string
+          revenue_type: string
+          status?: string
+          stripe_transfer_id?: string | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          content_id?: string | null
+          created_at?: string
+          currency?: string
+          error_message?: string | null
+          id?: string
+          partner_amount?: number
+          partner_creator_id?: string
+          partnership_id?: string | null
+          primary_amount?: number
+          primary_creator_id?: string
+          revenue_type?: string
+          status?: string
+          stripe_transfer_id?: string | null
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborative_revenue_transactions_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborative_revenue_transactions_partner_creator_id_fkey"
+            columns: ["partner_creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "collaborative_revenue_transactions_partner_creator_id_fkey"
+            columns: ["partner_creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborative_revenue_transactions_partner_creator_id_fkey"
+            columns: ["partner_creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborative_revenue_transactions_partner_creator_id_fkey"
+            columns: ["partner_creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborative_revenue_transactions_partnership_id_fkey"
+            columns: ["partnership_id"]
+            isOneToOne: false
+            referencedRelation: "creator_partnerships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborative_revenue_transactions_primary_creator_id_fkey"
+            columns: ["primary_creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "collaborative_revenue_transactions_primary_creator_id_fkey"
+            columns: ["primary_creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborative_revenue_transactions_primary_creator_id_fkey"
+            columns: ["primary_creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborative_revenue_transactions_primary_creator_id_fkey"
+            columns: ["primary_creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content: {
         Row: {
           content_type: Database["public"]["Enums"]["content_type"]
