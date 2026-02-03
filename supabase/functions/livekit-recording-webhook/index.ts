@@ -183,29 +183,10 @@ serve(async (req) => {
               console.log('[LiveKit Recording Webhook] Private live replay created for sale at', privateRequest.price, '€');
             }
           } else {
-            // Live standard - créer dans la galerie comme avant
-            // Créer automatiquement un contenu vidéo dans la galerie du créateur
-            // SECURITY: file_url contains only the path, signed URLs generated on-demand
-            const { error: contentError } = await supabaseAdmin
-              .from('content')
-              .insert({
-                creator_id: stream.creator_id,
-                title: `Replay: ${stream.title}`,
-                file_url: r2FilePath, // PATH ONLY - signed URLs via get-signed-url
-                content_type: 'video',
-                is_premium: true, // Les replays sont premium par défaut
-                status: 'published',
-                duration: duration,
-                file_size: fileSize,
-                description: `Enregistrement du live "${stream.title}" - ⚠️ Disponible pendant 7 jours uniquement`,
-                tags: ['replay', 'live']
-              });
-
-            if (contentError) {
-              console.error('[LiveKit Recording Webhook] Content creation error:', contentError);
-            } else {
-              console.log('[LiveKit Recording Webhook] Content created with file path (secured):', r2FilePath);
-            }
+            // Live standard (public) - NE PAS créer dans content
+            // Les replays restent uniquement dans live_streams.recording_url
+            // Ils sont accessibles via la section "Mes replays" du créateur
+            console.log('[LiveKit Recording Webhook] Public live replay saved to live_streams.recording_url only (not in content table)');
           }
         } else {
           console.error('[LiveKit Recording Webhook] No file path available from recording');
