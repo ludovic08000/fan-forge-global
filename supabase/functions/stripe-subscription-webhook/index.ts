@@ -191,6 +191,29 @@ serve(async (req) => {
 
             // Mettre à jour le compteur d'abonnés du créateur
             await supabaseClient.rpc('increment_creator_subscribers', { creator_uuid: creatorId });
+
+            // Envoyer le message de bienvenue automatique
+            if (newSub?.id) {
+              try {
+                const welcomeResponse = await fetch(`${supabaseUrl}/functions/v1/send-auto-message`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${supabaseServiceKey}`,
+                  },
+                  body: JSON.stringify({
+                    subscriptionId: newSub.id,
+                    messageType: "welcome",
+                    creatorId: creatorId,
+                    subscriberId: user.id,
+                  }),
+                });
+                const welcomeResult = await welcomeResponse.json();
+                logStep("Welcome message result", welcomeResult);
+              } catch (welcomeErr) {
+                logStep("Error sending welcome message", { error: String(welcomeErr) });
+              }
+            }
           }
         }
 
