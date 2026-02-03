@@ -61,7 +61,7 @@ serve(async (req) => {
       // Trouver le live stream associé à cet egress
       const { data: stream, error: streamError } = await supabaseAdmin
         .from('live_streams')
-        .select('id, creator_id, title')
+        .select('id, creator_id, title, is_premium, price')
         .eq('egress_id', egressInfo.egressId)
         .single();
 
@@ -144,27 +144,68 @@ serve(async (req) => {
             })
             .eq('id', stream.id);
 
-          // Créer automatiquement un contenu vidéo dans la galerie du créateur
-          // SECURITY: file_url contains only the path, signed URLs generated on-demand
-          const { error: contentError } = await supabaseAdmin
-            .from('content')
-            .insert({
-              creator_id: stream.creator_id,
-              title: `Replay: ${stream.title}`,
-              file_url: r2FilePath, // PATH ONLY - signed URLs via get-signed-url
-              content_type: 'video',
-              is_premium: true, // Les replays sont premium par défaut
-              status: 'published',
-              duration: duration,
-              file_size: fileSize,
-              description: `Enregistrement du live "${stream.title}" - ⚠️ Disponible pendant 7 jours uniquement`,
-              tags: ['replay', 'live']
-            });
+          // Vérifier si c'est un live privé (lié à une demande de live privé)
+          const { data: privateRequest } = await supabaseAdmin
+            .from('private_live_requests')
+            .select('id, price, currency, proposed_duration')
+            .eq('live_stream_id', stream.id)
+            .eq('status', 'paid')
+            .maybeSingle();
 
-          if (contentError) {
-            console.error('[LiveKit Recording Webhook] Content creation error:', contentError);
+          if (privateRequest) {
+            // C'est un live privé - créer un replay vendable
+            console.log('[LiveKit Recording Webhook] Creating private live replay for sale');
+            
+            // Vérifier qu'un replay n'existe pas déjà
+            const { data: existingReplay } = await supabaseAdmin
+              .from('private_live_replays')
+              .select('id')
+              .eq('private_live_request_id', privateRequest.id)
+              .maybeSingle();
+
+            if (!existingReplay) {
+              await supabaseAdmin
+                .from('private_live_replays')
+                .insert({
+                  creator_id: stream.creator_id,
+                  private_live_request_id: privateRequest.id,
+                  live_stream_id: stream.id,
+                  title: `Replay: ${stream.title}`,
+                  description: `Replay de live privé - ${privateRequest.proposed_duration || 20} minutes`,
+                  file_path: r2FilePath,
+                  duration: duration,
+                  file_size: fileSize,
+                  original_price: privateRequest.price,
+                  replay_price: privateRequest.price, // Même prix par défaut
+                  currency: privateRequest.currency || 'EUR',
+                  is_available: true
+                });
+              console.log('[LiveKit Recording Webhook] Private live replay created for sale at', privateRequest.price, '€');
+            }
           } else {
-            console.log('[LiveKit Recording Webhook] Content created with file path (secured):', r2FilePath);
+            // Live standard - créer dans la galerie comme avant
+            // Créer automatiquement un contenu vidéo dans la galerie du créateur
+            // SECURITY: file_url contains only the path, signed URLs generated on-demand
+            const { error: contentError } = await supabaseAdmin
+              .from('content')
+              .insert({
+                creator_id: stream.creator_id,
+                title: `Replay: ${stream.title}`,
+                file_url: r2FilePath, // PATH ONLY - signed URLs via get-signed-url
+                content_type: 'video',
+                is_premium: true, // Les replays sont premium par défaut
+                status: 'published',
+                duration: duration,
+                file_size: fileSize,
+                description: `Enregistrement du live "${stream.title}" - ⚠️ Disponible pendant 7 jours uniquement`,
+                tags: ['replay', 'live']
+              });
+
+            if (contentError) {
+              console.error('[LiveKit Recording Webhook] Content creation error:', contentError);
+            } else {
+              console.log('[LiveKit Recording Webhook] Content created with file path (secured):', r2FilePath);
+            }
           }
         } else {
           console.error('[LiveKit Recording Webhook] No file path available from recording');

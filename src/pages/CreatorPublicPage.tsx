@@ -17,6 +17,7 @@ import { useContentProtection } from '@/hooks/useContentProtection';
 import { SecureVideoPreviewCard } from '@/components/SecureVideoPreviewCard';
 import { SecureVideoLightbox } from '@/components/SecureVideoLightbox';
 import { PublicReplays } from '@/components/live/PublicReplays';
+import { PrivateLiveReplays } from '@/components/live/PrivateLiveReplays';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { CreatorTipButton } from '@/components/CreatorTipButton';
 import PrivateLiveRequestDialog from '@/components/live/PrivateLiveRequestDialog';
@@ -930,11 +931,20 @@ const CreatorPublicPage = () => {
       {/* Section Replays */}
       <div className="px-4 pb-8">
         {creator && (
-          <PublicReplays 
-            creatorId={creator.id} 
-            isSubscribed={isSubscribed}
-            creatorName={creator.stage_name || profile?.display_name}
-          />
+          <>
+            {/* Replays publics (pour abonnés) */}
+            <PublicReplays 
+              creatorId={creator.id} 
+              isSubscribed={isSubscribed}
+              creatorName={creator.stage_name || profile?.display_name}
+            />
+            
+            {/* Replays de lives privés (à l'achat) */}
+            <PrivateLiveReplays 
+              creatorId={creator.id}
+              creatorName={creator.stage_name || profile?.display_name}
+            />
+          </>
         )}
       </div>
 
