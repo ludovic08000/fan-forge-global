@@ -155,6 +155,7 @@ const ReplayCard = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(true);
+  const [videoReady, setVideoReady] = useState(false);
 
   const toggleMute = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -174,34 +175,50 @@ const ReplayCard = ({
       onClick={onSelect}
     >
       <div className="aspect-video relative bg-neutral-900">
-        {canAccess && videoUrl ? (
+        {canAccess ? (
           <>
-            <video
-              ref={videoRef}
-              src={videoUrl}
-              className="w-full h-full object-cover"
-              muted
-              loop
-              autoPlay
-              playsInline
-              preload="auto"
-            />
-            <button
-              onClick={toggleMute}
-              className="absolute bottom-2 left-2 z-20 p-1.5 rounded-full bg-black/60"
-            >
-              {isMuted ? (
-                <VolumeX className="h-3.5 w-3.5 text-white" />
-              ) : (
-                <Volume2 className="h-3.5 w-3.5 text-white" />
-              )}
-            </button>
+            {/* Thumbnail visible immédiatement, caché quand vidéo prête */}
+            {replay.thumbnail_url && (
+              <img 
+                src={replay.thumbnail_url} 
+                alt=""
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+                  videoReady ? 'opacity-0' : 'opacity-100'
+                }`}
+              />
+            )}
+            
+            {/* Vidéo en background, visible quand prête */}
+            {videoUrl && (
+              <video
+                ref={videoRef}
+                src={videoUrl}
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+                  videoReady ? 'opacity-100' : 'opacity-0'
+                }`}
+                muted
+                loop
+                autoPlay
+                playsInline
+                preload="auto"
+                onCanPlay={() => setVideoReady(true)}
+              />
+            )}
+            
+            {/* Mute button */}
+            {videoReady && (
+              <button
+                onClick={toggleMute}
+                className="absolute bottom-2 left-2 z-20 p-1.5 rounded-full bg-black/60"
+              >
+                {isMuted ? (
+                  <VolumeX className="h-3.5 w-3.5 text-white" />
+                ) : (
+                  <Volume2 className="h-3.5 w-3.5 text-white" />
+                )}
+              </button>
+            )}
           </>
-        ) : canAccess && !videoUrl ? (
-          // En attente de l'URL signée
-          <div className="w-full h-full flex items-center justify-center">
-            <Video className="h-8 w-8 text-muted-foreground/50 animate-pulse" />
-          </div>
         ) : (
           // Non abonné - contenu verrouillé
           <div className="w-full h-full relative">
