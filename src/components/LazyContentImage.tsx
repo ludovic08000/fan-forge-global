@@ -111,15 +111,15 @@ const LazyContentImage: React.FC<LazyContentImageProps> = memo(({
 
   return (
     <div className="relative w-full h-full">
-      {/* Placeholder minimaliste */}
+      {/* Placeholder transparent */}
       {!imageLoaded && !imageError && (
-        <div className="absolute inset-0 bg-muted" />
+        <div className="absolute inset-0" />
       )}
 
       {/* Erreur */}
       {imageError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted">
-          <ImageOff className="h-6 w-6 opacity-40" />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+          <ImageOff className="h-6 w-6 opacity-40 text-white" />
         </div>
       )}
 

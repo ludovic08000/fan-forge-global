@@ -104,7 +104,7 @@ const SecureContentCard: React.FC<{
   return (
     <Card className="overflow-hidden group card-premium">
       <div 
-        className="aspect-square bg-muted overflow-hidden relative cursor-pointer"
+        className="aspect-square overflow-hidden relative cursor-pointer"
         onClick={() => onOpenLightbox(item, index)}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -282,14 +282,14 @@ export const DashboardContentGrid: React.FC<DashboardContentGridProps> = ({
 
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 w-full">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0 w-full">
             {[...Array(4)].map((_, i) => (
               <Skeleton key={i} className="aspect-square rounded-lg" />
             ))}
           </div>
         </div>
       ) : content && content.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0">
           {content.map((item, index) => (
             <SecureContentCard
               key={item.id}
