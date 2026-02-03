@@ -295,21 +295,9 @@ const PrivateReplayCard = ({
 
       <div className="p-3 space-y-1">
         <h4 className="font-medium truncate text-sm">{replay.title}</h4>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Eye className="h-3 w-3" />
-            {replay.view_count}
-          </span>
-          <span className="flex items-center gap-1">
-            <ShoppingCart className="h-3 w-3" />
-            {replay.purchase_count} ventes
-          </span>
-        </div>
-        {!isPurchased && (
-          <p className="text-xs text-muted-foreground">
-            Replay de live privé de {creatorName || 'ce créateur'}
-          </p>
-        )}
+        <p className="text-xs text-muted-foreground">
+          {isPurchased ? 'Replay acheté' : `Replay de live privé de ${creatorName || 'ce créateur'}`}
+        </p>
       </div>
     </Card>
   );
