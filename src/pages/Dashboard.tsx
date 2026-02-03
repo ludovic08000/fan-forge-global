@@ -6,7 +6,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, Link } from 'react-router-dom';
-import { Loader2, BarChart3, ImageIcon, Radio, MessageCircle, Sparkles, Settings, Banknote, Handshake, Calendar } from 'lucide-react';
+import { Loader2, BarChart3, ImageIcon, Radio, MessageCircle, Sparkles, Settings, Banknote, Handshake, Calendar, Video } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
@@ -482,8 +482,12 @@ const Dashboard = () => {
                 <p className="text-sm text-muted-foreground">Diffusez en direct pour vos abonnés</p>
               </div>
               <Link to="/live-calendar">
-                <Button variant="outline" className="gap-2">
-                  <Calendar className="h-4 w-4" />
+                <Button 
+                  size="lg"
+                  className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 text-white font-bold shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 gap-2 border-0"
+                >
+                  <Sparkles className="h-5 w-5" />
+                  <Video className="h-5 w-5" />
                   Lives privés
                 </Button>
               </Link>
