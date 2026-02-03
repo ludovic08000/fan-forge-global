@@ -920,33 +920,26 @@ const CreatorPublicPage = () => {
         </div>
       )}
 
-      {/* Onglet Médias - à venir */}
-      {activeTab === 'medias' && (
-        <div className="py-12 text-center text-muted-foreground">
-          <ShoppingBag className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p>Pas encore de médias à acheter</p>
+      {/* Onglet Médias - Replays privés à l'achat */}
+      {activeTab === 'medias' && creator && (
+        <div className="px-4 pb-8">
+          <PrivateLiveReplays 
+            creatorId={creator.id}
+            creatorName={creator.stage_name || profile?.display_name}
+          />
         </div>
       )}
 
-      {/* Section Replays */}
-      <div className="px-4 pb-8">
-        {creator && (
-          <>
-            {/* Replays publics (pour abonnés) */}
-            <PublicReplays 
-              creatorId={creator.id} 
-              isSubscribed={isSubscribed}
-              creatorName={creator.stage_name || profile?.display_name}
-            />
-            
-            {/* Replays de lives privés (à l'achat) */}
-            <PrivateLiveReplays 
-              creatorId={creator.id}
-              creatorName={creator.stage_name || profile?.display_name}
-            />
-          </>
-        )}
-      </div>
+      {/* Section Replays publics */}
+      {activeTab === 'posts' && creator && (
+        <div className="px-4 pb-8">
+          <PublicReplays 
+            creatorId={creator.id} 
+            isSubscribed={isSubscribed}
+            creatorName={creator.stage_name || profile?.display_name}
+          />
+        </div>
+      )}
 
       {/* Checkout Dialog */}
       <Dialog open={showCheckout} onOpenChange={setShowCheckout}>
