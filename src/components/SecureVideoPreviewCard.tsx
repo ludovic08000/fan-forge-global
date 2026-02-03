@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { Play, Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX } from 'lucide-react';
 
 // Build public URL from relative path
 const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
@@ -25,21 +25,20 @@ interface SecureVideoPreviewCardProps {
 }
 
 /**
- * Composant vidéo premium avec preview et autoplay au hover/touch
- * Affiche une vraie frame de la vidéo (pas noire) et anime au survol
+ * Lecteur vidéo intégré - joue automatiquement en boucle comme Instagram
  */
 export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   src,
   poster,
   className = '',
   blurred = false,
-  showPlayButton = true,
   children,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isHovering, setIsHovering] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [isReady, setIsReady] = useState(false);
+  const [isInView, setIsInView] = useState(false);
 
   // URL vidéo publique
   const videoUrl = buildPublicUrl(src, 'content');
@@ -51,7 +50,36 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
     !poster.toLowerCase().endsWith('.webm');
   const posterUrl = isValidPoster ? buildPublicUrl(poster, 'content') : undefined;
 
-  // Initialisation vidéo - afficher frame visible (pas noire)
+  // Observer pour détecter quand la vidéo est visible
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting);
+      },
+      { threshold: 0.3, rootMargin: '50px' }
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  // Jouer automatiquement quand visible
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !videoUrl) return;
+
+    if (isInView && !blurred) {
+      video.muted = true;
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [isInView, videoUrl, blurred]);
+
+  // Initialisation vidéo
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !videoUrl) return;
@@ -60,54 +88,15 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
     video.muted = true;
     video.load();
 
-    const seekToVisibleFrame = () => {
-      // Aller à 1 seconde pour éviter les frames d'intro noires
-      const targetTime = Math.min(1, video.duration * 0.1);
-      if (video.currentTime !== targetTime) {
-        video.currentTime = targetTime;
-      }
-      setIsReady(true);
-    };
-
-    const handleSeeked = () => {
-      setIsReady(true);
-    };
-
-    video.addEventListener('loadeddata', seekToVisibleFrame);
-    video.addEventListener('seeked', handleSeeked);
+    const handleReady = () => setIsReady(true);
+    video.addEventListener('loadeddata', handleReady);
+    video.addEventListener('canplay', handleReady);
 
     return () => {
-      video.removeEventListener('loadeddata', seekToVisibleFrame);
-      video.removeEventListener('seeked', handleSeeked);
+      video.removeEventListener('loadeddata', handleReady);
+      video.removeEventListener('canplay', handleReady);
     };
   }, [videoUrl]);
-
-  // Play/Pause handlers
-  const startPlaying = useCallback(async () => {
-    const video = videoRef.current;
-    if (!video || blurred) return;
-
-    setIsHovering(true);
-    video.currentTime = 0;
-    video.muted = true;
-
-    try {
-      await video.play();
-    } catch {
-      // Silently fail - iOS may block
-    }
-  }, [blurred]);
-
-  const stopPlaying = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    setIsHovering(false);
-    video.pause();
-    // Revenir à une frame visible
-    const targetTime = Math.min(1, video.duration * 0.1);
-    video.currentTime = targetTime || 1;
-  }, []);
 
   const toggleMute = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
@@ -121,18 +110,16 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
 
   return (
     <div
+      ref={containerRef}
       className={`relative w-full h-full bg-black ${className}`}
-      onMouseEnter={startPlaying}
-      onMouseLeave={stopPlaying}
-      onTouchStart={startPlaying}
-      onTouchEnd={stopPlaying}
     >
-      {/* Video element */}
+      {/* Lecteur vidéo inline - autoplay */}
       <video
         ref={videoRef}
         className={`absolute inset-0 w-full h-full object-cover ${blurred ? 'blur-lg' : ''} ${isReady ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
         muted
         loop
+        autoPlay
         playsInline
         webkit-playsinline="true"
         preload="auto"
@@ -142,22 +129,13 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
         onContextMenu={(e) => e.preventDefault()}
       />
 
-      {/* Loading state */}
+      {/* Loading skeleton */}
       {!isReady && (
         <div className="absolute inset-0 bg-muted animate-pulse" />
       )}
 
-      {/* Play icon quand pas en hover */}
-      {showPlayButton && !isHovering && !blurred && isReady && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-          <div className="bg-black/50 rounded-full p-3">
-            <Play className="h-6 w-6 text-white fill-white" />
-          </div>
-        </div>
-      )}
-
-      {/* Mute toggle pendant lecture */}
-      {isHovering && !blurred && (
+      {/* Bouton mute/unmute - toujours visible */}
+      {isReady && !blurred && (
         <button
           onClick={toggleMute}
           className="absolute bottom-2 left-2 z-30 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
