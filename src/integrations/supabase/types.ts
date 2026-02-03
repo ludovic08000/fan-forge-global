@@ -2399,6 +2399,7 @@ export type Database = {
           created_at: string
           creator_amount: number
           creator_id: string
+          creator_penalty: number | null
           currency: string | null
           gross_amount: number
           id: string
@@ -2414,6 +2415,7 @@ export type Database = {
           created_at?: string
           creator_amount: number
           creator_id: string
+          creator_penalty?: number | null
           currency?: string | null
           gross_amount: number
           id?: string
@@ -2429,6 +2431,7 @@ export type Database = {
           created_at?: string
           creator_amount?: number
           creator_id?: string
+          creator_penalty?: number | null
           currency?: string | null
           gross_amount?: number
           id?: string
