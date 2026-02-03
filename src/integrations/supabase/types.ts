@@ -2342,7 +2342,7 @@ export type Database = {
           is_available: boolean
           live_stream_id: string | null
           original_price: number
-          private_live_request_id: string
+          private_live_request_id: string | null
           purchase_count: number
           replay_price: number
           thumbnail_url: string | null
@@ -2362,7 +2362,7 @@ export type Database = {
           is_available?: boolean
           live_stream_id?: string | null
           original_price: number
-          private_live_request_id: string
+          private_live_request_id?: string | null
           purchase_count?: number
           replay_price: number
           thumbnail_url?: string | null
@@ -2382,7 +2382,7 @@ export type Database = {
           is_available?: boolean
           live_stream_id?: string | null
           original_price?: number
-          private_live_request_id?: string
+          private_live_request_id?: string | null
           purchase_count?: number
           replay_price?: number
           thumbnail_url?: string | null
