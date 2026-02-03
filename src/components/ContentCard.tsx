@@ -156,7 +156,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
     >
       {/* Media Container */}
       <ProtectedMedia 
-        className="relative aspect-square bg-muted overflow-hidden cursor-pointer"
+        className="relative aspect-square overflow-hidden cursor-pointer"
         watermarkText={content.is_premium ? creatorName : undefined}
         enableForensicWatermark={content.is_premium && isSubscribed}
         forensicOpacity={0.04}
