@@ -23,7 +23,7 @@ serve(async (req) => {
     logStep("Webhook reçu");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    const webhookSecret = Deno.env.get("STRIPE_PRIVATE_LIVE_WEBHOOK_SECRET");
+    const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
     
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY non configurée");
 
@@ -35,7 +35,7 @@ serve(async (req) => {
 
     // SÉCURITÉ: Toujours vérifier la signature en production
     if (!webhookSecret) {
-      logStep("ERREUR SÉCURITÉ: STRIPE_PRIVATE_LIVE_WEBHOOK_SECRET non configuré");
+      logStep("ERREUR SÉCURITÉ: STRIPE_WEBHOOK_SECRET non configuré");
       return new Response(
         JSON.stringify({ error: "Webhook secret not configured" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
