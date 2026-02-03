@@ -498,6 +498,8 @@ export type Database = {
           days_before_expiration: number | null
           id: string
           is_enabled: boolean
+          media_type: string | null
+          media_url: string | null
           message_type: string
           title: string
           updated_at: string
@@ -509,6 +511,8 @@ export type Database = {
           days_before_expiration?: number | null
           id?: string
           is_enabled?: boolean
+          media_type?: string | null
+          media_url?: string | null
           message_type: string
           title: string
           updated_at?: string
@@ -520,6 +524,8 @@ export type Database = {
           days_before_expiration?: number | null
           id?: string
           is_enabled?: boolean
+          media_type?: string | null
+          media_url?: string | null
           message_type?: string
           title?: string
           updated_at?: string
