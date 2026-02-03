@@ -1,13 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+// Sitemap-specific headers (extend CORS)
+const getSitemapHeaders = (req: Request) => ({
+  ...getCorsHeaders(req),
   "Content-Type": "application/xml; charset=utf-8",
   "Cache-Control": "public, max-age=3600, s-maxage=3600",
   "X-Robots-Tag": "noindex", // Le sitemap lui-même ne doit pas être indexé
-};
+});
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -20,8 +21,10 @@ const DEFAULT_LANGUAGE = 'fr';
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
+  
+  const sitemapHeaders = getSitemapHeaders(req);
 
   try {
     logStep("Generating sitemap");
@@ -215,7 +218,7 @@ serve(async (req) => {
     logStep("Sitemap generated successfully", stats);
 
     return new Response(xml, {
-      headers: corsHeaders,
+      headers: sitemapHeaders,
       status: 200,
     });
 
@@ -233,7 +236,7 @@ serve(async (req) => {
 </urlset>`;
     
     return new Response(fallbackXml, {
-      headers: { ...corsHeaders, "Cache-Control": "public, max-age=300" },
+      headers: { ...getSitemapHeaders(req), "Cache-Control": "public, max-age=300" },
       status: 200,
     });
   }

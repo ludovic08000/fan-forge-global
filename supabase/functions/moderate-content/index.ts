@@ -1,19 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateJwtAndGetUserId } from "../_shared/auth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
 
 // Max image size: 10MB base64 ≈ 7.5MB actual file
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflightRequest(req);
   }
+  
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     // SECURITY: Require authentication

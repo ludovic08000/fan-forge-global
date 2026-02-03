@@ -58,17 +58,77 @@ const ChartContainer = React.forwardRef<
 });
 ChartContainer.displayName = "Chart";
 
-// Sanitize CSS values to prevent injection
+// Whitelist of CSS named colors (lowercase)
+const CSS_NAMED_COLORS = new Set([
+  'aliceblue', 'antiquewhite', 'aqua', 'aquamarine', 'azure', 'beige', 'bisque', 'black',
+  'blanchedalmond', 'blue', 'blueviolet', 'brown', 'burlywood', 'cadetblue', 'chartreuse',
+  'chocolate', 'coral', 'cornflowerblue', 'cornsilk', 'crimson', 'cyan', 'darkblue',
+  'darkcyan', 'darkgoldenrod', 'darkgray', 'darkgreen', 'darkgrey', 'darkkhaki', 'darkmagenta',
+  'darkolivegreen', 'darkorange', 'darkorchid', 'darkred', 'darksalmon', 'darkseagreen',
+  'darkslateblue', 'darkslategray', 'darkslategrey', 'darkturquoise', 'darkviolet', 'deeppink',
+  'deepskyblue', 'dimgray', 'dimgrey', 'dodgerblue', 'firebrick', 'floralwhite', 'forestgreen',
+  'fuchsia', 'gainsboro', 'ghostwhite', 'gold', 'goldenrod', 'gray', 'green', 'greenyellow',
+  'grey', 'honeydew', 'hotpink', 'indianred', 'indigo', 'ivory', 'khaki', 'lavender',
+  'lavenderblush', 'lawngreen', 'lemonchiffon', 'lightblue', 'lightcoral', 'lightcyan',
+  'lightgoldenrodyellow', 'lightgray', 'lightgreen', 'lightgrey', 'lightpink', 'lightsalmon',
+  'lightseagreen', 'lightskyblue', 'lightslategray', 'lightslategrey', 'lightsteelblue',
+  'lightyellow', 'lime', 'limegreen', 'linen', 'magenta', 'maroon', 'mediumaquamarine',
+  'mediumblue', 'mediumorchid', 'mediumpurple', 'mediumseagreen', 'mediumslateblue',
+  'mediumspringgreen', 'mediumturquoise', 'mediumvioletred', 'midnightblue', 'mintcream',
+  'mistyrose', 'moccasin', 'navajowhite', 'navy', 'oldlace', 'olive', 'olivedrab', 'orange',
+  'orangered', 'orchid', 'palegoldenrod', 'palegreen', 'paleturquoise', 'palevioletred',
+  'papayawhip', 'peachpuff', 'peru', 'pink', 'plum', 'powderblue', 'purple', 'rebeccapurple',
+  'red', 'rosybrown', 'royalblue', 'saddlebrown', 'salmon', 'sandybrown', 'seagreen', 'seashell',
+  'sienna', 'silver', 'skyblue', 'slateblue', 'slategray', 'slategrey', 'snow', 'springgreen',
+  'steelblue', 'tan', 'teal', 'thistle', 'tomato', 'turquoise', 'violet', 'wheat', 'white',
+  'whitesmoke', 'yellow', 'yellowgreen', 'transparent', 'currentcolor', 'inherit'
+]);
+
+// Strict regex patterns for CSS color values
+const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+const RGB_REGEX = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(,\s*(0|1|0?\.\d+))?\s*\)$/;
+const HSL_REGEX = /^hsla?\(\s*(\d{1,3})\s*,\s*(\d{1,3})%?\s*,\s*(\d{1,3})%?\s*(,\s*(0|1|0?\.\d+))?\s*\)$/;
+const HSL_SPACE_REGEX = /^(\d{1,3})\s+(\d{1,3})%?\s+(\d{1,3})%?(\s*\/\s*(0|1|0?\.\d+|\d{1,3}%))?$/;
+const CSS_VAR_REGEX = /^var\(--[a-zA-Z0-9_-]+\)$/;
+
+// Sanitize CSS values with strict whitelist validation
 const sanitizeCssValue = (value: string): string => {
-  // Only allow valid CSS color values (hex, rgb, hsl, named colors)
-  // Remove any characters that could be used for CSS injection
-  return value.replace(/[<>"'`;{}()\\]/g, '').trim();
+  if (!value || typeof value !== 'string') return '';
+  
+  const trimmed = value.trim().toLowerCase();
+  
+  // Check named colors
+  if (CSS_NAMED_COLORS.has(trimmed)) return trimmed;
+  
+  // Check hex colors
+  if (HEX_COLOR_REGEX.test(value.trim())) return value.trim();
+  
+  // Check rgb/rgba
+  if (RGB_REGEX.test(value.trim())) return value.trim();
+  
+  // Check hsl/hsla
+  if (HSL_REGEX.test(value.trim())) return value.trim();
+  
+  // Check HSL space syntax (e.g., "220 13% 91%")
+  if (HSL_SPACE_REGEX.test(value.trim())) return value.trim();
+  
+  // Check CSS variables
+  if (CSS_VAR_REGEX.test(value.trim())) return value.trim();
+  
+  // If no valid pattern matches, return empty string (safe fallback)
+  console.warn('[chart.tsx] Invalid CSS color value rejected:', value.substring(0, 50));
+  return '';
 };
 
-// Sanitize CSS identifier (for variable names)
+// Sanitize CSS identifier with strict alphanumeric + hyphen/underscore only
 const sanitizeCssIdentifier = (value: string): string => {
-  // Only allow alphanumeric, hyphens, and underscores
-  return value.replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!value || typeof value !== 'string') return '';
+  // Only allow alphanumeric, hyphens, and underscores - max 50 chars
+  const sanitized = value.replace(/[^a-zA-Z0-9_-]/g, '').substring(0, 50);
+  if (sanitized !== value) {
+    console.warn('[chart.tsx] CSS identifier sanitized:', value.substring(0, 50));
+  }
+  return sanitized;
 };
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
