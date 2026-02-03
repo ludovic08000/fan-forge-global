@@ -2272,6 +2272,9 @@ export type Database = {
       }
       private_live_requests: {
         Row: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           completed_at: string | null
           created_at: string
           creator_id: string
@@ -2280,10 +2283,14 @@ export type Database = {
           id: string
           live_stream_id: string | null
           message: string | null
+          no_show_reported_at: string | null
+          no_show_reported_by: string | null
           paid_at: string | null
           price: number | null
           proposed_date: string
           proposed_duration: number | null
+          reminder_1h_sent: boolean | null
+          reminder_24h_sent: boolean | null
           requester_id: string
           status: string
           stripe_checkout_session_id: string | null
@@ -2291,6 +2298,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           completed_at?: string | null
           created_at?: string
           creator_id: string
@@ -2299,10 +2309,14 @@ export type Database = {
           id?: string
           live_stream_id?: string | null
           message?: string | null
+          no_show_reported_at?: string | null
+          no_show_reported_by?: string | null
           paid_at?: string | null
           price?: number | null
           proposed_date: string
           proposed_duration?: number | null
+          reminder_1h_sent?: boolean | null
+          reminder_24h_sent?: boolean | null
           requester_id: string
           status?: string
           stripe_checkout_session_id?: string | null
@@ -2310,6 +2324,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           completed_at?: string | null
           created_at?: string
           creator_id?: string
@@ -2318,10 +2335,14 @@ export type Database = {
           id?: string
           live_stream_id?: string | null
           message?: string | null
+          no_show_reported_at?: string | null
+          no_show_reported_by?: string | null
           paid_at?: string | null
           price?: number | null
           proposed_date?: string
           proposed_duration?: number | null
+          reminder_1h_sent?: boolean | null
+          reminder_24h_sent?: boolean | null
           requester_id?: string
           status?: string
           stripe_checkout_session_id?: string | null
@@ -2383,6 +2404,8 @@ export type Database = {
           id: string
           platform_commission: number
           private_live_request_id: string
+          refund_reason: string | null
+          refunded_at: string | null
           requester_id: string
           stripe_payment_intent_id: string | null
           stripe_transfer_id: string | null
@@ -2396,6 +2419,8 @@ export type Database = {
           id?: string
           platform_commission: number
           private_live_request_id: string
+          refund_reason?: string | null
+          refunded_at?: string | null
           requester_id: string
           stripe_payment_intent_id?: string | null
           stripe_transfer_id?: string | null
@@ -2409,6 +2434,8 @@ export type Database = {
           id?: string
           platform_commission?: number
           private_live_request_id?: string
+          refund_reason?: string | null
+          refunded_at?: string | null
           requester_id?: string
           stripe_payment_intent_id?: string | null
           stripe_transfer_id?: string | null
