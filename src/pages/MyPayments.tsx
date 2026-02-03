@@ -3,7 +3,7 @@
  * Affiche tous les achats: abonnements, tips, contenus privés
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   Receipt, 
   Heart, 
@@ -22,11 +23,16 @@ import {
   Calendar,
   ExternalLink,
   ArrowLeft,
-  CreditCard
+  CreditCard,
+  Video,
+  Play,
+  Lock,
+  Loader2
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface PaymentItem {
   id: string;
@@ -147,6 +153,30 @@ export default function MyPayments() {
     placeholderData: (prev) => prev,
   });
 
+  // Charger les replays privés achetés
+  const { data: replayPurchases, isLoading: replaysLoading } = useQuery({
+    queryKey: ['my-replay-purchases', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('private_live_replay_purchases')
+        .select(`
+          id, amount, currency, created_at,
+          private_live_replays!inner(
+            id, title, description, thumbnail_url, file_path, duration, replay_price,
+            creators:creator_id(stage_name)
+          )
+        `)
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    placeholderData: (prev) => prev,
+  });
+
   // Combiner tous les paiements
   const allPayments: PaymentItem[] = [
     ...(subscriptions?.map(s => ({
@@ -195,18 +225,53 @@ export default function MyPayments() {
     })) || []),
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+  // État pour la lecture de replay
+  const [playingReplay, setPlayingReplay] = useState<any>(null);
+  const [replayUrl, setReplayUrl] = useState<string | null>(null);
+  const [loadingReplayUrl, setLoadingReplayUrl] = useState(false);
+
+  const handlePlayReplay = async (purchase: any) => {
+    setPlayingReplay(purchase);
+    setLoadingReplayUrl(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-private-replay-url', {
+        body: { replay_id: purchase.private_live_replays.id }
+      });
+      if (error) throw error;
+      if (data?.url) {
+        setReplayUrl(data.url);
+      } else {
+        throw new Error('URL non disponible');
+      }
+    } catch (err) {
+      console.error('Erreur chargement replay:', err);
+      toast.error('Erreur lors du chargement du replay');
+      setPlayingReplay(null);
+    } finally {
+      setLoadingReplayUrl(false);
+    }
+  };
+
+  const formatDuration = (seconds: number | null) => {
+    if (!seconds) return '--:--';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   // Calcul des totaux
   const totals = {
     subscriptions: subscriptions?.reduce((sum, s) => sum + (s.price || 0), 0) || 0,
     tips: tips?.reduce((sum, t) => sum + (t.amount || 0), 0) || 0,
     privateContent: privatePayments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0,
     live: livePayments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0,
+    replays: replayPurchases?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0,
   };
-  const totalSpent = totals.subscriptions + totals.tips + totals.privateContent + totals.live;
+  const totalSpent = totals.subscriptions + totals.tips + totals.privateContent + totals.live + totals.replays;
 
   // Ne bloquer que si aucune donnée n'est disponible (premier chargement)
-  const hasData = subscriptions || tips || privatePayments || livePayments;
-  const isLoading = !hasData && (subsLoading || tipsLoading || privateLoading || liveLoading);
+  const hasData = subscriptions || tips || privatePayments || livePayments || replayPurchases;
+  const isLoading = !hasData && (subsLoading || tipsLoading || privateLoading || liveLoading || replaysLoading);
 
   const getTypeConfig = (type: PaymentItem['type']) => {
     const configs = {
@@ -281,6 +346,11 @@ export default function MyPayments() {
               <p className="text-xs text-muted-foreground">Lives</p>
               <p className="font-bold">{formatAmount(totals.live)}</p>
             </div>
+            <div className="text-center p-3 rounded-lg bg-muted/30 col-span-2 md:col-span-1">
+              <Video className="h-5 w-5 text-orange-500 mx-auto mb-1" />
+              <p className="text-xs text-muted-foreground">Replays</p>
+              <p className="font-bold">{formatAmount(totals.replays)}</p>
+            </div>
           </div>
           <div className="mt-4 pt-4 border-t text-center">
             <p className="text-sm text-muted-foreground">Total dépensé</p>
@@ -288,6 +358,21 @@ export default function MyPayments() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Tabs: Historique / Médias */}
+      <Tabs defaultValue="history" className="space-y-4">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <Receipt className="h-4 w-4" />
+            Historique
+          </TabsTrigger>
+          <TabsTrigger value="media" className="flex items-center gap-2">
+            <Video className="h-4 w-4" />
+            Mes médias
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="history">
 
       {/* Historique des paiements */}
       <Card className="overflow-hidden border-0 shadow-lg">
@@ -347,6 +432,121 @@ export default function MyPayments() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        {/* Section Médias - Replays privés achetés */}
+        <TabsContent value="media">
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Video className="h-5 w-5 text-orange-500" />
+                Mes Replays Privés
+                <Badge variant="secondary" className="ml-auto font-mono text-xs">
+                  {replayPurchases?.length || 0} replay{(replayPurchases?.length || 0) > 1 ? 's' : ''}
+                </Badge>
+              </CardTitle>
+              <CardDescription>
+                Les replays de shows privés que vous avez achetés
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {replaysLoading ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="aspect-video rounded-lg" />
+                  ))}
+                </div>
+              ) : !replayPurchases || replayPurchases.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Video className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                  <p className="text-sm">Aucun replay acheté</p>
+                  <p className="text-xs mt-1">
+                    Achetez des replays de shows privés pour les regarder ici
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {replayPurchases.map((purchase) => {
+                    const replay = purchase.private_live_replays as any;
+                    return (
+                      <Card 
+                        key={purchase.id} 
+                        className="overflow-hidden group cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                        onClick={() => handlePlayReplay(purchase)}
+                      >
+                        <div className="aspect-video relative">
+                          {replay.thumbnail_url ? (
+                            <img
+                              src={replay.thumbnail_url}
+                              alt={replay.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-primary/30 to-muted flex items-center justify-center">
+                              <Video className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                          )}
+                          
+                          {/* Overlay play */}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
+                              <Play className="h-5 w-5 text-primary-foreground ml-0.5" fill="currentColor" />
+                            </div>
+                          </div>
+
+                          {/* Badge durée */}
+                          {replay.duration && (
+                            <div className="absolute bottom-2 right-2 bg-black/70 px-2 py-0.5 rounded text-xs text-white">
+                              {formatDuration(replay.duration)}
+                            </div>
+                          )}
+                        </div>
+                        <CardContent className="p-3">
+                          <h4 className="font-medium text-sm line-clamp-1">{replay.title}</h4>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {(replay.creators as any)?.stage_name || 'Créateur'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Acheté le {format(new Date(purchase.created_at), 'dd MMM yyyy', { locale: fr })}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialog lecture replay */}
+      <Dialog open={!!playingReplay} onOpenChange={(open) => { if (!open) { setPlayingReplay(null); setReplayUrl(null); } }}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-black">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{playingReplay?.private_live_replays?.title || 'Replay'}</DialogTitle>
+          </DialogHeader>
+          
+          {loadingReplayUrl ? (
+            <div className="aspect-video flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : replayUrl ? (
+            <video
+              src={replayUrl}
+              className="w-full aspect-video"
+              controls
+              autoPlay
+              controlsList="nodownload"
+              onContextMenu={(e) => e.preventDefault()}
+            />
+          ) : (
+            <div className="aspect-video flex items-center justify-center text-muted-foreground">
+              Erreur de chargement
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
