@@ -8,7 +8,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Menu, X, User, LogOut, Settings, Crown, MessageCircle, Receipt } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, Crown, MessageCircle, Receipt, Handshake } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { NotificationBell } from '@/components/NotificationBell';
 import { useTranslation } from '@/contexts/TranslationContext';
@@ -120,6 +120,14 @@ const Header = memo(() => {
                     <span>{t('header.myPurchases')}</span>
                   </Link>
                 </DropdownMenuItem>
+                {(userRole === 'creator' || userRole === 'admin') && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/partnerships" className="flex items-center">
+                      <Handshake className="mr-2 h-4 w-4" aria-hidden="true" />
+                      <span>{t('header.partnerships')}</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={async () => {
                   await signOut();
                   navigate('/');
@@ -223,6 +231,15 @@ const Header = memo(() => {
                   >
                     {t('header.myPurchases')}
                   </Link>
+                  {(userRole === 'creator' || userRole === 'admin') && (
+                    <Link 
+                      to="/partnerships" 
+                      className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
+                      onClick={closeMenu}
+                    >
+                      {t('header.partnerships')}
+                    </Link>
+                  )}
                   <button
                     onClick={async () => {
                       await signOut();
