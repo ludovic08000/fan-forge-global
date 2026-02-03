@@ -1,11 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { validateJwtAndGetUserId } from "../_shared/auth.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-csrf-token",
-  "Access-Control-Expose-Headers": "x-csrf-token",
-};
+import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 
 // Secret key for signing tokens
 const getSecretKey = () => {
@@ -95,8 +90,15 @@ const verifyToken = async (token: string, userId: string): Promise<{ valid: bool
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsOptions(req);
   }
+
+  const corsHeaders = getCorsHeaders(req);
+  // Add extra headers for CSRF
+  const responseHeaders = {
+    ...corsHeaders,
+    "Access-Control-Expose-Headers": "x-csrf-token",
+  };
 
   try {
     // SECURITY: Proper JWT validation with signature verification
@@ -106,7 +108,7 @@ serve(async (req) => {
       console.error("[CSRF] Auth failed:", authResult.error);
       return new Response(JSON.stringify({ error: authResult.error }), {
         status: authResult.statusCode,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...responseHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -126,7 +128,7 @@ serve(async (req) => {
         expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString()
       }), {
         headers: { 
-          ...corsHeaders, 
+          ...responseHeaders, 
           "Content-Type": "application/json",
           "x-csrf-token": newToken
         },
@@ -137,7 +139,7 @@ serve(async (req) => {
       if (!csrfToken) {
         return new Response(JSON.stringify({ valid: false, reason: "No token provided" }), {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...responseHeaders, "Content-Type": "application/json" },
         });
       }
       
@@ -147,17 +149,18 @@ serve(async (req) => {
       
       return new Response(JSON.stringify(result), {
         status: result.valid ? 200 : 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...responseHeaders, "Content-Type": "application/json" },
       });
     }
 
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...responseHeaders, "Content-Type": "application/json" },
     });
 
   } catch (error) {
     console.error("[CSRF] Error:", error);
+    const corsHeaders = getCorsHeaders(req);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
