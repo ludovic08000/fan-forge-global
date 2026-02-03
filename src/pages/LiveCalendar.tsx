@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar, Clock, Video, Check, X, DollarSign, Loader2, MessageCircle, ArrowLeft, User } from 'lucide-react';
+import { Calendar, Clock, Video, Check, X, DollarSign, Loader2, ArrowLeft, User, Ban, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,6 +53,8 @@ const LiveCalendar = () => {
   const [response, setResponse] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
+  const [cancelLoading, setCancelLoading] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
 
   // Vérifier le paramètre de paiement
   useEffect(() => {
@@ -62,7 +65,6 @@ const LiveCalendar = () => {
       toast.success('Paiement réussi ! 🎉', {
         description: 'Votre live privé est confirmé. Le créateur vous contactera bientôt.'
       });
-      // Nettoyer l'URL
       navigate('/live-calendar', { replace: true });
     } else if (paymentStatus === 'cancelled') {
       toast.info('Paiement annulé');
@@ -162,7 +164,9 @@ const LiveCalendar = () => {
 
       if (error) throw error;
 
-      // Envoyer un message automatique
+      // Envoyer un message automatique avec la date proposée par l'utilisateur
+      const proposedDateFormatted = format(new Date(selectedRequest.proposed_date), 'EEEE d MMMM yyyy à HH:mm', { locale: fr });
+      
       await supabase
         .from('private_messages')
         .insert({
@@ -171,13 +175,14 @@ const LiveCalendar = () => {
           sender_type: 'creator',
           message_type: 'text',
           content: `✅ Votre demande de live privé est acceptée !\n\n` +
-            `📅 Date: ${format(new Date(selectedRequest.proposed_date), 'EEEE d MMMM yyyy à HH:mm', { locale: fr })}\n` +
+            `📅 Date confirmée: ${proposedDateFormatted}\n` +
+            `⏱️ Durée: ${selectedRequest.proposed_duration} minutes\n` +
             `💰 Prix: ${priceNum}€\n` +
-            (response ? `\n💬 ${response}` : '') +
-            `\n\n➡️ Cliquez sur le lien dans votre calendrier pour payer et confirmer.`
+            (response ? `\n💬 Message du créateur: ${response}\n` : '') +
+            `\n➡️ Rendez-vous dans votre calendrier pour payer et confirmer définitivement.`
         });
 
-      toast.success('Demande acceptée !');
+      toast.success('Demande acceptée ! Un message a été envoyé automatiquement.');
       setResponseDialog(false);
       setSelectedRequest(null);
       setPrice('');
@@ -218,7 +223,7 @@ const LiveCalendar = () => {
           subscriber_id: request.requester_id,
           sender_type: 'creator',
           message_type: 'text',
-          content: `❌ Désolé, je ne peux pas accepter votre demande de live privé pour cette date. N'hésitez pas à proposer une autre date !`
+          content: `❌ Désolé, je ne peux pas accepter votre demande de live privé pour le ${format(new Date(request.proposed_date), 'EEEE d MMMM à HH:mm', { locale: fr })}. N'hésitez pas à proposer une autre date !`
         });
 
       toast.success('Demande refusée');
@@ -230,6 +235,33 @@ const LiveCalendar = () => {
       toast.error(error.message || 'Erreur');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleCancel = async (requestId: string, isPaid: boolean) => {
+    setCancelLoading(requestId);
+    try {
+      const { data, error } = await supabase.functions.invoke('cancel-private-live', {
+        body: { requestId, reason: cancelReason.trim() || undefined }
+      });
+
+      if (error) throw error;
+
+      toast.success(data.refunded ? 'Live annulé, remboursement en cours' : 'Live annulé');
+      setCancelReason('');
+
+      // Mettre à jour les listes
+      setRequests(prev => prev.map(r => 
+        r.id === requestId ? { ...r, status: 'cancelled' } : r
+      ));
+      setMyRequests(prev => prev.map(r => 
+        r.id === requestId ? { ...r, status: 'cancelled' } : r
+      ));
+    } catch (error: any) {
+      console.error('Error cancelling:', error);
+      toast.error(error.message || 'Erreur lors de l\'annulation');
+    } finally {
+      setCancelLoading(null);
     }
   };
 
@@ -265,10 +297,76 @@ const LiveCalendar = () => {
       case 'completed':
         return <Badge className="bg-emerald-600">Terminé</Badge>;
       case 'cancelled':
-        return <Badge variant="outline">Annulé</Badge>;
+        return <Badge variant="outline" className="text-muted-foreground">Annulé</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
+  };
+
+  const CancelButton = ({ request, isCreator }: { request: PrivateLiveRequest; isCreator: boolean }) => {
+    const canCancel = ['pending', 'accepted', 'paid'].includes(request.status);
+    if (!canCancel) return null;
+
+    const isPaid = request.status === 'paid';
+
+    return (
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-destructive hover:text-destructive"
+            disabled={cancelLoading === request.id}
+          >
+            {cancelLoading === request.id ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <Ban className="h-4 w-4 mr-1" />
+                Annuler
+              </>
+            )}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Annuler le live privé ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {isPaid ? (
+                <>
+                  <span className="text-destructive font-medium">Ce live a déjà été payé.</span>
+                  <br />
+                  L'utilisateur sera remboursé intégralement. Cette action est irréversible.
+                </>
+              ) : (
+                "Cette action est irréversible. L'autre partie sera notifiée de l'annulation."
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <Label htmlFor="cancel-reason">Raison (optionnel)</Label>
+            <Textarea
+              id="cancel-reason"
+              placeholder="Pourquoi annulez-vous ce live ?"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows={2}
+              className="mt-2"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCancelReason('')}>Non, garder</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleCancel(request.id, isPaid)}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isPaid && <RefreshCw className="h-4 w-4 mr-2" />}
+              {isPaid ? 'Annuler et rembourser' : 'Oui, annuler'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
   };
 
   if (loading) {
@@ -349,10 +447,12 @@ const LiveCalendar = () => {
                             {getStatusBadge(request.status)}
                           </div>
                           
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground mb-2">
                             <span className="flex items-center gap-1">
                               <Calendar className="h-4 w-4" />
-                              {format(new Date(request.proposed_date), 'EEEE d MMMM yyyy à HH:mm', { locale: fr })}
+                              <span className="font-medium text-foreground">
+                                {format(new Date(request.proposed_date), 'EEEE d MMMM yyyy à HH:mm', { locale: fr })}
+                              </span>
                             </span>
                             <span className="flex items-center gap-1">
                               <Clock className="h-4 w-4" />
@@ -373,28 +473,32 @@ const LiveCalendar = () => {
                           )}
                         </div>
 
-                        {request.status === 'pending' && (
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                setSelectedRequest(request);
-                                setResponseDialog(true);
-                              }}
-                            >
-                              <Check className="h-4 w-4 mr-1" />
-                              Accepter
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDecline(request.id)}
-                              disabled={actionLoading}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
+                        <div className="flex flex-col gap-2">
+                          {request.status === 'pending' && (
+                            <>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedRequest(request);
+                                  setResponseDialog(true);
+                                }}
+                              >
+                                <Check className="h-4 w-4 mr-1" />
+                                Accepter
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDecline(request.id)}
+                                disabled={actionLoading}
+                              >
+                                <X className="h-4 w-4 mr-1" />
+                                Refuser
+                              </Button>
+                            </>
+                          )}
+                          <CancelButton request={request} isCreator={true} />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -430,10 +534,12 @@ const LiveCalendar = () => {
                           {getStatusBadge(request.status)}
                         </div>
                         
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground mb-2">
                           <span className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            {format(new Date(request.proposed_date), 'EEEE d MMMM yyyy à HH:mm', { locale: fr })}
+                            <span className="font-medium text-foreground">
+                              {format(new Date(request.proposed_date), 'EEEE d MMMM yyyy à HH:mm', { locale: fr })}
+                            </span>
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="h-4 w-4" />
@@ -454,20 +560,22 @@ const LiveCalendar = () => {
                         )}
                       </div>
 
-                      {request.status === 'accepted' && request.price && (
-                        <Button
-                          onClick={() => handlePay(request)}
-                          disabled={paymentLoading === request.id}
-                          className="shrink-0"
-                        >
-                          {paymentLoading === request.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
-                            <DollarSign className="h-4 w-4 mr-1" />
-                          )}
-                          Payer {request.price}€
-                        </Button>
-                      )}
+                      <div className="flex flex-col gap-2">
+                        {request.status === 'accepted' && request.price && (
+                          <Button
+                            onClick={() => handlePay(request)}
+                            disabled={paymentLoading === request.id}
+                          >
+                            {paymentLoading === request.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <DollarSign className="h-4 w-4 mr-1" />
+                            )}
+                            Payer {request.price}€
+                          </Button>
+                        )}
+                        <CancelButton request={request} isCreator={false} />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -489,8 +597,11 @@ const LiveCalendar = () => {
 
             {selectedRequest && (
               <div className="space-y-4">
-                <div className="bg-muted/50 p-3 rounded-lg text-sm">
-                  <p><strong>Date:</strong> {format(new Date(selectedRequest.proposed_date), 'EEEE d MMMM yyyy à HH:mm', { locale: fr })}</p>
+                <div className="bg-muted/50 p-3 rounded-lg text-sm space-y-1">
+                  <p><strong>Date proposée par l'utilisateur:</strong></p>
+                  <p className="text-primary font-medium">
+                    {format(new Date(selectedRequest.proposed_date), 'EEEE d MMMM yyyy à HH:mm', { locale: fr })}
+                  </p>
                   <p><strong>Durée:</strong> {selectedRequest.proposed_duration} minutes</p>
                   {selectedRequest.message && (
                     <p><strong>Message:</strong> {selectedRequest.message}</p>
