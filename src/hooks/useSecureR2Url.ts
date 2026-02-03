@@ -195,12 +195,14 @@ export const useSecureR2Url = (
 
             if (fnError) throw fnError;
 
-            if (data?.signedUrl) {
+            // Support both "url" and "signedUrl" for backward compatibility
+            const signedUrl = data?.url || data?.signedUrl;
+            if (signedUrl) {
               r2UrlCache.set(key, {
-                url: data.signedUrl,
-                expiresAt: new Date(data.expiresAt).getTime(),
+                url: signedUrl,
+                expiresAt: data.expiresAt ? new Date(data.expiresAt).getTime() : Date.now() + 3600000,
               });
-              return data.signedUrl;
+              return signedUrl;
             }
             return null;
           } catch (err) {
@@ -283,7 +285,7 @@ export const getSecureR2Url = async (
     });
 
     if (error) throw error;
-    return data?.signedUrl || null;
+    return data?.url || data?.signedUrl || null;
   } catch (err) {
     console.error('[getSecureR2Url] Error:', err);
     return null;
