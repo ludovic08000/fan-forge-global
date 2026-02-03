@@ -5,13 +5,13 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Circle, Users, Calendar, Play, Lock } from 'lucide-react';
+import { Circle, Users, Calendar, Play, Lock, Video, Sparkles } from 'lucide-react';
 import { useLiveStream, LiveStream } from '@/hooks/useLiveStream';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +28,7 @@ interface CreatorInfo {
  * Page des live streams
  */
 const LiveStreams = () => {
+  const navigate = useNavigate();
   const { liveStreams, loading, fetchLiveStreams } = useLiveStream();
   const { user } = useAuth();
   const [creatorInfos, setCreatorInfos] = useState<Record<string, CreatorInfo>>({});
@@ -260,10 +261,25 @@ const LiveStreams = () => {
         url="https://creatorhub.com/lives"
       />
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Live Streams</h1>
-        <p className="text-muted-foreground">
-          Découvrez les lives en cours et à venir de vos créateurs préférés
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Live Streams</h1>
+            <p className="text-muted-foreground">
+              Découvrez les lives en cours et à venir de vos créateurs préférés
+            </p>
+          </div>
+          
+          {/* Bouton Live Privé très voyant */}
+          <Button
+            size="lg"
+            onClick={() => navigate('/live-calendar')}
+            className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 text-white font-bold shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 gap-2 animate-pulse hover:animate-none"
+          >
+            <Sparkles className="h-5 w-5" />
+            <Video className="h-5 w-5" />
+            Demander un Live Privé
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="live" className="space-y-6">
