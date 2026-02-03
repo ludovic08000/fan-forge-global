@@ -34,7 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp, Shield, ShieldAlert, Brain, BarChart3, XCircle, Video } from 'lucide-react';
+import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp, Shield, ShieldAlert, Brain, BarChart3, XCircle, Video, CalendarX } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentRequestsManager from '@/components/admin/PaymentRequestsManager';
 import PlatformCommissions from '@/components/admin/PlatformCommissions';
@@ -49,6 +49,7 @@ import { AIModerationManager } from '@/components/admin/AIModerationManager';
 import AdvancedAnalytics from '@/components/admin/AdvancedAnalytics';
 import FailedPayments from '@/components/admin/FailedPayments';
 import PrivateLivesManager from '@/components/admin/PrivateLivesManager';
+import NoShowManager from '@/components/admin/NoShowManager';
 
 interface ContentReport {
   id: string;
@@ -438,6 +439,10 @@ const AdminDashboard = () => {
             <XCircle className="h-3 w-3" />
             Échecs paiements
           </TabsTrigger>
+          <TabsTrigger value="noshow" className="flex items-center gap-1">
+            <CalendarX className="h-3 w-3" />
+            No-Shows
+          </TabsTrigger>
         </TabsList>
 
         {/* Onglet Analytics Avancés */}
@@ -448,6 +453,11 @@ const AdminDashboard = () => {
         {/* Onglet Paiements échoués */}
         <TabsContent value="failed-payments" className="space-y-4">
           <FailedPayments />
+        </TabsContent>
+
+        {/* Onglet No-Shows */}
+        <TabsContent value="noshow" className="space-y-4">
+          <NoShowManager />
         </TabsContent>
 
         {/* Onglet IA Modération */}
