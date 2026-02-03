@@ -1,5 +1,5 @@
 /**
- * Replays - lecture automatique directe comme les vidéos de contenu
+ * Replays - lecture automatique avec URLs signées R2
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -10,19 +10,6 @@ import { Video, Eye, Clock, Lock, Volume2, VolumeX } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-
-// URL directe pour les replays
-const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
-const buildVideoUrl = (path: string): string => {
-  if (!path) return '';
-  // Déjà une URL complète
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path;
-  }
-  // Chemin relatif : replays/creator_id/file.mp4 → bucket "replays"
-  const cleanPath = path.split('?')[0];
-  return `${SUPABASE_URL}/storage/v1/object/public/${cleanPath}`;
-};
 
 interface Replay {
   id: string;
@@ -45,6 +32,7 @@ export const PublicReplays = ({ creatorId, isSubscribed }: PublicReplaysProps) =
   const [replays, setReplays] = useState<Replay[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReplay, setSelectedReplay] = useState<Replay | null>(null);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const loadReplays = async () => {
@@ -62,6 +50,29 @@ export const PublicReplays = ({ creatorId, isSubscribed }: PublicReplaysProps) =
 
         if (error) throw error;
         setReplays(data || []);
+
+        // Charger les URLs signées R2 pour les replays accessibles
+        if (data && data.length > 0) {
+          const urlPromises = data
+            .filter(r => !r.is_premium || isSubscribed)
+            .map(async (replay) => {
+              try {
+                const { data: urlData } = await supabase.functions.invoke('get-replay-url', {
+                  body: { liveStreamId: replay.id }
+                });
+                return { id: replay.id, url: urlData?.url || null };
+              } catch {
+                return { id: replay.id, url: null };
+              }
+            });
+
+          const results = await Promise.all(urlPromises);
+          const urlMap: Record<string, string> = {};
+          results.forEach(r => {
+            if (r.url) urlMap[r.id] = r.url;
+          });
+          setSignedUrls(urlMap);
+        }
       } catch (error) {
         console.error('Erreur chargement replays:', error);
       } finally {
@@ -70,7 +81,7 @@ export const PublicReplays = ({ creatorId, isSubscribed }: PublicReplaysProps) =
     };
 
     loadReplays();
-  }, [creatorId]);
+  }, [creatorId, isSubscribed]);
 
   if (loading) {
     return (
@@ -103,11 +114,13 @@ export const PublicReplays = ({ creatorId, isSubscribed }: PublicReplaysProps) =
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {replays.map((replay) => {
           const canAccess = !replay.is_premium || isSubscribed;
+          const videoUrl = signedUrls[replay.id];
           
           return (
             <ReplayCard
               key={replay.id}
               replay={replay}
+              videoUrl={videoUrl}
               canAccess={canAccess}
               onSelect={() => canAccess && setSelectedReplay(replay)}
             />
@@ -115,10 +128,10 @@ export const PublicReplays = ({ creatorId, isSubscribed }: PublicReplaysProps) =
         })}
       </div>
 
-      {/* Modal lecture plein écran */}
       {selectedReplay && (
         <ReplayModal 
-          replay={selectedReplay} 
+          replay={selectedReplay}
+          videoUrl={signedUrls[selectedReplay.id]}
           onClose={() => setSelectedReplay(null)} 
         />
       )}
@@ -127,21 +140,21 @@ export const PublicReplays = ({ creatorId, isSubscribed }: PublicReplaysProps) =
 };
 
 /**
- * Carte replay avec lecture automatique directe
+ * Carte replay avec lecture automatique
  */
 const ReplayCard = ({ 
   replay, 
+  videoUrl,
   canAccess, 
   onSelect 
 }: { 
   replay: Replay; 
+  videoUrl: string | undefined;
   canAccess: boolean; 
   onSelect: () => void;
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(true);
-
-  const videoUrl = buildVideoUrl(replay.recording_url);
 
   const toggleMute = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -161,7 +174,7 @@ const ReplayCard = ({
       onClick={onSelect}
     >
       <div className="aspect-video relative bg-neutral-900">
-        {canAccess ? (
+        {canAccess && videoUrl ? (
           <>
             <video
               ref={videoRef}
@@ -184,7 +197,13 @@ const ReplayCard = ({
               )}
             </button>
           </>
+        ) : canAccess && !videoUrl ? (
+          // En attente de l'URL signée
+          <div className="w-full h-full flex items-center justify-center">
+            <Video className="h-8 w-8 text-muted-foreground/50 animate-pulse" />
+          </div>
         ) : (
+          // Non abonné - contenu verrouillé
           <div className="w-full h-full relative">
             {replay.thumbnail_url ? (
               <img 
@@ -239,23 +258,35 @@ const ReplayCard = ({
 /**
  * Modal plein écran
  */
-const ReplayModal = ({ replay, onClose }: { replay: Replay; onClose: () => void }) => {
-  const videoUrl = buildVideoUrl(replay.recording_url);
-  
+const ReplayModal = ({ 
+  replay, 
+  videoUrl,
+  onClose 
+}: { 
+  replay: Replay; 
+  videoUrl: string | undefined;
+  onClose: () => void;
+}) => {
   return (
     <div 
       className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div className="max-w-4xl w-full" onClick={e => e.stopPropagation()}>
-        <video
-          src={videoUrl}
-          controls
-          autoPlay
-          className="w-full rounded-lg"
-          controlsList="nodownload"
-          onContextMenu={(e) => e.preventDefault()}
-        />
+        {videoUrl ? (
+          <video
+            src={videoUrl}
+            controls
+            autoPlay
+            className="w-full rounded-lg"
+            controlsList="nodownload"
+            onContextMenu={(e) => e.preventDefault()}
+          />
+        ) : (
+          <div className="aspect-video flex items-center justify-center bg-black rounded-lg text-white">
+            Chargement...
+          </div>
+        )}
         <div className="mt-4 text-white">
           <h3 className="text-xl font-bold">{replay.title}</h3>
           {replay.description && (
