@@ -1,10 +1,9 @@
 /**
- * Carte de replay optimisée pour affichage instantané
- * Utilise le thumbnail immédiatement et ne charge la vidéo qu'au hover
+ * Carte de replay - lecture automatique comme les vidéos de contenu
  */
 
-import { useState, useRef, useCallback, memo } from 'react';
-import { Play, Eye, Clock, Trash2, Volume2, VolumeX } from 'lucide-react';
+import { useRef, useState, useCallback, memo } from 'react';
+import { Eye, Clock, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
@@ -30,30 +29,16 @@ interface ReplayCardProps {
 
 export const ReplayCard = memo(({ replay, signedUrl, onSelect, onDelete }: ReplayCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isHovering, setIsHovering] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
-  const [videoLoaded, setVideoLoaded] = useState(false);
-
-  const handleMouseEnter = useCallback(() => {
-    setIsHovering(true);
-    if (videoRef.current && signedUrl) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {});
-    }
-  }, [signedUrl]);
-
-  const handleMouseLeave = useCallback(() => {
-    setIsHovering(false);
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
-  }, []);
 
   const toggleMute = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setIsMuted(m => !m);
+    const video = videoRef.current;
+    if (video) {
+      video.muted = !video.muted;
+      setIsMuted(video.muted);
+    }
   }, []);
 
   const handleDelete = useCallback((e: React.MouseEvent) => {
@@ -65,52 +50,29 @@ export const ReplayCard = memo(({ replay, signedUrl, onSelect, onDelete }: Repla
     <div 
       className="group relative rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors cursor-pointer bg-card"
       onClick={() => onSelect(replay)}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
     >
-      {/* Preview - Thumbnail immédiat, vidéo au hover */}
-      <div className="aspect-video relative bg-muted">
-        {/* Thumbnail toujours visible en fond */}
-        {replay.thumbnail_url ? (
-          <img
-            src={replay.thumbnail_url}
-            alt=""
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${
-              isHovering && videoLoaded ? 'opacity-0' : 'opacity-100'
-            }`}
-            loading="lazy"
-            draggable={false}
-          />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted/50" />
-        )}
-
-        {/* Vidéo préchargée au hover */}
-        {signedUrl && (
+      {/* Video - lecture automatique directe */}
+      <div className="aspect-video relative bg-neutral-900">
+        {signedUrl ? (
           <video
             ref={videoRef}
             src={signedUrl}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${
-              isHovering && videoLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
-            muted={isMuted}
+            className="w-full h-full object-cover"
+            muted
             loop
+            autoPlay
             playsInline
-            preload="none"
-            onLoadedData={() => setVideoLoaded(true)}
-            controlsList="nodownload noplaybackrate"
-            disablePictureInPicture
-            onContextMenu={(e) => e.preventDefault()}
+            preload="auto"
           />
-        )}
-
-        {/* Play button overlay */}
-        {!isHovering && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="bg-black/60 rounded-full p-3 shadow-lg">
-              <Play className="h-6 w-6 text-white fill-white" />
-            </div>
-          </div>
+        ) : replay.thumbnail_url ? (
+          <img
+            src={replay.thumbnail_url}
+            alt=""
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-muted to-muted/50" />
         )}
 
         {/* Badge premium */}
@@ -120,16 +82,16 @@ export const ReplayCard = memo(({ replay, signedUrl, onSelect, onDelete }: Repla
           </Badge>
         )}
 
-        {/* Mute button pendant le hover */}
-        {isHovering && signedUrl && (
+        {/* Mute button */}
+        {signedUrl && (
           <button
             onClick={toggleMute}
-            className="absolute bottom-2 left-2 z-20 p-2 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
+            className="absolute bottom-2 left-2 z-20 p-1.5 rounded-full bg-black/60"
           >
             {isMuted ? (
-              <VolumeX className="h-4 w-4 text-white" />
+              <VolumeX className="h-3.5 w-3.5 text-white" />
             ) : (
-              <Volume2 className="h-4 w-4 text-white" />
+              <Volume2 className="h-3.5 w-3.5 text-white" />
             )}
           </button>
         )}
