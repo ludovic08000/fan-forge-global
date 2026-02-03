@@ -183,10 +183,39 @@ serve(async (req) => {
               console.log('[LiveKit Recording Webhook] Private live replay created for sale at', privateRequest.price, '€');
             }
           } else {
-            // Live standard (public) - NE PAS créer dans content
-            // Les replays restent uniquement dans live_streams.recording_url
-            // Ils sont accessibles via la section "Mes replays" du créateur
-            console.log('[LiveKit Recording Webhook] Public live replay saved to live_streams.recording_url only (not in content table)');
+            // Live standard (public) - créer aussi dans private_live_replays
+            // Tous les replays vont dans la section "Replays privés" pour être vendus
+            console.log('[LiveKit Recording Webhook] Creating public live replay for sale');
+            
+            // Vérifier qu'un replay n'existe pas déjà pour ce live
+            const { data: existingPublicReplay } = await supabaseAdmin
+              .from('private_live_replays')
+              .select('id')
+              .eq('live_stream_id', stream.id)
+              .maybeSingle();
+
+            if (!existingPublicReplay) {
+              // Créer le replay avec un prix par défaut (prix du live ou 5€)
+              const defaultPrice = stream.price || 5;
+              
+              await supabaseAdmin
+                .from('private_live_replays')
+                .insert({
+                  creator_id: stream.creator_id,
+                  private_live_request_id: null, // Pas de demande privée associée
+                  live_stream_id: stream.id,
+                  title: `Replay: ${stream.title}`,
+                  description: `Replay du live "${stream.title}"`,
+                  file_path: r2FilePath,
+                  duration: duration,
+                  file_size: fileSize,
+                  original_price: defaultPrice,
+                  replay_price: defaultPrice,
+                  currency: 'EUR',
+                  is_available: true
+                });
+              console.log('[LiveKit Recording Webhook] Public live replay created for sale at', defaultPrice, '€');
+            }
           }
         } else {
           console.error('[LiveKit Recording Webhook] No file path available from recording');
