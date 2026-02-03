@@ -789,7 +789,7 @@ const CreatorPublicPage = () => {
             return (
               <ProtectedMedia
                 key={item.id}
-                className="relative aspect-square overflow-hidden bg-muted cursor-pointer group"
+                className="relative aspect-square overflow-hidden cursor-pointer group"
                 watermarkText={canView ? (creator?.stage_name || profile?.username) : undefined}
                 enableForensicWatermark={canView && item.is_premium}
               >
@@ -802,7 +802,7 @@ const CreatorPublicPage = () => {
                     <SecureVideoPreviewCard
                       src={item.file_url}
                       contentId={item.id}
-                      poster={item.thumbnail_url && item.thumbnail_url !== item.file_url ? item.thumbnail_url : null}
+                      poster={null}
                       className="w-full h-full object-cover"
                       blurred={!canView}
                       showPlayButton={false}
@@ -818,17 +818,12 @@ const CreatorPublicPage = () => {
                     />
                   )}
 
-                  {/* Indicateur vidéo avec durée */}
-                  {item.content_type === 'video' && canView && (
-                    <div className="absolute top-2 right-2 flex items-center gap-1">
-                      <div className="bg-black/60 rounded-full p-1.5">
-                        <Play className="h-3 w-3 text-white fill-white" />
-                      </div>
-                      {item.duration && (
-                        <span className="bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
-                          {formatDuration(item.duration)}
-                        </span>
-                      )}
+                  {/* Durée vidéo seulement - PAS de bouton play */}
+                  {item.content_type === 'video' && canView && item.duration && (
+                    <div className="absolute top-2 right-2">
+                      <span className="bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                        {formatDuration(item.duration)}
+                      </span>
                     </div>
                   )}
 
