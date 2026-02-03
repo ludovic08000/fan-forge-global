@@ -150,11 +150,15 @@ const Dashboard = () => {
     const loadUserProfile = async () => {
       if (!user) return;
       try {
+        // Récupérer le username du profil
         const { data: profileData } = await supabase
           .from('profiles')
           .select('username')
           .eq('user_id', user.id)
           .single();
+        
+        // Le lien de partage utilise toujours le username technique pour l'URL
+        // car c'est l'identifiant unique dans l'URL
         if (profileData?.username) {
           setShareLink(`${window.location.origin}/${profileData.username}`);
         }
