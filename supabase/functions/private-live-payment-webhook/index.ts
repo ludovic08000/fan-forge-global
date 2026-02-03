@@ -33,13 +33,25 @@ serve(async (req) => {
 
     let event: Stripe.Event;
 
-    // Si pas de webhook secret, parser directement (mode dev)
-    if (!webhookSecret || !signature) {
-      logStep("Mode sans vérification de signature");
-      event = JSON.parse(body);
-    } else {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    // SÉCURITÉ: Toujours vérifier la signature en production
+    if (!webhookSecret) {
+      logStep("ERREUR SÉCURITÉ: STRIPE_PRIVATE_LIVE_WEBHOOK_SECRET non configuré");
+      return new Response(
+        JSON.stringify({ error: "Webhook secret not configured" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
     }
+    
+    if (!signature) {
+      logStep("ERREUR SÉCURITÉ: Signature Stripe manquante");
+      return new Response(
+        JSON.stringify({ error: "Missing stripe-signature header" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
+    }
+    
+    // Vérification cryptographique de la signature Stripe
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
 
     logStep("Event type", { type: event.type });
 
