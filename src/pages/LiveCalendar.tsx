@@ -67,18 +67,40 @@ const LiveCalendar = () => {
   const [selectedDayRequests, setSelectedDayRequests] = useState<PrivateLiveRequest[]>([]);
   const [proposalDialogOpen, setProposalDialogOpen] = useState(false);
 
-  // Vérifier le paramètre de paiement
+  // Vérifier le paramètre de paiement avec confirmation détaillée
   useEffect(() => {
     const paymentStatus = searchParams.get('payment');
     const requestId = searchParams.get('request');
     
     if (paymentStatus === 'success' && requestId) {
-      toast.success('Paiement réussi ! 🎉', {
-        description: 'Votre live privé est confirmé. Le créateur vous contactera bientôt.'
-      });
+      // Récupérer les détails de la demande pour afficher un toast complet
+      const fetchRequestDetails = async () => {
+        const { data: request } = await supabase
+          .from('private_live_requests')
+          .select('*, creators:creator_id(stage_name)')
+          .eq('id', requestId)
+          .single();
+
+        if (request) {
+          const formattedDate = format(new Date(request.proposed_date), 'EEEE d MMMM à HH:mm', { locale: fr });
+          toast.success('Paiement confirmé ! 🎉', {
+            description: `Live privé avec ${(request as any).creators?.stage_name || 'le créateur'} le ${formattedDate} pour ${request.price}€. Vérifiez vos messages pour plus de détails.`,
+            duration: 8000,
+          });
+        } else {
+          toast.success('Paiement réussi ! 🎉', {
+            description: 'Votre live privé est confirmé. Vérifiez vos messages pour plus de détails.',
+            duration: 6000,
+          });
+        }
+      };
+      
+      fetchRequestDetails();
       navigate('/live-calendar', { replace: true });
     } else if (paymentStatus === 'cancelled') {
-      toast.info('Paiement annulé');
+      toast.info('Paiement annulé', {
+        description: 'Vous pouvez réessayer quand vous le souhaitez.'
+      });
       navigate('/live-calendar', { replace: true });
     }
   }, [searchParams, navigate]);
