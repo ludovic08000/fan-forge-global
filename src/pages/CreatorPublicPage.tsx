@@ -88,12 +88,51 @@ const CreatorPublicPage = () => {
           profileData = result.data;
           profileError = result.error;
         } else {
-          const result = await supabase
+          // D'abord chercher par username
+          let result = await supabase
             .from('public_creator_profiles')
             .select('*')
             .eq('username', username)
-            .single();
-          profileData = result.data;
+            .maybeSingle();
+          
+          // Si pas trouvé, chercher par stage_name (slug format: lowercase, tirets)
+          if (!result.data) {
+            // Chercher tous les créateurs et matcher par stage_name slugifié
+            const { data: allProfiles } = await supabase
+              .from('public_creator_profiles')
+              .select('*');
+            
+            if (allProfiles) {
+              // Chercher le créateur correspondant au stage_name
+              for (const p of allProfiles) {
+                // Récupérer le stage_name du créateur
+                const { data: creatorInfo } = await supabase
+                  .from('public_creators')
+                  .select('stage_name')
+                  .eq('user_id', p.user_id)
+                  .single();
+                
+                if (creatorInfo?.stage_name) {
+                  // Créer le slug du stage_name
+                  const stageNameSlug = creatorInfo.stage_name
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-|-$/g, '');
+                  
+                  if (stageNameSlug === username.toLowerCase()) {
+                    profileData = p;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+          
+          if (!profileData && result.data) {
+            profileData = result.data;
+          }
           profileError = result.error;
         }
 
