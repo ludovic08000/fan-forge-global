@@ -25,6 +25,9 @@ export const NotificationBell = () => {
     // Navigate based on notification type
     if (notification.type === 'live_started' && notification.data?.live_stream_id) {
       navigate(`/watch-live/${notification.data.live_stream_id}`);
+    } else if (notification.type === 'live_accepted') {
+      // Rediriger vers le calendrier des lives privés pour payer
+      navigate('/live-calendar?tab=my-requests');
     } else if (notification.type === 'new_message') {
       // Rediriger vers la bonne conversation selon le rôle
       if (userRole === 'creator' && notification.data?.subscriber_id) {
