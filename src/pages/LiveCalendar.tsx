@@ -10,12 +10,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar, Clock, Video, Check, X, DollarSign, Loader2, ArrowLeft, User, Ban, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Video, Check, X, DollarSign, Loader2, ArrowLeft, User, Ban, RefreshCw, AlertTriangle, Send, CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import PrivateLiveCalendar from '@/components/live/PrivateLiveCalendar';
+import DayRequestsDialog from '@/components/live/DayRequestsDialog';
+import CreatorDateProposal from '@/components/live/CreatorDateProposal';
 
 interface PrivateLiveRequest {
   id: string;
@@ -56,6 +59,13 @@ const LiveCalendar = () => {
   const [cancelLoading, setCancelLoading] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [noShowLoading, setNoShowLoading] = useState<string | null>(null);
+  
+  // Calendar states
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [dayRequestsDialogOpen, setDayRequestsDialogOpen] = useState(false);
+  const [selectedDayRequests, setSelectedDayRequests] = useState<PrivateLiveRequest[]>([]);
+  const [proposalDialogOpen, setProposalDialogOpen] = useState(false);
 
   // Vérifier le paramètre de paiement
   useEffect(() => {
@@ -412,7 +422,7 @@ const LiveCalendar = () => {
           </Button>
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Calendar className="h-6 w-6 text-primary" />
+              <CalendarIcon className="h-6 w-6 text-primary" />
               Lives Privés
             </h1>
             <p className="text-muted-foreground">
@@ -421,18 +431,24 @@ const LiveCalendar = () => {
           </div>
         </div>
 
-        <Tabs defaultValue={creatorId ? "received" : "sent"} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue={creatorId ? "calendar" : "sent"} className="space-y-6">
+          <TabsList className={`grid w-full ${creatorId ? 'grid-cols-3' : 'grid-cols-1'}`}>
             {creatorId && (
-              <TabsTrigger value="received" className="gap-2">
-                <Video className="h-4 w-4" />
-                Demandes reçues
-                {requests.filter(r => r.status === 'pending').length > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 px-1.5">
-                    {requests.filter(r => r.status === 'pending').length}
-                  </Badge>
-                )}
-              </TabsTrigger>
+              <>
+                <TabsTrigger value="calendar" className="gap-2">
+                  <CalendarDays className="h-4 w-4" />
+                  Calendrier
+                </TabsTrigger>
+                <TabsTrigger value="received" className="gap-2">
+                  <Video className="h-4 w-4" />
+                  Demandes
+                  {requests.filter(r => r.status === 'pending').length > 0 && (
+                    <Badge variant="destructive" className="ml-1 h-5 px-1.5">
+                      {requests.filter(r => r.status === 'pending').length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </>
             )}
             <TabsTrigger value="sent" className="gap-2">
               <User className="h-4 w-4" />
@@ -440,7 +456,71 @@ const LiveCalendar = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Demandes reçues (créateur) */}
+          {/* Calendar view (créateur) */}
+          {creatorId && (
+            <TabsContent value="calendar" className="space-y-4">
+              {/* Action button */}
+              <div className="flex justify-end">
+                <Button onClick={() => setProposalDialogOpen(true)} className="gap-2">
+                  <Send className="h-4 w-4" />
+                  Proposer une date à mes abonnés
+                </Button>
+              </div>
+
+              {/* Visual calendar */}
+              <PrivateLiveCalendar
+                requests={requests}
+                currentMonth={currentMonth}
+                onMonthChange={setCurrentMonth}
+                selectedDate={selectedDate}
+                onDateClick={(date, dayRequests) => {
+                  setSelectedDate(date);
+                  setSelectedDayRequests(dayRequests);
+                  if (dayRequests.length > 0) {
+                    setDayRequestsDialogOpen(true);
+                  }
+                }}
+              />
+
+              {/* Quick stats */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <Card>
+                  <CardContent className="p-3 text-center">
+                    <div className="text-2xl font-bold text-yellow-500">
+                      {requests.filter(r => r.status === 'pending').length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">En attente</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3 text-center">
+                    <div className="text-2xl font-bold text-blue-500">
+                      {requests.filter(r => r.status === 'accepted').length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Acceptées</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3 text-center">
+                    <div className="text-2xl font-bold text-green-500">
+                      {requests.filter(r => r.status === 'paid').length}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Confirmées</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3 text-center">
+                    <div className="text-2xl font-bold text-primary">
+                      {requests.filter(r => r.status === 'paid').reduce((acc, r) => acc + (r.price || 0) * 0.85, 0).toFixed(0)}€
+                    </div>
+                    <div className="text-xs text-muted-foreground">Revenus</div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          )}
+
+          {/* Demandes reçues (créateur) - liste */}
           {creatorId && (
             <TabsContent value="received" className="space-y-4">
               {requests.length === 0 ? (
@@ -454,7 +534,7 @@ const LiveCalendar = () => {
                 </Card>
               ) : (
                 requests.map((request) => (
-                  <Card key={request.id} className={request.status === 'pending' ? 'border-primary/50' : ''}>
+                  <Card key={request.id} className={request.status === 'pending' ? 'border-yellow-500/50 bg-yellow-500/5' : ''}>
                     <CardContent className="p-4">
                       <div className="flex items-start gap-4">
                         <Avatar className="h-12 w-12">
@@ -474,7 +554,7 @@ const LiveCalendar = () => {
                           
                           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground mb-2">
                             <span className="flex items-center gap-1">
-                              <Calendar className="h-4 w-4" />
+                              <CalendarIcon className="h-4 w-4" />
                               <span className="font-medium text-foreground">
                                 {format(new Date(request.proposed_date), 'EEEE d MMMM yyyy à HH:mm', { locale: fr })}
                               </span>
@@ -537,7 +617,7 @@ const LiveCalendar = () => {
             {myRequests.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <CalendarIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <p className="text-muted-foreground mb-4">
                     Vous n'avez pas encore demandé de live privé
                   </p>
@@ -561,7 +641,7 @@ const LiveCalendar = () => {
                         
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground mb-2">
                           <span className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
+                            <CalendarIcon className="h-4 w-4" />
                             <span className="font-medium text-foreground">
                               {format(new Date(request.proposed_date), 'EEEE d MMMM yyyy à HH:mm', { locale: fr })}
                             </span>
@@ -731,6 +811,31 @@ const LiveCalendar = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Day requests dialog */}
+        <DayRequestsDialog
+          open={dayRequestsDialogOpen}
+          onOpenChange={setDayRequestsDialogOpen}
+          date={selectedDate}
+          requests={selectedDayRequests}
+          onRequestUpdate={(requestId, updates) => {
+            setRequests(prev => prev.map(r => 
+              r.id === requestId ? { ...r, ...updates } : r
+            ));
+            setSelectedDayRequests(prev => prev.map(r =>
+              r.id === requestId ? { ...r, ...updates } : r
+            ));
+          }}
+        />
+
+        {/* Creator date proposal dialog */}
+        {creatorId && (
+          <CreatorDateProposal
+            open={proposalDialogOpen}
+            onOpenChange={setProposalDialogOpen}
+            creatorId={creatorId}
+          />
+        )}
       </div>
     </div>
   );
