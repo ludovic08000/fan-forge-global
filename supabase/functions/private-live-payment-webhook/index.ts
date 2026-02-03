@@ -169,7 +169,7 @@ serve(async (req) => {
 
       logStep("Notification envoyée au demandeur", { requesterId });
 
-      // Créer une notification pour le CRÉATEUR
+      // Créer une notification et un message pour le CRÉATEUR
       if (creator?.user_id) {
         const { data: profile } = await supabaseAdmin
           .from("profiles")
@@ -177,13 +177,34 @@ serve(async (req) => {
           .eq("user_id", requesterId)
           .single();
 
+        const requesterName = profile?.display_name || profile?.username || 'Un utilisateur';
+
+        // Envoyer un message privé au créateur
+        await supabaseAdmin
+          .from("private_messages")
+          .insert({
+            creator_id: creatorId,
+            subscriber_id: requesterId,
+            sender_id: requesterId, // Message "système" affiché côté créateur
+            message_type: "text",
+            content: `💰 **Paiement reçu - Live privé confirmé !**\n\n` +
+              `${requesterName} a payé **${grossAmount}€** pour votre live privé.\n\n` +
+              `📅 **Date:** ${formattedDate}\n` +
+              `⏱️ **Durée:** ${request.proposed_duration || 30} minutes\n` +
+              `💵 **Votre gain:** ${creatorAmount.toFixed(2)}€ (après commission)\n\n` +
+              `N'oubliez pas de lancer le live à l'heure prévue ! 🎬`
+          });
+
+        logStep("Message envoyé au créateur dans la messagerie");
+
+        // Créer une notification pour le créateur
         await supabaseAdmin
           .from("notifications")
           .insert({
             user_id: creator.user_id,
             type: "payment_success",
             title: "Live privé payé ! 💰",
-            message: `${profile?.display_name || profile?.username || 'Un utilisateur'} a payé ${grossAmount}€ pour un live privé le ${formattedDate}`,
+            message: `${requesterName} a payé ${grossAmount}€ pour un live privé le ${formattedDate}`,
             data: {
               request_id: requestId,
               amount: grossAmount,
