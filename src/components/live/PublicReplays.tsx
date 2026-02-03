@@ -11,19 +11,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-// Même helper que SecureVideoPreviewCard
+// URL directe pour les replays
 const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
 const buildVideoUrl = (path: string): string => {
   if (!path) return '';
+  // Déjà une URL complète
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
+  // Chemin relatif : replays/creator_id/file.mp4 → bucket "replays"
   const cleanPath = path.split('?')[0];
-  // Les replays sont dans le bucket 'replays' ou 'content'
-  if (cleanPath.includes('replays/')) {
-    return `${SUPABASE_URL}/storage/v1/object/public/replays/${cleanPath.replace('replays/', '')}`;
-  }
-  return `${SUPABASE_URL}/storage/v1/object/public/content/${cleanPath}`;
+  return `${SUPABASE_URL}/storage/v1/object/public/${cleanPath}`;
 };
 
 interface Replay {
