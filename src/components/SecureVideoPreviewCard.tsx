@@ -103,8 +103,9 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
     e.preventDefault();
     const video = videoRef.current;
     if (video) {
-      video.muted = !video.muted;
-      setIsMuted(!video.muted);
+      const newMuted = !video.muted;
+      video.muted = newMuted;
+      setIsMuted(newMuted);
     }
   }, []);
 

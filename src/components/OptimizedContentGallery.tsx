@@ -81,7 +81,7 @@ export const OptimizedContentGallery = ({
 
   if (isLoading) {
     return (
-      <div className="grid gap-1.5 grid-cols-3">
+      <div className="grid gap-0 grid-cols-3">
         {Array.from({ length: 9 }).map((_, i) => (
           <Skeleton key={i} className="aspect-square w-full rounded-lg" />
         ))}
@@ -99,7 +99,7 @@ export const OptimizedContentGallery = ({
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-1.5 grid-cols-3">
+      <div className="grid gap-0 grid-cols-3">
         {content.map((item) => (
           <ContentCard 
             key={item.id} 
