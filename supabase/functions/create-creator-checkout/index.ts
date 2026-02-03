@@ -199,59 +199,82 @@ serve(async (req) => {
     // Gérer le code promo/parrainage
     let discounts: any[] = [];
     let trialDays: number | undefined = undefined;
+    let affiliateCodeId: string | null = null;
+    let affiliateCreatorId: string | null = null;
+    let affiliateCommissionRate: number | null = null;
     
     if (referralCode) {
-      // Vérifier le code de parrainage
-      const { data: refCode } = await supabaseClient
-        .from('referral_codes')
-        .select('*')
-        .eq('creator_id', creatorId)
+      // D'abord vérifier si c'est un code d'affiliation (creator_referral_codes)
+      const { data: affiliateCode } = await supabaseClient
+        .from('creator_referral_codes')
+        .select('id, creator_id, commission_rate, is_active')
         .eq('code', referralCode.toUpperCase())
         .eq('is_active', true)
         .maybeSingle();
 
-      if (refCode) {
-        // Si c'est un code 100% gratuit, utiliser une période d'essai au lieu d'un coupon
-        const isFreeCode = refCode.discount_percentage === 100;
-        
-        if (isFreeCode) {
-          // Calculer les jours d'essai basés sur duration_months
-          const durationMonths = refCode.duration_months;
-          if (durationMonths === null || durationMonths === undefined || durationMonths === 0) {
-            // "Forever" gratuit = 365 jours d'essai (max raisonnable)
-            trialDays = 365;
+      if (affiliateCode) {
+        // C'est un code d'affiliation - on le track pour les commissions
+        affiliateCodeId = affiliateCode.id;
+        affiliateCreatorId = affiliateCode.creator_id;
+        affiliateCommissionRate = affiliateCode.commission_rate;
+        logStep("Affiliate code found", { 
+          affiliateCodeId, 
+          affiliateCreatorId, 
+          commissionRate: affiliateCommissionRate 
+        });
+      } else {
+        // Sinon, vérifier si c'est un code promo classique (referral_codes)
+        const { data: refCode } = await supabaseClient
+          .from('referral_codes')
+          .select('*')
+          .eq('creator_id', creatorId)
+          .eq('code', referralCode.toUpperCase())
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (refCode) {
+          // Si c'est un code 100% gratuit, utiliser une période d'essai au lieu d'un coupon
+          const isFreeCode = refCode.discount_percentage === 100;
+          
+          if (isFreeCode) {
+            // Calculer les jours d'essai basés sur duration_months
+            const durationMonths = refCode.duration_months;
+            if (durationMonths === null || durationMonths === undefined || durationMonths === 0) {
+              // "Forever" gratuit = 365 jours d'essai (max raisonnable)
+              trialDays = 365;
+            } else {
+              // X mois gratuits = X * 30 jours d'essai
+              trialDays = durationMonths * 30;
+            }
+            logStep("Free promo code - using trial period", { referralCode, trialDays, durationMonths });
           } else {
-            // X mois gratuits = X * 30 jours d'essai
-            trialDays = durationMonths * 30;
-          }
-          logStep("Free promo code - using trial period", { referralCode, trialDays, durationMonths });
-        } else {
-          // Code avec réduction partielle - utiliser un coupon classique
-          const couponParams: any = {
-            metadata: { referral_code_id: refCode.id }
-          };
+            // Code avec réduction partielle - utiliser un coupon classique
+            const couponParams: any = {
+              metadata: { referral_code_id: refCode.id }
+            };
 
-          // Gérer la durée (si pas de duration_months, défaut = 1 mois = 'once')
-          const durationMonths = refCode.duration_months;
-          if (durationMonths === null || durationMonths === undefined || durationMonths === 0) {
-            couponParams.duration = 'forever';
-          } else if (durationMonths === 1) {
-            couponParams.duration = 'once';
-          } else {
-            couponParams.duration = 'repeating';
-            couponParams.duration_in_months = durationMonths;
-          }
+            // Gérer la durée (si pas de duration_months, défaut = 1 mois = 'once')
+            const durationMonths = refCode.duration_months;
+            if (durationMonths === null || durationMonths === undefined || durationMonths === 0) {
+              couponParams.duration = 'forever';
+            } else if (durationMonths === 1) {
+              couponParams.duration = 'once';
+            } else {
+              couponParams.duration = 'repeating';
+              couponParams.duration_in_months = durationMonths;
+            }
 
-          if (refCode.discount_percentage) {
-            couponParams.percent_off = refCode.discount_percentage;
-          } else if (refCode.discount_amount) {
-            couponParams.amount_off = Math.round(refCode.discount_amount * 100);
-            couponParams.currency = creatorData.currency.toLowerCase();
-          }
+            if (refCode.discount_percentage) {
+              couponParams.percent_off = refCode.discount_percentage;
+            } else if (refCode.discount_amount) {
+              couponParams.amount_off = Math.round(refCode.discount_amount * 100);
+              couponParams.currency = creatorData.currency.toLowerCase();
+            }
 
-          const coupon = await stripe.coupons.create(couponParams);
-          discounts = [{ coupon: coupon.id }];
-          logStep("Coupon created for referral code", { couponId: coupon.id, referralCode, duration: couponParams.duration });
+            const coupon = await stripe.coupons.create(couponParams);
+            discounts = [{ coupon: coupon.id }];
+            logStep("Coupon created for referral code", { couponId: coupon.id, referralCode, duration: couponParams.duration });
+          }
         }
       }
     }
@@ -283,6 +306,9 @@ serve(async (req) => {
           creator_id: creatorId,
           user_id: user.id,
           referral_code: referralCode || null,
+          affiliate_code_id: affiliateCodeId || null,
+          affiliate_creator_id: affiliateCreatorId || null,
+          affiliate_commission_rate: affiliateCommissionRate?.toString() || null,
         },
       },
       // Si période d'essai, ne pas collecter de moyen de paiement immédiatement
@@ -292,6 +318,9 @@ serve(async (req) => {
         creator_id: creatorId,
         user_id: user.id,
         referral_code: referralCode || null,
+        affiliate_code_id: affiliateCodeId || null,
+        affiliate_creator_id: affiliateCreatorId || null,
+        affiliate_commission_rate: affiliateCommissionRate?.toString() || null,
       },
     });
     

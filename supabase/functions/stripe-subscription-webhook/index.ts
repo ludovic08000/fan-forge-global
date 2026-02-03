@@ -217,6 +217,90 @@ serve(async (req) => {
           }
         }
 
+        // Gérer les commissions d'affiliation si présentes
+        const affiliateCodeId = session.metadata?.affiliate_code_id;
+        const affiliateCreatorId = session.metadata?.affiliate_creator_id;
+        const affiliateCommissionRate = session.metadata?.affiliate_commission_rate 
+          ? parseFloat(session.metadata.affiliate_commission_rate) 
+          : null;
+
+        if (affiliateCodeId && affiliateCreatorId && affiliateCommissionRate) {
+          const subscriptionPrice = priceAmount / 100;
+          // Commission = prix * taux de commission / 100
+          const commissionAmount = (subscriptionPrice * affiliateCommissionRate) / 100;
+          
+          logStep("Processing affiliate commission", {
+            affiliateCodeId,
+            affiliateCreatorId,
+            subscriptionPrice,
+            commissionRate: affiliateCommissionRate,
+            commissionAmount
+          });
+
+          // Créer l'entrée dans referral_subscriptions
+          const { error: refSubError } = await supabaseClient
+            .from('referral_subscriptions')
+            .insert({
+              referral_code_id: affiliateCodeId,
+              referrer_creator_id: affiliateCreatorId,
+              referred_user_id: user.id,
+              subscribed_to_creator_id: creatorId,
+              subscription_id: existingSub?.id || newSub?.id || null,
+              commission_paid: commissionAmount
+            });
+
+          if (refSubError) {
+            logStep("Error creating referral subscription", { error: refSubError.message });
+          } else {
+            logStep("Referral subscription created");
+
+            // Mettre à jour les statistiques du code d'affiliation
+            const { data: currentCode } = await supabaseClient
+              .from('creator_referral_codes')
+              .select('uses_count, total_earnings')
+              .eq('id', affiliateCodeId)
+              .single();
+
+            if (currentCode) {
+              await supabaseClient
+                .from('creator_referral_codes')
+                .update({
+                  uses_count: (currentCode.uses_count || 0) + 1,
+                  total_earnings: (Number(currentCode.total_earnings) || 0) + commissionAmount
+                })
+                .eq('id', affiliateCodeId);
+              
+              logStep("Affiliate code stats updated", {
+                newUsesCount: (currentCode.uses_count || 0) + 1,
+                newTotalEarnings: (Number(currentCode.total_earnings) || 0) + commissionAmount
+              });
+            }
+
+            // Notifier le créateur affilié
+            const { data: affiliateCreator } = await supabaseClient
+              .from('creators')
+              .select('user_id')
+              .eq('id', affiliateCreatorId)
+              .single();
+
+            if (affiliateCreator?.user_id) {
+              await supabaseClient
+                .from('notifications')
+                .insert({
+                  user_id: affiliateCreator.user_id,
+                  type: 'affiliate_commission',
+                  title: 'Commission d\'affiliation !',
+                  message: `Vous avez gagné ${commissionAmount.toFixed(2)}€ grâce à votre code d'affiliation !`,
+                  data: {
+                    commission_amount: commissionAmount,
+                    subscribed_to_creator_id: creatorId
+                  }
+                });
+              logStep("Affiliate notification sent");
+            }
+          }
+        }
+
         // Créer une notification pour le créateur
         const { data: creator } = await supabaseClient
           .from('creators')
