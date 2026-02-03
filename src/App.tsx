@@ -56,7 +56,7 @@ const ContentDetail = lazy(() => import("./pages/ContentDetail"));
 const Messages = lazy(() => import("./pages/Messages"));
 const VerifyOtp = lazy(() => import("./pages/VerifyOtp"));
 const MyPayments = lazy(() => import("./pages/MyPayments"));
-
+const Partnerships = lazy(() => import("./pages/Partnerships"));
 const IdentityVerification = lazy(() => import("./pages/IdentityVerification"));
 
 
@@ -178,6 +178,11 @@ const AppRoutes = () => {
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/partnerships" element={
+            <ProtectedRoute>
+              <Partnerships />
             </ProtectedRoute>
           } />
           <Route path="/live-analytics/:liveStreamId" element={
