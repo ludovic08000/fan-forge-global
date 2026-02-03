@@ -105,74 +105,133 @@ const LiveCalendar = () => {
     }
   }, [searchParams, navigate]);
 
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user) return;
+  const loadData = async () => {
+    if (!user) return;
 
-      setLoading(true);
-      try {
-        // Vérifier si l'utilisateur est un créateur
-        const { data: creatorData } = await supabase
-          .from('creators')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
+    setLoading(true);
+    try {
+      // Vérifier si l'utilisateur est un créateur
+      const { data: creatorData } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-        if (creatorData) {
-          setCreatorId(creatorData.id);
-          
-          // Charger les demandes reçues (en tant que créateur)
-          const { data: receivedRequests } = await supabase
-            .from('private_live_requests')
-            .select('*')
-            .eq('creator_id', creatorData.id)
-            .order('created_at', { ascending: false });
-
-          // Enrichir avec les profils des demandeurs
-          if (receivedRequests) {
-            const enrichedRequests = await Promise.all(
-              receivedRequests.map(async (req) => {
-                const { data: profile } = await supabase
-                  .from('profiles')
-                  .select('display_name, username, avatar_url')
-                  .eq('user_id', req.requester_id)
-                  .single();
-                return { ...req, requester_profile: profile };
-              })
-            );
-            setRequests(enrichedRequests);
-          }
-        }
-
-        // Charger mes demandes envoyées (en tant qu'utilisateur)
-        const { data: sentRequests } = await supabase
+      if (creatorData) {
+        setCreatorId(creatorData.id);
+        
+        // Charger les demandes reçues (en tant que créateur)
+        const { data: receivedRequests } = await supabase
           .from('private_live_requests')
           .select('*')
-          .eq('requester_id', user.id)
+          .eq('creator_id', creatorData.id)
           .order('created_at', { ascending: false });
 
-        if (sentRequests) {
-          const enrichedSent = await Promise.all(
-            sentRequests.map(async (req) => {
-              const { data: creator } = await supabase
-                .from('creators')
-                .select('stage_name')
-                .eq('id', req.creator_id)
+        // Enrichir avec les profils des demandeurs
+        if (receivedRequests) {
+          const enrichedRequests = await Promise.all(
+            receivedRequests.map(async (req) => {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('display_name, username, avatar_url')
+                .eq('user_id', req.requester_id)
                 .single();
-              return { ...req, creator };
+              return { ...req, requester_profile: profile };
             })
           );
-          setMyRequests(enrichedSent);
+          setRequests(enrichedRequests);
         }
-      } catch (error) {
-        console.error('Error loading data:', error);
-        toast.error('Erreur lors du chargement des données');
-      } finally {
-        setLoading(false);
       }
-    };
 
+      // Charger mes demandes envoyées (en tant qu'utilisateur)
+      const { data: sentRequests } = await supabase
+        .from('private_live_requests')
+        .select('*')
+        .eq('requester_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (sentRequests) {
+        const enrichedSent = await Promise.all(
+          sentRequests.map(async (req) => {
+            const { data: creator } = await supabase
+              .from('creators')
+              .select('stage_name')
+              .eq('id', req.creator_id)
+              .single();
+            return { ...req, creator };
+          })
+        );
+        setMyRequests(enrichedSent);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast.error('Erreur lors du chargement des données');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadData();
+  }, [user]);
+
+  // Realtime subscription pour les mises à jour de statut
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('private-live-requests-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'private_live_requests',
+        },
+        async (payload) => {
+          const updatedRequest = payload.new as any;
+          
+          // Mettre à jour les demandes reçues (créateur)
+          setRequests(prev => prev.map(r => 
+            r.id === updatedRequest.id 
+              ? { ...r, ...updatedRequest }
+              : r
+          ));
+          
+          // Mettre à jour mes demandes envoyées
+          if (updatedRequest.requester_id === user.id) {
+            // Enrichir avec les infos du créateur
+            const { data: creator } = await supabase
+              .from('creators')
+              .select('stage_name')
+              .eq('id', updatedRequest.creator_id)
+              .single();
+              
+            setMyRequests(prev => prev.map(r => 
+              r.id === updatedRequest.id 
+                ? { ...r, ...updatedRequest, creator }
+                : r
+            ));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'private_live_requests',
+        },
+        () => {
+          // Recharger toutes les données pour les nouvelles demandes
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const handleAccept = async () => {
