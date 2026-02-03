@@ -140,6 +140,35 @@ export type Database = {
           },
         ]
       }
+      auto_message_logs: {
+        Row: {
+          id: string
+          message_type: string
+          sent_at: string
+          subscription_id: string
+        }
+        Insert: {
+          id?: string
+          message_type: string
+          sent_at?: string
+          subscription_id: string
+        }
+        Update: {
+          id?: string
+          message_type?: string
+          sent_at?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_message_logs_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collaborative_content: {
         Row: {
           content_id: string
@@ -457,6 +486,71 @@ export type Database = {
             columns: ["content_id"]
             isOneToOne: false
             referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_auto_messages: {
+        Row: {
+          content: string
+          created_at: string
+          creator_id: string
+          days_before_expiration: number | null
+          id: string
+          is_enabled: boolean
+          message_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          creator_id: string
+          days_before_expiration?: number | null
+          id?: string
+          is_enabled?: boolean
+          message_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          creator_id?: string
+          days_before_expiration?: number | null
+          id?: string
+          is_enabled?: boolean
+          message_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_auto_messages_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "creator_auto_messages_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_auto_messages_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_auto_messages_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
             referencedColumns: ["id"]
           },
         ]
