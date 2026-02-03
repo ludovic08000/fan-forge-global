@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar, Clock, Video, Check, X, DollarSign, Loader2, ArrowLeft, User, Ban, RefreshCw } from 'lucide-react';
+import { Calendar, Clock, Video, Check, X, DollarSign, Loader2, ArrowLeft, User, Ban, RefreshCw, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,6 +55,7 @@ const LiveCalendar = () => {
   const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
   const [cancelLoading, setCancelLoading] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [noShowLoading, setNoShowLoading] = useState<string | null>(null);
 
   // Vérifier le paramètre de paiement
   useEffect(() => {
@@ -281,6 +282,30 @@ const LiveCalendar = () => {
       toast.error(error.message || 'Erreur lors de la création du paiement');
     } finally {
       setPaymentLoading(null);
+    }
+  };
+
+  const handleReportNoShow = async (requestId: string) => {
+    setNoShowLoading(requestId);
+    try {
+      const { data, error } = await supabase.functions.invoke('report-private-live-noshow', {
+        body: { requestId }
+      });
+
+      if (error) throw error;
+
+      toast.success('No-show signalé', {
+        description: 'Remboursement intégral en cours (5-10 jours ouvrés)'
+      });
+
+      setMyRequests(prev => prev.map(r => 
+        r.id === requestId ? { ...r, status: 'cancelled' } : r
+      ));
+    } catch (error: any) {
+      console.error('Error reporting no-show:', error);
+      toast.error(error.message || 'Erreur lors du signalement');
+    } finally {
+      setNoShowLoading(null);
     }
   };
 
@@ -574,6 +599,57 @@ const LiveCalendar = () => {
                             Payer {request.price}€
                           </Button>
                         )}
+                        
+                        {/* Bouton signaler no-show - visible après la date + durée + 30min */}
+                        {request.status === 'paid' && (() => {
+                          const liveDate = new Date(request.proposed_date);
+                          const liveEndTime = new Date(liveDate.getTime() + (request.proposed_duration || 30) * 60 * 1000 + 30 * 60 * 1000);
+                          return new Date() > liveEndTime;
+                        })() && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-destructive hover:text-destructive"
+                                disabled={noShowLoading === request.id}
+                              >
+                                {noShowLoading === request.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <AlertTriangle className="h-4 w-4 mr-1" />
+                                    Signaler no-show
+                                  </>
+                                )}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Signaler un no-show ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Si le créateur ne s'est pas présenté au live privé prévu, 
+                                  vous serez remboursé intégralement sous 5-10 jours ouvrés.
+                                  <br /><br />
+                                  <span className="text-destructive font-medium">
+                                    Attention : Les faux signalements peuvent entraîner la suspension de votre compte.
+                                  </span>
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleReportNoShow(request.id)}
+                                  className="bg-destructive hover:bg-destructive/90"
+                                >
+                                  <AlertTriangle className="h-4 w-4 mr-2" />
+                                  Confirmer le no-show
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                        
                         <CancelButton request={request} isCreator={false} />
                       </div>
                     </div>

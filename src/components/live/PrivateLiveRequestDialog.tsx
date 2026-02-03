@@ -55,14 +55,29 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
     const proposedDate = new Date(date);
     proposedDate.setHours(hours, minutes, 0, 0);
 
-    // Vérifier que la date est dans le futur
-    if (proposedDate <= new Date()) {
-      toast.error('La date doit être dans le futur');
+    // Vérifier minimum 48h à l'avance
+    const minDate = new Date();
+    minDate.setHours(minDate.getHours() + 48);
+    if (proposedDate < minDate) {
+      toast.error('La date doit être au minimum 48h à l\'avance');
       return;
     }
 
     setLoading(true);
     try {
+      // Vérifier la limite de 3 demandes en attente
+      const { count } = await supabase
+        .from('private_live_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('requester_id', user.id)
+        .in('status', ['pending', 'accepted']);
+
+      if (count && count >= 3) {
+        toast.error('Vous avez déjà 3 demandes en attente. Attendez qu\'elles soient traitées ou annulez-en une.');
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('private_live_requests')
         .insert({
@@ -152,7 +167,13 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
                   mode="single"
                   selected={date}
                   onSelect={setDate}
-                  disabled={(date) => date < new Date()}
+                  disabled={(d) => {
+                    // Minimum 48h à l'avance
+                    const minDate = new Date();
+                    minDate.setHours(minDate.getHours() + 48);
+                    minDate.setHours(0, 0, 0, 0);
+                    return d < minDate;
+                  }}
                   initialFocus
                   locale={fr}
                 />
