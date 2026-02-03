@@ -150,8 +150,8 @@ const ContentCard: React.FC<ContentCardProps> = ({
   }, [content.is_premium, isSubscribed, imageUrl]);
 
   return (
-    <Card 
-      className={`group cursor-pointer hover:shadow-lg transition-all duration-300 overflow-hidden ${compact ? 'relative' : ''}`}
+    <div 
+      className={`group cursor-pointer overflow-hidden ${compact ? 'relative' : ''}`}
       onMouseEnter={handleMouseEnter}
     >
       {/* Media Container */}
@@ -316,7 +316,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
           </CardFooter>
         </>
       )}
-    </Card>
+    </div>
   );
 };
 
