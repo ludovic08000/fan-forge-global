@@ -208,7 +208,7 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
                   {date ? format(date, "EEEE d MMMM yyyy", { locale: fr }) : "Sélectionner une date"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 z-[100]" align="start">
+              <PopoverContent className="w-auto p-0 z-[200] bg-popover" align="start">
                 <Calendar
                   mode="single"
                   selected={date}
@@ -236,7 +236,7 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
                 <Clock className="mr-2 h-4 w-4" />
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="max-h-60">
+              <SelectContent className="max-h-60 z-[200] bg-popover">
                 {timeSlots.map((slot) => (
                   <SelectItem key={slot} value={slot}>
                     {slot}
@@ -253,7 +253,7 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[200] bg-popover">
                 <SelectItem value="10">10 minutes</SelectItem>
                 <SelectItem value="15">15 minutes</SelectItem>
                 <SelectItem value="20">20 minutes</SelectItem>
