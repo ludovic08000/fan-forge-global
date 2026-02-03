@@ -1,11 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -14,8 +10,10 @@ const logStep = (step: string, details?: any) => {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsOptions(req);
   }
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     logStep("Fonction démarrée");
@@ -101,22 +99,6 @@ serve(async (req) => {
       );
     }
 
-    if (action === "balance") {
-      // Retourner juste le solde
-      return new Response(
-        JSON.stringify({
-          success: true,
-          balance: availableAmount / 100, // Convertir en euros
-          currency: "EUR",
-          pending: (balance.pending.find(b => b.currency === 'eur')?.amount || 0) / 100
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
-        }
-      );
-    }
-
     // Créer le payout vers le compte bancaire lié
     logStep("Création du payout", { amount: availableAmount });
     
@@ -165,6 +147,7 @@ serve(async (req) => {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERREUR", { message: errorMessage });
+    const corsHeaders = getCorsHeaders(req);
     return new Response(
       JSON.stringify({ success: false, error: errorMessage }),
       {

@@ -1,18 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateJwtAndGetUserId } from "../_shared/auth.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 
 // Max image size: 10MB base64 ≈ 7.5MB actual file
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsOptions(req);
   }
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     // SECURITY: Require authentication
@@ -121,6 +119,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Watermark error:', error);
+    const corsHeaders = getCorsHeaders(req);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred',
