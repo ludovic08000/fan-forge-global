@@ -32,10 +32,39 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [checkingSubscription, setCheckingSubscription] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
   const [date, setDate] = useState<Date>();
   const [time, setTime] = useState('20:00');
   const [duration, setDuration] = useState('30');
   const [message, setMessage] = useState('');
+
+  // Vérifier l'abonnement quand le dialog s'ouvre
+  React.useEffect(() => {
+    const checkSubscription = async () => {
+      if (!open || !user || !creatorId) return;
+      
+      setCheckingSubscription(true);
+      try {
+        const { data: subscription } = await supabase
+          .from('subscriptions')
+          .select('id')
+          .eq('subscriber_id', user.id)
+          .eq('creator_id', creatorId)
+          .eq('status', 'active')
+          .maybeSingle();
+        
+        setIsSubscribed(!!subscription);
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        setIsSubscribed(false);
+      } finally {
+        setCheckingSubscription(false);
+      }
+    };
+
+    checkSubscription();
+  }, [open, user, creatorId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +72,12 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
     if (!user) {
       toast.info('Connectez-vous pour demander un live privé');
       navigate('/login');
+      return;
+    }
+
+    // Vérifier l'abonnement
+    if (!isSubscribed) {
+      toast.error('Vous devez être abonné à ce créateur pour demander un live privé');
       return;
     }
 
@@ -145,6 +180,26 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
+        {checkingSubscription ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : isSubscribed === false ? (
+          <div className="py-6 text-center space-y-4">
+            <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <Video className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Abonnement requis</h3>
+              <p className="text-muted-foreground mt-1">
+                Vous devez être abonné à {creatorName} pour demander un live privé.
+              </p>
+            </div>
+            <Button onClick={() => onOpenChange(false)} variant="outline">
+              Fermer
+            </Button>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Date */}
           <div className="space-y-2">
@@ -255,6 +310,7 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );
