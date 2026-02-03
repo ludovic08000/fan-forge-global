@@ -34,7 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp, Shield, ShieldAlert, Brain, BarChart3, XCircle } from 'lucide-react';
+import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp, Shield, ShieldAlert, Brain, BarChart3, XCircle, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentRequestsManager from '@/components/admin/PaymentRequestsManager';
 import PlatformCommissions from '@/components/admin/PlatformCommissions';
@@ -48,6 +48,7 @@ import { QuarantineManager } from '@/components/admin/QuarantineManager';
 import { AIModerationManager } from '@/components/admin/AIModerationManager';
 import AdvancedAnalytics from '@/components/admin/AdvancedAnalytics';
 import FailedPayments from '@/components/admin/FailedPayments';
+import PrivateLivesManager from '@/components/admin/PrivateLivesManager';
 
 interface ContentReport {
   id: string;
@@ -408,6 +409,10 @@ const AdminDashboard = () => {
             <Radio className="h-3 w-3" />
             Lives
           </TabsTrigger>
+          <TabsTrigger value="private-lives" className="flex items-center gap-1">
+            <Video className="h-3 w-3" />
+            Lives Privés
+          </TabsTrigger>
           <TabsTrigger value="reports">Signalements</TabsTrigger>
           <TabsTrigger value="logs">Logs de connexion</TabsTrigger>
           <TabsTrigger value="payment-requests">Demandes de paiement</TabsTrigger>
@@ -478,6 +483,11 @@ const AdminDashboard = () => {
         {/* Onglet Lives */}
         <TabsContent value="lives" className="space-y-4">
           <AdminLiveManager />
+        </TabsContent>
+
+        {/* Onglet Lives Privés */}
+        <TabsContent value="private-lives" className="space-y-4">
+          <PrivateLivesManager />
         </TabsContent>
 
         {/* Onglet Signalements */}
