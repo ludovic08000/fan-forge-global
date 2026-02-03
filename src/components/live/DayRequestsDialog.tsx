@@ -93,23 +93,32 @@ const DayRequestsDialog: React.FC<DayRequestsDialogProps> = ({
 
       if (error) throw error;
 
+      // Récupérer le user_id du créateur
+      const { data: creatorData } = await supabase
+        .from('creators')
+        .select('user_id')
+        .eq('id', selectedRequest.creator_id)
+        .single();
+
       // Send automatic message
       const proposedDateFormatted = format(new Date(selectedRequest.proposed_date), 'EEEE d MMMM yyyy à HH:mm', { locale: fr });
       
-      await supabase
-        .from('private_messages')
-        .insert({
-          creator_id: selectedRequest.creator_id,
-          subscriber_id: selectedRequest.requester_id,
-          sender_type: 'creator',
-          message_type: 'text',
-          content: `✅ Votre demande de live privé est acceptée !\n\n` +
-            `📅 Date confirmée: ${proposedDateFormatted}\n` +
-            `⏱️ Durée: ${selectedRequest.proposed_duration} minutes\n` +
-            `💰 Prix: ${priceNum}€\n` +
-            (response ? `\n💬 Message: ${response}\n` : '') +
-            `\n➡️ Rendez-vous dans votre calendrier pour payer et confirmer.`
-        });
+      if (creatorData?.user_id) {
+        await supabase
+          .from('private_messages')
+          .insert({
+            creator_id: selectedRequest.creator_id,
+            subscriber_id: selectedRequest.requester_id,
+            sender_id: creatorData.user_id,
+            message_type: 'text',
+            content: `✅ Votre demande de live privé est acceptée !\n\n` +
+              `📅 Date confirmée: ${proposedDateFormatted}\n` +
+              `⏱️ Durée: ${selectedRequest.proposed_duration} minutes\n` +
+              `💰 Prix: ${priceNum}€\n` +
+              (response ? `\n💬 Message: ${response}\n` : '') +
+              `\n➡️ Rendez-vous dans votre calendrier pour payer et confirmer.`
+          });
+      }
 
       toast.success('Demande acceptée !');
       onRequestUpdate(selectedRequest.id, { status: 'accepted', price: priceNum, creator_response: response.trim() || null });
@@ -128,6 +137,13 @@ const DayRequestsDialog: React.FC<DayRequestsDialogProps> = ({
   const handleDecline = async (request: PrivateLiveRequest) => {
     setLoading(true);
     try {
+      // Récupérer le user_id du créateur
+      const { data: creatorData } = await supabase
+        .from('creators')
+        .select('user_id')
+        .eq('id', request.creator_id)
+        .single();
+
       const { error } = await supabase
         .from('private_live_requests')
         .update({ status: 'declined' })
@@ -136,15 +152,17 @@ const DayRequestsDialog: React.FC<DayRequestsDialogProps> = ({
       if (error) throw error;
 
       // Send message
-      await supabase
-        .from('private_messages')
-        .insert({
-          creator_id: request.creator_id,
-          subscriber_id: request.requester_id,
-          sender_type: 'creator',
-          message_type: 'text',
-          content: `❌ Désolé, je ne peux pas accepter votre demande de live privé pour le ${format(new Date(request.proposed_date), 'EEEE d MMMM à HH:mm', { locale: fr })}. N'hésitez pas à proposer une autre date !`
-        });
+      if (creatorData?.user_id) {
+        await supabase
+          .from('private_messages')
+          .insert({
+            creator_id: request.creator_id,
+            subscriber_id: request.requester_id,
+            sender_id: creatorData.user_id,
+            message_type: 'text',
+            content: `❌ Désolé, je ne peux pas accepter votre demande de live privé pour le ${format(new Date(request.proposed_date), 'EEEE d MMMM à HH:mm', { locale: fr })}. N'hésitez pas à proposer une autre date !`
+          });
+      }
 
       toast.success('Demande refusée');
       onRequestUpdate(request.id, { status: 'declined' });
