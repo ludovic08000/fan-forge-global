@@ -197,34 +197,37 @@ const LiveCalendar = () => {
 
       if (error) throw error;
 
-      // Récupérer le stage_name du créateur
+      // Récupérer le stage_name et user_id du créateur
       const { data: creatorData } = await supabase
         .from('creators')
-        .select('stage_name')
+        .select('stage_name, user_id')
         .eq('id', selectedRequest.creator_id)
         .single();
 
       const creatorName = creatorData?.stage_name || 'Le créateur';
+      const creatorUserId = creatorData?.user_id;
       const proposedDateFormatted = format(new Date(selectedRequest.proposed_date), 'EEEE d MMMM yyyy à HH:mm', { locale: fr });
       
       // Envoyer un message privé avec appel à l'action clair
-      await supabase
-        .from('private_messages')
-        .insert({
-          creator_id: selectedRequest.creator_id,
-          subscriber_id: selectedRequest.requester_id,
-          sender_type: 'creator',
-          message_type: 'text',
-          content: `🎉 **Bonne nouvelle ! Votre demande de live privé est acceptée !**\n\n` +
-            `📅 **Date:** ${proposedDateFormatted}\n` +
-            `⏱️ **Durée:** ${selectedRequest.proposed_duration} minutes\n` +
-            `💰 **Prix:** ${priceNum}€\n` +
-            (response ? `\n💬 **Message:** ${response}\n` : '') +
-            `\n━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `\n🔥 **Payez maintenant pour réserver votre place !**\n` +
-            `➡️ Rendez-vous dans "Lives Privés" > "Mes demandes" pour finaliser le paiement.\n` +
-            `\n⚠️ Attention : la réservation n'est confirmée qu'après paiement.`
-        });
+      if (creatorUserId) {
+        await supabase
+          .from('private_messages')
+          .insert({
+            creator_id: selectedRequest.creator_id,
+            subscriber_id: selectedRequest.requester_id,
+            sender_id: creatorUserId,
+            message_type: 'text',
+            content: `🎉 **Bonne nouvelle ! Votre demande de live privé est acceptée !**\n\n` +
+              `📅 **Date:** ${proposedDateFormatted}\n` +
+              `⏱️ **Durée:** ${selectedRequest.proposed_duration} minutes\n` +
+              `💰 **Prix:** ${priceNum}€\n` +
+              (response ? `\n💬 **Message:** ${response}\n` : '') +
+              `\n━━━━━━━━━━━━━━━━━━━━━━\n` +
+              `\n🔥 **Payez maintenant pour réserver votre place !**\n` +
+              `➡️ Rendez-vous dans "Lives Privés" > "Mes demandes" pour finaliser le paiement.\n` +
+              `\n⚠️ Attention : la réservation n'est confirmée qu'après paiement.`
+          });
+      }
 
       // Créer une notification pour l'utilisateur
       await supabase
@@ -270,6 +273,13 @@ const LiveCalendar = () => {
       const request = requests.find(r => r.id === requestId);
       if (!request) return;
 
+      // Récupérer le user_id du créateur
+      const { data: creatorData } = await supabase
+        .from('creators')
+        .select('user_id')
+        .eq('id', request.creator_id)
+        .single();
+
       const { error } = await supabase
         .from('private_live_requests')
         .update({ status: 'declined' })
@@ -278,15 +288,17 @@ const LiveCalendar = () => {
       if (error) throw error;
 
       // Envoyer un message
-      await supabase
-        .from('private_messages')
-        .insert({
-          creator_id: request.creator_id,
-          subscriber_id: request.requester_id,
-          sender_type: 'creator',
-          message_type: 'text',
-          content: `❌ Désolé, je ne peux pas accepter votre demande de live privé pour le ${format(new Date(request.proposed_date), 'EEEE d MMMM à HH:mm', { locale: fr })}. N'hésitez pas à proposer une autre date !`
-        });
+      if (creatorData?.user_id) {
+        await supabase
+          .from('private_messages')
+          .insert({
+            creator_id: request.creator_id,
+            subscriber_id: request.requester_id,
+            sender_id: creatorData.user_id,
+            message_type: 'text',
+            content: `❌ Désolé, je ne peux pas accepter votre demande de live privé pour le ${format(new Date(request.proposed_date), 'EEEE d MMMM à HH:mm', { locale: fr })}. N'hésitez pas à proposer une autre date !`
+          });
+      }
 
       toast.success('Demande refusée');
       setRequests(prev => prev.map(r => 

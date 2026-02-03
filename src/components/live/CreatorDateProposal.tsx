@@ -67,6 +67,19 @@ const CreatorDateProposal: React.FC<CreatorDateProposalProps> = ({
 
     setLoading(true);
     try {
+      // Récupérer le user_id du créateur
+      const { data: creatorData } = await supabase
+        .from('creators')
+        .select('user_id')
+        .eq('id', creatorId)
+        .single();
+
+      if (!creatorData?.user_id) {
+        toast.error('Erreur: impossible de récupérer les informations du créateur');
+        setLoading(false);
+        return;
+      }
+
       // Get all active subscribers
       const { data: subscriptions, error: subError } = await supabase
         .from('subscriptions')
@@ -94,7 +107,7 @@ const CreatorDateProposal: React.FC<CreatorDateProposalProps> = ({
       const messages = subscriptions.map((sub) => ({
         creator_id: creatorId,
         subscriber_id: sub.subscriber_id,
-        sender_type: 'creator' as const,
+        sender_id: creatorData.user_id,
         message_type: 'text' as const,
         content: messageContent,
       }));
