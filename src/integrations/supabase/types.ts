@@ -692,6 +692,7 @@ export type Database = {
           id: string
           message: string | null
           partner_id: string
+          partnership_type: string | null
           requester_id: string
           revenue_share_partner: number
           revenue_share_requester: number
@@ -705,6 +706,7 @@ export type Database = {
           id?: string
           message?: string | null
           partner_id: string
+          partnership_type?: string | null
           requester_id: string
           revenue_share_partner?: number
           revenue_share_requester?: number
@@ -718,6 +720,7 @@ export type Database = {
           id?: string
           message?: string | null
           partner_id?: string
+          partnership_type?: string | null
           requester_id?: string
           revenue_share_partner?: number
           revenue_share_requester?: number
@@ -853,6 +856,71 @@ export type Database = {
           },
           {
             foreignKeyName: "creator_payment_requests_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_referral_codes: {
+        Row: {
+          code: string
+          commission_rate: number
+          created_at: string
+          creator_id: string
+          id: string
+          is_active: boolean
+          total_earnings: number
+          updated_at: string
+          uses_count: number
+        }
+        Insert: {
+          code: string
+          commission_rate?: number
+          created_at?: string
+          creator_id: string
+          id?: string
+          is_active?: boolean
+          total_earnings?: number
+          updated_at?: string
+          uses_count?: number
+        }
+        Update: {
+          code?: string
+          commission_rate?: number
+          created_at?: string
+          creator_id?: string
+          id?: string
+          is_active?: boolean
+          total_earnings?: number
+          updated_at?: string
+          uses_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_referral_codes_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "creator_referral_codes_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_referral_codes_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_referral_codes_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "public_creators_safe"
@@ -2423,6 +2491,110 @@ export type Database = {
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_subscriptions: {
+        Row: {
+          commission_paid: number
+          created_at: string
+          id: string
+          referral_code_id: string
+          referred_user_id: string
+          referrer_creator_id: string
+          subscribed_to_creator_id: string
+          subscription_id: string | null
+        }
+        Insert: {
+          commission_paid?: number
+          created_at?: string
+          id?: string
+          referral_code_id: string
+          referred_user_id: string
+          referrer_creator_id: string
+          subscribed_to_creator_id: string
+          subscription_id?: string | null
+        }
+        Update: {
+          commission_paid?: number
+          created_at?: string
+          id?: string
+          referral_code_id?: string
+          referred_user_id?: string
+          referrer_creator_id?: string
+          subscribed_to_creator_id?: string
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_subscriptions_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "creator_referral_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_subscriptions_referrer_creator_id_fkey"
+            columns: ["referrer_creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "referral_subscriptions_referrer_creator_id_fkey"
+            columns: ["referrer_creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_subscriptions_referrer_creator_id_fkey"
+            columns: ["referrer_creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_subscriptions_referrer_creator_id_fkey"
+            columns: ["referrer_creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_subscriptions_subscribed_to_creator_id_fkey"
+            columns: ["subscribed_to_creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "referral_subscriptions_subscribed_to_creator_id_fkey"
+            columns: ["subscribed_to_creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_subscriptions_subscribed_to_creator_id_fkey"
+            columns: ["subscribed_to_creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_subscriptions_subscribed_to_creator_id_fkey"
+            columns: ["subscribed_to_creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_subscriptions_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
         ]

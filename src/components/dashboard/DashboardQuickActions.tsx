@@ -1,5 +1,6 @@
 import React from 'react';
-import { Upload, Radio, MessageCircle, Sparkles } from 'lucide-react';
+import { Upload, Radio, MessageCircle, Handshake } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardSection } from './DashboardNav';
 
 interface DashboardQuickActionsProps {
@@ -11,6 +12,8 @@ export const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
   onNewContent,
   onSectionChange,
 }) => {
+  const navigate = useNavigate();
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <div 
@@ -47,14 +50,14 @@ export const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
       </div>
 
       <div 
-        className="group cursor-pointer p-5 rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent hover:border-amber-500/50 hover:shadow-xl hover:shadow-amber-500/10 transition-all"
-        onClick={() => onSectionChange('pricing')}
+        className="group cursor-pointer p-5 rounded-2xl border border-purple-500/30 bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-transparent hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-500/10 transition-all"
+        onClick={() => navigate('/partnerships')}
       >
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-          <Sparkles className="h-6 w-6 text-amber-500" />
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <Handshake className="h-6 w-6 text-purple-500" />
         </div>
-        <h3 className="font-semibold mb-1 text-amber-600 dark:text-amber-400">Booster</h3>
-        <p className="text-xs text-muted-foreground">Visibilité premium</p>
+        <h3 className="font-semibold mb-1 text-purple-600 dark:text-purple-400">Partenariats</h3>
+        <p className="text-xs text-muted-foreground">Collaborer & gagner plus</p>
       </div>
     </div>
   );
