@@ -782,7 +782,7 @@ const CreatorPublicPage = () => {
 
       {/* Grille de contenu - responsive avec plus de colonnes sur desktop */}
       {activeTab === 'posts' && (
-        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0.5">
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0">
           {filteredContent.map((item) => {
             const canView = !item.is_premium || isSubscribed;
             
