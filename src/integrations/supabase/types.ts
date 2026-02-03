@@ -1131,6 +1131,9 @@ export type Database = {
           is_accepting_tips: boolean | null
           is_featured: boolean | null
           is_paused: boolean | null
+          lives_blocked_until: string | null
+          noshow_count: number | null
+          noshow_penalty_level: number | null
           orientation: string | null
           paused_at: string | null
           payment_frequency: string | null
@@ -1151,6 +1154,7 @@ export type Database = {
           total_subscribers: number | null
           updated_at: string | null
           user_id: string
+          visibility_reduced: boolean | null
         }
         Insert: {
           bank_account_holder?: string | null
@@ -1170,6 +1174,9 @@ export type Database = {
           is_accepting_tips?: boolean | null
           is_featured?: boolean | null
           is_paused?: boolean | null
+          lives_blocked_until?: string | null
+          noshow_count?: number | null
+          noshow_penalty_level?: number | null
           orientation?: string | null
           paused_at?: string | null
           payment_frequency?: string | null
@@ -1190,6 +1197,7 @@ export type Database = {
           total_subscribers?: number | null
           updated_at?: string | null
           user_id: string
+          visibility_reduced?: boolean | null
         }
         Update: {
           bank_account_holder?: string | null
@@ -1209,6 +1217,9 @@ export type Database = {
           is_accepting_tips?: boolean | null
           is_featured?: boolean | null
           is_paused?: boolean | null
+          lives_blocked_until?: string | null
+          noshow_count?: number | null
+          noshow_penalty_level?: number | null
           orientation?: string | null
           paused_at?: string | null
           payment_frequency?: string | null
@@ -1229,6 +1240,7 @@ export type Database = {
           total_subscribers?: number | null
           updated_at?: string | null
           user_id?: string
+          visibility_reduced?: boolean | null
         }
         Relationships: []
       }
@@ -3831,6 +3843,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_creator_noshow: {
+        Args: { p_creator_id: string }
+        Returns: undefined
       }
       is_active_creator: { Args: { _user_id: string }; Returns: boolean }
       is_admin: { Args: { _user_id: string }; Returns: boolean }

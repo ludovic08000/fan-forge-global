@@ -106,6 +106,9 @@ serve(async (req) => {
           })
           .eq("private_live_request_id", request.id);
 
+        // Incrémenter le compteur de no-shows du créateur
+        await supabaseAdmin.rpc("increment_creator_noshow", { p_creator_id: request.creator_id });
+
         // Mettre à jour la demande
         await supabaseAdmin
           .from("private_live_requests")
