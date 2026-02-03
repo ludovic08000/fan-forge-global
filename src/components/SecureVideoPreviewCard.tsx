@@ -112,12 +112,12 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full bg-black ${className}`}
+      className={`relative w-full h-full ${className}`}
     >
-      {/* Lecteur vidéo inline - autoplay */}
+      {/* Lecteur vidéo inline - autoplay - toujours visible */}
       <video
         ref={videoRef}
-        className={`absolute inset-0 w-full h-full object-cover ${blurred ? 'blur-lg' : ''} ${isReady ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
+        className={`absolute inset-0 w-full h-full object-cover ${blurred ? 'blur-lg' : ''}`}
         muted
         loop
         autoPlay
@@ -130,13 +130,8 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
         onContextMenu={(e) => e.preventDefault()}
       />
 
-      {/* Loading skeleton */}
-      {!isReady && (
-        <div className="absolute inset-0 bg-muted animate-pulse" />
-      )}
-
-      {/* Bouton mute/unmute - toujours visible */}
-      {isReady && !blurred && (
+      {/* Bouton mute/unmute */}
+      {!blurred && (
         <button
           onClick={toggleMute}
           className="absolute bottom-2 left-2 z-30 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
