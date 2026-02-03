@@ -118,13 +118,22 @@ serve(async (req) => {
           stripe_payment_intent_id: session.payment_intent as string
         });
 
-      // Envoyer un message automatique au demandeur
+      // Récupérer les infos du créateur
       const { data: creator } = await supabaseAdmin
         .from("creators")
-        .select("stage_name")
+        .select("stage_name, user_id")
         .eq("id", creatorId)
         .single();
 
+      const formattedDate = new Date(request.proposed_date).toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        day: 'numeric', 
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      // Envoyer un message automatique au demandeur avec tous les détails
       await supabaseAdmin
         .from("private_messages")
         .insert({
@@ -132,23 +141,36 @@ serve(async (req) => {
           subscriber_id: requesterId,
           sender_type: "creator",
           message_type: "text",
-          content: `🎬 Votre live privé est confirmé ! Rendez-vous le ${new Date(request.proposed_date).toLocaleDateString('fr-FR', {
-            weekday: 'long',
-            day: 'numeric', 
-            month: 'long',
-            hour: '2-digit',
-            minute: '2-digit'
-          })}. Je vous enverrai le lien pour rejoindre le live juste avant le début.`
+          content: `🎬 **Paiement confirmé - Live privé réservé !**\n\n` +
+            `✅ Votre paiement de **${grossAmount}€** a été accepté.\n\n` +
+            `📅 **Date:** ${formattedDate}\n` +
+            `⏱️ **Durée:** ${request.proposed_duration || 30} minutes\n` +
+            `👤 **Avec:** ${creator?.stage_name || 'le créateur'}\n\n` +
+            `📧 Vous recevrez le lien pour rejoindre le live juste avant le début.\n\n` +
+            `Merci pour votre confiance ! 💜`
         });
 
-      // Créer une notification pour le créateur
-      const { data: creatorData } = await supabaseAdmin
-        .from("creators")
-        .select("user_id")
-        .eq("id", creatorId)
-        .single();
+      // Créer une notification pour le DEMANDEUR (utilisateur qui a payé)
+      await supabaseAdmin
+        .from("notifications")
+        .insert({
+          user_id: requesterId,
+          type: "payment_success",
+          title: "Paiement confirmé ! 🎉",
+          message: `Votre live privé avec ${creator?.stage_name || 'le créateur'} est confirmé pour ${grossAmount}€`,
+          data: {
+            request_id: requestId,
+            amount: grossAmount,
+            creator_id: creatorId,
+            proposed_date: request.proposed_date,
+            duration: request.proposed_duration
+          }
+        });
 
-      if (creatorData?.user_id) {
+      logStep("Notification envoyée au demandeur", { requesterId });
+
+      // Créer une notification pour le CRÉATEUR
+      if (creator?.user_id) {
         const { data: profile } = await supabaseAdmin
           .from("profiles")
           .select("display_name, username")
@@ -158,16 +180,19 @@ serve(async (req) => {
         await supabaseAdmin
           .from("notifications")
           .insert({
-            user_id: creatorData.user_id,
+            user_id: creator.user_id,
             type: "payment_success",
-            title: "Live privé payé ! 🎉",
-            message: `${profile?.display_name || profile?.username || 'Un utilisateur'} a payé ${grossAmount}€ pour un live privé`,
+            title: "Live privé payé ! 💰",
+            message: `${profile?.display_name || profile?.username || 'Un utilisateur'} a payé ${grossAmount}€ pour un live privé le ${formattedDate}`,
             data: {
               request_id: requestId,
               amount: grossAmount,
-              requester_id: requesterId
+              requester_id: requesterId,
+              creator_amount: creatorAmount
             }
           });
+        
+        logStep("Notification envoyée au créateur", { creatorUserId: creator.user_id });
       }
 
       logStep("Paiement traité avec succès", {
