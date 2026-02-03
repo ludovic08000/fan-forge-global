@@ -1,8 +1,16 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, ImageIcon } from 'lucide-react';
-import ContentCard from '@/components/ContentCard';
-import { Content } from '@/hooks/useContent';
+import { Loader2, Eye, Heart, Wand2, Plus, ImageIcon } from 'lucide-react';
+
+interface Content {
+  id: string;
+  title: string;
+  file_url: string;
+  thumbnail_url: string | null;
+  content_type: string;
+  view_count: number | null;
+  like_count: number | null;
+}
 
 interface DashboardRecentContentProps {
   content: Content[] | undefined;
@@ -12,6 +20,27 @@ interface DashboardRecentContentProps {
   onNewContent: () => void;
   onViewAll: () => void;
 }
+
+const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
+
+// Check if it's a relative path (not a full URL)
+const isRelativePath = (url: string): boolean => {
+  return !url.startsWith('http://') && !url.startsWith('https://');
+};
+
+// Build the full public URL from a relative path
+const buildPublicUrl = (path: string, bucket: string = 'content'): string => {
+  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
+};
+
+// Get the display URL for a content item
+const getDisplayUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  if (isRelativePath(url)) {
+    return buildPublicUrl(url, 'content');
+  }
+  return url;
+};
 
 export const DashboardRecentContent: React.FC<DashboardRecentContentProps> = ({
   content,
@@ -35,16 +64,38 @@ export const DashboardRecentContent: React.FC<DashboardRecentContentProps> = ({
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : content && content.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-0">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {content.slice(0, 4).map((item, index) => (
-              <ContentCard
-                key={item.id}
-                content={item}
-                showCreatorInfo={false}
-                compact={true}
-                onOpenFreeImage={(c) => onOpenLightbox(c, index)}
-                onOpenFreeVideo={(c) => onOpenLightbox(c, index)}
-              />
+              <div 
+                key={item.id} 
+                className="aspect-square rounded-xl overflow-hidden bg-muted relative group cursor-pointer ring-1 ring-border/50 hover:ring-primary/50 transition-all"
+                onClick={() => onOpenLightbox(item, index)}
+              >
+                <img
+                  src={getDisplayUrl(item.thumbnail_url) || getDisplayUrl(item.file_url) || ''}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-3">
+                  <div className="text-white text-xs flex items-center gap-3">
+                    <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{item.view_count || 0}</span>
+                    <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{item.like_count || 0}</span>
+                  </div>
+                </div>
+                {item.content_type === 'image' && (
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-2 right-2 h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white shadow-lg"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditContent(item);
+                    }}
+                  >
+                    <Wand2 className="h-3.5 w-3.5 text-primary" />
+                  </Button>
+                )}
+              </div>
             ))}
           </div>
         ) : (
