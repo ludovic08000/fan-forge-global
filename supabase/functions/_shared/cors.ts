@@ -39,15 +39,6 @@ export function getCorsHeaders(request: Request): Record<string, string> {
 }
 
 /**
- * Headers CORS par défaut (pour compatibilité)
- * À utiliser uniquement pour les fonctions qui n'ont pas encore été migrées
- */
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-turnstile-token, x-internal-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
-
-/**
  * Handler pour les requêtes OPTIONS (preflight)
  */
 export function handleCorsOptions(request: Request): Response {
@@ -59,3 +50,6 @@ export function handleCorsOptions(request: Request): Response {
 
 // Alias pour compatibilité
 export const handleCorsPreflightRequest = handleCorsOptions;
+
+// REMOVED: Legacy wildcard corsHeaders export has been deleted
+// All edge functions must use getCorsHeaders(req) instead
