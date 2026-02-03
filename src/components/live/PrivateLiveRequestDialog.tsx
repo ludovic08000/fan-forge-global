@@ -36,7 +36,7 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
   const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
   const [date, setDate] = useState<Date>();
   const [time, setTime] = useState('20:00');
-  const [duration, setDuration] = useState('30');
+  const [duration, setDuration] = useState('20');
   const [message, setMessage] = useState('');
 
   // Vérifier l'abonnement quand le dialog s'ouvre
@@ -217,7 +217,7 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
                   {date ? format(date, "EEEE d MMMM yyyy", { locale: fr }) : "Sélectionner une date"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0 z-[100]" align="start">
                 <Calendar
                   mode="single"
                   selected={date}
@@ -231,6 +231,7 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
                   }}
                   initialFocus
                   locale={fr}
+                  className="p-3 pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
@@ -254,22 +255,22 @@ const PrivateLiveRequestDialog: React.FC<PrivateLiveRequestDialogProps> = ({
             </Select>
           </div>
 
-          {/* Durée */}
+          {/* Durée - limitée à 20 minutes max */}
           <div className="space-y-2">
-            <Label>Durée souhaitée</Label>
+            <Label>Durée souhaitée (max 20 min)</Label>
             <Select value={duration} onValueChange={setDuration}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="10">10 minutes</SelectItem>
                 <SelectItem value="15">15 minutes</SelectItem>
-                <SelectItem value="30">30 minutes</SelectItem>
-                <SelectItem value="45">45 minutes</SelectItem>
-                <SelectItem value="60">1 heure</SelectItem>
-                <SelectItem value="90">1h30</SelectItem>
-                <SelectItem value="120">2 heures</SelectItem>
+                <SelectItem value="20">20 minutes</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              💡 Le créateur peut prolonger le live pendant la session (+5€ par 20 min)
+            </p>
           </div>
 
           {/* Message */}
