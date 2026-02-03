@@ -47,6 +47,7 @@ const CreatorPublicPage = () => {
   const [bioExpanded, setBioExpanded] = useState(false);
   const [scheduledLives, setScheduledLives] = useState<any[]>([]);
   const [showPrivateLiveDialog, setShowPrivateLiveDialog] = useState(false);
+  const [privateReplaysCount, setPrivateReplaysCount] = useState(0);
 
   useContentProtection(!showCheckout && !selectedImage);
 
@@ -215,6 +216,27 @@ const CreatorPublicPage = () => {
     };
 
     loadScheduledLives();
+  }, [creator?.id]);
+
+  // Charger le nombre de replays privés disponibles
+  useEffect(() => {
+    const loadPrivateReplaysCount = async () => {
+      if (!creator?.id) return;
+      
+      try {
+        const { count } = await supabase
+          .from('private_live_replays')
+          .select('*', { count: 'exact', head: true })
+          .eq('creator_id', creator.id)
+          .eq('is_available', true);
+        
+        setPrivateReplaysCount(count || 0);
+      } catch (error) {
+        console.error('Error loading private replays count:', error);
+      }
+    };
+
+    loadPrivateReplaysCount();
   }, [creator?.id]);
 
   useEffect(() => {
@@ -796,7 +818,7 @@ const CreatorPublicPage = () => {
           >
             <div className="flex items-center justify-center gap-2">
               <ShoppingBag className="h-4 w-4" />
-              0 Médias
+              {privateReplaysCount} Médias
             </div>
             {activeTab === 'medias' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
