@@ -26,6 +26,7 @@ interface SecureVideoPreviewCardProps {
 
 /**
  * Lecteur vidéo intégré - joue automatiquement en boucle comme Instagram
+ * AUTOPLAY IMMÉDIAT sans clic requis
  */
 export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   src,
@@ -37,8 +38,6 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isMuted, setIsMuted] = useState(true);
-  const [isReady, setIsReady] = useState(false);
-  const [isInView, setIsInView] = useState(false);
 
   // URL vidéo publique
   const videoUrl = buildPublicUrl(src, 'content');
@@ -50,53 +49,61 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
     !poster.toLowerCase().endsWith('.webm');
   const posterUrl = isValidPoster ? buildPublicUrl(poster, 'content') : undefined;
 
-  // Observer pour détecter quand la vidéo est visible
+  // Forcer la lecture dès que le composant est monté
   useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !videoUrl || blurred) return;
+
+    // Configuration initiale
+    video.muted = true;
+    video.playsInline = true;
+    video.loop = true;
+    video.preload = 'auto';
+
+    // Essayer de jouer immédiatement
+    const playVideo = () => {
+      video.play().catch(() => {
+        // Si échec, réessayer après un court délai
+        setTimeout(() => {
+          video.play().catch(() => {});
+        }, 100);
+      });
+    };
+
+    // Jouer dès que les données sont disponibles
+    if (video.readyState >= 2) {
+      playVideo();
+    } else {
+      video.addEventListener('loadeddata', playVideo, { once: true });
+      video.addEventListener('canplay', playVideo, { once: true });
+    }
+
+    return () => {
+      video.removeEventListener('loadeddata', playVideo);
+      video.removeEventListener('canplay', playVideo);
+    };
+  }, [videoUrl, blurred]);
+
+  // Observer pour pause/play basé sur visibilité (optimisation batterie)
+  useEffect(() => {
+    const video = videoRef.current;
     const container = containerRef.current;
-    if (!container) return;
+    if (!video || !container || blurred) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsInView(entry.isIntersecting);
+        if (entry.isIntersecting) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
       },
-      { threshold: 0.3, rootMargin: '50px' }
+      { threshold: 0.1, rootMargin: '100px' }
     );
 
     observer.observe(container);
     return () => observer.disconnect();
-  }, []);
-
-  // Jouer automatiquement quand visible
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !videoUrl) return;
-
-    if (isInView && !blurred) {
-      video.muted = true;
-      video.play().catch(() => {});
-    } else {
-      video.pause();
-    }
-  }, [isInView, videoUrl, blurred]);
-
-  // Initialisation vidéo
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !videoUrl) return;
-
-    video.src = videoUrl;
-    video.muted = true;
-    video.load();
-
-    const handleReady = () => setIsReady(true);
-    video.addEventListener('loadeddata', handleReady);
-    video.addEventListener('canplay', handleReady);
-
-    return () => {
-      video.removeEventListener('loadeddata', handleReady);
-      video.removeEventListener('canplay', handleReady);
-    };
-  }, [videoUrl]);
+  }, [blurred]);
 
   const toggleMute = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
@@ -114,15 +121,15 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
       ref={containerRef}
       className={`relative w-full h-full ${className}`}
     >
-      {/* Lecteur vidéo inline - autoplay - toujours visible */}
+      {/* Lecteur vidéo inline - autoplay forcé - toujours visible */}
       <video
         ref={videoRef}
+        src={videoUrl}
         className={`absolute inset-0 w-full h-full object-cover ${blurred ? 'blur-lg' : ''}`}
         muted
         loop
         autoPlay
         playsInline
-        webkit-playsinline="true"
         preload="auto"
         poster={posterUrl}
         controlsList="nodownload noplaybackrate"
@@ -134,6 +141,7 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
       {!blurred && (
         <button
           onClick={toggleMute}
+          onTouchEnd={toggleMute}
           className="absolute bottom-2 left-2 z-30 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
         >
           {isMuted ? (
