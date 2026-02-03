@@ -7,6 +7,7 @@ import { User } from '@supabase/supabase-js';
 interface DashboardHeaderProps {
   user: User;
   shareLink: string;
+  shareDisplayName?: string;
   copied: boolean;
   onCopyLink: () => void;
   onNewContent: () => void;
@@ -15,6 +16,7 @@ interface DashboardHeaderProps {
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   user,
   shareLink,
+  shareDisplayName,
   copied,
   onCopyLink,
   onNewContent,
@@ -45,9 +47,9 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
         <div className="flex items-center gap-3">
           {shareLink && (
-            <Button onClick={onCopyLink} variant="outline" size="sm" className="gap-2 rounded-xl">
+            <Button onClick={onCopyLink} variant="outline" size="sm" className="gap-2 rounded-xl" title={shareDisplayName || shareLink}>
               {copied ? <Copy className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
-              <span className="hidden sm:inline">{copied ? 'Copié !' : 'Partager'}</span>
+              <span className="hidden sm:inline">{copied ? 'Copié !' : `Partager ${shareDisplayName || ''}`}</span>
             </Button>
           )}
           <Button onClick={onNewContent} size="sm" className="gap-2 rounded-xl bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/25">

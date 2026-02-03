@@ -72,6 +72,7 @@ const Dashboard = () => {
   const [creatorProfile, setCreatorProfile] = useState<any>(null);
   const [isCreatorLocal, setIsCreatorLocal] = useState<boolean | null>(null);
   const [shareLink, setShareLink] = useState('');
+  const [shareDisplayName, setShareDisplayName] = useState('');
   const [copied, setCopied] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
 
@@ -150,17 +151,29 @@ const Dashboard = () => {
     const loadUserProfile = async () => {
       if (!user) return;
       try {
-        // Récupérer le username du profil
+        // Récupérer le username du profil ET le stage_name du créateur
         const { data: profileData } = await supabase
           .from('profiles')
           .select('username')
           .eq('user_id', user.id)
           .single();
         
-        // Le lien de partage utilise toujours le username technique pour l'URL
-        // car c'est l'identifiant unique dans l'URL
+        const { data: creatorData } = await supabase
+          .from('creators')
+          .select('stage_name')
+          .eq('user_id', user.id)
+          .single();
+        
+        // Le lien de partage utilise le username technique pour l'URL (routing)
         if (profileData?.username) {
           setShareLink(`${window.location.origin}/${profileData.username}`);
+        }
+        
+        // Mais on affiche le stage_name (surnom) pour le partage
+        if (creatorData?.stage_name) {
+          setShareDisplayName(creatorData.stage_name);
+        } else if (profileData?.username) {
+          setShareDisplayName(profileData.username);
         }
       } catch (error) {
         console.error('Error loading profile:', error);
@@ -385,6 +398,7 @@ const Dashboard = () => {
         <DashboardHeader
           user={user}
           shareLink={shareLink}
+          shareDisplayName={shareDisplayName}
           copied={copied}
           onCopyLink={handleCopyLink}
           onNewContent={() => setShowUpload(true)}
