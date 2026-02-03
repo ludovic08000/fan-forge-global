@@ -1,26 +1,27 @@
 /**
  * Gestionnaire des messages automatiques pour les créateurs
- * - Message de bienvenue (nouvel abonné)
+ * - Message de bienvenue (nouvel abonné) avec media optionnel
  * - Alertes d'expiration (7 jours, 1 jour avant)
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
-  MessageSquare, 
   UserPlus, 
   Clock, 
   AlertTriangle, 
   Save, 
   Sparkles,
-  Info
+  Info,
+  ImagePlus,
+  Video,
+  X
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -33,6 +34,8 @@ interface AutoMessage {
   content: string;
   is_enabled: boolean;
   days_before_expiration: number | null;
+  media_url?: string | null;
+  media_type?: 'image' | 'video' | null;
 }
 
 interface AutoMessagesManagerProps {
@@ -87,6 +90,8 @@ export const AutoMessagesManager = ({ creatorId }: AutoMessagesManagerProps) => 
   const [messages, setMessages] = useState<Record<string, AutoMessage>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadMessages();
@@ -143,6 +148,8 @@ export const AutoMessagesManager = ({ creatorId }: AutoMessagesManagerProps) => 
         content: message.content,
         is_enabled: message.is_enabled,
         days_before_expiration: message.days_before_expiration,
+        media_url: message.media_url || null,
+        media_type: message.media_type || null,
       };
 
       if (message.id) {
@@ -174,14 +181,81 @@ export const AutoMessagesManager = ({ creatorId }: AutoMessagesManagerProps) => 
       console.error('Error saving auto message:', error);
       toast.error(error.message || 'Erreur lors de la sauvegarde');
     } finally {
-      setSaving(null);
-    }
-  };
+    setSaving(null);
+  }
+};
 
   const updateMessage = (type: string, field: keyof AutoMessage, value: any) => {
     setMessages(prev => ({
       ...prev,
       [type]: { ...prev[type], [field]: value },
+    }));
+  };
+
+  const handleMediaUpload = async (type: string, file: File) => {
+    if (!file) return;
+
+    // Validate file type
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    
+    if (!isImage && !isVideo) {
+      toast.error('Format non supporté. Utilisez une image ou vidéo.');
+      return;
+    }
+
+    // Size limit: 50MB for video, 10MB for image
+    const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error(`Fichier trop volumineux (max ${isVideo ? '50' : '10'}MB)`);
+      return;
+    }
+
+    setUploading(type);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Non authentifié');
+
+      const ext = file.name.split('.').pop();
+      const fileName = `${user.id}/auto-messages/${type}-${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('content')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('content')
+        .getPublicUrl(fileName);
+
+      setMessages(prev => ({
+        ...prev,
+        [type]: {
+          ...prev[type],
+          media_url: publicUrl,
+          media_type: isImage ? 'image' : 'video',
+        },
+      }));
+
+      toast.success('Media ajouté !');
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast.error(error.message || 'Erreur lors de l\'upload');
+    } finally {
+      setUploading(null);
+    }
+  };
+
+  const removeMedia = (type: string) => {
+    setMessages(prev => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        media_url: null,
+        media_type: null,
+      },
     }));
   };
 
@@ -246,6 +320,86 @@ export const AutoMessagesManager = ({ creatorId }: AutoMessagesManagerProps) => 
                   placeholder="Écrivez votre message..."
                 />
               </div>
+
+              {/* Media attachment - only for welcome message */}
+              {type === 'welcome' && (
+                <div className="space-y-2">
+                  <Label>Photo ou vidéo jointe (optionnel)</Label>
+                  
+                  {message?.media_url ? (
+                    <div className="relative inline-block">
+                      {message.media_type === 'video' ? (
+                        <video 
+                          src={message.media_url} 
+                          className="max-h-32 rounded-lg border"
+                          controls
+                        />
+                      ) : (
+                        <img 
+                          src={message.media_url} 
+                          alt="Media joint" 
+                          className="max-h-32 rounded-lg border object-cover"
+                        />
+                      )}
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-6 w-6"
+                        onClick={() => removeMedia(type)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/*,video/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleMediaUpload(type, file);
+                          e.target.value = '';
+                        }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading === type}
+                      >
+                        {uploading === type ? (
+                          'Upload...'
+                        ) : (
+                          <>
+                            <ImagePlus className="h-4 w-4 mr-2" />
+                            Ajouter une image
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading === type}
+                      >
+                        {uploading === type ? (
+                          'Upload...'
+                        ) : (
+                          <>
+                            <Video className="h-4 w-4 mr-2" />
+                            Ajouter une vidéo
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Ce media sera envoyé avec votre message de bienvenue
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-center justify-between pt-2">
                 <Button

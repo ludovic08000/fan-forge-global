@@ -95,15 +95,24 @@ serve(async (req) => {
       .replace(/\{subscriber_name\}/gi, subscriberName)
       .replace(/\{creator_name\}/gi, senderName);
 
+    // Prepare message data with optional media
+    const messageData: Record<string, any> = {
+      sender_id: creator.user_id,
+      receiver_id: subscriberId,
+      content: personalizedContent,
+      is_read: false,
+    };
+
+    // Add media if present (only for welcome messages typically)
+    if (autoMessage.media_url) {
+      messageData.media_url = autoMessage.media_url;
+      messageData.media_type = autoMessage.media_type || 'image';
+    }
+
     // Envoyer le message privé
     const { error: sendError } = await supabase
       .from("private_messages")
-      .insert({
-        sender_id: creator.user_id,
-        receiver_id: subscriberId,
-        content: personalizedContent,
-        is_read: false,
-      });
+      .insert(messageData);
 
     if (sendError) {
       console.error(`[send-auto-message] Failed to send message:`, sendError);
