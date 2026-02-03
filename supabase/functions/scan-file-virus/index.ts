@@ -1,11 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { validateJwtAndGetUserId } from "../_shared/auth.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 
 const METADEFENDER_API_KEY = Deno.env.get('METADEFENDER_API_KEY');
 const METADEFENDER_API_URL = 'https://api.metadefender.com/v4';
@@ -198,8 +194,10 @@ async function quarantineFile(
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsOptions(req);
   }
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     // SECURITY: Require authentication
@@ -332,6 +330,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Virus scan error:', error);
+    const corsHeaders = getCorsHeaders(req);
     
     // SECURITY: Fail closed on any error
     return new Response(

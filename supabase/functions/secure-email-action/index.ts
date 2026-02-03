@@ -1,9 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-turnstile-token',
-};
+import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 
 // Configuration sécurité
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
@@ -90,8 +86,10 @@ Deno.serve(async (req) => {
   const startTime = Date.now();
 
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsOptions(req);
   }
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     const { action, email, turnstileToken } = await req.json();
@@ -255,6 +253,7 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Secure email action error:', error);
+    const corsHeaders = getCorsHeaders(req);
     
     // Même en cas d'erreur, retourner le message générique
     await artificialDelay();

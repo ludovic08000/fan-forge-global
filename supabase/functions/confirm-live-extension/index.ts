@@ -1,19 +1,17 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 
 const EXTENSION_DURATION_MINUTES = 20;
 const PLATFORM_COMMISSION_RATE = 0.15; // 15%
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsOptions(req);
   }
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
@@ -115,6 +113,7 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error("[confirm-live-extension] Error:", error.message);
+    const corsHeaders = getCorsHeaders(req);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
