@@ -200,3 +200,23 @@ verify_jwt = false
 # Cleanup old private messages (30 days) - cron job, no JWT
 [functions.cleanup-old-messages]
 verify_jwt = false
+
+# Private live checkout - requires JWT for payment
+[functions.create-private-live-checkout]
+verify_jwt = false
+
+# Cancel private live - requires JWT
+[functions.cancel-private-live]
+verify_jwt = false
+
+# Report private live no-show - requires JWT
+[functions.report-private-live-noshow]
+verify_jwt = false
+
+# Send private live reminders - cron job, no JWT (uses CRON_SECRET)
+[functions.send-private-live-reminders]
+verify_jwt = false
+
+# Private live payment webhook - DOIT être false car Stripe ne peut pas envoyer de JWT
+[functions.private-live-payment-webhook]
+verify_jwt = false

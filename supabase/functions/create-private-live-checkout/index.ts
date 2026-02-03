@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { validateJwtAndGetUserId } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,29 +23,28 @@ serve(async (req) => {
   try {
     logStep("Fonction démarrée");
 
+    // Authentification cryptographique via getClaims
+    const authHeader = req.headers.get("Authorization");
+    const { userId, error: authError, statusCode } = await validateJwtAndGetUserId(authHeader);
+    
+    if (authError || !userId) {
+      return new Response(
+        JSON.stringify({ success: false, error: authError || "Non authentifié" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: statusCode }
+      );
+    }
+    logStep("Utilisateur authentifié", { userId });
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader! } } }
     );
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
-
-    // Authentification
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Non authentifié");
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-    
-    if (authError || !user) {
-      throw new Error("Non authentifié");
-    }
-    logStep("Utilisateur authentifié", { userId: user.id });
 
     const body = await req.json();
     const { requestId } = body;
@@ -73,7 +73,7 @@ serve(async (req) => {
     }
 
     // Vérifier que c'est bien le demandeur qui paie
-    if (request.requester_id !== user.id) {
+    if (request.requester_id !== userId) {
       throw new Error("Vous n'êtes pas autorisé à payer pour cette demande");
     }
 
@@ -112,17 +112,29 @@ serve(async (req) => {
       creatorAmount: (totalAmountCents - platformFeeCents) / 100
     });
 
+    // Pour Stripe, on récupère l'email via getUser (le token est déjà vérifié cryptographiquement)
+    const supabaseForUser = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader! } } }
+    );
+    
+    const { data: { user } } = await supabaseForUser.auth.getUser();
+    const userEmail = user?.email;
+
     // Chercher ou créer le client Stripe
-    const customers = await stripe.customers.list({ email: user.email!, limit: 1 });
     let customerId: string | undefined;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
+    if (userEmail) {
+      const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+      }
     }
 
     // Créer la session Checkout avec transfert vers le compte créateur
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : user.email!,
+      customer_email: customerId ? undefined : userEmail,
       payment_method_types: ["card"],
       line_items: [
         {
@@ -152,7 +164,7 @@ serve(async (req) => {
         metadata: {
           private_live_request_id: requestId,
           creator_id: request.creator_id,
-          requester_id: user.id,
+          requester_id: userId,
           type: "private_live"
         }
       },
@@ -161,7 +173,7 @@ serve(async (req) => {
       metadata: {
         private_live_request_id: requestId,
         creator_id: request.creator_id,
-        requester_id: user.id,
+        requester_id: userId,
         type: "private_live"
       }
     });

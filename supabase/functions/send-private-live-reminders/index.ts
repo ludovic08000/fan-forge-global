@@ -1,9 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { verifyCronSecret } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 const logStep = (step: string, details?: any) => {
@@ -17,6 +18,15 @@ serve(async (req) => {
   }
 
   try {
+    // Vérification du secret CRON
+    if (!verifyCronSecret(req)) {
+      logStep("Accès refusé - CRON_SECRET invalide");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
+    }
+    
     logStep("Démarrage des rappels de lives privés");
 
     const supabaseAdmin = createClient(

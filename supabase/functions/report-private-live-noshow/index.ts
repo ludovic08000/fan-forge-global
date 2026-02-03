@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { validateJwtAndGetUserId } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,29 +21,22 @@ serve(async (req) => {
   try {
     logStep("Signalement no-show démarré");
 
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-    );
+    // Authentification cryptographique via getClaims
+    const authHeader = req.headers.get("Authorization");
+    const { userId, error: authError, statusCode } = await validateJwtAndGetUserId(authHeader);
+    
+    if (authError || !userId) {
+      return new Response(
+        JSON.stringify({ success: false, error: authError || "Non authentifié" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: statusCode }
+      );
+    }
+    logStep("Utilisateur authentifié", { userId });
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
-
-    // Authentification
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Non authentifié");
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-    
-    if (authError || !user) {
-      throw new Error("Non authentifié");
-    }
-    logStep("Utilisateur authentifié", { userId: user.id });
 
     const body = await req.json();
     const { requestId } = body;
@@ -70,7 +64,7 @@ serve(async (req) => {
     }
 
     // Seul le demandeur peut signaler un no-show
-    if (request.requester_id !== user.id) {
+    if (request.requester_id !== userId) {
       throw new Error("Seul le demandeur peut signaler un no-show");
     }
 
@@ -116,7 +110,7 @@ serve(async (req) => {
         metadata: {
           private_live_request_id: requestId,
           refund_type: "no_show",
-          reported_by: user.id
+          reported_by: userId
         }
       });
 
@@ -139,7 +133,7 @@ serve(async (req) => {
       .update({
         status: "cancelled",
         no_show_reported_at: new Date().toISOString(),
-        no_show_reported_by: user.id,
+        no_show_reported_by: userId,
         cancellation_reason: "No-show du créateur",
         updated_at: new Date().toISOString()
       })
