@@ -120,18 +120,23 @@ export const CreatorReplays = () => {
   }, [creatorId, loadReplays]);
 
   /**
-   * Supprimer un replay
+   * Supprimer un replay (DB + R2)
    */
   const handleDeleteReplay = useCallback(async (replayId: string) => {
     if (!confirm('Supprimer ce replay ? Cette action est irréversible.')) return;
 
     try {
-      const { error } = await supabase
-        .from('live_streams')
-        .update({ recording_url: null })
-        .eq('id', replayId);
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast.error('Session expirée');
+        return;
+      }
 
-      if (error) throw error;
+      const response = await supabase.functions.invoke('delete-replay', {
+        body: { replayId, replayType: 'public' }
+      });
+
+      if (response.error) throw response.error;
       
       setReplays(prev => prev.filter(r => r.id !== replayId));
       toast.success('Replay supprimé');
