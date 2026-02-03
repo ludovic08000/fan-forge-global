@@ -53,7 +53,6 @@ const CreatorSettings: React.FC = () => {
   const [formData, setFormData] = useState({
     stageName: '',
     category: '',
-    isAcceptingTips: true,
     bio: '',
     instagram_url: '',
     twitter_url: '',
@@ -105,7 +104,6 @@ const CreatorSettings: React.FC = () => {
             ...prev,
             stageName: data.stage_name || '',
             category: data.category || '',
-            isAcceptingTips: data.is_accepting_tips
           }));
         }
 
@@ -241,7 +239,6 @@ const CreatorSettings: React.FC = () => {
       const updateData = {
         stage_name: formData.stageName || null,
         category: formData.category || null,
-        is_accepting_tips: formData.isAcceptingTips
       };
 
       if (profile) {
@@ -640,24 +637,6 @@ const CreatorSettings: React.FC = () => {
               </Select>
             </div>
 
-            <Separator />
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <Gift className="h-4 w-4 text-primary" />
-                  <Label htmlFor="acceptTips">Pourboires</Label>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Accepter les pourboires de vos fans
-                </p>
-              </div>
-              <Switch
-                id="acceptTips"
-                checked={formData.isAcceptingTips}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isAcceptingTips: checked }))}
-              />
-            </div>
           </CardContent>
         </Card>
 
