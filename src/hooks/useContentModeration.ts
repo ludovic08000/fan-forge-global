@@ -9,6 +9,7 @@ export interface ModerationResult {
   issues: string[];
   flags: {
     possibleMinor: boolean;
+    zoophilia: boolean;
     violence: boolean;
     nonConsent: boolean;
     illegalContent: boolean;
@@ -43,6 +44,7 @@ export const useContentModeration = () => {
         issues: [],
         flags: {
           possibleMinor: false,
+          zoophilia: false,
           violence: false,
           nonConsent: false,
           illegalContent: false,
@@ -93,14 +95,15 @@ export const useContentModeration = () => {
           confidence: 0,
           category: 'unknown',
           issues: ['Service de modération indisponible'],
-          flags: {
-            possibleMinor: false,
-            violence: false,
-            nonConsent: false,
-            illegalContent: false,
-            hateSymbols: false,
-            poorQuality: false,
-          },
+        flags: {
+          possibleMinor: false,
+          zoophilia: false,
+          violence: false,
+          nonConsent: false,
+          illegalContent: false,
+          hateSymbols: false,
+          poorQuality: false,
+        },
           recommendation: 'manual_review',
           reason: 'Vérification manuelle requise',
         };
@@ -138,6 +141,7 @@ export const useContentModeration = () => {
         issues: ['Erreur technique'],
         flags: {
           possibleMinor: false,
+          zoophilia: false,
           violence: false,
           nonConsent: false,
           illegalContent: false,

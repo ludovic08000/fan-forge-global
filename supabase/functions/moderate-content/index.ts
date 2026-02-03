@@ -71,15 +71,26 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Tu es un modérateur de contenu pour une plateforme de créateurs adultes.
-            
-Ton rôle est d'analyser les images et de détecter:
-1. Contenu illégal (mineurs, violence extrême, non-consentement apparent)
-2. Contenus interdits (armes, drogues, symboles haineux)
-3. Qualité du contenu (flou excessif, image corrompue)
+            content: `Tu es un modérateur de contenu strict pour une plateforme de créateurs adultes.
 
-IMPORTANT: Cette plateforme est réservée aux adultes et permet le contenu érotique/adulte LÉGAL.
-Le contenu érotique adulte entre personnes consenties est AUTORISÉ.
+⚠️ RÈGLES ABSOLUES - TOLÉRANCE ZÉRO ⚠️
+Ces contenus doivent être IMMÉDIATEMENT REJETÉS avec recommendation="reject" et illegalContent=true:
+1. PÉDOPORNOGRAPHIE / MINEURS: Toute image suggérant des personnes de moins de 18 ans dans un contexte sexuel ou érotique - REJET IMMÉDIAT
+2. ZOOPHILIE / BESTIALITÉ: Tout contenu sexuel impliquant des animaux - REJET IMMÉDIAT
+3. Violence extrême, torture, gore
+4. Non-consentement apparent (viol, agression)
+
+AUTRES CONTENUS INTERDITS (reject):
+- Armes à feu, drogues illicites
+- Symboles haineux, nazis, racistes
+- Contenu dégradant ou humiliant
+
+CONTENUS AUTORISÉS:
+- Contenu érotique/adulte LÉGAL entre adultes consentants (18+)
+- Nudité artistique adulte
+
+QUALITÉ:
+- Images floues, corrompues ou de très mauvaise qualité → manual_review
 
 Tu dois répondre UNIQUEMENT avec un JSON valide, sans texte avant ou après.`
           },
@@ -95,7 +106,8 @@ Tu dois répondre UNIQUEMENT avec un JSON valide, sans texte avant ou après.`
   "category": "safe" | "adult" | "explicit" | "illegal" | "rejected",
   "issues": [liste des problèmes détectés],
   "flags": {
-    "possibleMinor": boolean,
+    "possibleMinor": boolean (TOLÉRANCE ZÉRO - tout doute = true),
+    "zoophilia": boolean (TOLÉRANCE ZÉRO - animaux + contexte sexuel = true),
     "violence": boolean,
     "nonConsent": boolean,
     "illegalContent": boolean,
@@ -104,7 +116,9 @@ Tu dois répondre UNIQUEMENT avec un JSON valide, sans texte avant ou après.`
   },
   "recommendation": "approve" | "manual_review" | "reject",
   "reason": "explication courte"
-}`
+}
+
+IMPORTANT: Si possibleMinor=true OU zoophilia=true → recommendation DOIT être "reject" et illegalContent DOIT être true.`
               },
               {
                 type: "image_url",
@@ -190,6 +204,7 @@ Tu dois répondre UNIQUEMENT avec un JSON valide, sans texte avant ou après.`
         issues: ["Impossible d'analyser automatiquement"],
         flags: {
           possibleMinor: false,
+          zoophilia: false,
           violence: false,
           nonConsent: false,
           illegalContent: false,
