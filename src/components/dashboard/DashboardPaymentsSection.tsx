@@ -3,7 +3,7 @@
  * Layout: Encaissements (top) → Stats → Historique → Stripe (bottom)
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { 
   Banknote, 
   Users, 
@@ -21,12 +23,14 @@ import {
   TrendingUp,
   ArrowDownRight,
   Wallet,
-  Clock
+  Clock,
+  Gift
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import StripeConnectSetup from '@/components/creator/StripeConnectSetup';
 import { PaymentRequestCard } from './PaymentRequestCard';
+import { toast } from 'sonner';
 
 interface EncaissementItem {
   id: string;
@@ -44,6 +48,43 @@ interface DashboardPaymentsSectionProps {
 
 export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> = ({ creatorId }) => {
   const { user } = useAuth();
+  const [isAcceptingTips, setIsAcceptingTips] = useState(true);
+  const [savingTips, setSavingTips] = useState(false);
+
+  // Load tips setting
+  useEffect(() => {
+    const loadTipsSetting = async () => {
+      if (!creatorId) return;
+      const { data } = await supabase
+        .from('creators')
+        .select('is_accepting_tips')
+        .eq('id', creatorId)
+        .single();
+      if (data) {
+        setIsAcceptingTips(data.is_accepting_tips ?? true);
+      }
+    };
+    loadTipsSetting();
+  }, [creatorId]);
+
+  const handleTipsToggle = async (checked: boolean) => {
+    setSavingTips(true);
+    try {
+      const { error } = await supabase
+        .from('creators')
+        .update({ is_accepting_tips: checked })
+        .eq('id', creatorId);
+      
+      if (error) throw error;
+      setIsAcceptingTips(checked);
+      toast.success(checked ? 'Pourboires activés' : 'Pourboires désactivés');
+    } catch (error) {
+      console.error('Error updating tips setting:', error);
+      toast.error('Erreur lors de la mise à jour');
+    } finally {
+      setSavingTips(false);
+    }
+  };
 
   // Revenus réels via RPC (source de vérité) - cache plus long pour éviter re-fetch
   const { data: revenueData, isLoading: revenueLoading } = useQuery({
@@ -429,7 +470,38 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
       </Card>
 
       {/* ══════════════════════════════════════════════════════════════════
-          4. STRIPE CONNECT (EN BAS)
+          4. OPTIONS DE PAIEMENT
+      ══════════════════════════════════════════════════════════════════ */}
+      <Card className="overflow-hidden border-0 shadow-lg">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Gift className="h-5 w-5 text-pink-500" />
+            Options de paiement
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <Heart className="h-4 w-4 text-pink-500" />
+                <Label htmlFor="acceptTips" className="font-medium">Pourboires (Tips)</Label>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Permettre à vos fans de vous envoyer des pourboires
+              </p>
+            </div>
+            <Switch
+              id="acceptTips"
+              checked={isAcceptingTips}
+              onCheckedChange={handleTipsToggle}
+              disabled={savingTips}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          5. STRIPE CONNECT (EN BAS)
       ══════════════════════════════════════════════════════════════════ */}
       <StripeConnectSetup />
     </div>
