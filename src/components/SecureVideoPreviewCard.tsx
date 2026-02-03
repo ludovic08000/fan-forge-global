@@ -25,8 +25,8 @@ interface SecureVideoPreviewCardProps {
 }
 
 /**
- * Lecteur vidéo intégré - joue automatiquement en boucle comme Instagram
- * AUTOPLAY IMMÉDIAT sans clic requis
+ * Lecteur vidéo inline - affiche la vidéo DIRECTEMENT comme une image
+ * Pas de bouton play, pas de clic requis - lecture automatique muette
  */
 export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   src,
@@ -36,59 +36,43 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   children,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const [isMuted, setIsMuted] = useState(true);
 
-  // URL vidéo publique
+  // URL vidéo publique - construite immédiatement
   const videoUrl = buildPublicUrl(src, 'content');
 
-  // Poster valide (image uniquement)
-  const isValidPoster = poster && 
-    !poster.toLowerCase().endsWith('.mp4') && 
-    !poster.toLowerCase().endsWith('.mov') &&
-    !poster.toLowerCase().endsWith('.webm');
-  const posterUrl = isValidPoster ? buildPublicUrl(poster, 'content') : undefined;
+  // Pas de poster pour éviter l'affichage d'une image statique
+  // On veut que la vidéo soit visible directement
 
-  // Forcer la lecture dès que le composant est monté
+  // Forcer la lecture dès le montage
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !videoUrl || blurred) return;
+    if (!video || blurred) return;
 
-    // Configuration initiale
-    video.muted = true;
-    video.playsInline = true;
-    video.loop = true;
-    video.preload = 'auto';
-
-    // Essayer de jouer immédiatement
-    const playVideo = () => {
-      video.play().catch(() => {
-        // Si échec, réessayer après un court délai
-        setTimeout(() => {
-          video.play().catch(() => {});
-        }, 100);
-      });
+    // Jouer immédiatement
+    const attemptPlay = () => {
+      video.play().catch(() => {});
     };
 
-    // Jouer dès que les données sont disponibles
-    if (video.readyState >= 2) {
-      playVideo();
-    } else {
-      video.addEventListener('loadeddata', playVideo, { once: true });
-      video.addEventListener('canplay', playVideo, { once: true });
+    // Si déjà prêt, jouer maintenant
+    if (video.readyState >= 1) {
+      attemptPlay();
     }
-
+    
+    // Écouter les événements de chargement
+    video.addEventListener('loadedmetadata', attemptPlay);
+    video.addEventListener('canplay', attemptPlay);
+    
     return () => {
-      video.removeEventListener('loadeddata', playVideo);
-      video.removeEventListener('canplay', playVideo);
+      video.removeEventListener('loadedmetadata', attemptPlay);
+      video.removeEventListener('canplay', attemptPlay);
     };
-  }, [videoUrl, blurred]);
+  }, [blurred, videoUrl]);
 
-  // Observer pour pause/play basé sur visibilité (optimisation batterie)
+  // Pause quand hors viewport pour économiser la batterie
   useEffect(() => {
     const video = videoRef.current;
-    const container = containerRef.current;
-    if (!video || !container || blurred) return;
+    if (!video || blurred) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -98,10 +82,10 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
           video.pause();
         }
       },
-      { threshold: 0.1, rootMargin: '100px' }
+      { threshold: 0.1 }
     );
 
-    observer.observe(container);
+    observer.observe(video);
     return () => observer.disconnect();
   }, [blurred]);
 
@@ -110,18 +94,14 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
     e.preventDefault();
     const video = videoRef.current;
     if (video) {
-      const newMuted = !video.muted;
-      video.muted = newMuted;
-      setIsMuted(newMuted);
+      video.muted = !video.muted;
+      setIsMuted(video.muted);
     }
   }, []);
 
   return (
-    <div
-      ref={containerRef}
-      className={`relative w-full h-full ${className}`}
-    >
-      {/* Lecteur vidéo inline - autoplay forcé - toujours visible */}
+    <div className={`relative w-full h-full bg-black ${className}`}>
+      {/* Vidéo directe - visible immédiatement comme une image */}
       <video
         ref={videoRef}
         src={videoUrl}
@@ -130,24 +110,28 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
         loop
         autoPlay
         playsInline
-        preload="auto"
-        poster={posterUrl}
+        preload="metadata"
         controlsList="nodownload noplaybackrate"
         disablePictureInPicture
         onContextMenu={(e) => e.preventDefault()}
+        style={{ display: 'block' }}
       />
 
-      {/* Bouton mute/unmute */}
+      {/* Bouton son - discret en bas à gauche */}
       {!blurred && (
         <button
           onClick={toggleMute}
-          onTouchEnd={toggleMute}
-          className="absolute bottom-2 left-2 z-30 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            toggleMute(e);
+          }}
+          className="absolute bottom-2 left-2 z-30 p-1.5 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
+          aria-label={isMuted ? 'Activer le son' : 'Couper le son'}
         >
           {isMuted ? (
-            <VolumeX className="h-4 w-4 text-white" />
+            <VolumeX className="h-3.5 w-3.5 text-white" />
           ) : (
-            <Volume2 className="h-4 w-4 text-white" />
+            <Volume2 className="h-3.5 w-3.5 text-white" />
           )}
         </button>
       )}
