@@ -30,7 +30,7 @@ interface CreatorStats {
   viewsByDay: Record<string, number>;
   likesByDay: Record<string, number>;
   averageViewDuration: number;
-  topContent: Array<{ contentId: string; views: number }>;
+  topContent: Array<{ contentId: string; views: number; title?: string }>;
 }
 
 /**
@@ -79,6 +79,24 @@ const CreatorAnalyticsDashboard: React.FC = () => {
       setLoading(true);
       try {
         const analytics = await getCreatorAnalytics(creatorId);
+        
+        // Enrichir topContent avec les titres des contenus
+        if (analytics?.topContent?.length > 0) {
+          const contentIds = analytics.topContent.map(c => c.contentId);
+          const { data: contents } = await supabase
+            .from('content')
+            .select('id, title')
+            .in('id', contentIds);
+          
+          if (contents) {
+            const titleMap = new Map(contents.map(c => [c.id, c.title]));
+            analytics.topContent = analytics.topContent.map(item => ({
+              ...item,
+              title: titleMap.get(item.contentId) || undefined,
+            }));
+          }
+        }
+        
         setStats(analytics);
       } catch (error) {
         console.error('Erreur lors du chargement des analytics:', error);
@@ -266,12 +284,14 @@ const CreatorAnalyticsDashboard: React.FC = () => {
               stats.topContent.map((content, index) => (
                 <div key={content.contentId} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <Badge variant="outline" className="w-8 h-8 flex items-center justify-center">
+                    <Badge variant="outline" className="w-8 h-8 flex items-center justify-center shrink-0">
                       {index + 1}
                     </Badge>
-                    <span className="text-sm">Contenu #{content.contentId.slice(0, 8)}</span>
+                    <span className="text-sm truncate max-w-[200px]" title={content.title || content.contentId}>
+                      {content.title || `Contenu #${content.contentId.slice(0, 8)}`}
+                    </span>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 shrink-0">
                     <Eye className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">{content.views}</span>
                   </div>
