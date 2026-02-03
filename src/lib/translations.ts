@@ -8,6 +8,7 @@ export const translations: Record<string, any> = {
       messages: "Messages",
       mySubscriptions: "My Subscriptions",
       myPurchases: "My Purchases",
+      partnerships: "Partnerships",
       logout: "Log out",
       home: "Home"
     },
@@ -51,6 +52,7 @@ export const translations: Record<string, any> = {
       messages: "Messages",
       mySubscriptions: "Mes abonnements",
       myPurchases: "Mes achats",
+      partnerships: "Partenariats",
       logout: "Se déconnecter",
       home: "Accueil"
     },
@@ -94,6 +96,7 @@ export const translations: Record<string, any> = {
       messages: "Mensajes",
       mySubscriptions: "Mis suscripciones",
       myPurchases: "Mis compras",
+      partnerships: "Asociaciones",
       logout: "Cerrar sesión",
       home: "Inicio"
     },
