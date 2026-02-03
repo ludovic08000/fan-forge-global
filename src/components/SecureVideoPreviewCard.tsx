@@ -12,6 +12,13 @@ const buildPublicUrl = (path: string, bucket: string = 'content'): string => {
   return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${cleanPath}`;
 };
 
+// Detect iOS device
+const isIOS = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+};
+
 interface SecureVideoPreviewCardProps {
   src: string;
   contentId?: string;
@@ -25,8 +32,8 @@ interface SecureVideoPreviewCardProps {
 }
 
 /**
- * Composant vidéo avec preview et autoplay au hover
- * Charge la vidéo immédiatement et joue au survol
+ * Composant vidéo avec preview et autoplay au hover/touch
+ * Compatible iOS Safari/Chrome avec politiques d'autoplay strictes
  */
 export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   src,
@@ -41,6 +48,8 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   const [isHovering, setIsHovering] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [canAutoplay, setCanAutoplay] = useState(true);
+  const iOSDevice = isIOS();
 
   // URL vidéo publique - construite immédiatement
   const videoUrl = buildPublicUrl(src, 'content');
@@ -53,69 +62,116 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   
   const posterUrl = isValidPoster ? buildPublicUrl(poster, 'content') : undefined;
 
-  // Charger la vidéo dès le montage et afficher la première frame
+  // Charger la vidéo et afficher la première frame
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !videoUrl) return;
 
-    // Forcer le chargement de la vidéo
+    // Configuration iOS-compatible
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('webkit-playsinline', 'true');
+    video.muted = true;
     video.src = videoUrl;
     video.load();
 
-    const handleLoadedData = () => {
-      // Aller à 0.1s pour afficher le premier frame (pas 0 car parfois noir)
-      video.currentTime = 0.1;
+    const handleCanPlay = () => {
+      // Aller à 0.1s pour afficher le premier frame
+      if (video.currentTime === 0) {
+        video.currentTime = 0.1;
+      }
       setIsVideoLoaded(true);
     };
 
-    const handleLoadedMetadata = () => {
-      // Fallback: afficher frame dès que les metadata sont chargées
-      if (video.readyState >= 1) {
+    const handleLoadedData = () => {
+      if (video.currentTime === 0) {
         video.currentTime = 0.1;
+      }
+      setIsVideoLoaded(true);
+    };
+
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('loadeddata', handleLoadedData);
+
+    // Test autoplay capability (important pour iOS)
+    const testAutoplay = async () => {
+      try {
+        video.muted = true;
+        await video.play();
+        video.pause();
+        video.currentTime = 0.1;
+        setCanAutoplay(true);
+      } catch {
+        setCanAutoplay(false);
       }
     };
 
-    video.addEventListener('loadeddata', handleLoadedData);
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    // Délai pour laisser le temps au chargement
+    const timer = setTimeout(testAutoplay, 500);
 
     return () => {
+      clearTimeout(timer);
+      video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('loadeddata', handleLoadedData);
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
   }, [videoUrl]);
 
-  // AUTOPLAY AU HOVER - sans clic nécessaire
-  const handleMouseEnter = useCallback(() => {
-    if (blurred) return;
-    
-    setIsHovering(true);
+  // Fonction de lecture compatible iOS
+  const playVideo = useCallback(async () => {
     const video = videoRef.current;
-    if (video) {
-      video.currentTime = 0;
-      video.muted = true; // Obligatoire pour autoplay navigateur
-      
-      // Tenter de jouer immédiatement
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // Autoplay bloqué - on garde le premier frame visible
-          console.log('[Video] Autoplay blocked by browser');
-        });
-      }
+    if (!video || blurred) return;
+
+    video.currentTime = 0;
+    video.muted = true; // OBLIGATOIRE pour autoplay iOS
+
+    try {
+      await video.play();
+    } catch (error) {
+      // Autoplay bloqué - on affiche juste le premier frame
+      console.log('[iOS Video] Autoplay blocked, showing first frame');
+      setCanAutoplay(false);
     }
   }, [blurred]);
 
-  const handleMouseLeave = useCallback(() => {
-    setIsHovering(false);
+  const pauseVideo = useCallback(() => {
     const video = videoRef.current;
-    if (video) {
-      video.pause();
-      // Revenir à la première frame
-      video.currentTime = 0.1;
-    }
+    if (!video) return;
+
+    video.pause();
+    video.currentTime = 0.1;
   }, []);
 
-  const toggleMute = useCallback((e: React.MouseEvent) => {
+  // HOVER - Desktop
+  const handleMouseEnter = useCallback(() => {
+    if (iOSDevice) return; // iOS utilise touch
+    setIsHovering(true);
+    playVideo();
+  }, [iOSDevice, playVideo]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (iOSDevice) return;
+    setIsHovering(false);
+    pauseVideo();
+  }, [iOSDevice, pauseVideo]);
+
+  // TOUCH - iOS/Mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!iOSDevice) return;
+    e.preventDefault();
+    setIsHovering(true);
+    playVideo();
+  }, [iOSDevice, playVideo]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!iOSDevice) return;
+    e.preventDefault();
+    // Délai pour permettre de voir l'animation
+    setTimeout(() => {
+      setIsHovering(false);
+      pauseVideo();
+    }, 300);
+  }, [iOSDevice, pauseVideo]);
+
+  const toggleMute = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     e.preventDefault();
     const video = videoRef.current;
@@ -131,16 +187,18 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
       className={`relative w-full h-full bg-muted ${className}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onTouchStart={handleMouseEnter}
-      onTouchEnd={handleMouseLeave}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
     >
-      {/* Video - toujours présente, affiche la première frame */}
+      {/* Video - iOS-compatible avec playsinline */}
       <video
         ref={videoRef}
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${blurred ? 'blur-lg' : ''} ${isVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
         muted
         loop
         playsInline
+        webkit-playsinline="true"
         preload="auto"
         poster={posterUrl}
         controlsList="nodownload noplaybackrate"
@@ -148,12 +206,12 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
         onContextMenu={(e) => e.preventDefault()}
       />
 
-      {/* Gradient de chargement avant que la vidéo soit prête */}
+      {/* Gradient de chargement */}
       {!isVideoLoaded && (
         <div className="absolute inset-0 bg-gradient-to-br from-muted to-muted-foreground/20 animate-pulse" />
       )}
 
-      {/* Play button overlay - visible quand pas en hover ET vidéo chargée */}
+      {/* Play button - visible quand pas en hover */}
       {showPlayButton && !isHovering && !blurred && isVideoLoaded && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
           <div className="bg-black/60 rounded-full p-3 shadow-lg">
@@ -162,10 +220,18 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
         </div>
       )}
 
-      {/* Mute button pendant hover */}
+      {/* Indicateur iOS si autoplay bloqué */}
+      {iOSDevice && !canAutoplay && isVideoLoaded && !isHovering && (
+        <div className="absolute bottom-2 right-2 z-20 px-2 py-1 rounded bg-black/60 text-white text-xs">
+          Touchez pour animer
+        </div>
+      )}
+
+      {/* Mute button pendant hover/touch */}
       {isHovering && !blurred && (
         <button
           onClick={toggleMute}
+          onTouchEnd={toggleMute}
           className="absolute bottom-2 left-2 z-30 p-2 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
         >
           {isMuted ? (
