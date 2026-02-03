@@ -197,9 +197,17 @@ const LiveCalendar = () => {
 
       if (error) throw error;
 
-      // Envoyer un message automatique avec la date proposée par l'utilisateur
+      // Récupérer le stage_name du créateur
+      const { data: creatorData } = await supabase
+        .from('creators')
+        .select('stage_name')
+        .eq('id', selectedRequest.creator_id)
+        .single();
+
+      const creatorName = creatorData?.stage_name || 'Le créateur';
       const proposedDateFormatted = format(new Date(selectedRequest.proposed_date), 'EEEE d MMMM yyyy à HH:mm', { locale: fr });
       
+      // Envoyer un message privé avec appel à l'action clair
       await supabase
         .from('private_messages')
         .insert({
@@ -207,15 +215,36 @@ const LiveCalendar = () => {
           subscriber_id: selectedRequest.requester_id,
           sender_type: 'creator',
           message_type: 'text',
-          content: `✅ Votre demande de live privé est acceptée !\n\n` +
-            `📅 Date confirmée: ${proposedDateFormatted}\n` +
-            `⏱️ Durée: ${selectedRequest.proposed_duration} minutes\n` +
-            `💰 Prix: ${priceNum}€\n` +
-            (response ? `\n💬 Message du créateur: ${response}\n` : '') +
-            `\n➡️ Rendez-vous dans votre calendrier pour payer et confirmer définitivement.`
+          content: `🎉 **Bonne nouvelle ! Votre demande de live privé est acceptée !**\n\n` +
+            `📅 **Date:** ${proposedDateFormatted}\n` +
+            `⏱️ **Durée:** ${selectedRequest.proposed_duration} minutes\n` +
+            `💰 **Prix:** ${priceNum}€\n` +
+            (response ? `\n💬 **Message:** ${response}\n` : '') +
+            `\n━━━━━━━━━━━━━━━━━━━━━━\n` +
+            `\n🔥 **Payez maintenant pour réserver votre place !**\n` +
+            `➡️ Rendez-vous dans "Lives Privés" > "Mes demandes" pour finaliser le paiement.\n` +
+            `\n⚠️ Attention : la réservation n'est confirmée qu'après paiement.`
         });
 
-      toast.success('Demande acceptée ! Un message a été envoyé automatiquement.');
+      // Créer une notification pour l'utilisateur
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: selectedRequest.requester_id,
+          type: 'live_accepted',
+          title: `${creatorName} a accepté votre live privé ! 🎬`,
+          message: `Payez ${priceNum}€ pour confirmer votre live du ${proposedDateFormatted}`,
+          data: {
+            request_id: selectedRequest.id,
+            creator_id: selectedRequest.creator_id,
+            price: priceNum,
+            proposed_date: selectedRequest.proposed_date
+          }
+        });
+
+      toast.success('Demande acceptée !', {
+        description: 'L\'utilisateur a reçu un message et une notification pour payer.'
+      });
       setResponseDialog(false);
       setSelectedRequest(null);
       setPrice('');
