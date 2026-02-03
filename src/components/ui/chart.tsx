@@ -58,6 +58,19 @@ const ChartContainer = React.forwardRef<
 });
 ChartContainer.displayName = "Chart";
 
+// Sanitize CSS values to prevent injection
+const sanitizeCssValue = (value: string): string => {
+  // Only allow valid CSS color values (hex, rgb, hsl, named colors)
+  // Remove any characters that could be used for CSS injection
+  return value.replace(/[<>"'`;{}()\\]/g, '').trim();
+};
+
+// Sanitize CSS identifier (for variable names)
+const sanitizeCssIdentifier = (value: string): string => {
+  // Only allow alphanumeric, hyphens, and underscores
+  return value.replace(/[^a-zA-Z0-9_-]/g, '');
+};
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(([_, config]) => config.theme || config.color);
 
@@ -65,23 +78,34 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null;
   }
 
+  // Sanitize the chart ID to prevent CSS selector injection
+  const safeId = sanitizeCssIdentifier(id);
+
+  // Build CSS string with sanitized values
+  const cssContent = Object.entries(THEMES)
+    .map(([theme, prefix]) => {
+      const safePrefix = prefix ? sanitizeCssIdentifier(prefix.replace('.', '')) : '';
+      const prefixSelector = safePrefix ? `.${safePrefix}` : '';
+      
+      const cssVars = colorConfig
+        .map(([key, itemConfig]) => {
+          const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
+          if (!color) return null;
+          const safeKey = sanitizeCssIdentifier(key);
+          const safeColor = sanitizeCssValue(color);
+          return `  --color-${safeKey}: ${safeColor};`;
+        })
+        .filter(Boolean)
+        .join("\n");
+      
+      return `${prefixSelector} [data-chart=${safeId}] {\n${cssVars}\n}`;
+    })
+    .join("\n");
+
   return (
     <style
       dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
-  })
-  .join("\n")}
-}
-`,
-          )
-          .join("\n"),
+        __html: cssContent,
       }}
     />
   );

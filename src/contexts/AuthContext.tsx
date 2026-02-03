@@ -162,7 +162,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             
             loadUserRole(session.user.id);
             loadUserProfile(session.user.id);
-            processIntendedRole(session.user.id);
           }, 0);
         } else {
           setUserRole(null);
@@ -252,87 +251,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Traite le rôle choisi après confirmation email
-  async function processIntendedRole(userId: string) {
-    try {
-      const pendingRole = localStorage.getItem('intended_role') || (session?.user?.user_metadata?.role as string | undefined) || undefined;
-      const pendingBirthdate = localStorage.getItem('intended_birthdate') || (session?.user?.user_metadata?.birthdate as string | undefined) || undefined;
-      const pendingGender = localStorage.getItem('intended_gender') || (session?.user?.user_metadata?.gender as string | undefined) || undefined;
-      const pendingStageName = localStorage.getItem('intended_stageName') || (session?.user?.user_metadata?.stage_name as string | undefined) || undefined;
-      const pendingCategory = localStorage.getItem('intended_category') || (session?.user?.user_metadata?.category as string | undefined) || undefined;
-      
-      if (pendingRole === 'creator') {
-        // Créer le rôle dans user_roles
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: userId,
-            role: 'creator'
-          });
-        
-        if (roleError && !roleError.message.includes('duplicate')) {
-          console.error('Création rôle après confirmation échouée:', roleError);
-        }
-
-        // Vérifier s'il existe déjà un profil créateur
-        const { data: existingCreator } = await supabase
-          .from('creators')
-          .select('id')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-        if (!existingCreator) {
-          const { error: creatorError } = await supabase
-            .from('creators')
-            .insert({ 
-              user_id: userId, 
-              subscription_price: 9.99,
-              gender: pendingGender || null,
-              stage_name: pendingStageName || null,
-              category: pendingCategory || null
-            });
-          if (creatorError) {
-            console.error('Création créateur après confirmation échouée:', creatorError);
-            return;
-          }
-        }
-
-        if (pendingBirthdate) {
-          const { error: birthdateError } = await supabase
-            .from('profiles')
-            .update({ birthdate: pendingBirthdate })
-            .eq('user_id', userId);
-          if (birthdateError) {
-            console.error('MAJ birthdate après confirmation échouée:', birthdateError);
-          }
-        }
-
-        setUserRole('creator');
-        localStorage.removeItem('intended_role');
-        localStorage.removeItem('intended_birthdate');
-        localStorage.removeItem('intended_gender');
-        localStorage.removeItem('intended_stageName');
-        localStorage.removeItem('intended_category');
-      } else if (pendingRole === 'subscriber') {
-        // Créer le rôle subscriber dans user_roles
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: userId,
-            role: 'subscriber'
-          });
-        
-        if (roleError && !roleError.message.includes('duplicate')) {
-          console.error('Création rôle subscriber après confirmation échouée:', roleError);
-        }
-        
-        setUserRole('subscriber');
-        localStorage.removeItem('intended_role');
-      }
-    } catch (e) {
-      console.error('Erreur processIntendedRole:', e);
-    }
-  }
+  // NOTE: Le flux pendingRole a été supprimé pour des raisons de sécurité.
+  // L'attribution des rôles se fait désormais exclusivement côté serveur
+  // via les triggers de base de données et les metadata utilisateur Supabase.
+  // Les données sensibles ne sont plus stockées dans localStorage.
 
   /**
    * Inscription d'un nouvel utilisateur
@@ -385,15 +307,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { error: { message: 'User already exists' } };
       }
 
-      // Mémoriser le rôle et le genre choisis pour post-confirmation
-      try {
-        if (role) localStorage.setItem('intended_role', role);
-        if (birthdate) localStorage.setItem('intended_birthdate', birthdate);
-        if (gender) localStorage.setItem('intended_gender', gender);
-        if (stageName) localStorage.setItem('intended_stageName', stageName);
-        if (category) localStorage.setItem('intended_category', category);
-        if (username) localStorage.setItem('intended_username', username);
-      } catch {}
+      // NOTE: Le stockage localStorage du rôle a été supprimé pour des raisons de sécurité.
+      // Le rôle est désormais uniquement géré via les metadata utilisateur Supabase
+      // et les triggers serveur.
 
       // Si l'inscription réussit, créer le rôle et le profil créateur si nécessaire
       if (data.user && role && data.session) {
