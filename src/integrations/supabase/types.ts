@@ -2282,6 +2282,166 @@ export type Database = {
         }
         Relationships: []
       }
+      private_live_replay_purchases: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string
+          currency: string
+          id: string
+          replay_id: string
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          replay_id: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          replay_id?: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_live_replay_purchases_replay_id_fkey"
+            columns: ["replay_id"]
+            isOneToOne: false
+            referencedRelation: "private_live_replays"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      private_live_replays: {
+        Row: {
+          created_at: string
+          creator_id: string
+          currency: string
+          description: string | null
+          duration: number | null
+          file_path: string
+          file_size: number | null
+          id: string
+          is_available: boolean
+          live_stream_id: string | null
+          original_price: number
+          private_live_request_id: string
+          purchase_count: number
+          replay_price: number
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          currency?: string
+          description?: string | null
+          duration?: number | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          is_available?: boolean
+          live_stream_id?: string | null
+          original_price: number
+          private_live_request_id: string
+          purchase_count?: number
+          replay_price: number
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          currency?: string
+          description?: string | null
+          duration?: number | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          is_available?: boolean
+          live_stream_id?: string | null
+          original_price?: number
+          private_live_request_id?: string
+          purchase_count?: number
+          replay_price?: number
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_live_replays_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "private_live_replays_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_live_replays_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_live_replays_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_live_replays_live_stream_id_fkey"
+            columns: ["live_stream_id"]
+            isOneToOne: false
+            referencedRelation: "live_streams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_live_replays_live_stream_id_fkey"
+            columns: ["live_stream_id"]
+            isOneToOne: false
+            referencedRelation: "public_live_streams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "private_live_replays_private_live_request_id_fkey"
+            columns: ["private_live_request_id"]
+            isOneToOne: true
+            referencedRelation: "private_live_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       private_live_requests: {
         Row: {
           cancellation_reason: string | null
