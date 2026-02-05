@@ -49,6 +49,9 @@ export const OptimizedContentGallery = ({
     staleTime: 30000, // 30 secondes
   });
 
+  // Track local like counts for real-time UI updates
+  const [localLikeCounts, setLocalLikeCounts] = useState<Record<string, number>>({});
+
   // Ref pour éviter les doubles clics
   const pendingLikesRef = useRef<Set<string>>(new Set());
 
@@ -63,7 +66,12 @@ export const OptimizedContentGallery = ({
     likeMutation.mutate(contentId, {
       onSuccess: (result) => {
         pendingLikesRef.current.delete(contentId);
-        // Mise à jour du cache local de la galerie
+        // Update local like count for immediate UI feedback
+        setLocalLikeCounts(prev => ({
+          ...prev,
+          [result.contentId]: result.like_count
+        }));
+        // Also update the query cache
         queryClient.setQueryData(queryKey, (oldData: any[] | undefined) => {
           if (!oldData) return oldData;
           return oldData.map(item => 
