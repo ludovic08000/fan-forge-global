@@ -33,7 +33,10 @@ const ContentCard: React.FC<ContentCardProps> = ({
   compact = false,
   onOpenFreeImage,
   onOpenFreeVideo,
+  displayLikeCount,
 }) => {
+  // Use displayLikeCount if provided (for real-time updates), otherwise fallback to content.like_count
+  const likeCount = displayLikeCount ?? content.like_count;
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isSubscribed, setIsSubscribed] = useState(false);
