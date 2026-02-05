@@ -203,14 +203,25 @@ export const useContent = () => {
       return { previousLikes, previousContents, isCurrentlyLiked };
     },
     onSuccess: (data) => {
-      // Force refetch to get accurate counts from server
-      queryClient.invalidateQueries({ queryKey: ['contents'] });
+      // Update with accurate server values
+      queryClient.setQueryData<any[]>(['contents'], (old) => 
+        old?.map(item => 
+          item.id === data.contentId 
+            ? { ...item, like_count: data.like_count }
+            : item
+        ) || []
+      );
+      // Also invalidate for fresh data
       queryClient.invalidateQueries({ queryKey: ['creator-content'] });
+      queryClient.invalidateQueries({ queryKey: ['gallery-content'] });
     },
-    onError: (error: any, _contentId, context) => {
+    onError: (error: any, contentId, context) => {
       // Rollback on error
       if (context?.previousLikes) {
         queryClient.setQueryData(['user-likes'], context.previousLikes);
+      }
+      if (context?.previousContents) {
+        queryClient.setQueryData(['contents'], context.previousContents);
       }
       toast.error('Erreur lors du like : ' + error.message);
     }
