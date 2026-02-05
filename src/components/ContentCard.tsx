@@ -297,7 +297,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
                 </div>
                 <div className="flex items-center space-x-1">
                   <Heart className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-                  <span>{content.like_count}</span>
+                  <span>{likeCount}</span>
                 </div>
               </div>
 
