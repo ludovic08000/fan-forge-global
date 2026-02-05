@@ -173,12 +173,14 @@ export const useContent = () => {
       await queryClient.cancelQueries({ queryKey: ['contents'] });
       await queryClient.cancelQueries({ queryKey: ['user-likes'] });
       await queryClient.cancelQueries({ queryKey: ['creator-content'] });
+      await queryClient.cancelQueries({ queryKey: ['gallery-content'] });
       
       // Snapshot the previous value
       const previousLikes = queryClient.getQueryData<string[]>(['user-likes']);
+      const previousContents = queryClient.getQueryData<any[]>(['contents']);
       const isCurrentlyLiked = previousLikes?.includes(contentId);
       
-      // Optimistically update likes
+      // Optimistically update likes array
       if (isCurrentlyLiked) {
         queryClient.setQueryData<string[]>(['user-likes'], (old) => 
           old?.filter(id => id !== contentId) || []
@@ -189,17 +191,37 @@ export const useContent = () => {
         );
       }
       
-      return { previousLikes, isCurrentlyLiked };
+      // Optimistically update like_count in contents
+      queryClient.setQueryData<any[]>(['contents'], (old) => 
+        old?.map(item => 
+          item.id === contentId 
+            ? { ...item, like_count: item.like_count + (isCurrentlyLiked ? -1 : 1) }
+            : item
+        ) || []
+      );
+      
+      return { previousLikes, previousContents, isCurrentlyLiked };
     },
     onSuccess: (data) => {
-      // Force refetch to get accurate counts from server
-      queryClient.invalidateQueries({ queryKey: ['contents'] });
+      // Update with accurate server values
+      queryClient.setQueryData<any[]>(['contents'], (old) => 
+        old?.map(item => 
+          item.id === data.contentId 
+            ? { ...item, like_count: data.like_count }
+            : item
+        ) || []
+      );
+      // Also invalidate for fresh data
       queryClient.invalidateQueries({ queryKey: ['creator-content'] });
+      queryClient.invalidateQueries({ queryKey: ['gallery-content'] });
     },
-    onError: (error: any, _contentId, context) => {
+    onError: (error: any, contentId, context) => {
       // Rollback on error
       if (context?.previousLikes) {
         queryClient.setQueryData(['user-likes'], context.previousLikes);
+      }
+      if (context?.previousContents) {
+        queryClient.setQueryData(['contents'], context.previousContents);
       }
       toast.error('Erreur lors du like : ' + error.message);
     }

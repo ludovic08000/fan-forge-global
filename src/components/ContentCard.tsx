@@ -22,6 +22,7 @@ interface ContentCardProps {
   compact?: boolean;
   onOpenFreeImage?: (content: Content) => void;
   onOpenFreeVideo?: (content: Content) => void;
+  displayLikeCount?: number; // Allows parent to override like_count for real-time updates
 }
 
 const ContentCard: React.FC<ContentCardProps> = ({ 
@@ -32,7 +33,10 @@ const ContentCard: React.FC<ContentCardProps> = ({
   compact = false,
   onOpenFreeImage,
   onOpenFreeVideo,
+  displayLikeCount,
 }) => {
+  // Use displayLikeCount if provided (for real-time updates), otherwise fallback to content.like_count
+  const likeCount = displayLikeCount ?? content.like_count;
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -237,7 +241,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
               className="flex items-center gap-1 hover:scale-110 transition-transform"
             >
               <Heart className={`h-3.5 w-3.5 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-              {content.like_count}
+              {likeCount}
             </button>
           </div>
         </div>
@@ -293,7 +297,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
                 </div>
                 <div className="flex items-center space-x-1">
                   <Heart className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-                  <span>{content.like_count}</span>
+                  <span>{likeCount}</span>
                 </div>
               </div>
 
