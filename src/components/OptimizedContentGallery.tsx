@@ -116,6 +116,7 @@ export const OptimizedContentGallery = ({
             isLiked={isContentLiked(item.id)}
             showCreatorInfo={false}
             compact={true}
+            displayLikeCount={localLikeCounts[item.id]}
           />
         ))}
       </div>
