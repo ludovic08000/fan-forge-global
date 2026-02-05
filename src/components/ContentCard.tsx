@@ -22,6 +22,7 @@ interface ContentCardProps {
   compact?: boolean;
   onOpenFreeImage?: (content: Content) => void;
   onOpenFreeVideo?: (content: Content) => void;
+  displayLikeCount?: number; // Allows parent to override like_count for real-time updates
 }
 
 const ContentCard: React.FC<ContentCardProps> = ({ 
