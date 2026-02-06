@@ -62,10 +62,10 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.check-stripe-connect-status]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-stripe-connect-account]
-verify_jwt = true
+verify_jwt = false
 
 [functions.request-creator-payment]
 verify_jwt = true
@@ -136,7 +136,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.stripe-connect-login-link]
-verify_jwt = true
+verify_jwt = false
 
 # Webhook Stripe pour médias live - DOIT être false car Stripe ne peut pas envoyer de JWT
 [functions.stripe-live-media-webhook]
