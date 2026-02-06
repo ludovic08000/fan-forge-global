@@ -62,10 +62,10 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.check-stripe-connect-status]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-stripe-connect-account]
-verify_jwt = true
+verify_jwt = false
 
 [functions.request-creator-payment]
 verify_jwt = true
