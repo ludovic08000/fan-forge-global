@@ -80,22 +80,9 @@ export const useContentUpload = () => {
       setProgress(85);
       setUploadStage('Finalisation...');
 
-      // Stocker le file_path au lieu de l'URL publique (sécurité)
-      const filePath = uploadResult.filePath;
-      const bucket = uploadResult.bucket;
-      
-      // Construire le chemin pour la DB (format: bucket/filePath)
+      // Stocker le filePath R2
       const storagePath = filePath;
       let thumbnailPath = storagePath;
-
-      // Upload thumbnail pour images (en parallèle, non bloquant)
-      if (contentType === 'image') {
-        supabase.storage.from('thumbnails').upload(fileName, fileToUpload)
-          .then(() => {
-            // Thumbnail uploadé, chemin identique dans bucket thumbnails
-          })
-          .catch(() => {});
-      }
 
       setProgress(90);
 
