@@ -11,17 +11,17 @@ interface DiscoveryFiltersProps {
 }
 
 const NICHES = [
-  { id: 'Glamour', label: 'Glamour', icon: Sparkles },
-  { id: 'Lifestyle', label: 'Lifestyle', icon: Heart },
-  { id: 'DJing', label: 'DJ', icon: Music },
-  { id: 'Gaming', label: 'Gaming', icon: Gamepad2 },
-  { id: 'Avocat', label: 'Avocat', icon: Gavel },
-  { id: 'Football', label: 'Football', icon: Trophy },
-  { id: 'Basketball', label: 'Basketball', icon: Dribbble },
-  { id: 'Coach sportif', label: 'Coach', icon: Dumbbell },
-  { id: 'Cuisine', label: 'Cuisine', icon: ChefHat },
-  { id: 'Luxe', label: 'Luxe', icon: Crown },
-  { id: 'Mannequin', label: 'Mannequin', icon: Camera },
+  { id: 'Glamour', label: 'Glamour', icon: Sparkles, gradient: 'from-pink-500 to-rose-500' },
+  { id: 'Lifestyle', label: 'Lifestyle', icon: Heart, gradient: 'from-red-500 to-pink-500' },
+  { id: 'DJing', label: 'DJ', icon: Music, gradient: 'from-violet-500 to-purple-500' },
+  { id: 'Gaming', label: 'Gaming', icon: Gamepad2, gradient: 'from-emerald-500 to-green-500' },
+  { id: 'Avocat', label: 'Avocat', icon: Gavel, gradient: 'from-amber-500 to-yellow-500' },
+  { id: 'Football', label: 'Football', icon: Trophy, gradient: 'from-sky-500 to-blue-500' },
+  { id: 'Basketball', label: 'Basketball', icon: Dribbble, gradient: 'from-orange-500 to-amber-500' },
+  { id: 'Coach sportif', label: 'Coach', icon: Dumbbell, gradient: 'from-teal-500 to-cyan-500' },
+  { id: 'Cuisine', label: 'Cuisine', icon: ChefHat, gradient: 'from-rose-500 to-red-500' },
+  { id: 'Luxe', label: 'Luxe', icon: Crown, gradient: 'from-yellow-500 to-amber-400' },
+  { id: 'Mannequin', label: 'Mannequin', icon: Camera, gradient: 'from-indigo-500 to-violet-500' },
 ];
 
 const DiscoveryFilters: React.FC<DiscoveryFiltersProps> = ({ className }) => {
