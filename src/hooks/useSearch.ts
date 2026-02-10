@@ -104,6 +104,7 @@ export const useSearch = () => {
     'Cuisine',
     'Luxe',
     'Mannequin',
+    'Art & Création',
   ];
 
   // Get popular categories avec cache long - utilise la vue publique

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, X, Dumbbell, Gamepad2, ChefHat, Sparkles, Heart, Music, Camera, Gavel, Trophy, Dribbble, Crown, User } from 'lucide-react';
+import { Search, X, Dumbbell, Gamepad2, ChefHat, Sparkles, Heart, Music, Camera, Gavel, Trophy, Dribbble, Crown, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -22,6 +22,7 @@ const NICHES = [
   { id: 'Cuisine', label: 'Cuisine', icon: ChefHat, gradient: 'from-rose-500 to-red-500' },
   { id: 'Luxe', label: 'Luxe', icon: Crown, gradient: 'from-yellow-500 to-amber-400' },
   { id: 'Mannequin', label: 'Mannequin', icon: Camera, gradient: 'from-indigo-500 to-violet-500' },
+  { id: 'Art & Création', label: 'Art', icon: Palette, gradient: 'from-fuchsia-500 to-pink-500' },
 ];
 
 const DiscoveryFilters: React.FC<DiscoveryFiltersProps> = ({ className }) => {
