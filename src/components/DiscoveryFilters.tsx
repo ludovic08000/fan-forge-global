@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, X, Dumbbell, Gamepad2, ChefHat, Sparkles, Heart, Music, Camera, Gavel, Trophy, Dribbble, Crown, User } from 'lucide-react';
+import { Search, X, Dumbbell, Gamepad2, ChefHat, Sparkles, Heart, Music, Camera, Gavel, Trophy, Dribbble, Crown, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
