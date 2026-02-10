@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,7 @@ import SEOHead from '@/components/SEOHead';
 
 const SearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -284,12 +285,12 @@ const SearchPage: React.FC = () => {
             {!isLoading && !hasResults && hasActiveFilters && (
               <div className="text-center py-12">
                 <SearchIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Aucun résultat trouvé</h3>
+                <h3 className="text-lg font-medium mb-2">Aucun créateur trouvé</h3>
                 <p className="text-muted-foreground mb-4">
-                  Essayez de modifier vos critères de recherche ou explorez les créateurs populaires.
+                  Aucun créateur ne correspond à cette catégorie pour le moment.
                 </p>
-                <Button onClick={clearAllFilters} variant="outline">
-                  Effacer les filtres
+                <Button onClick={() => navigate('/')} variant="outline">
+                  ← Retour à l'accueil
                 </Button>
               </div>
             )}
