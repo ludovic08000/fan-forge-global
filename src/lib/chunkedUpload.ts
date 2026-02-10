@@ -1,6 +1,6 @@
 /**
- * Chunked Upload System
- * Upload par morceaux pour fichiers volumineux avec reprise automatique
+ * R2 Direct Upload System
+ * Upload direct vers Cloudflare R2 via presigned URLs
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +13,7 @@ export interface ChunkUploadProgress {
   totalBytes: number;
   currentChunk: number;
   totalChunks: number;
-  speed?: string; // ex: "2.5 MB/s"
+  speed?: string;
 }
 
 export interface ChunkUploadResult {
@@ -23,32 +23,53 @@ export interface ChunkUploadResult {
   error?: string;
 }
 
-// Taille des chunks: 5 MB (optimal pour la plupart des connexions)
-const CHUNK_SIZE = 5 * 1024 * 1024;
-
-// Nombre de tentatives par chunk
-const MAX_RETRIES = 3;
-
-// Délai entre les tentatives (ms)
-const RETRY_DELAY = 1000;
-
 /**
- * Upload un fichier par morceaux avec reprise automatique
+ * Upload un fichier directement vers R2 via presigned URL
  */
 export async function uploadFileInChunks(
   file: File,
-  bucket: string,
-  filePath: string,
+  _bucket: string, // Ignoré - tout va sur R2
+  _filePath: string, // Ignoré - le serveur génère le path
   onProgress?: (progress: ChunkUploadProgress) => void
 ): Promise<ChunkUploadResult> {
   const totalBytes = file.size;
-  const totalChunks = Math.ceil(totalBytes / CHUNK_SIZE);
-  
-  // Pour les petits fichiers (< 10 MB), upload direct
-  if (totalBytes < 10 * 1024 * 1024) {
+
+  onProgress?.({
+    stage: 'preparing',
+    progress: 5,
+    message: 'Préparation de l\'upload R2...',
+    bytesUploaded: 0,
+    totalBytes,
+    currentChunk: 0,
+    totalChunks: 1,
+  });
+
+  try {
+    // 1. Get session for auth
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error('Authentification requise');
+    }
+
+    // 2. Get presigned PUT URL from edge function
+    const { data, error: fnError } = await supabase.functions.invoke('r2-upload-url', {
+      body: {
+        fileName: file.name,
+        contentType: file.type,
+        fileSize: file.size,
+      },
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+
+    if (fnError || !data?.uploadUrl) {
+      throw new Error(data?.error || fnError?.message || 'Erreur obtention URL d\'upload');
+    }
+
+    const { uploadUrl, filePath } = data;
+
     onProgress?.({
       stage: 'uploading',
-      progress: 10,
+      progress: 15,
       message: 'Upload en cours...',
       bytesUploaded: 0,
       totalBytes,
@@ -56,16 +77,45 @@ export async function uploadFileInChunks(
       totalChunks: 1,
     });
 
-    const { error } = await supabase.storage.from(bucket).upload(filePath, file);
-    
-    if (error) {
-      return {
-        success: false,
-        filePath,
-        bucket,
-        error: error.message,
-      };
-    }
+    // 3. Upload directly to R2 via presigned URL with XHR for progress tracking
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const startTime = Date.now();
+
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const elapsed = (Date.now() - startTime) / 1000;
+          const speed = e.loaded / elapsed;
+          const mappedProgress = 15 + Math.round((e.loaded / e.total) * 75);
+
+          onProgress?.({
+            stage: 'uploading',
+            progress: mappedProgress,
+            message: `Upload R2 • ${formatSpeed(speed)}`,
+            bytesUploaded: e.loaded,
+            totalBytes: e.total,
+            currentChunk: 1,
+            totalChunks: 1,
+            speed: formatSpeed(speed),
+          });
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          reject(new Error(`Upload R2 échoué (HTTP ${xhr.status})`));
+        }
+      });
+
+      xhr.addEventListener('error', () => reject(new Error('Erreur réseau lors de l\'upload R2')));
+      xhr.addEventListener('abort', () => reject(new Error('Upload annulé')));
+
+      xhr.open('PUT', uploadUrl);
+      xhr.setRequestHeader('Content-Type', file.type);
+      xhr.send(file);
+    });
 
     onProgress?.({
       stage: 'complete',
@@ -79,178 +129,28 @@ export async function uploadFileInChunks(
 
     return {
       success: true,
-      filePath,
-      bucket,
+      filePath, // R2 key returned by the server
+      bucket: 'r2', // Marker that this is on R2
     };
-  }
-
-  // Upload par chunks pour les gros fichiers
-  onProgress?.({
-    stage: 'preparing',
-    progress: 0,
-    message: `Préparation de ${totalChunks} morceaux...`,
-    bytesUploaded: 0,
-    totalBytes,
-    currentChunk: 0,
-    totalChunks,
-  });
-
-  const chunks: Blob[] = [];
-  for (let i = 0; i < totalChunks; i++) {
-    const start = i * CHUNK_SIZE;
-    const end = Math.min(start + CHUNK_SIZE, totalBytes);
-    chunks.push(file.slice(start, end));
-  }
-
-  // Upload chaque chunk avec suivi de vitesse
-  let bytesUploaded = 0;
-  const startTime = Date.now();
-  const chunkPaths: string[] = [];
-
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    const chunkPath = `${filePath}.chunk${i}`;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Erreur d\'upload';
     
-    let success = false;
-    let lastError: Error | null = null;
-
-    for (let attempt = 0; attempt < MAX_RETRIES && !success; attempt++) {
-      try {
-        const { error } = await supabase.storage
-          .from(bucket)
-          .upload(chunkPath, chunk, { upsert: true });
-
-        if (error) {
-          lastError = new Error(error.message);
-          if (attempt < MAX_RETRIES - 1) {
-            await new Promise(r => setTimeout(r, RETRY_DELAY * (attempt + 1)));
-          }
-        } else {
-          success = true;
-          chunkPaths.push(chunkPath);
-        }
-      } catch (err) {
-        lastError = err instanceof Error ? err : new Error('Upload error');
-        if (attempt < MAX_RETRIES - 1) {
-          await new Promise(r => setTimeout(r, RETRY_DELAY * (attempt + 1)));
-        }
-      }
-    }
-
-    if (!success) {
-      // Nettoyer les chunks uploadés
-      await cleanupChunks(bucket, chunkPaths);
-      return {
-        success: false,
-        filePath,
-        bucket,
-        error: lastError?.message || 'Échec de l\'upload',
-      };
-    }
-
-    bytesUploaded += chunk.size;
-    const elapsed = (Date.now() - startTime) / 1000;
-    const speed = bytesUploaded / elapsed;
-    const speedStr = formatSpeed(speed);
-
     onProgress?.({
-      stage: 'uploading',
-      progress: Math.round((bytesUploaded / totalBytes) * 90) + 5,
-      message: `Chunk ${i + 1}/${totalChunks} • ${speedStr}`,
-      bytesUploaded,
+      stage: 'error',
+      progress: 0,
+      message,
+      bytesUploaded: 0,
       totalBytes,
-      currentChunk: i + 1,
-      totalChunks,
-      speed: speedStr,
-    });
-  }
-
-  // Assembler les chunks en un seul fichier
-  onProgress?.({
-    stage: 'finalizing',
-    progress: 95,
-    message: 'Assemblage du fichier...',
-    bytesUploaded: totalBytes,
-    totalBytes,
-    currentChunk: totalChunks,
-    totalChunks,
-  });
-
-  try {
-    // Télécharger et recombiner les chunks
-    const assembledBlob = await assembleChunks(bucket, chunkPaths);
-    
-    // Upload le fichier final
-    const { error: finalError } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, assembledBlob, { upsert: true });
-
-    if (finalError) {
-      await cleanupChunks(bucket, chunkPaths);
-      return {
-        success: false,
-        filePath,
-        bucket,
-        error: finalError.message,
-      };
-    }
-
-    // Nettoyer les chunks
-    await cleanupChunks(bucket, chunkPaths);
-
-    onProgress?.({
-      stage: 'complete',
-      progress: 100,
-      message: 'Upload terminé!',
-      bytesUploaded: totalBytes,
-      totalBytes,
-      currentChunk: totalChunks,
-      totalChunks,
+      currentChunk: 0,
+      totalChunks: 1,
     });
 
-    return {
-      success: true,
-      filePath,
-      bucket,
-    };
-  } catch (err) {
-    await cleanupChunks(bucket, chunkPaths);
     return {
       success: false,
-      filePath,
-      bucket,
-      error: err instanceof Error ? err.message : 'Erreur d\'assemblage',
+      filePath: '',
+      bucket: 'r2',
+      error: message,
     };
-  }
-}
-
-/**
- * Assembler les chunks téléchargés
- */
-async function assembleChunks(bucket: string, chunkPaths: string[]): Promise<Blob> {
-  const blobs: Blob[] = [];
-
-  for (const path of chunkPaths) {
-    const { data, error } = await supabase.storage.from(bucket).download(path);
-    if (error || !data) {
-      throw new Error(`Erreur téléchargement chunk: ${path}`);
-    }
-    blobs.push(data);
-  }
-
-  return new Blob(blobs);
-}
-
-/**
- * Nettoyer les chunks temporaires
- */
-async function cleanupChunks(bucket: string, chunkPaths: string[]): Promise<void> {
-  if (chunkPaths.length === 0) return;
-  
-  try {
-    await supabase.storage.from(bucket).remove(chunkPaths);
-  } catch (err) {
-    console.warn('Erreur nettoyage chunks:', err);
   }
 }
 
