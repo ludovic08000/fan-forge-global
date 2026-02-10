@@ -54,16 +54,12 @@ export const useContentUpload = () => {
       // Upload direct sans compression (la compression vidéo client-side cause des désync audio)
       const fileToUpload = data.file;
 
-      setProgress(30);
-      setUploadStage('Upload en cours...');
-
-      // Upload avec chunks pour gros fichiers
+      // Upload direct vers R2 via presigned URL
       const uploadResult = await uploadFileInChunks(
         fileToUpload,
-        'content',
+        'r2', // tout va sur R2
         fileName,
         (p: ChunkUploadProgress) => {
-          // Map chunk progress (0-100) to overall progress (30-85)
           const mappedProgress = 30 + Math.round(p.progress * 0.55);
           setProgress(mappedProgress);
           setUploadStage(p.message);
@@ -77,25 +73,14 @@ export const useContentUpload = () => {
         throw new Error(uploadResult.error || 'Erreur upload');
       }
 
+      const filePath = uploadResult.filePath;
+
       setProgress(85);
       setUploadStage('Finalisation...');
 
-      // Stocker le file_path au lieu de l'URL publique (sécurité)
-      const filePath = uploadResult.filePath;
-      const bucket = uploadResult.bucket;
-      
-      // Construire le chemin pour la DB (format: bucket/filePath)
+      // Stocker le filePath R2
       const storagePath = filePath;
       let thumbnailPath = storagePath;
-
-      // Upload thumbnail pour images (en parallèle, non bloquant)
-      if (contentType === 'image') {
-        supabase.storage.from('thumbnails').upload(fileName, fileToUpload)
-          .then(() => {
-            // Thumbnail uploadé, chemin identique dans bucket thumbnails
-          })
-          .catch(() => {});
-      }
 
       setProgress(90);
 
@@ -128,7 +113,7 @@ export const useContentUpload = () => {
       supabase.functions.invoke('compute-media-fingerprint', {
         body: {
           filePath: storagePath,
-          bucket: bucket,
+          bucket: 'r2',
           contentId: contentData.id,
           creatorId: creatorId,
           fileType: contentType,
