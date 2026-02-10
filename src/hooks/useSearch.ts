@@ -93,12 +93,16 @@ export const useSearch = () => {
 
   // Liste des niches prédéfinies
   const predefinedCategories = [
-    'Coach sportif',
-    'Gaming',
-    'Cuisine',
     'Glamour',
     'Lifestyle',
     'DJing',
+    'Gaming',
+    'Avocat',
+    'Football',
+    'Basketball',
+    'Coach sportif',
+    'Cuisine',
+    'Luxe',
     'Mannequin',
   ];
 
