@@ -54,16 +54,12 @@ export const useContentUpload = () => {
       // Upload direct sans compression (la compression vidéo client-side cause des désync audio)
       const fileToUpload = data.file;
 
-      setProgress(30);
-      setUploadStage('Upload en cours...');
-
-      // Upload avec chunks pour gros fichiers
+      // Upload direct vers R2 via presigned URL
       const uploadResult = await uploadFileInChunks(
         fileToUpload,
-        'content',
+        'r2', // tout va sur R2
         fileName,
         (p: ChunkUploadProgress) => {
-          // Map chunk progress (0-100) to overall progress (30-85)
           const mappedProgress = 30 + Math.round(p.progress * 0.55);
           setProgress(mappedProgress);
           setUploadStage(p.message);
@@ -76,6 +72,8 @@ export const useContentUpload = () => {
       if (!uploadResult.success) {
         throw new Error(uploadResult.error || 'Erreur upload');
       }
+
+      const filePath = uploadResult.filePath;
 
       setProgress(85);
       setUploadStage('Finalisation...');
