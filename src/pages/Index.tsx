@@ -1,5 +1,5 @@
 import HeroSection from "@/components/HeroSection";
-import SearchBar from "@/components/SearchBar";
+import DiscoveryFilters from "@/components/DiscoveryFilters";
 import PopularCreators from "@/components/PopularCreators";
 import LiveNowSection from "@/components/LiveNowSection";
 import ContentGallery from "@/components/ContentGallery";
@@ -20,18 +20,16 @@ const Index = () => {
         <main className="flex-1">
           <HeroSection />
           
-          {/* Recherche et créateurs visibles uniquement pour les utilisateurs connectés */}
           {user && (
             <>
               <section className="py-8 bg-muted/20 relative z-50">
-                <div className="container mx-auto px-4 flex justify-center">
-                  <SearchBar />
+                <div className="container mx-auto px-4">
+                  <DiscoveryFilters />
                 </div>
               </section>
 
               <PopularCreators />
               
-              {/* Section Médias */}
               <section className="py-12 bg-background">
                 <div className="container mx-auto px-4">
                   <h2 className="text-2xl font-bold mb-6">Découvrir les médias</h2>
