@@ -68,27 +68,34 @@ const DiscoveryFilters: React.FC<DiscoveryFiltersProps> = ({ className }) => {
       </div>
 
       {/* Boutons thématiques */}
-      <div className="flex flex-wrap justify-center gap-2.5">
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 max-w-3xl mx-auto">
         {NICHES.map((niche, index) => {
           const Icon = niche.icon;
           const isActive = selectedNiche === niche.id;
           return (
             <motion.button
               key={niche.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.04, duration: 0.3 }}
               onClick={() => handleNicheClick(niche.id)}
               className={cn(
-                "inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200",
-                "border shadow-sm hover:shadow-md hover:scale-105 active:scale-95",
+                "flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl text-xs font-semibold transition-all duration-200",
+                "hover:scale-105 active:scale-95 min-h-[72px]",
                 isActive
-                  ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/25"
-                  : "bg-card/80 backdrop-blur-sm text-foreground border-border/50 hover:border-primary/40 hover:bg-primary/5"
+                  ? `bg-gradient-to-br ${niche.gradient} text-white shadow-lg`
+                  : "bg-card border border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/30 hover:shadow-md"
               )}
             >
-              <Icon className="h-4 w-4" />
-              {niche.label}
+              <div className={cn(
+                "w-9 h-9 rounded-xl flex items-center justify-center transition-colors",
+                isActive
+                  ? "bg-white/20"
+                  : `bg-gradient-to-br ${niche.gradient} text-white`
+              )}>
+                <Icon className="h-4.5 w-4.5" />
+              </div>
+              <span className="truncate w-full text-center">{niche.label}</span>
             </motion.button>
           );
         })}
