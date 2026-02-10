@@ -113,7 +113,7 @@ export const useContentUpload = () => {
       supabase.functions.invoke('compute-media-fingerprint', {
         body: {
           filePath: storagePath,
-          bucket: bucket,
+          bucket: 'r2',
           contentId: contentData.id,
           creatorId: creatorId,
           fileType: contentType,
