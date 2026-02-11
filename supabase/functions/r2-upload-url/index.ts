@@ -50,7 +50,6 @@ async function generatePresignedPutUrl(
 
   const queryParams = [
     ['X-Amz-Algorithm', 'AWS4-HMAC-SHA256'],
-    ['X-Amz-Content-Type', encodeURIComponent(contentType)],
     ['X-Amz-Credential', credential],
     ['X-Amz-Date', amzDate],
     ['X-Amz-Expires', expiresIn.toString()],
