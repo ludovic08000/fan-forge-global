@@ -59,6 +59,7 @@ export const SecureVideoLightbox: React.FC<SecureVideoLightboxProps> = ({
       autoPlay={autoPlay}
       className={className}
       playsInline
+      preload="metadata"
       controlsList="nodownload noplaybackrate"
       disablePictureInPicture
       onContextMenu={(e) => e.preventDefault()}
