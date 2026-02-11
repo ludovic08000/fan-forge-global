@@ -105,7 +105,8 @@ export async function uploadFileInChunks(
         if (xhr.status >= 200 && xhr.status < 300) {
           resolve();
         } else {
-          reject(new Error(`Upload R2 échoué (HTTP ${xhr.status})`));
+          console.error(`[R2 Upload] HTTP ${xhr.status} - Response: ${xhr.responseText}`);
+          reject(new Error(`Upload R2 échoué (HTTP ${xhr.status}): ${xhr.responseText?.substring(0, 200)}`));
         }
       });
 
