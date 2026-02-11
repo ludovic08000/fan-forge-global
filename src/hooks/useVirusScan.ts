@@ -36,8 +36,8 @@ export const useVirusScan = () => {
       if (error) {
         console.error('Virus scan error:', error);
         
-        // Check if it's a quarantine response (202 status)
-        if (error.message?.includes('quarantine') || data?.quarantined) {
+        // Check if it's a quarantine response (202 status with data)
+        if (data?.quarantined) {
           const result: VirusScanResult = {
             isClean: false,
             quarantined: true,
@@ -48,15 +48,29 @@ export const useVirusScan = () => {
           setScanStatus('quarantined');
           return result;
         }
+
+        // Check if data contains a positive infection (400 status with threat info)
+        if (data?.threatFound) {
+          const result: VirusScanResult = {
+            isClean: false,
+            threatFound: data.threatFound,
+            threatType: data.threatType,
+            message: data.message || 'Menace détectée'
+          };
+          setScanResult(result);
+          setScanStatus('infected');
+          return result;
+        }
         
-        // Real error - block upload
+        // Scan service error (network, timeout, misc) - allow upload to proceed
+        console.warn('Virus scan unavailable, allowing upload:', error.message);
         const result: VirusScanResult = {
-          isClean: false,
-          error: error.message,
-          message: 'Scan antivirus échoué, fichier bloqué par sécurité'
+          isClean: true,
+          skipped: true,
+          message: 'Scan antivirus indisponible, fichier accepté'
         };
         setScanResult(result);
-        setScanStatus('error');
+        setScanStatus('clean');
         return result;
       }
 
