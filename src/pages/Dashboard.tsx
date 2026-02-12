@@ -102,8 +102,24 @@ const Dashboard = () => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce contenu ?')) return;
     
     try {
+      // 1. Récupérer le file_url (R2 path) avant de supprimer
+      const { data: contentData } = await supabase
+        .from('content')
+        .select('file_url')
+        .eq('id', contentId)
+        .single();
+
+      // 2. Supprimer de la base de données
       const { error } = await supabase.from('content').delete().eq('id', contentId);
       if (error) throw error;
+
+      // 3. Supprimer le fichier R2 (fire-and-forget)
+      if (contentData?.file_url) {
+        supabase.functions.invoke('delete-r2-file', {
+          body: { filePath: contentData.file_url },
+        }).catch(err => console.warn('R2 delete warning:', err));
+      }
+
       toast.success('Contenu supprimé');
       refetch();
     } catch (error) {
