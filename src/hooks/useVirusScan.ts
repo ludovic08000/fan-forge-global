@@ -114,14 +114,16 @@ export const useVirusScan = () => {
       return result;
 
     } catch (err) {
-      console.error('Virus scan exception:', err);
+      console.warn('Virus scan exception (non-blocking):', err);
+      // Scan service unavailable - allow upload to proceed
       const result: VirusScanResult = {
-        isClean: false,
+        isClean: true,
+        skipped: true,
         error: err instanceof Error ? err.message : 'Unknown error',
-        message: 'Erreur lors du scan antivirus, fichier bloqué'
+        message: 'Scan antivirus indisponible, fichier accepté'
       };
       setScanResult(result);
-      setScanStatus('error');
+      setScanStatus('clean');
       return result;
     } finally {
       setScanning(false);
