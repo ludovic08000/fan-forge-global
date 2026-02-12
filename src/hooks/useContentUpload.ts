@@ -33,12 +33,14 @@ export const useContentUpload = () => {
 
   const uploadContent = async (data: ContentUploadData, creatorId: string, userId: string) => {
     try {
+      console.log('[UPLOAD] Starting upload:', { fileName: data.file.name, fileSize: data.file.size, fileType: data.file.type, creatorId, userId });
       setUploading(true);
       setProgress(5);
       setUploadStage('Validation...');
 
       // Quick validation (skip extension check for processed files)
       const validationResult = await validateFile(data.file, true);
+      console.log('[UPLOAD] Validation result:', validationResult);
       if (!validationResult.isValid) {
         throw new Error(validationResult.error || 'Fichier non valide');
       }
@@ -53,6 +55,7 @@ export const useContentUpload = () => {
       
       // Upload direct sans compression (la compression vidéo client-side cause des désync audio)
       const fileToUpload = data.file;
+      console.log('[UPLOAD] Starting R2 upload, file size:', fileToUpload.size);
 
       // Upload direct vers R2 via presigned URL
       const uploadResult = await uploadFileInChunks(
@@ -69,6 +72,7 @@ export const useContentUpload = () => {
         }
       );
 
+      console.log('[UPLOAD] R2 upload result:', uploadResult);
       if (!uploadResult.success) {
         throw new Error(uploadResult.error || 'Erreur upload');
       }
@@ -85,6 +89,7 @@ export const useContentUpload = () => {
       setProgress(90);
 
       // Insert to database - stocker le filePath, pas l'URL publique
+      console.log('[UPLOAD] Inserting to DB:', { storagePath, contentType, title: data.title });
       const { data: contentData, error: dbError } = await supabase
         .from('content')
         .insert({
@@ -103,8 +108,10 @@ export const useContentUpload = () => {
         .single();
 
       if (dbError) {
+        console.error('[UPLOAD] DB insert error:', dbError);
         throw dbError;
       }
+      console.log('[UPLOAD] DB insert success:', contentData?.id);
 
       setProgress(95);
 
