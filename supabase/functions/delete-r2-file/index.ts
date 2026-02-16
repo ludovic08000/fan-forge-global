@@ -1,9 +1,10 @@
 /**
  * Supprime un fichier de R2 par son filePath
- * Vérifie que l'utilisateur est bien propriétaire du fichier (préfixe userId/)
+ * Vérifie que l'utilisateur est bien propriétaire du fichier via la table content
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { S3Client, DeleteObjectCommand } from "npm:@aws-sdk/client-s3@3.600.0";
 import { validateJwtAndGetUserId } from "../_shared/auth.ts";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
@@ -34,8 +35,23 @@ serve(async (req) => {
       );
     }
 
-    // Security: ensure user can only delete their own files (supports {userId}/... and {userId}/images/... or {userId}/videos/...)
-    if (!filePath.startsWith(`${userId}/`)) {
+    // Security: verify ownership via DB - check that this file belongs to a content owned by this user
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Check if file belongs to a content owned by this user's creator profile
+    const { data: contentOwner } = await supabaseAdmin
+      .from('content')
+      .select('id, creator_id, creators!inner(user_id)')
+      .eq('file_url', filePath)
+      .single();
+
+    // Also allow legacy paths starting with userId/
+    const isLegacyOwner = filePath.startsWith(`${userId}/`);
+    const isContentOwner = contentOwner && (contentOwner as any).creators?.user_id === userId;
+
+    if (!isLegacyOwner && !isContentOwner) {
       console.error(`[delete-r2-file] Unauthorized: user ${userId} tried to delete ${filePath}`);
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
