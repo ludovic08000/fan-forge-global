@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { validateJwtAndGetUserId } from "../_shared/auth.ts";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 
@@ -139,14 +140,32 @@ serve(async (req) => {
       );
     }
 
-    // Generate a secure file key with user ID prefix and media type subfolder
+    // Fetch creator's stage_name to use as folder name
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { data: creatorData } = await supabaseAdmin
+      .from('creators')
+      .select('stage_name')
+      .eq('user_id', userId)
+      .single();
+
+    // Sanitize stage_name for use as folder name (remove special chars, lowercase)
+    const rawName = creatorData?.stage_name || userId;
+    const folderName = rawName
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove accents
+      .replace(/[^a-z0-9_-]/g, '_') // replace special chars with _
+      .replace(/_+/g, '_') // collapse multiple underscores
+      .replace(/^_|_$/g, ''); // trim underscores
+
+    // Generate a secure file key: {creatorName}/images|videos/{timestamp}-{id}.{ext}
     const ext = fileName.split('.').pop()?.toLowerCase() || 'bin';
     const timestamp = Date.now();
     const random = crypto.randomUUID().substring(0, 8);
-    
-    // Route to images/ or videos/ subfolder based on content type
     const subfolder = contentType.startsWith('video/') ? 'videos' : 'images';
-    const r2Key = `${userId}/${subfolder}/${timestamp}-${random}.${ext}`;
+    const r2Key = `${folderName}/${subfolder}/${timestamp}-${random}.${ext}`;
 
     // Get R2 credentials
     const r2AccountId = Deno.env.get("R2_ACCOUNT_ID")!;
