@@ -51,7 +51,7 @@ serve(async (req) => {
     // Vérifier que l'utilisateur est bien le créateur du live
     const { data: stream, error: streamError } = await supabaseAdmin
       .from('live_streams')
-      .select('id, creator_id, enable_recording, title, creators!inner(user_id)')
+      .select('id, creator_id, enable_recording, title, creators!inner(user_id, stage_name)')
       .eq('id', streamId)
       .single();
 
@@ -104,13 +104,22 @@ serve(async (req) => {
       );
     }
 
+    // Sanitize creator stage_name for folder name
+    const rawName = (stream.creators as any)?.stage_name || stream.creator_id;
+    const folderName = rawName
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9_-]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '');
+
     // Créer le client Egress - utiliser l'URL HTTP au lieu de WSS
     const httpUrl = livekitUrl.replace('wss://', 'https://');
     const egressClient = new EgressClient(httpUrl, apiKey, apiSecret);
     
     const roomName = `live-${streamId}`;
     const timestamp = Date.now();
-    const filePath = `replays/${stream.creator_id}/${streamId}_${timestamp}.mp4`;
+    const filePath = `${folderName}/replays/${streamId}_${timestamp}.mp4`;
 
     console.log('[Start Live Recording] Starting room composite egress for room:', roomName);
     console.log('[Start Live Recording] Output file:', filePath);
