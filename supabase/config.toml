@@ -193,9 +193,9 @@ verify_jwt = true
 [functions.get-replay-url]
 verify_jwt = true
 
-# R2 Upload presigned URLs
+# R2 Upload presigned URLs - JWT validated manually in code
 [functions.r2-upload-url]
-verify_jwt = true
+verify_jwt = false
 
 # Cleanup old replays (7 days) - cron job, no JWT
 [functions.cleanup-old-replays]

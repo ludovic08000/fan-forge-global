@@ -139,11 +139,14 @@ serve(async (req) => {
       );
     }
 
-    // Generate a secure file key with user ID prefix
+    // Generate a secure file key with user ID prefix and media type subfolder
     const ext = fileName.split('.').pop()?.toLowerCase() || 'bin';
     const timestamp = Date.now();
     const random = crypto.randomUUID().substring(0, 8);
-    const r2Key = `${userId}/${timestamp}-${random}.${ext}`;
+    
+    // Route to images/ or videos/ subfolder based on content type
+    const subfolder = contentType.startsWith('video/') ? 'videos' : 'images';
+    const r2Key = `${userId}/${subfolder}/${timestamp}-${random}.${ext}`;
 
     // Get R2 credentials
     const r2AccountId = Deno.env.get("R2_ACCOUNT_ID")!;

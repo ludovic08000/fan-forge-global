@@ -34,7 +34,7 @@ serve(async (req) => {
       );
     }
 
-    // Security: ensure user can only delete their own files
+    // Security: ensure user can only delete their own files (supports {userId}/... and {userId}/images/... or {userId}/videos/...)
     if (!filePath.startsWith(`${userId}/`)) {
       console.error(`[delete-r2-file] Unauthorized: user ${userId} tried to delete ${filePath}`);
       return new Response(
