@@ -94,6 +94,9 @@ async function generatePresignedPutUrl(
 }
 
 serve(async (req) => {
+  console.log("[r2-upload-url] Request received:", req.method, "from:", req.headers.get("Origin"));
+  console.log("[r2-upload-url] Auth header present:", !!req.headers.get("Authorization"));
+  
   if (req.method === "OPTIONS") {
     return handleCorsOptions(req);
   }
