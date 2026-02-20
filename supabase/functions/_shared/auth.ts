@@ -26,29 +26,16 @@ export async function validateJwtAndGetUserId(authHeader: string | null): Promis
     global: { headers: { Authorization: authHeader } }
   });
 
-  // Use getClaims for cryptographic verification of the JWT signature
+  // Use getUser() for server-side token verification
   try {
-    const { data, error } = await supabase.auth.getClaims(token);
+    const { data: { user }, error } = await supabase.auth.getUser(token);
     
-    if (error || !data?.claims) {
-      console.error('[Auth] getClaims failed:', error?.message);
+    if (error || !user) {
+      console.error('[Auth] getUser failed:', error?.message);
       return { userId: null, error: 'Invalid token', statusCode: 401 };
     }
 
-    const claims = data.claims;
-    
-    // Verify token is not expired
-    const now = Math.floor(Date.now() / 1000);
-    if (claims.exp && claims.exp < now) {
-      return { userId: null, error: 'Token expired', statusCode: 401 };
-    }
-
-    // Token signature verified - return the user ID
-    if (!claims.sub) {
-      return { userId: null, error: 'Invalid token claims', statusCode: 401 };
-    }
-
-    return { userId: claims.sub, error: null, statusCode: 200 };
+    return { userId: user.id, error: null, statusCode: 200 };
   } catch (e) {
     console.error('[Auth] Token verification failed:', e);
     return { userId: null, error: 'Authentication failed', statusCode: 401 };
