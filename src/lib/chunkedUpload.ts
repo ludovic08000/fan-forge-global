@@ -46,22 +46,37 @@ export async function uploadFileInChunks(
 
   try {
     // 1. Get session for auth
-    const { data: { session } } = await supabase.auth.getSession();
+    console.log('[R2 Upload] Step 1: Getting session...');
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      console.error('[R2 Upload] Session error:', sessionError);
+      throw new Error('Erreur de session: ' + sessionError.message);
+    }
     if (!session) {
+      console.error('[R2 Upload] No session found');
       throw new Error('Authentification requise');
     }
+    console.log('[R2 Upload] Session OK, user:', session.user.id);
 
     // 2. Get presigned PUT URL from edge function
+    console.log('[R2 Upload] Step 2: Calling r2-upload-url edge function...', {
+      fileName: file.name,
+      contentType: file.type,
+      fileSize: file.size,
+    });
+    
     const { data, error: fnError } = await supabase.functions.invoke('r2-upload-url', {
       body: {
         fileName: file.name,
         contentType: file.type,
         fileSize: file.size,
       },
-      headers: { Authorization: `Bearer ${session.access_token}` },
     });
 
+    console.log('[R2 Upload] Edge function response:', { data, fnError });
+
     if (fnError || !data?.uploadUrl) {
+      console.error('[R2 Upload] Edge function failed:', { fnError, data });
       throw new Error(data?.error || fnError?.message || 'Erreur obtention URL d\'upload');
     }
 
