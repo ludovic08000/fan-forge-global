@@ -13,6 +13,7 @@ import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { supabase } from '@/integrations/supabase/client';
 import LazyContentImage, { preloadImage, preloadImageFast } from '@/components/LazyContentImage';
 import { SecureVideoPreviewCard } from '@/components/SecureVideoPreviewCard';
+import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
 
 interface ContentCardProps {
   content: Content;
@@ -125,12 +126,12 @@ const ContentCard: React.FC<ContentCardProps> = ({
   const creatorInitials = creatorName.charAt(0).toUpperCase();
 
   // URLs propres sans cache-buster (le composant vidéo gère la construction)
-  const imageUrl = useMemo(() => {
+  const rawImageUrl = useMemo(() => {
     return content.thumbnail_url || content.file_url;
   }, [content.thumbnail_url, content.file_url]);
 
   // URL vidéo séparée (utilise file_url, pas thumbnail)
-  const videoUrl = useMemo(() => {
+  const rawVideoUrl = useMemo(() => {
     return content.file_url;
   }, [content.file_url]);
   
@@ -144,6 +145,16 @@ const ContentCard: React.FC<ContentCardProps> = ({
     }
     return content.thumbnail_url;
   }, [content.thumbnail_url]);
+
+  // Résoudre les URLs R2 via des URLs signées
+  const mediaUrl = content.content_type === 'video' ? rawVideoUrl : rawImageUrl;
+  const { secureUrl: resolvedMediaUrl, loading: mediaLoading } = useSecureR2Url(mediaUrl, {
+    contentId: content.id,
+    enabled: isR2Url(mediaUrl),
+  });
+
+  const imageUrl = content.content_type !== 'video' ? (resolvedMediaUrl || rawImageUrl) : rawImageUrl;
+  const videoUrl = content.content_type === 'video' ? (resolvedMediaUrl || rawVideoUrl) : rawVideoUrl;
 
   // Précharger agressivement au hover pour affichage instantané
   const handleMouseEnter = useCallback(() => {
