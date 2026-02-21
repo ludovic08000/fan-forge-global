@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Share2, Copy, Plus } from 'lucide-react';
 import { User } from '@supabase/supabase-js';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface DashboardHeaderProps {
   user: User;
@@ -21,6 +22,8 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onCopyLink,
   onNewContent,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="relative mb-8">
       <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-2xl blur-xl" />
@@ -37,7 +40,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           </div>
           <div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-              Mon espace créateur
+              {t('dashboard.myCreatorSpace')}
             </h1>
             <p className="text-sm text-muted-foreground">
               {user.user_metadata?.stage_name || user.user_metadata?.display_name || user.user_metadata?.username || user.email}
@@ -49,12 +52,12 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           {shareLink && (
             <Button onClick={onCopyLink} variant="outline" size="sm" className="gap-2 rounded-xl" title={shareDisplayName || shareLink}>
               {copied ? <Copy className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
-              <span className="hidden sm:inline">{copied ? 'Copié !' : `Partager ${shareDisplayName || ''}`}</span>
+              <span className="hidden sm:inline">{copied ? t('dashboard.copied') : `${t('dashboard.share')} ${shareDisplayName || ''}`}</span>
             </Button>
           )}
           <Button onClick={onNewContent} size="sm" className="gap-2 rounded-xl bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/25">
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Nouveau contenu</span>
+            <span className="hidden sm:inline">{t('dashboard.newContent')}</span>
           </Button>
         </div>
       </div>
