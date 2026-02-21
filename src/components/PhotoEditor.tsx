@@ -176,52 +176,74 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
   };
 
   const handleDownload = async () => {
-    if (!imageRef.current || !canvasRef.current) return;
+    if (!canvasRef.current || !effectiveUrl) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const img = imageRef.current;
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
+    try {
+      const resp = await fetch(effectiveUrl);
+      const b = await resp.blob();
+      const bmp = await createImageBitmap(b);
 
-    // Appliquer les filtres
-    ctx.filter = getFilterStyle().filter || 'none';
-    ctx.drawImage(img, 0, 0);
+      canvas.width = bmp.width;
+      canvas.height = bmp.height;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bmp, 0, 0);
+      bmp.close();
 
-    // Télécharger
-    const link = document.createElement('a');
-    link.download = `photo-edited-${Date.now()}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    
-    toast.success('Photo téléchargée avec succès!');
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const filtered = applyFiltersToImageData(imgData);
+      ctx.putImageData(filtered, 0, 0);
+
+      const link = document.createElement('a');
+      link.download = `photo-edited-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      
+      toast.success('Photo téléchargée avec succès!');
+    } catch (err) {
+      console.error('Download error:', err);
+      toast.error('Erreur lors du téléchargement');
+    }
   };
 
   const handleSave = async () => {
-    if (!imageRef.current || !canvasRef.current || !onSave) return;
+    if (!canvasRef.current || !onSave || !effectiveUrl) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const img = imageRef.current;
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
+    try {
+      const resp = await fetch(effectiveUrl);
+      const b = await resp.blob();
+      const bmp = await createImageBitmap(b);
 
-    ctx.filter = getFilterStyle().filter || 'none';
-    ctx.drawImage(img, 0, 0);
+      canvas.width = bmp.width;
+      canvas.height = bmp.height;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bmp, 0, 0);
+      bmp.close();
 
-    const dataUrl = canvas.toDataURL('image/png');
-    onSave(dataUrl);
-    toast.success('Photo sauvegardée!');
-    onClose();
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const filtered = applyFiltersToImageData(imgData);
+      ctx.putImageData(filtered, 0, 0);
+
+      const dataUrl = canvas.toDataURL('image/png');
+      onSave(dataUrl);
+      toast.success('Photo sauvegardée!');
+      onClose();
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Erreur lors de la sauvegarde');
+    }
   };
 
   // Sauvegarder sur le serveur - Upload direct vers Storage (plus rapide)
   const handleServerSave = async () => {
-    if (!imageRef.current || !canvasRef.current || !contentId) {
+    if (!canvasRef.current || !contentId || !effectiveUrl) {
       toast.error('Impossible de sauvegarder: données manquantes');
       return;
     }
@@ -230,32 +252,28 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const img = imageRef.current;
-    
-    // S'assurer que l'image est bien chargée
-    if (!img.complete || img.naturalWidth === 0) {
-      toast.error('Image non chargée');
-      return;
-    }
-    
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-
-    // Nettoyer le canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Dessiner l'image originale
-    ctx.drawImage(img, 0, 0);
-    
-    // Appliquer les filtres manuellement (compatible Safari/iOS)
-    console.log('Applying manual filters for Safari compatibility');
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const filteredData = applyFiltersToImageData(imageData);
-    ctx.putImageData(filteredData, 0, 0);
-
     setIsSaving(true);
 
     try {
+      // Fetch l'image comme blob pour éviter les problèmes CORS/tainted canvas
+      const fetchResponse = await fetch(effectiveUrl);
+      const imgBlob = await fetchResponse.blob();
+      const bitmapImg = await createImageBitmap(imgBlob);
+
+      canvas.width = bitmapImg.width;
+      canvas.height = bitmapImg.height;
+
+      // Nettoyer le canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Dessiner l'image originale depuis le bitmap (pas de taint)
+      ctx.drawImage(bitmapImg, 0, 0);
+      bitmapImg.close();
+      
+      // Appliquer les filtres manuellement (compatible Safari/iOS)
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const filteredData = applyFiltersToImageData(imageData);
+      ctx.putImageData(filteredData, 0, 0);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error('Non authentifié');
@@ -285,7 +303,7 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
       }
 
       // Convertir le canvas en Blob (beaucoup plus rapide que base64)
-      const blob = await new Promise<Blob>((resolve, reject) => {
+      const canvasBlob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((b) => {
           if (b) resolve(b);
           else reject(new Error('Impossible de créer le blob'));
@@ -299,7 +317,7 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
 
       const { error: uploadError } = await supabase.storage
         .from('content')
-        .upload(filePath, blob, {
+        .upload(filePath, canvasBlob, {
           contentType: 'image/png',
           upsert: false
         });
@@ -417,7 +435,6 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
             ref={imageRef}
             src={effectiveUrl}
             alt="Photo à éditer"
-            crossOrigin="anonymous"
             style={{
               ...getFilterStyle(),
               display: imageLoaded && !urlLoading ? 'block' : 'none',

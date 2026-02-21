@@ -2,6 +2,8 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Eye, Heart, Wand2, Plus, ImageIcon } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Content {
   id: string;
@@ -22,22 +24,61 @@ interface DashboardRecentContentProps {
   onViewAll: () => void;
 }
 
-const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
+// Sub-component per item to use hooks
+const RecentContentItem: React.FC<{
+  item: Content;
+  index: number;
+  onOpenLightbox: (content: Content, index: number) => void;
+  onEditContent: (content: Content) => void;
+}> = ({ item, index, onOpenLightbox, onEditContent }) => {
+  const displaySource = item.thumbnail_url || item.file_url;
+  const needsR2 = isR2Url(displaySource);
 
-const isRelativePath = (url: string): boolean => {
-  return !url.startsWith('http://') && !url.startsWith('https://');
-};
+  const { secureUrl, loading } = useSecureR2Url(
+    needsR2 ? displaySource : null,
+    { contentId: item.id, enabled: needsR2 }
+  );
 
-const buildPublicUrl = (path: string, bucket: string = 'content'): string => {
-  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
-};
+  const finalUrl = needsR2 ? secureUrl : displaySource;
 
-const getDisplayUrl = (url: string | null): string | null => {
-  if (!url) return null;
-  if (isRelativePath(url)) {
-    return buildPublicUrl(url, 'content');
-  }
-  return url;
+  return (
+    <div 
+      className="aspect-square rounded-xl overflow-hidden bg-muted relative group cursor-pointer ring-1 ring-border/50 hover:ring-primary/50 transition-all"
+      onClick={() => onOpenLightbox(item, index)}
+    >
+      {loading ? (
+        <Skeleton className="w-full h-full" />
+      ) : (
+        <img
+          src={finalUrl || ''}
+          alt={item.title}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          loading="lazy"
+          onContextMenu={(e) => e.preventDefault()}
+          draggable={false}
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-3">
+        <div className="text-white text-xs flex items-center gap-3">
+          <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{item.view_count || 0}</span>
+          <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{item.like_count || 0}</span>
+        </div>
+      </div>
+      {item.content_type === 'image' && (
+        <Button
+          variant="secondary"
+          size="icon"
+          className="absolute top-2 right-2 h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white shadow-lg"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEditContent(item);
+          }}
+        >
+          <Wand2 className="h-3.5 w-3.5 text-primary" />
+        </Button>
+      )}
+    </div>
+  );
 };
 
 export const DashboardRecentContent: React.FC<DashboardRecentContentProps> = ({
@@ -66,36 +107,13 @@ export const DashboardRecentContent: React.FC<DashboardRecentContentProps> = ({
         ) : content && content.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {content.slice(0, 4).map((item, index) => (
-              <div 
-                key={item.id} 
-                className="aspect-square rounded-xl overflow-hidden bg-muted relative group cursor-pointer ring-1 ring-border/50 hover:ring-primary/50 transition-all"
-                onClick={() => onOpenLightbox(item, index)}
-              >
-                <img
-                  src={getDisplayUrl(item.thumbnail_url) || getDisplayUrl(item.file_url) || ''}
-                  alt={item.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-3">
-                  <div className="text-white text-xs flex items-center gap-3">
-                    <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{item.view_count || 0}</span>
-                    <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{item.like_count || 0}</span>
-                  </div>
-                </div>
-                {item.content_type === 'image' && (
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute top-2 right-2 h-7 w-7 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white shadow-lg"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEditContent(item);
-                    }}
-                  >
-                    <Wand2 className="h-3.5 w-3.5 text-primary" />
-                  </Button>
-                )}
-              </div>
+              <RecentContentItem
+                key={item.id}
+                item={item}
+                index={index}
+                onOpenLightbox={onOpenLightbox}
+                onEditContent={onEditContent}
+              />
             ))}
           </div>
         ) : (
