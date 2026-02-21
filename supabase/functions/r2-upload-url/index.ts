@@ -32,7 +32,7 @@ async function generatePresignedPutUrl(
   bucket: string,
   key: string,
   accountId: string,
-  contentType: string,
+  _contentType: string,
   expiresIn: number = 3600
 ): Promise<string> {
   const now = new Date();
@@ -49,20 +49,22 @@ async function generatePresignedPutUrl(
   const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
   const credential = encodeURIComponent(`${accessKeyId}/${credentialScope}`);
 
+  // Only sign 'host' header - do NOT sign content-type to avoid mismatch
   const queryParams = [
     ['X-Amz-Algorithm', 'AWS4-HMAC-SHA256'],
+    ['X-Amz-Content-Sha256', 'UNSIGNED-PAYLOAD'],
     ['X-Amz-Credential', credential],
     ['X-Amz-Date', amzDate],
     ['X-Amz-Expires', expiresIn.toString()],
-    ['X-Amz-SignedHeaders', 'content-type;host'],
+    ['X-Amz-SignedHeaders', 'host'],
   ];
 
   const canonicalQueryString = queryParams
     .map(([k, v]) => `${k}=${v}`)
     .join('&');
 
-  const canonicalHeaders = `content-type:${contentType}\nhost:${host}\n`;
-  const signedHeaders = 'content-type;host';
+  const canonicalHeaders = `host:${host}\n`;
+  const signedHeaders = 'host';
   const payloadHash = 'UNSIGNED-PAYLOAD';
 
   const canonicalRequest = [
@@ -73,6 +75,9 @@ async function generatePresignedPutUrl(
     signedHeaders,
     payloadHash
   ].join('\n');
+
+  console.log('[r2-upload-url] Canonical URI:', canonicalUri);
+  console.log('[r2-upload-url] Signed headers:', signedHeaders);
 
   const canonicalRequestHash = await sha256(canonicalRequest);
   const stringToSign = [

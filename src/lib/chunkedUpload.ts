@@ -83,12 +83,12 @@ export async function uploadFileInChunks(
       totalChunks: 1,
     });
 
-    // 3. Upload directly to R2 via presigned URL using fetch (clean headers)
-    console.log('[upload] PUT to R2, Content-Type:', contentType, 'Size:', file.size);
+    // 3. Upload directly to R2 via presigned URL
+    // Do NOT send Content-Type header - it's not in the signed headers
+    console.log('[upload] PUT to R2, Size:', file.size);
     
     const uploadResponse = await fetch(uploadUrl, {
       method: 'PUT',
-      headers: { 'Content-Type': contentType },
       body: file,
     });
 
