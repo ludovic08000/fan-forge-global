@@ -224,3 +224,7 @@ verify_jwt = false
 # Private live payment webhook - DOIT être false car Stripe ne peut pas envoyer de JWT
 [functions.private-live-payment-webhook]
 verify_jwt = false
+
+# R2 Upload Proxy - JWT validated manually in code
+[functions.r2-upload]
+verify_jwt = false
