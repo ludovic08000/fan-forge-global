@@ -12,9 +12,10 @@ const logStep = (step: string, details?: any) => {
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS
-  const corsResponse = handleCorsPreflightRequest(req);
-  if (corsResponse) return corsResponse;
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return handleCorsPreflightRequest(req);
+  }
   
   const corsHeaders = getCorsHeaders(req);
 
