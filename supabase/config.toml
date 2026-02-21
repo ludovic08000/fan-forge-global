@@ -236,3 +236,11 @@ verify_jwt = false
 # R2 Upload Proxy - JWT validated manually in code
 [functions.r2-upload]
 verify_jwt = false
+
+# Auto-cleanup expired promo codes - cron job, no JWT
+[functions.auto-cleanup-expired-codes]
+verify_jwt = false
+
+# Generate translations via AI - requires JWT
+[functions.generate-translations]
+verify_jwt = true
