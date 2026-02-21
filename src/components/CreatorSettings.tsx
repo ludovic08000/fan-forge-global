@@ -83,6 +83,8 @@ const CreatorSettings: React.FC = () => {
     'Éducation',
     'Culture',
     'Agriculture',
+    'Voyage',
+    'Tech & Innovation',
   ];
 
   useEffect(() => {
