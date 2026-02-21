@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useSecureR2Url } from '@/hooks/useSecureR2Url';
-import { useSignedUrl } from '@/hooks/useSignedUrl';
+import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
 import { Skeleton } from '@/components/ui/skeleton';
 interface MediaLightboxProps {
   isOpen: boolean;
@@ -25,20 +24,6 @@ const detectMediaType = (url: string): 'image' | 'video' => {
   return videoExtensions.some(ext => lowerUrl.includes(ext)) ? 'video' : 'image';
 };
 
-// Check if it's a real R2 URL (not just a relative path)
-const isRealR2Url = (url: string): boolean => {
-  return url.includes('.r2.dev') || url.includes('.r2.cloudflarestorage.com');
-};
-
-// Build the full public URL from a relative path
-const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
-const buildPublicUrl = (path: string, bucket: string = 'content'): string => {
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path;
-  }
-  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
-};
-
 const MediaLightbox: React.FC<MediaLightboxProps> = ({
   isOpen,
   onClose,
@@ -58,63 +43,30 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const resolvedMediaType = mediaType || detectMediaType(mediaUrl);
-  const isExternalR2 = isRealR2Url(mediaUrl);
+  // Use the shared isR2Url which correctly detects relative paths as R2 content
+  const isR2Content = useMemo(() => isR2Url(mediaUrl), [mediaUrl]);
   const isVideo = resolvedMediaType === 'video';
-  
-  // Pour le contenu non-premium, utiliser l'URL publique directement
-  const publicUrl = useMemo(() => {
-    if (!mediaUrl) return null;
-    if (!isPremium && !isExternalR2) {
-      return buildPublicUrl(mediaUrl, 'content');
-    }
-    return null;
-  }, [mediaUrl, isPremium, isExternalR2]);
 
-  // Hooks sécurisés UNIQUEMENT pour le contenu premium
-  const needsR2Signing = isExternalR2 && isPremium;
-  const needsSupabaseSigning = !isExternalR2 && isPremium;
-
-  // Hook pour URLs R2 sécurisées - UNIQUEMENT pour le contenu premium R2
+  // All content is on R2 — always use secure R2 URL
   const { secureUrl: r2SecureUrl, loading: r2Loading, error: r2Error } = useSecureR2Url(
-    isOpen && needsR2Signing ? mediaUrl : null,
+    isOpen && isR2Content ? mediaUrl : null,
     {
       contentId,
-      enabled: isOpen && needsR2Signing
+      enabled: isOpen && isR2Content
     }
   );
 
-  // Hook pour URLs Supabase signées - UNIQUEMENT pour le contenu premium Supabase
-  const { signedUrl: supabaseSignedUrl, loading: supabaseLoading } = useSignedUrl(
-    isOpen && needsSupabaseSigning ? mediaUrl : null,
-    {
-      bucket: 'content',
-      contentId,
-      enabled: isOpen && needsSupabaseSigning
-    }
-  );
-
-  // URL sécurisée finale à utiliser
+  // URL sécurisée finale
   const secureMediaUrl = useMemo(() => {
-    // Non-premium: utiliser l'URL publique directement
-    if (!isPremium && publicUrl) {
-      return publicUrl;
-    }
-    // Premium R2 content
-    if (needsR2Signing) {
+    if (isR2Content) {
       if (r2Loading) return '';
       if (r2Error) return '';
       return r2SecureUrl || '';
     }
-    // Premium Supabase content
-    if (needsSupabaseSigning) {
-      if (supabaseLoading) return '';
-      return supabaseSignedUrl || '';
-    }
-    // Fallback
-    return publicUrl || mediaUrl;
-  }, [isPremium, needsR2Signing, needsSupabaseSigning, publicUrl, r2SecureUrl, supabaseSignedUrl, mediaUrl, r2Loading, r2Error, supabaseLoading]);
+    return mediaUrl;
+  }, [isR2Content, r2SecureUrl, mediaUrl, r2Loading, r2Error]);
   
-  const urlLoading = needsR2Signing ? r2Loading : (needsSupabaseSigning ? supabaseLoading : false);
+  const urlLoading = isR2Content ? r2Loading : false;
 
   // Reset quand le média change
   useEffect(() => {
@@ -138,11 +90,11 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
 
   // Handle R2 URL error
   useEffect(() => {
-    if (r2Error && isExternalR2) {
+    if (r2Error && isR2Content) {
       console.error('[MediaLightbox] R2 URL error:', r2Error);
       setError(true);
     }
-  }, [r2Error, isExternalR2]);
+  }, [r2Error, isR2Content]);
 
   const handleBackdropClick = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget) onClose();
