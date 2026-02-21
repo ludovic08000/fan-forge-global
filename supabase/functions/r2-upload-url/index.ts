@@ -188,6 +188,14 @@ serve(async (req) => {
 
     console.log(`[r2-upload-url] Generated presigned URLs for user ${userId}, key: ${r2Key}`);
 
+    // Log upload for security alerting (non-blocking)
+    supabaseAdmin.from('security_access_logs').insert({
+      user_id: userId,
+      endpoint: 'r2-upload-url',
+      resource_path: r2Key,
+      ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown",
+    }).catch(() => {});
+
     return new Response(
       JSON.stringify({
         uploadUrl,

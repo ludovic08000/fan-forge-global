@@ -7,6 +7,12 @@ import {
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
 
+interface WatermarkInfo {
+  username?: string;
+  odentId?: string;
+  date?: string;
+}
+
 interface PremiumVideoPlayerProps {
   src: string;
   poster?: string;
@@ -14,6 +20,7 @@ interface PremiumVideoPlayerProps {
   autoPlay?: boolean;
   onEnded?: () => void;
   onClose?: () => void;
+  watermark?: WatermarkInfo;
 }
 
 export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
@@ -22,7 +29,8 @@ export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
   className,
   autoPlay = false,
   onEnded,
-  onClose
+  onClose,
+  watermark
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -402,6 +410,31 @@ export const PremiumVideoPlayer: React.FC<PremiumVideoPlayerProps> = ({
           setIsLoading(false);
         }}
       />
+
+      {/* Dynamic forensic watermark overlay */}
+      {watermark && (
+        <div className="absolute inset-0 pointer-events-none select-none z-10" style={{ mixBlendMode: 'difference' }}>
+          {/* Top-left watermark */}
+          <div className="absolute top-[12%] left-[8%] opacity-[0.04] text-white text-[10px] font-mono rotate-[-15deg] whitespace-nowrap">
+            {watermark.username || watermark.odentId} • {watermark.date}
+          </div>
+          {/* Center watermark */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] text-white text-[11px] font-mono rotate-[20deg] whitespace-nowrap">
+            {watermark.odentId} • {watermark.username}
+          </div>
+          {/* Bottom-right watermark */}
+          <div className="absolute bottom-[18%] right-[6%] opacity-[0.04] text-white text-[10px] font-mono rotate-[-8deg] whitespace-nowrap">
+            {watermark.date} • {watermark.odentId}
+          </div>
+          {/* Additional scattered marks for forensic tracing */}
+          <div className="absolute top-[35%] right-[15%] opacity-[0.025] text-white text-[9px] font-mono rotate-[45deg] whitespace-nowrap">
+            {watermark.odentId}
+          </div>
+          <div className="absolute bottom-[40%] left-[20%] opacity-[0.025] text-white text-[9px] font-mono rotate-[-30deg] whitespace-nowrap">
+            {watermark.username}
+          </div>
+        </div>
+      )}
 
       {/* Click overlay for play/pause & double-tap skip - excludes bottom controls area */}
       <div 
