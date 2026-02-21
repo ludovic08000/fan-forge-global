@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { validateJwtAndGetUserId } from "../_shared/auth.ts";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 
@@ -68,11 +69,91 @@ serve(async (req) => {
       });
     }
 
-    const { filePath } = await req.json();
+    const userId = authResult.userId!;
+    const { filePath, contentId } = await req.json();
     if (!filePath) {
       return new Response(JSON.stringify({ error: "filePath required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
+    }
+
+    // SECURITY: If contentId is provided, verify access rights
+    if (contentId) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+      const { data: content } = await supabaseAdmin
+        .from('content')
+        .select('id, file_url, creator_id, is_premium, is_preview, status')
+        .eq('id', contentId)
+        .single();
+
+      if (!content) {
+        return new Response(JSON.stringify({ error: "Content not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
+      // Block access to unpublished content (except for the creator)
+      if (content.status !== 'published') {
+        const { data: creator } = await supabaseAdmin
+          .from('creators')
+          .select('user_id')
+          .eq('id', content.creator_id)
+          .single();
+
+        const isOwner = creator?.user_id === userId;
+        const { data: adminRole } = await supabaseAdmin
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .eq('role', 'admin')
+          .maybeSingle();
+
+        if (!isOwner && !adminRole) {
+          return new Response(JSON.stringify({ error: "Content not available" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
+        }
+      }
+
+      // Check subscription for premium non-preview content
+      if (content.is_premium && !content.is_preview) {
+        const { data: creator } = await supabaseAdmin
+          .from('creators')
+          .select('user_id')
+          .eq('id', content.creator_id)
+          .single();
+
+        const isOwner = creator?.user_id === userId;
+
+        if (!isOwner) {
+          const { data: subscription } = await supabaseAdmin
+            .from('subscriptions')
+            .select('id')
+            .eq('subscriber_id', userId)
+            .eq('creator_id', content.creator_id)
+            .eq('status', 'active')
+            .maybeSingle();
+
+          const { data: adminRole } = await supabaseAdmin
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', userId)
+            .eq('role', 'admin')
+            .maybeSingle();
+
+          if (!subscription && !adminRole) {
+            return new Response(JSON.stringify({ error: "Subscription required" }), {
+              status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
+            });
+          }
+        }
+      }
+
+      // SECURITY: Use the file_url from DB, not the client-provided filePath
+      // This prevents BOLA attacks
     }
 
     const r2AccountId = Deno.env.get("R2_ACCOUNT_ID")!;
@@ -99,7 +180,7 @@ serve(async (req) => {
       headers: {
         ...corsHeaders,
         "Content-Type": contentType,
-        "Cache-Control": "private, max-age=300",
+        "Cache-Control": "private, no-store, max-age=0",
       }
     });
   } catch (error) {

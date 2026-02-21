@@ -21,6 +21,7 @@ interface Content {
   view_count: number | null;
   like_count: number | null;
   is_premium: boolean | null;
+  status?: string | null;
 }
 
 interface PrivateReplay {
@@ -263,7 +264,19 @@ const SecureContentCard: React.FC<{
         </div>
       </div>
       <CardContent className="p-3">
-        <h3 className="font-medium text-sm line-clamp-1">{item.title}</h3>
+        <div className="flex items-center gap-1.5 mb-1">
+          <h3 className="font-medium text-sm line-clamp-1 flex-1">{item.title}</h3>
+          {item.status === 'draft' && (
+            <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-500 shrink-0">
+              En attente
+            </Badge>
+          )}
+          {item.status === 'archived' && (
+            <Badge variant="outline" className="text-[10px] border-muted-foreground text-muted-foreground shrink-0">
+              Archivé
+            </Badge>
+          )}
+        </div>
         <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{item.view_count || 0}</span>

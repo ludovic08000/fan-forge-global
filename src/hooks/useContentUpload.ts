@@ -110,6 +110,7 @@ export const useContentUpload = () => {
           is_preview: data.isPreview || false,
           price: data.isPremium ? (data.price || 0) : 0,
           file_size: fileToUpload.size,
+          status: 'draft' as const, // Modération pré-publication: contenu en attente de validation
         })
         .select()
         .single();
@@ -142,7 +143,7 @@ export const useContentUpload = () => {
 
       setProgress(100);
       setUploadStage('Terminé!');
-      toast.success('Contenu uploadé avec succès !');
+      toast.success('Contenu uploadé ! Il sera visible après validation.');
       return contentData;
 
     } catch (error: any) {
