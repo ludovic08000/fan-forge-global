@@ -21,6 +21,7 @@ interface CreatorProfile {
   id: string;
   stage_name: string | null;
   category: string | null;
+  categories: string[] | null;
   is_accepting_tips: boolean;
   subscription_price: number | null;
   currency: string | null;
@@ -53,6 +54,7 @@ const CreatorSettings: React.FC = () => {
   const [formData, setFormData] = useState({
     stageName: '',
     category: '',
+    categories: [] as string[],
     bio: '',
     instagram_url: '',
     twitter_url: '',
@@ -101,6 +103,7 @@ const CreatorSettings: React.FC = () => {
             ...prev,
             stageName: data.stage_name || '',
             category: data.category || '',
+            categories: (data as any).categories || (data.category ? [data.category] : []),
           }));
         }
 
@@ -235,7 +238,8 @@ const CreatorSettings: React.FC = () => {
     try {
       const updateData = {
         stage_name: formData.stageName || null,
-        category: formData.category || null,
+        category: formData.categories[0] || formData.category || null,
+        categories: formData.categories,
       };
 
       if (profile) {
@@ -615,23 +619,45 @@ const CreatorSettings: React.FC = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="category">Catégorie</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionnez" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
+            <div className="space-y-3">
+              <Label>Catégories <span className="text-xs text-muted-foreground font-normal">(3 max)</span></Label>
+              <div className="grid grid-cols-3 gap-2">
+                {categories.map((cat) => {
+                  const isActive = formData.categories.includes(cat);
+                  const isDisabled = !isActive && formData.categories.length >= 3;
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => {
+                        const newCats = isActive
+                          ? formData.categories.filter(c => c !== cat)
+                          : [...formData.categories, cat];
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          categories: newCats,
+                          category: newCats[0] || '' 
+                        }));
+                      }}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : isDisabled
+                            ? 'bg-muted text-muted-foreground/40 cursor-not-allowed'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                      }`}
+                    >
                       {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    </button>
+                  );
+                })}
+              </div>
+              {formData.categories.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {formData.categories.length}/3 sélectionnée{formData.categories.length > 1 ? 's' : ''}
+                </p>
+              )}
             </div>
 
           </CardContent>

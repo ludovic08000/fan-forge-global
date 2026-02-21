@@ -1119,6 +1119,7 @@ export type Database = {
           bank_country: string | null
           bank_iban: string | null
           blocked_countries: string[] | null
+          categories: string[] | null
           category: string | null
           content_type: string[] | null
           created_at: string | null
@@ -1162,6 +1163,7 @@ export type Database = {
           bank_country?: string | null
           bank_iban?: string | null
           blocked_countries?: string[] | null
+          categories?: string[] | null
           category?: string | null
           content_type?: string[] | null
           created_at?: string | null
@@ -1205,6 +1207,7 @@ export type Database = {
           bank_country?: string | null
           bank_iban?: string | null
           blocked_countries?: string[] | null
+          categories?: string[] | null
           category?: string | null
           content_type?: string[] | null
           created_at?: string | null
