@@ -11,11 +11,13 @@ import type { Session } from '@supabase/supabase-js';
 let cachedSession: Session | null = null;
 let sessionPromise: Promise<Session | null> | null = null;
 let isInitialized = false;
+let sessionVersion = 0; // incremented on auth state change
 
 /**
  * Obtenir la session de manière synchrone si disponible
  */
 export const getSessionSync = (): Session | null => cachedSession;
+export const getSessionVersion = (): number => sessionVersion;
 
 /**
  * Précharger la session (appelé une fois au démarrage)
@@ -60,6 +62,9 @@ export const usePreloadedSession = () => {
     // Écouter les changements (login/logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       cachedSession = newSession;
+      // Reset promise so next getSessionAsync() uses fresh session
+      sessionPromise = null;
+      sessionVersion++;
       setSession(newSession);
     });
 
