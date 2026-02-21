@@ -43,7 +43,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               {t('dashboard.myCreatorSpace')}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {user.user_metadata?.stage_name || user.user_metadata?.display_name || user.user_metadata?.username || user.email}
+              {user.user_metadata?.stage_name || user.user_metadata?.display_name || user.user_metadata?.username || t('dashboard.myCreatorSpace')}
             </p>
           </div>
         </div>

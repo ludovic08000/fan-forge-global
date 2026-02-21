@@ -66,6 +66,18 @@ interface ContentReport {
   };
 }
 
+/**
+ * Masquer un email pour la confidentialité : "j***@g***.com"
+ */
+const maskEmail = (email: string | null | undefined): string => {
+  if (!email || !email.includes('@')) return '***@***.***';
+  const [local, domain] = email.split('@');
+  const domainParts = domain.split('.');
+  const maskedLocal = local.charAt(0) + '***';
+  const maskedDomain = domainParts[0].charAt(0) + '***.' + domainParts.slice(1).join('.');
+  return `${maskedLocal}@${maskedDomain}`;
+};
+
 interface LoginLog {
   id: string;
   user_id: string;
@@ -282,7 +294,7 @@ const AdminDashboard = () => {
     const headers = ['Créateur', 'Email', 'Stripe ID', 'Statut Stripe', 'Fréquence', 'Devise', 'Revenu Semaine', 'Revenu Mois', 'Revenu Trimestre', 'Abonnés'];
     const rows = filteredPayments.map(p => [
       p.stage_name || 'N/A',
-      p.email,
+      maskEmail(p.email),
       p.stripe_account_id || 'Non connecté',
       p.stripe_account_status || 'N/A',
       p.payment_frequency,
@@ -689,7 +701,7 @@ const AdminDashboard = () => {
                           {payment.stage_name || 'Sans nom'}
                         </TableCell>
                         <TableCell className="font-mono text-sm">
-                          {payment.email}
+                          {maskEmail(payment.email)}
                         </TableCell>
                         <TableCell className="font-mono text-xs">
                           {payment.stripe_account_id ? (
@@ -828,7 +840,7 @@ const AdminDashboard = () => {
                         {new Date(log.created_at).toLocaleString('fr-FR')}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
-                        {log.email}
+                        {maskEmail(log.email)}
                       </TableCell>
                       <TableCell>{log.username || '-'}</TableCell>
                       <TableCell className="font-mono text-sm">
