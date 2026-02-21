@@ -22,6 +22,7 @@ import { PrivateLiveReplays } from '@/components/live/PrivateLiveReplays';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { CreatorTipButton } from '@/components/CreatorTipButton';
 import PrivateLiveRequestDialog from '@/components/live/PrivateLiveRequestDialog';
+import { SecureContentItem } from '@/components/SecureContentItem';
 
 type ContentFilter = 'all' | 'image' | 'video';
 type TabFilter = 'posts' | 'medias';
@@ -914,25 +915,10 @@ const CreatorPublicPage = () => {
                   onClick={() => canView && handleOpenImage(item)}
                   onDoubleClick={() => canView && handleLikeContent(item.id)}
                 >
-                  {item.content_type === 'video' ? (
-                    <SecureVideoPreviewCard
-                      src={item.file_url}
-                      contentId={item.id}
-                      poster={null}
-                      className="w-full h-full object-cover"
-                      blurred={!canView}
-                      showPlayButton={false}
-                      isPremium={item.is_premium}
-                    />
-                  ) : (
-                    <OptimizedImage
-                      src={item.thumbnail_url || item.file_url}
-                      alt={item.title}
-                      className={`w-full h-full object-cover transition-transform ${
-                        canView ? 'group-hover:scale-105' : 'blur-lg'
-                      }`}
-                    />
-                  )}
+                  <SecureContentItem
+                    item={item}
+                    canView={canView}
+                  />
 
                   {/* Durée vidéo seulement - PAS de bouton play */}
                   {item.content_type === 'video' && canView && item.duration && (
