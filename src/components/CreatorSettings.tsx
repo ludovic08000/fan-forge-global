@@ -66,20 +66,17 @@ const CreatorSettings: React.FC = () => {
 
   const categories = [
     'Glamour',
-    'Gaming',
-    'Fitness & Sport',
-    'Cuisine',
-    'Musique',
     'Lifestyle',
-    'Mode & Beauté',
-    'Art & Design',
-    'Photographie',
-    'Vidéo & Film',
-    'Écriture',
-    'Technologie',
-    'Éducation',
-    'Divertissement',
-    'Autre'
+    'DJing',
+    'Gaming',
+    'Avocat',
+    'Football',
+    'Basketball',
+    'Coach sportif',
+    'Cuisine',
+    'Luxe',
+    'Mannequin',
+    'Art & Création',
   ];
 
   useEffect(() => {
