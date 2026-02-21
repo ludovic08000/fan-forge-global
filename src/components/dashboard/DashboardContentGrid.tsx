@@ -491,16 +491,19 @@ const PrivateReplaysSection: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from('private_live_replays')
-      .delete()
-      .eq('id', id);
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-replay', {
+        body: { replayId: id, replayType: 'private' }
+      });
 
-    if (error) {
-      toast.error('Erreur lors de la suppression');
-    } else {
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
       toast.success('Replay supprimé');
       refetch();
+    } catch (err: any) {
+      console.error('Delete replay error:', err);
+      toast.error('Erreur lors de la suppression: ' + (err.message || 'Erreur inconnue'));
     }
   };
 
