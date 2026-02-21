@@ -79,6 +79,9 @@ const CreatorSettings: React.FC = () => {
     'Luxe',
     'Mannequin',
     'Art & Création',
+    'Musique',
+    'Éducation',
+    'Culture',
   ];
 
   useEffect(() => {
