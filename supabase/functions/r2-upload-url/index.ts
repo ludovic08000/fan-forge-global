@@ -178,7 +178,7 @@ serve(async (req) => {
     const r2BucketName = Deno.env.get("R2_BUCKET_NAME") || "crub";
 
     const uploadExpiresIn = 600; // 10 minutes to upload
-    const viewExpiresIn = 3600; // 1 hour to view
+    const viewExpiresIn = 120; // 2 minutes to view - short-lived for security
 
     // Generate both PUT (upload) and GET (view) presigned URLs
     const [uploadUrl, viewUrl] = await Promise.all([

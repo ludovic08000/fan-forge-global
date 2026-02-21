@@ -8,7 +8,7 @@ interface R2UrlCache {
   expiresAt: number; // timestamp for faster comparison
 }
 
-// Cache global pour les URLs R2 signées - avec expiration de 55 minutes
+// Cache global pour les URLs R2 signées - avec expiration courte (TTL ~2min)
 const r2UrlCache = new Map<string, R2UrlCache>();
 
 // Pending requests to avoid duplicate fetches
@@ -71,8 +71,8 @@ const getCachedUrl = (cacheKey: string): string | null => {
   const cached = r2UrlCache.get(cacheKey);
   if (cached) {
     const now = Date.now();
-    // 5 min margin before expiration
-    if (now < cached.expiresAt - 300000) {
+    // 15s margin before expiration (short TTL URLs)
+    if (now < cached.expiresAt - 15000) {
       return cached.url;
     }
     r2UrlCache.delete(cacheKey);
@@ -206,7 +206,7 @@ export const useSecureR2Url = (
             if (signedUrl) {
               r2UrlCache.set(key, {
                 url: signedUrl,
-                expiresAt: data.expiresAt ? new Date(data.expiresAt).getTime() : Date.now() + 3600000,
+                expiresAt: data.expiresAt ? new Date(data.expiresAt).getTime() : Date.now() + 120000,
               });
               return signedUrl;
             }

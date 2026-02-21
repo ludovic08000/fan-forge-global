@@ -128,8 +128,8 @@ serve(async (req) => {
       Key: replay.file_path,
     });
 
-    // URL valide pendant 2 heures
-    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 7200 });
+    // URL valide pendant 5 minutes (sécurité renforcée)
+    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 });
 
     // Incrémenter le compteur de vues
     await supabaseAdmin
@@ -140,7 +140,7 @@ serve(async (req) => {
     logStep("URL generated successfully", { replayId, userId });
 
     return new Response(
-      JSON.stringify({ url: signedUrl, expiresIn: 7200 }),
+      JSON.stringify({ url: signedUrl, expiresIn: 300 }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

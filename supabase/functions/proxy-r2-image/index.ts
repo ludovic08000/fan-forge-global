@@ -23,7 +23,7 @@ async function sha256(data: string): Promise<string> {
 
 async function generatePresignedGetUrl(
   accessKeyId: string, secretAccessKey: string, region: string,
-  bucket: string, key: string, accountId: string, expiresIn: number = 300
+  bucket: string, key: string, accountId: string, expiresIn: number = 120
 ): Promise<string> {
   const now = new Date();
   const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
