@@ -1,6 +1,5 @@
 /**
- * R2 Direct Upload System
- * Upload direct vers Cloudflare R2 via presigned URLs
+ * R2 Upload System - via Edge Function proxy (no CORS issues)
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -34,12 +33,12 @@ function getContentTypeFromExtension(fileName: string): string {
 }
 
 /**
- * Upload un fichier directement vers R2 via presigned URL
+ * Upload a file to R2 via Edge Function proxy
  */
 export async function uploadFileInChunks(
   file: File,
-  _bucket: string, // Ignoré - tout va sur R2
-  _filePath: string, // Ignoré - le serveur génère le path
+  _bucket: string,
+  _filePath: string,
   onProgress?: (progress: ChunkUploadProgress) => void
 ): Promise<ChunkUploadResult> {
   const totalBytes = file.size;
@@ -47,7 +46,7 @@ export async function uploadFileInChunks(
   onProgress?.({
     stage: 'preparing',
     progress: 5,
-    message: 'Préparation de l\'upload R2...',
+    message: 'Préparation de l\'upload...',
     bytesUploaded: 0,
     totalBytes,
     currentChunk: 0,
@@ -56,51 +55,16 @@ export async function uploadFileInChunks(
 
   try {
     // 1. Get session for auth
-    console.log('[R2 Upload] Step 1: Getting session...');
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) {
-      console.error('[R2 Upload] Session error:', sessionError);
-      throw new Error('Erreur de session: ' + sessionError.message);
-    }
-    if (!session) {
-      console.error('[R2 Upload] No session found');
+    if (sessionError || !session) {
       throw new Error('Authentification requise');
     }
-    console.log('[R2 Upload] Session OK, user:', session.user.id);
 
-    // 2. Get presigned PUT URL from edge function
-    console.log('[R2 Upload] Step 2: Calling r2-upload-url edge function...', {
-      fileName: file.name,
-      contentType: file.type,
-      fileSize: file.size,
-    });
-    
-    // Fallback contentType par extension si file.type est vide
     const contentType = file.type || getContentTypeFromExtension(file.name);
-    
-    const { data, error: fnError } = await supabase.functions.invoke('r2-upload-url', {
-      body: {
-        fileName: file.name,
-        contentType,
-        fileSize: file.size,
-      },
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-      },
-    });
-
-    console.log('[R2 Upload] Edge function response:', { data, fnError });
-
-    if (fnError || !data?.uploadUrl) {
-      console.error('[R2 Upload] Edge function failed:', { fnError, data });
-      throw new Error(data?.error || fnError?.message || 'Erreur obtention URL d\'upload');
-    }
-
-    const { uploadUrl, filePath } = data;
 
     onProgress?.({
       stage: 'uploading',
-      progress: 15,
+      progress: 10,
       message: 'Upload en cours...',
       bytesUploaded: 0,
       totalBytes,
@@ -108,8 +72,16 @@ export async function uploadFileInChunks(
       totalChunks: 1,
     });
 
-    // 3. Upload directly to R2 via presigned URL with XHR for progress tracking
-    await new Promise<void>((resolve, reject) => {
+    // 2. Upload via edge function proxy using XHR for progress
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('fileName', file.name);
+    formData.append('contentType', contentType);
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const uploadUrl = `${supabaseUrl}/functions/v1/r2-upload`;
+
+    const result = await new Promise<{ success: boolean; filePath: string; error?: string }>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       const startTime = Date.now();
 
@@ -117,12 +89,12 @@ export async function uploadFileInChunks(
         if (e.lengthComputable) {
           const elapsed = (Date.now() - startTime) / 1000;
           const speed = e.loaded / elapsed;
-          const mappedProgress = 15 + Math.round((e.loaded / e.total) * 75);
+          const mappedProgress = 10 + Math.round((e.loaded / e.total) * 80);
 
           onProgress?.({
             stage: 'uploading',
             progress: mappedProgress,
-            message: `Upload R2 • ${formatSpeed(speed)}`,
+            message: `Upload • ${formatSpeed(speed)}`,
             bytesUploaded: e.loaded,
             totalBytes: e.total,
             currentChunk: 1,
@@ -133,25 +105,25 @@ export async function uploadFileInChunks(
       });
 
       xhr.addEventListener('load', () => {
-        console.log(`[R2 Upload] PUT response: status=${xhr.status}, statusText=${xhr.statusText}, responseLength=${xhr.responseText?.length}`);
-        if (xhr.status >= 200 && xhr.status < 300) {
-          resolve();
-        } else {
-          console.error(`[R2 Upload] HTTP ${xhr.status} - Headers: ${xhr.getAllResponseHeaders()} - Response: ${xhr.responseText}`);
-          reject(new Error(`Upload R2 échoué (HTTP ${xhr.status}): ${xhr.responseText?.substring(0, 200)}`));
+        try {
+          const response = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300 && response.success) {
+            resolve({ success: true, filePath: response.filePath });
+          } else {
+            reject(new Error(response.error || `Upload échoué (HTTP ${xhr.status})`));
+          }
+        } catch {
+          reject(new Error(`Upload échoué (HTTP ${xhr.status})`));
         }
       });
 
-      xhr.addEventListener('error', (e) => {
-        console.error('[R2 Upload] XHR error event fired. URL:', uploadUrl?.substring(0, 100));
-        console.error('[R2 Upload] readyState:', xhr.readyState, 'status:', xhr.status);
-        reject(new Error('Erreur réseau lors de l\'upload R2 - vérifiez la configuration CORS du bucket R2'));
-      });
+      xhr.addEventListener('error', () => reject(new Error('Erreur réseau')));
       xhr.addEventListener('abort', () => reject(new Error('Upload annulé')));
 
-      xhr.open('PUT', uploadUrl);
-      xhr.setRequestHeader('Content-Type', contentType);
-      xhr.send(file);
+      xhr.open('POST', uploadUrl);
+      xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
+      xhr.setRequestHeader('apikey', import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
+      xhr.send(formData);
     });
 
     onProgress?.({
@@ -166,12 +138,12 @@ export async function uploadFileInChunks(
 
     return {
       success: true,
-      filePath, // R2 key returned by the server
-      bucket: 'r2', // Marker that this is on R2
+      filePath: result.filePath,
+      bucket: 'r2',
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur d\'upload';
-    
+
     onProgress?.({
       stage: 'error',
       progress: 0,
@@ -191,9 +163,6 @@ export async function uploadFileInChunks(
   }
 }
 
-/**
- * Formater la vitesse d'upload
- */
 function formatSpeed(bytesPerSecond: number): string {
   if (bytesPerSecond >= 1024 * 1024) {
     return `${(bytesPerSecond / (1024 * 1024)).toFixed(1)} MB/s`;
@@ -204,9 +173,6 @@ function formatSpeed(bytesPerSecond: number): string {
   return `${bytesPerSecond.toFixed(0)} B/s`;
 }
 
-/**
- * Formater la taille de fichier
- */
 export function formatFileSize(bytes: number): string {
   if (bytes >= 1024 * 1024 * 1024) {
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
