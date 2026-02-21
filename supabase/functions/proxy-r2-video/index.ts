@@ -57,11 +57,16 @@ async function generatePresignedGetUrl(
   return `https://${host}${canonicalUri}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
 }
 
+const logStep = (step: string, details?: any) => {
+  console.log(`[proxy-r2-video] ${step}`, details ? JSON.stringify(details) : '');
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return handleCorsOptions(req);
   const corsHeaders = getCorsHeaders(req);
 
   try {
+    // JWT mandatory
     const authResult = await validateJwtAndGetUserId(req.headers.get("Authorization"));
     if (authResult.error) {
       return new Response(JSON.stringify({ error: authResult.error }), {
@@ -71,18 +76,19 @@ serve(async (req) => {
 
     const userId = authResult.userId!;
     const { filePath, contentId } = await req.json();
+
     if (!filePath) {
       return new Response(JSON.stringify({ error: "filePath required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
     // SECURITY: If contentId is provided, verify access rights
     if (contentId) {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
       const { data: content } = await supabaseAdmin
         .from('content')
         .select('id, file_url, creator_id, is_premium, is_preview, status')
@@ -90,12 +96,13 @@ serve(async (req) => {
         .single();
 
       if (!content) {
+        logStep('Content not found', { contentId });
         return new Response(JSON.stringify({ error: "Content not found" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
 
-      // Block access to unpublished content (except for the creator)
+      // Block access to unpublished content (except creator/admin)
       if (content.status !== 'published') {
         const { data: creator } = await supabaseAdmin
           .from('creators')
@@ -112,6 +119,7 @@ serve(async (req) => {
           .maybeSingle();
 
         if (!isOwner && !adminRole) {
+          logStep('Access denied - unpublished', { contentId, userId });
           return new Response(JSON.stringify({ error: "Content not available" }), {
             status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
           });
@@ -145,58 +153,54 @@ serve(async (req) => {
             .maybeSingle();
 
           if (!subscription && !adminRole) {
+            logStep('Access denied - no subscription', { contentId, userId });
             return new Response(JSON.stringify({ error: "Subscription required" }), {
               status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
             });
           }
         }
       }
-
-      // SECURITY: Use the file_url from DB, not the client-provided filePath
-      // This prevents BOLA attacks
     }
 
-    // Log access for security alerting (non-blocking)
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabaseLog = createClient(supabaseUrl, supabaseServiceKey);
-    supabaseLog.from('security_access_logs').insert({
+    // Log access for alerting
+    await supabaseAdmin.from('security_access_logs').insert({
       user_id: userId,
-      endpoint: 'proxy-r2-image',
+      endpoint: 'proxy-r2-video',
       resource_path: filePath,
       content_id: contentId || null,
       ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown",
-    }).catch(() => {});
+    }).catch(() => {}); // Non-blocking
 
+    // Generate short-lived presigned URL and redirect (302) for streaming
     const r2AccountId = Deno.env.get("R2_ACCOUNT_ID")!;
     const r2AccessKeyId = Deno.env.get("R2_ACCESS_KEY_ID")!;
     const r2SecretAccessKey = Deno.env.get("R2_SECRET_ACCESS_KEY")!;
     const r2BucketName = Deno.env.get("R2_BUCKET_NAME") || "crub";
 
     const signedUrl = await generatePresignedGetUrl(
-      r2AccessKeyId, r2SecretAccessKey, 'auto', r2BucketName, filePath, r2AccountId
+      r2AccessKeyId, r2SecretAccessKey, 'auto', r2BucketName, filePath, r2AccountId, 120
     );
 
-    const r2Response = await fetch(signedUrl);
-    if (!r2Response.ok) {
-      return new Response(JSON.stringify({ error: "Image not found" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-    }
+    logStep('Generated signed video URL', { userId, filePath: filePath.substring(0, 30) });
 
-    const contentType = r2Response.headers.get("content-type") || "image/jpeg";
-    const imageData = await r2Response.arrayBuffer();
-
-    return new Response(imageData, {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": contentType,
-        "Cache-Control": "private, no-store, max-age=0",
+    // Return the signed URL (not proxying the bytes - videos are too large)
+    return new Response(
+      JSON.stringify({
+        url: signedUrl,
+        expiresAt: new Date(Date.now() + 120 * 1000).toISOString(),
+        expiresIn: 120,
+      }),
+      {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+          "Cache-Control": "private, no-store, max-age=0",
+        }
       }
-    });
+    );
   } catch (error) {
-    console.error("[proxy-r2-image] Error:", error);
+    console.error("[proxy-r2-video] Error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
     });

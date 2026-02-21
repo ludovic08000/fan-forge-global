@@ -243,4 +243,12 @@ verify_jwt = false
 
 # Generate translations via AI - requires JWT
 [functions.generate-translations]
-verify_jwt = true
+verify_jwt = false
+
+# Video proxy with JWT auth - validated manually in code
+[functions.proxy-r2-video]
+verify_jwt = false
+
+# Security alerting - cron job, no JWT (uses CRON_SECRET)
+[functions.security-alerting]
+verify_jwt = false

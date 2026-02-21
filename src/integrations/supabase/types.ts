@@ -3254,6 +3254,78 @@ export type Database = {
         }
         Relationships: []
       }
+      security_access_logs: {
+        Row: {
+          content_id: string | null
+          created_at: string
+          endpoint: string
+          id: string
+          ip_address: string | null
+          resource_path: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content_id?: string | null
+          created_at?: string
+          endpoint: string
+          id?: string
+          ip_address?: string | null
+          resource_path?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content_id?: string | null
+          created_at?: string
+          endpoint?: string
+          id?: string
+          ip_address?: string | null
+          resource_path?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      security_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          metric_value: number
+          severity: string
+          threshold: number
+          user_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          metric_value: number
+          severity?: string
+          threshold: number
+          user_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          metric_value?: number
+          severity?: string
+          threshold?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       security_blocks: {
         Row: {
           block_type: string
@@ -3993,6 +4065,7 @@ export type Database = {
       cleanup_old_email_logs: { Args: never; Returns: undefined }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
+      cleanup_old_security_access_logs: { Args: never; Returns: undefined }
       cleanup_paused_creators: { Args: never; Returns: number }
       cleanup_stale_live_streams: { Args: never; Returns: undefined }
       count_failed_attempts: {
