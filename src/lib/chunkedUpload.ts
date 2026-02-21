@@ -133,15 +133,20 @@ export async function uploadFileInChunks(
       });
 
       xhr.addEventListener('load', () => {
+        console.log(`[R2 Upload] PUT response: status=${xhr.status}, statusText=${xhr.statusText}, responseLength=${xhr.responseText?.length}`);
         if (xhr.status >= 200 && xhr.status < 300) {
           resolve();
         } else {
-          console.error(`[R2 Upload] HTTP ${xhr.status} - Response: ${xhr.responseText}`);
+          console.error(`[R2 Upload] HTTP ${xhr.status} - Headers: ${xhr.getAllResponseHeaders()} - Response: ${xhr.responseText}`);
           reject(new Error(`Upload R2 échoué (HTTP ${xhr.status}): ${xhr.responseText?.substring(0, 200)}`));
         }
       });
 
-      xhr.addEventListener('error', () => reject(new Error('Erreur réseau lors de l\'upload R2')));
+      xhr.addEventListener('error', (e) => {
+        console.error('[R2 Upload] XHR error event fired. URL:', uploadUrl?.substring(0, 100));
+        console.error('[R2 Upload] readyState:', xhr.readyState, 'status:', xhr.status);
+        reject(new Error('Erreur réseau lors de l\'upload R2 - vérifiez la configuration CORS du bucket R2'));
+      });
       xhr.addEventListener('abort', () => reject(new Error('Upload annulé')));
 
       xhr.open('PUT', uploadUrl);
