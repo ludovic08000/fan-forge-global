@@ -528,6 +528,13 @@ const Dashboard = () => {
           </Suspense>
         )}
 
+        {/* Section: Analytics */}
+        {activeSection === 'analytics' && (
+          <Suspense fallback={<LoadingFallback message="Chargement des statistiques..." />}>
+            <CreatorAnalyticsDashboard />
+          </Suspense>
+        )}
+
         {/* Section: Partnerships */}
         {activeSection === 'partnerships' && creatorProfile?.id && (
           <Suspense fallback={<LoadingFallback />}>
