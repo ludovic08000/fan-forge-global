@@ -29,7 +29,7 @@ interface SEOHeadProps {
 }
 
 // Langues supportées avec leurs codes hreflang
-const SUPPORTED_LANGUAGES = ['fr', 'en', 'es', 'de', 'it', 'pt', 'nl'] as const;
+const SUPPORTED_LANGUAGES = ['fr', 'en'] as const;
 const DEFAULT_LANGUAGE = 'fr';
 
 const SEOHead = ({
