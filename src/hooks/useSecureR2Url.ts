@@ -95,21 +95,18 @@ export const useSecureR2Url = (
   const liveStreamId = options?.liveStreamId;
   const enabled = options?.enabled !== false;
   
-  // Check if R2 URL synchronously to avoid unnecessary state updates
   const isR2 = useMemo(() => isR2Url(originalUrl), [originalUrl]);
   const filePath = useMemo(() => 
     isR2 && originalUrl ? extractR2FilePath(originalUrl) : null, 
     [isR2, originalUrl]
   );
   
-  // Compute cache key once
   const cacheKey = useMemo(() => {
     if (!filePath) return null;
     const session = getSessionSync();
     return session ? `r2:${filePath}:${session.user.id}` : `r2:${filePath}:anon`;
   }, [filePath]);
   
-  // Check cache synchronously for instant display
   const cachedUrl = useMemo(() => 
     cacheKey ? getCachedUrl(cacheKey) : null,
     [cacheKey]
@@ -132,7 +129,6 @@ export const useSecureR2Url = (
   }, []);
 
   useEffect(() => {
-    // Fast path: no URL, disabled, or not R2
     if (!originalUrl || !enabled) {
       setSecureUrl(originalUrl || null);
       setLoading(false);
@@ -151,14 +147,12 @@ export const useSecureR2Url = (
       return;
     }
 
-    // Already cached
     if (cachedUrl) {
       setSecureUrl(cachedUrl);
       setLoading(false);
       return;
     }
 
-    // Need to fetch
     const fetchUrl = async () => {
       const session = await getSessionAsync();
       
@@ -173,7 +167,6 @@ export const useSecureR2Url = (
 
       const key = `r2:${filePath}:${session.user.id}`;
       
-      // Check cache again after async
       const cached = getCachedUrl(key);
       if (cached) {
         if (mountedRef.current) {
@@ -183,27 +176,39 @@ export const useSecureR2Url = (
         return;
       }
 
-      // Check if already fetching
       let pending = pendingRequests.get(key);
       if (!pending) {
         pending = (async () => {
           try {
-            const { data, error: fnError } = await supabase.functions.invoke('get-replay-url', {
-              body: { filePath, contentId, liveStreamId },
+            // Use proxy approach: fetch image blob via proxy-r2-image edge function
+            // This avoids CORS issues with direct R2 presigned URLs
+            const { data, error: fnError } = await supabase.functions.invoke('proxy-r2-image', {
+              body: { filePath },
               headers: { Authorization: `Bearer ${session.access_token}` },
             });
 
             if (fnError) throw fnError;
 
-            // Support both "url" and "signedUrl" for backward compatibility
-            const signedUrl = data?.url || data?.signedUrl;
-            if (signedUrl) {
+            // proxy-r2-image returns raw binary data, create a blob URL
+            if (data instanceof Blob) {
+              const blobUrl = URL.createObjectURL(data);
+              r2UrlCache.set(key, {
+                url: blobUrl,
+                expiresAt: Date.now() + 300000, // 5 minutes (proxy uses 5 min cache)
+              });
+              return blobUrl;
+            }
+            
+            // Fallback: if response is JSON with url field (shouldn't happen with proxy)
+            if (data?.url || data?.signedUrl) {
+              const signedUrl = data.url || data.signedUrl;
               r2UrlCache.set(key, {
                 url: signedUrl,
                 expiresAt: data.expiresAt ? new Date(data.expiresAt).getTime() : Date.now() + 3600000,
               });
               return signedUrl;
             }
+            
             return null;
           } catch (err) {
             console.error('[useSecureR2Url] Error:', err);
@@ -234,7 +239,13 @@ export const useSecureR2Url = (
       if (path) {
         const session = await getSessionAsync();
         if (session) {
-          r2UrlCache.delete(`r2:${path}:${session.user.id}`);
+          const key = `r2:${path}:${session.user.id}`;
+          const cached = r2UrlCache.get(key);
+          // Revoke blob URL to free memory
+          if (cached?.url.startsWith('blob:')) {
+            URL.revokeObjectURL(cached.url);
+          }
+          r2UrlCache.delete(key);
         }
       }
     }
