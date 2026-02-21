@@ -249,6 +249,27 @@ export const useSecureR2Url = (
 };
 
 /**
+ * Pre-fill cache with a known signed URL (e.g. after upload)
+ */
+export const prefillR2UrlCache = (filePath: string, signedUrl: string, expiresAt: string) => {
+  // Use a generic cache key (without user ID) that will be found by getCachedUrl
+  const key = `r2:${filePath}:anon`;
+  r2UrlCache.set(key, {
+    url: signedUrl,
+    expiresAt: new Date(expiresAt).getTime(),
+  });
+  
+  // Also try to set with current user session
+  const session = getSessionSync();
+  if (session) {
+    r2UrlCache.set(`r2:${filePath}:${session.user.id}`, {
+      url: signedUrl,
+      expiresAt: new Date(expiresAt).getTime(),
+    });
+  }
+};
+
+/**
  * Fonction utilitaire pour invalider le cache R2
  */
 export const invalidateR2UrlCache = () => {
