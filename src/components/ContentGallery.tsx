@@ -7,6 +7,7 @@ import ContentCard from './ContentCard';
 import { useContent } from '@/hooks/useContent';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ProtectedMedia } from '@/components/ProtectedMedia';
 
 const ContentGallery: React.FC = () => {
   const { contents, isLoading, likeMutation, isContentLiked } = useContent();
@@ -141,7 +142,12 @@ const ContentGallery: React.FC = () => {
             const cachedImageUrl = (selected.thumbnail_url || selected.file_url) + cacheBuster;
             
             return (
-              <div className="relative w-full h-full flex items-center justify-center p-4">
+              <ProtectedMedia
+                className="relative w-full h-full flex items-center justify-center p-4"
+                watermarkText={selected.creator_name || undefined}
+                enableForensicWatermark={true}
+                forensicOpacity={0.03}
+              >
                 <img
                   src={cachedImageUrl}
                   alt={selected.title}
@@ -153,7 +159,7 @@ const ContentGallery: React.FC = () => {
                     <p className="text-white/80 text-sm mb-3">{selected.description}</p>
                   )}
                 </div>
-              </div>
+              </ProtectedMedia>
             );
           })()}
         </DialogContent>
