@@ -25,7 +25,7 @@ export function getCorsHeaders(request: Request): Record<string, string> {
   );
   
   // Pour les previews Lovable dynamiques
-  const isLovablePreview = origin.includes('.lovable.app');
+  const isLovablePreview = origin.includes('.lovable.app') || origin.includes('.lovableproject.com');
   
   const allowedOrigin = (isAllowed || isLovablePreview) ? origin : ALLOWED_ORIGINS[0];
   
