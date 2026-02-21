@@ -145,7 +145,7 @@ export async function uploadFileInChunks(
       xhr.addEventListener('abort', () => reject(new Error('Upload annulé')));
 
       xhr.open('PUT', uploadUrl);
-      xhr.setRequestHeader('Content-Type', file.type);
+      xhr.setRequestHeader('Content-Type', contentType);
       xhr.send(file);
     });
 
