@@ -89,47 +89,53 @@ const ContentUpload: React.FC<ContentUploadProps> = ({ onUploadComplete }) => {
       setValidationStatus('success');
       setIsValidating(false);
 
-      // Scan antivirus avec MetaDefender
-      setVirusScanStatus('scanning');
-      toast.info('Scan antivirus en cours...', { duration: 10000 });
-      
-      const scanResult = await scanFile(file);
-      
-      // Handle quarantined files
-      if (scanResult.quarantined) {
-        toast.warning('Fichier mis en quarantaine', {
-          description: 'Ce fichier suspect sera examiné par un administrateur.',
-          duration: 8000
-        });
-        setVirusScanStatus('quarantined');
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-        return;
-      }
-      
-      // Handle infected files
-      if (!scanResult.isClean && !scanResult.skipped) {
-        toast.error('Fichier potentiellement dangereux détecté!', {
-          description: scanResult.threatFound || 'Ce fichier a été bloqué pour des raisons de sécurité'
-        });
-        setVirusScanStatus('infected');
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-        return;
-      }
-
-      if (scanResult.skipped) {
+      // Scan antivirus avec MetaDefender (images uniquement, vidéos trop lourdes)
+      const isVideo = file.type.startsWith('video/');
+      if (isVideo) {
         setVirusScanStatus('skipped');
-        toast.warning('Scan antivirus ignoré', {
-          description: scanResult.message || 'Le fichier sera accepté mais non scanné'
-        });
+        console.log('[ContentUpload] Virus scan skipped for video file');
       } else {
-        setVirusScanStatus('clean');
-        toast.success('Fichier sécurisé!', {
-          description: 'Aucune menace détectée par l\'antivirus'
-        });
+        setVirusScanStatus('scanning');
+        toast.info('Scan antivirus en cours...', { duration: 10000 });
+        
+        const scanResult = await scanFile(file);
+        
+        // Handle quarantined files
+        if (scanResult.quarantined) {
+          toast.warning('Fichier mis en quarantaine', {
+            description: 'Ce fichier suspect sera examiné par un administrateur.',
+            duration: 8000
+          });
+          setVirusScanStatus('quarantined');
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+          return;
+        }
+        
+        // Handle infected files
+        if (!scanResult.isClean && !scanResult.skipped) {
+          toast.error('Fichier potentiellement dangereux détecté!', {
+            description: scanResult.threatFound || 'Ce fichier a été bloqué pour des raisons de sécurité'
+          });
+          setVirusScanStatus('infected');
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+          return;
+        }
+
+        if (scanResult.skipped) {
+          setVirusScanStatus('skipped');
+          toast.warning('Scan antivirus ignoré', {
+            description: scanResult.message || 'Le fichier sera accepté mais non scanné'
+          });
+        } else {
+          setVirusScanStatus('clean');
+          toast.success('Fichier sécurisé!', {
+            description: 'Aucune menace détectée par l\'antivirus'
+          });
+        }
       }
 
       // Open the media preview editor automatically (Instagram-like)
