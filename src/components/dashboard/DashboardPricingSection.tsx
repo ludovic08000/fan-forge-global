@@ -4,6 +4,7 @@ import { Sparkles, CreditCard, Tag } from 'lucide-react';
 import CreatorBoost from '@/components/CreatorBoost';
 import SubscriptionPricing from '@/components/creator/SubscriptionPricing';
 import ReferralCodesManager from '@/components/creator/ReferralCodesManager';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface DashboardPricingSectionProps {
   creatorId: string;
@@ -14,39 +15,38 @@ export const DashboardPricingSection: React.FC<DashboardPricingSectionProps> = (
   creatorId, 
   currentBoostUntil 
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-6">
-      {/* Boost Section */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="h-5 w-5 text-amber-500" />
-          <h2 className="text-xl font-semibold">Boost de visibilité</h2>
+          <h2 className="text-xl font-semibold">{t('pricing.visibilityBoost')}</h2>
         </div>
         <CreatorBoost currentBoostUntil={currentBoostUntil} />
       </div>
 
-      {/* Subscription Pricing */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-primary" />
-            <CardTitle>Prix d'abonnement</CardTitle>
+            <CardTitle>{t('pricing.subscriptionPrice')}</CardTitle>
           </div>
-          <CardDescription>Définissez le prix mensuel de votre abonnement</CardDescription>
+          <CardDescription>{t('pricing.setMonthlyPrice')}</CardDescription>
         </CardHeader>
         <CardContent>
           <SubscriptionPricing creatorId={creatorId} />
         </CardContent>
       </Card>
 
-      {/* Referral Codes */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <Tag className="h-5 w-5 text-primary" />
-            <CardTitle>Codes promo</CardTitle>
+            <CardTitle>{t('pricing.promoCodes')}</CardTitle>
           </div>
-          <CardDescription>Créez des codes de réduction pour vos abonnés</CardDescription>
+          <CardDescription>{t('pricing.createPromoCodes')}</CardDescription>
         </CardHeader>
         <CardContent>
           <ReferralCodesManager creatorId={creatorId} />

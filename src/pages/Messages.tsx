@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { MessageCircle, ArrowRight, Trash2 } from 'lucide-react';
 import SEOHead from '@/components/SEOHead';
 import { toast } from 'sonner';
@@ -22,17 +23,18 @@ import {
 } from '@/components/ui/alert-dialog';
 
 interface Conversation {
-  id: string; // creator_id pour abonnés, subscriber_id pour créateurs
+  id: string;
   name: string;
   avatar: string | null;
   last_message: string | null;
   last_message_date: string | null;
   unread_count: number;
-  type: 'creator' | 'subscriber'; // Pour distinguer le type de conversation
+  type: 'creator' | 'subscriber';
 }
 
 const Messages = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +50,6 @@ const Messages = () => {
 
     const loadConversations = async () => {
       try {
-        // Vérifier d'abord si l'utilisateur est créateur
         const { data: creatorData } = await supabase
           .from('creators')
           .select('id')
@@ -60,24 +61,17 @@ const Messages = () => {
         if (creatorData) setCreatorId(creatorData.id);
 
         if (userIsCreator && creatorData) {
-          // Pour les créateurs : charger les conversations avec leurs abonnés
           const { data: messages } = await supabase
             .from('private_messages')
-            .select(`
-              subscriber_id,
-              content,
-              created_at
-            `)
+            .select('subscriber_id, content, created_at')
             .eq('creator_id', creatorData.id)
             .eq('is_deleted', false)
             .order('created_at', { ascending: false });
 
-          // Grouper par subscriber
           const conversationsMap = new Map<string, Conversation>();
           
           for (const msg of messages || []) {
             if (!conversationsMap.has(msg.subscriber_id)) {
-              // Charger le profil du subscriber
               const { data: profile } = await supabase
                 .from('profiles')
                 .select('display_name, username, avatar_url')
@@ -86,7 +80,7 @@ const Messages = () => {
 
               conversationsMap.set(msg.subscriber_id, {
                 id: msg.subscriber_id,
-                name: profile?.display_name || profile?.username || 'Utilisateur',
+                name: profile?.display_name || profile?.username || t('signup.user'),
                 avatar: profile?.avatar_url,
                 last_message: msg.content,
                 last_message_date: msg.created_at,
@@ -98,24 +92,17 @@ const Messages = () => {
 
           setConversations(Array.from(conversationsMap.values()));
         } else {
-          // Pour les abonnés : charger les conversations avec les créateurs
           const { data: messagesAsSubscriber } = await supabase
             .from('private_messages')
-            .select(`
-              creator_id,
-              content,
-              created_at
-            `)
+            .select('creator_id, content, created_at')
             .eq('subscriber_id', user.id)
             .eq('is_deleted', false)
             .order('created_at', { ascending: false });
 
-          // Grouper par créateur
           const conversationsMap = new Map<string, Conversation>();
           
           for (const msg of messagesAsSubscriber || []) {
             if (!conversationsMap.has(msg.creator_id)) {
-              // Charger le profil du créateur
               const { data: creator } = await supabase
                 .from('creators')
                 .select('id, stage_name, user_id')
@@ -134,7 +121,7 @@ const Messages = () => {
 
               conversationsMap.set(msg.creator_id, {
                 id: msg.creator_id,
-                name: creator?.stage_name || 'Créateur',
+                name: creator?.stage_name || t('signup.creatorRole'),
                 avatar: avatar,
                 last_message: msg.content,
                 last_message_date: msg.created_at,
@@ -163,22 +150,14 @@ const Messages = () => {
     try {
       let error = null;
       
-      console.log('Deleting conversation:', { conversationId, conversationType, creatorId, userId: user.id });
-      
       if (conversationType === 'subscriber') {
-        // Pour les créateurs : supprimer les messages avec cet abonné
-        // Re-fetch creatorId pour être sûr
         const { data: creatorData } = await supabase
           .from('creators')
           .select('id')
           .eq('user_id', user.id)
           .single();
         
-        if (!creatorData) {
-          throw new Error('Impossible de trouver votre profil créateur');
-        }
-        
-        console.log('Creator deleting conversation with subscriber:', { creatorId: creatorData.id, subscriberId: conversationId });
+        if (!creatorData) throw new Error('Creator not found');
         
         const result = await supabase
           .from('private_messages')
@@ -187,9 +166,6 @@ const Messages = () => {
           .eq('subscriber_id', conversationId);
         error = result.error;
       } else if (conversationType === 'creator') {
-        // Pour les abonnés : supprimer les messages avec ce créateur
-        console.log('Subscriber deleting conversation with creator:', { subscriberId: user.id, creatorId: conversationId });
-        
         const result = await supabase
           .from('private_messages')
           .update({ is_deleted: true, deleted_at: new Date().toISOString() })
@@ -198,28 +174,20 @@ const Messages = () => {
         error = result.error;
       }
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       setConversations(prev => prev.filter(c => c.id !== conversationId));
-      toast.success('Conversation supprimée');
+      toast.success(t('messages.conversationDeleted'));
     } catch (error: any) {
       console.error('Error deleting conversation:', error);
-      toast.error('Erreur lors de la suppression: ' + (error?.message || 'Erreur inconnue'));
+      toast.error(t('messages.deleteError') + ': ' + (error?.message || ''));
     } finally {
       setDeletingId(null);
     }
   };
 
-  // Déterminer l'URL de la conversation selon le type
   const getConversationUrl = (conv: Conversation) => {
-    // Si c'est une conversation avec un subscriber (vue créateur) -> /chat/:subscriberId
-    // Si c'est une conversation avec un creator (vue abonné) -> /messagerie/:creatorId
-    if (conv.type === 'subscriber') {
-      return `/chat/${conv.id}`;
-    }
+    if (conv.type === 'subscriber') return `/chat/${conv.id}`;
     return `/messagerie/${conv.id}`;
   };
 
@@ -234,25 +202,25 @@ const Messages = () => {
   return (
     <div className="min-h-screen bg-background pt-20 pb-12">
       <SEOHead
-        title="Messages privés"
-        description="Gérez vos conversations privées sur Crub"
+        title={t('messages.privateMessages')}
+        description={t('messages.manageConversations')}
       />
       
       <div className="container mx-auto px-4 max-w-2xl">
         <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
           <MessageCircle className="h-8 w-8 text-primary" />
-          Messages
+          {t('messages.title')}
         </h1>
 
         {conversations.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <MessageCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-              <h2 className="text-xl font-semibold mb-2">Aucune conversation</h2>
+              <h2 className="text-xl font-semibold mb-2">{t('messages.noConversation')}</h2>
               <p className="text-muted-foreground">
                 {isCreator 
-                  ? "Vos abonnés peuvent vous envoyer des messages privés"
-                  : "Abonnez-vous à des créateurs pour leur envoyer des messages"}
+                  ? t('messages.subscribersCanMessage')
+                  : t('messages.subscribeToMessage')}
               </p>
             </CardContent>
           </Card>
@@ -276,19 +244,15 @@ const Messages = () => {
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold truncate">{conv.name}</h3>
                         {conv.unread_count > 0 && (
-                          <Badge variant="default" className="text-xs">
-                            {conv.unread_count}
-                          </Badge>
+                          <Badge variant="default" className="text-xs">{conv.unread_count}</Badge>
                         )}
                       </div>
                       {conv.last_message && (
-                        <p className="text-sm text-muted-foreground truncate">
-                          {conv.last_message}
-                        </p>
+                        <p className="text-sm text-muted-foreground truncate">{conv.last_message}</p>
                       )}
                       {conv.last_message_date && (
                         <p className="text-xs text-muted-foreground/70">
-                          {new Date(conv.last_message_date).toLocaleDateString('fr-FR')}
+                          {new Date(conv.last_message_date).toLocaleDateString()}
                         </p>
                       )}
                     </div>
@@ -309,19 +273,18 @@ const Messages = () => {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Supprimer la conversation</AlertDialogTitle>
+                        <AlertDialogTitle>{t('messages.deleteConversation')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Êtes-vous sûr de vouloir supprimer cette conversation avec {conv.name} ? 
-                          Cette action est irréversible.
+                          {t('messages.deleteConfirm')} {conv.name} ? {t('common.irreversibleAction')}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                         <AlertDialogAction 
                           onClick={() => handleDeleteConversation(conv.id, conv.type)}
                           className="bg-destructive hover:bg-destructive/90"
                         >
-                          Supprimer
+                          {t('common.delete')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

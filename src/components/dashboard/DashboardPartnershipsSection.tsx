@@ -8,6 +8,7 @@ import { NewPartnershipDialog } from '@/components/partnerships/NewPartnershipDi
 import { ReferralCodesManager } from '@/components/partnerships/ReferralCodesManager';
 import { PartnershipStats } from '@/components/partnerships/PartnershipStats';
 import { usePartnerships } from '@/hooks/usePartnerships';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface DashboardPartnershipsSectionProps {
   creatorId: string;
@@ -16,6 +17,7 @@ interface DashboardPartnershipsSectionProps {
 export const DashboardPartnershipsSection: React.FC<DashboardPartnershipsSectionProps> = ({
   creatorId,
 }) => {
+  const { t } = useTranslation();
   const { partnerships, referralCodes, referralSubscriptions, isLoading } = usePartnerships(creatorId);
 
   if (isLoading) {
@@ -36,7 +38,6 @@ export const DashboardPartnershipsSection: React.FC<DashboardPartnershipsSection
 
   return (
     <div className="space-y-6">
-      {/* Stats Overview */}
       <PartnershipStats
         activePartnerships={activePartnerships.length}
         pendingPartnerships={pendingPartnerships.length}
@@ -48,15 +49,15 @@ export const DashboardPartnershipsSection: React.FC<DashboardPartnershipsSection
         <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="partnerships" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Partenariats</span>
+            <span className="hidden sm:inline">{t('partnershipsPage.partnerships')}</span>
           </TabsTrigger>
           <TabsTrigger value="collaborations" className="flex items-center gap-2">
             <Handshake className="h-4 w-4" />
-            <span className="hidden sm:inline">Collaborations</span>
+            <span className="hidden sm:inline">{t('partnershipsPage.collaborations')}</span>
           </TabsTrigger>
           <TabsTrigger value="affiliation" className="flex items-center gap-2">
             <Link2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Affiliation</span>
+            <span className="hidden sm:inline">{t('partnershipsPage.affiliation')}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -64,9 +65,9 @@ export const DashboardPartnershipsSection: React.FC<DashboardPartnershipsSection
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Mes partenariats</CardTitle>
+                <CardTitle>{t('partnershipsPage.myPartnerships')}</CardTitle>
                 <CardDescription>
-                  Créez des partenariats permanents pour partager les revenus
+                  {t('partnershipsPage.createPartnerships')}
                 </CardDescription>
               </div>
               <NewPartnershipDialog 
@@ -87,9 +88,9 @@ export const DashboardPartnershipsSection: React.FC<DashboardPartnershipsSection
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Collaborations ponctuelles</CardTitle>
+                <CardTitle>{t('partnershipsPage.oneTimeCollabs')}</CardTitle>
                 <CardDescription>
-                  Collaborez sur un contenu spécifique
+                  {t('partnershipsPage.collaborateOnContent')}
                 </CardDescription>
               </div>
               <NewPartnershipDialog 
@@ -111,10 +112,10 @@ export const DashboardPartnershipsSection: React.FC<DashboardPartnershipsSection
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
-                Programme d'affiliation
+                {t('partnershipsPage.affiliationProgram')}
               </CardTitle>
               <CardDescription>
-                Gagnez une commission sur chaque nouvel abonné
+                {t('partnershipsPage.earnCommission')}
               </CardDescription>
             </CardHeader>
             <CardContent>

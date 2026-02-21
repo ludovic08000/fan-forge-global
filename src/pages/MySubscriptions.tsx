@@ -9,6 +9,7 @@ import { MySubscriptionsSection } from '@/components/subscriptions/MySubscriptio
 import { LiveStreamsSection } from '@/components/subscriptions/LiveStreamsSection';
 import { ActiveCreatorsSection } from '@/components/subscriptions/ActiveCreatorsSection';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface Subscription {
   id: string;
@@ -38,6 +39,7 @@ interface CreatorInfo {
 }
 
 const MySubscriptions = () => {
+  const { t } = useTranslation();
   const { user, loading: authLoading } = useAuth();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [isLoadingSubs, setIsLoadingSubs] = useState(true);
@@ -51,7 +53,6 @@ const MySubscriptions = () => {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
     return streams.filter((stream: any) => {
-      // Pour les lives actifs, vérifier le heartbeat
       if (stream.status === 'live') {
         if (!stream.started_at) return false;
         if (stream.last_heartbeat) {
@@ -61,14 +62,11 @@ const MySubscriptions = () => {
         return true;
       }
       
-      // Pour les scheduled, exclure ceux sans scheduled_at créés il y a plus de 24h
       if (stream.status === 'scheduled') {
-        // S'il a une date programmée dans le futur, le garder
         if (stream.scheduled_at) {
           const scheduledDate = new Date(stream.scheduled_at);
           return scheduledDate > new Date();
         }
-        // Sinon, exclure si créé il y a plus de 24h (probablement abandonné)
         const createdAt = new Date(stream.created_at);
         return createdAt > oneDayAgo;
       }
@@ -80,118 +78,66 @@ const MySubscriptions = () => {
   // Charger les lives
   useEffect(() => {
     let isMounted = true;
-
     const fetchLives = async () => {
       const { data, error } = await supabase
         .from('public_live_streams')
         .select('*')
         .in('status', ['live', 'scheduled'])
         .order('created_at', { ascending: false });
-      
-      if (!error && data && isMounted) {
-        setLiveStreams(filterGhostLives(data));
-      }
+      if (!error && data && isMounted) setLiveStreams(filterGhostLives(data));
     };
-
     fetchLives();
-
-    // Realtime + polling
     const channel = supabase
       .channel('subscriptions-lives')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, fetchLives)
       .subscribe();
-
     const pollInterval = setInterval(fetchLives, 5000);
-
-    return () => {
-      isMounted = false;
-      supabase.removeChannel(channel);
-      clearInterval(pollInterval);
-    };
+    return () => { isMounted = false; supabase.removeChannel(channel); clearInterval(pollInterval); };
   }, [filterGhostLives]);
 
   // Charger les infos créateurs pour les lives
   useEffect(() => {
     const loadCreatorInfos = async () => {
       if (liveStreams.length === 0) return;
-      
       const creatorIds = [...new Set(liveStreams.map(s => s.creator_id))];
-      
-      const { data: creators } = await supabase
-        .from('public_creators')
-        .select('id, stage_name, user_id')
-        .in('id', creatorIds);
-
+      const { data: creators } = await supabase.from('public_creators').select('id, stage_name, user_id').in('id', creatorIds);
       if (creators) {
         const userIds = creators.map(c => c.user_id).filter(Boolean);
-        const { data: profiles } = await supabase
-          .from('public_creator_profiles')
-          .select('user_id, avatar_url, display_name')
-          .in('user_id', userIds);
-
+        const { data: profiles } = await supabase.from('public_creator_profiles').select('user_id, avatar_url, display_name').in('user_id', userIds);
         const infos: Record<string, CreatorInfo> = {};
         creators.forEach(creator => {
           const profile = profiles?.find(p => p.user_id === creator.user_id);
-          infos[creator.id!] = {
-            id: creator.id!,
-            stage_name: creator.stage_name,
-            avatar_url: profile?.avatar_url || null,
-            display_name: profile?.display_name || creator.stage_name || 'Créateur',
-          };
+          infos[creator.id!] = { id: creator.id!, stage_name: creator.stage_name, avatar_url: profile?.avatar_url || null, display_name: profile?.display_name || creator.stage_name || t('signup.creatorRole') };
         });
         setCreatorInfos(infos);
       }
     };
-
     loadCreatorInfos();
   }, [liveStreams]);
 
   // Charger les abonnements
   const loadSubscriptions = useCallback(async () => {
     if (!user) return;
-
     try {
       setIsLoadingSubs(true);
       const { data, error } = await supabase
         .from('subscriptions')
-        .select(`
-          id, status, start_date, end_date, price, currency,
-          creator:creators!subscriptions_creator_id_fkey (
-            id, stage_name, subscription_price, user_id
-          )
-        `)
+        .select(`id, status, start_date, end_date, price, currency, creator:creators!subscriptions_creator_id_fkey (id, stage_name, subscription_price, user_id)`)
         .eq('subscriber_id', user.id)
         .order('created_at', { ascending: false });
-
       if (error) throw error;
-
-      // Fetch profiles
       const subscriptionsWithProfiles = await Promise.all(
         (data || []).map(async (sub: any) => {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('username, display_name, avatar_url')
-            .eq('user_id', sub.creator.user_id)
-            .single();
-
+          const { data: profileData } = await supabase.from('profiles').select('username, display_name, avatar_url').eq('user_id', sub.creator.user_id).single();
           return { ...sub, creator: { ...sub.creator, profile: profileData } };
         })
       );
-
       setSubscriptions(subscriptionsWithProfiles);
-      setUserSubscriptionIds(
-        subscriptionsWithProfiles.filter(s => s.status === 'active').map(s => s.creator.id)
-      );
-    } catch (error) {
-      console.error('Error loading subscriptions:', error);
-    } finally {
-      setIsLoadingSubs(false);
-    }
+      setUserSubscriptionIds(subscriptionsWithProfiles.filter(s => s.status === 'active').map(s => s.creator.id));
+    } catch (error) { console.error('Error loading subscriptions:', error); } finally { setIsLoadingSubs(false); }
   }, [user]);
 
-  useEffect(() => {
-    loadSubscriptions();
-  }, [loadSubscriptions]);
+  useEffect(() => { loadSubscriptions(); }, [loadSubscriptions]);
 
   // Vérifier accès aux lives premium
   const hasAccess = useCallback((stream: LiveStream) => {
@@ -204,24 +150,11 @@ const MySubscriptions = () => {
   const { data: activeCreators, isLoading: creatorsLoading } = useQuery({
     queryKey: ['active-creators'],
     queryFn: async () => {
-      const { data: creators, error } = await supabase
-        .from('public_creators')
-        .select('id, stage_name, subscription_price, total_content, total_subscribers, user_id')
-        .order('total_content', { ascending: false })
-        .limit(6);
-
+      const { data: creators, error } = await supabase.from('public_creators').select('id, stage_name, subscription_price, total_content, total_subscribers, user_id').order('total_content', { ascending: false }).limit(6);
       if (error) throw error;
-
       const userIds = (creators || []).map(c => c.user_id).filter(Boolean) as string[];
-      const { data: profiles } = await supabase
-        .from('public_creator_profiles')
-        .select('user_id, username, display_name, avatar_url')
-        .in('user_id', userIds);
-
-      return (creators || []).map(creator => ({
-        ...creator,
-        profile: profiles?.find(p => p.user_id === creator.user_id) || null
-      }));
+      const { data: profiles } = await supabase.from('public_creator_profiles').select('user_id, username, display_name, avatar_url').in('user_id', userIds);
+      return (creators || []).map(creator => ({ ...creator, profile: profiles?.find(p => p.user_id === creator.user_id) || null }));
     }
   });
 
@@ -234,9 +167,7 @@ const MySubscriptions = () => {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!user) return <Navigate to="/login" replace />;
 
   const liveNow = liveStreams.filter(s => s.status === 'live');
   const upcomingLives = liveStreams.filter(s => s.status === 'scheduled').slice(0, 3);
@@ -244,39 +175,18 @@ const MySubscriptions = () => {
   return (
     <div className="min-h-screen bg-background pt-20 pb-12">
       <div className="container mx-auto px-4 max-w-4xl">
-        {/* Header simple */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">Mon espace</h1>
-          <p className="text-muted-foreground text-sm">
-            Gérez vos abonnements et découvrez des créateurs
-          </p>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">{t('subscriptions.mySpace')}</h1>
+          <p className="text-muted-foreground text-sm">{t('subscriptions.manageSubscriptions')}</p>
         </div>
 
-        {/* Filtres de découverte */}
         <div className="max-w-2xl mx-auto mb-10">
           <DiscoveryFilters />
         </div>
 
-        {/* Mes abonnements */}
-        <MySubscriptionsSection 
-          subscriptions={subscriptions}
-          isLoading={isLoadingSubs}
-          onUpdate={loadSubscriptions}
-        />
-
-        {/* Lives en cours */}
-        <LiveStreamsSection
-          liveNow={liveNow}
-          upcomingLives={upcomingLives}
-          creatorInfos={creatorInfos}
-          hasAccess={hasAccess}
-        />
-
-        {/* Créateurs populaires */}
-        <ActiveCreatorsSection
-          creators={activeCreators}
-          isLoading={creatorsLoading}
-        />
+        <MySubscriptionsSection subscriptions={subscriptions} isLoading={isLoadingSubs} onUpdate={loadSubscriptions} />
+        <LiveStreamsSection liveNow={liveNow} upcomingLives={upcomingLives} creatorInfos={creatorInfos} hasAccess={hasAccess} />
+        <ActiveCreatorsSection creators={activeCreators} isLoading={creatorsLoading} />
       </div>
     </div>
   );
