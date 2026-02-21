@@ -11,7 +11,7 @@ const BOOST_OPTIONS = [
   {
     id: '30min',
     name: '30 minutes',
-    price: 3,
+    price: 5,
     duration: '30 min',
     icon: Zap,
     description: 'Boost express pour une visibilité immédiate',
