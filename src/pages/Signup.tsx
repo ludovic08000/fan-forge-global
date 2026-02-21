@@ -307,20 +307,17 @@ const Signup = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Glamour">Glamour</SelectItem>
-                        <SelectItem value="Gaming">Gaming</SelectItem>
-                        <SelectItem value="Fitness & Sport">Coach sportif / Fitness</SelectItem>
-                        <SelectItem value="Cuisine">Cuisine</SelectItem>
-                        <SelectItem value="Musique">DJing / Musique</SelectItem>
                         <SelectItem value="Lifestyle">Lifestyle</SelectItem>
-                        <SelectItem value="Mode & Beauté">Mannequin / Mode</SelectItem>
-                        <SelectItem value="Art & Design">Art & Design</SelectItem>
-                        <SelectItem value="Photographie">Photographie</SelectItem>
-                        <SelectItem value="Vidéo & Film">Vidéo & Film</SelectItem>
-                        <SelectItem value="Écriture">Écriture</SelectItem>
-                        <SelectItem value="Technologie">Technologie</SelectItem>
-                        <SelectItem value="Éducation">Éducation</SelectItem>
-                        <SelectItem value="Divertissement">Divertissement</SelectItem>
-                        <SelectItem value="Autre">Autre</SelectItem>
+                        <SelectItem value="DJing">DJing</SelectItem>
+                        <SelectItem value="Gaming">Gaming</SelectItem>
+                        <SelectItem value="Avocat">Avocat</SelectItem>
+                        <SelectItem value="Football">Football</SelectItem>
+                        <SelectItem value="Basketball">Basketball</SelectItem>
+                        <SelectItem value="Coach sportif">Coach sportif</SelectItem>
+                        <SelectItem value="Cuisine">Cuisine</SelectItem>
+                        <SelectItem value="Luxe">Luxe</SelectItem>
+                        <SelectItem value="Mannequin">Mannequin</SelectItem>
+                        <SelectItem value="Art & Création">Art & Création</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
