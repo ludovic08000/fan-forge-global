@@ -5,6 +5,7 @@ import CreatorSettings from '@/components/CreatorSettings';
 import CreatorPrivacySettings from '@/components/creator/CreatorPrivacySettings';
 import AutoMessagesManager from '@/components/creator/AutoMessagesManager';
 import { User, Shield, MessageSquare } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface DashboardSettingsSectionProps {
   stripeConnected: boolean;
@@ -15,29 +16,31 @@ export const DashboardSettingsSection: React.FC<DashboardSettingsSectionProps> =
   stripeConnected,
   creatorId,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-6">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <User className="h-4 w-4" />
-            Profil
+            {t('settingsPage.profileTab')}
           </TabsTrigger>
           <TabsTrigger value="messages" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
-            Messages auto
+            {t('settingsPage.autoMessages')}
           </TabsTrigger>
           <TabsTrigger value="privacy" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
-            Confidentialité
+            {t('settingsPage.privacy')}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
           <Card>
             <CardHeader>
-              <CardTitle>Profil créateur</CardTitle>
-              <CardDescription>Modifiez vos informations publiques</CardDescription>
+              <CardTitle>{t('settingsPage.creatorProfile')}</CardTitle>
+              <CardDescription>{t('settingsPage.editPublicInfo')}</CardDescription>
             </CardHeader>
             <CardContent>
               <CreatorSettings />
@@ -48,9 +51,9 @@ export const DashboardSettingsSection: React.FC<DashboardSettingsSectionProps> =
         <TabsContent value="messages">
           <Card>
             <CardHeader>
-              <CardTitle>Messages automatiques</CardTitle>
+              <CardTitle>{t('settingsPage.autoMessagesTitle')}</CardTitle>
               <CardDescription>
-                Configurez les messages envoyés automatiquement à vos abonnés
+                {t('settingsPage.configureAutoMessages')}
               </CardDescription>
             </CardHeader>
             <CardContent>

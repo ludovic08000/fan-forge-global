@@ -11,11 +11,13 @@ import { authSchema } from '@/lib/validations';
 import { useRateLimitServer } from '@/hooks/useRateLimitServer';
 import { useBruteForceProtection } from '@/hooks/useBruteForceProtection';
 import { useSecureEmailAction } from '@/hooks/useSecureEmailAction';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
@@ -43,10 +45,9 @@ const Login = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Vérifier le blocage brute force
     const canProceed = await checkBeforeLogin(signInForm.email);
     if (!canProceed) {
-      toast.error(`Compte temporairement bloqué. Réessayez dans ${formatRemainingTime()}`);
+      toast.error(`${t('login.accountBlocked')}. ${t('login.retryIn')} ${formatRemainingTime()}`);
       return;
     }
     
@@ -61,7 +62,6 @@ const Login = () => {
       const { error } = await signIn(validatedData.email, validatedData.password);
       
       if (error) {
-        // Enregistrer l'échec
         const result = await recordAttempt(validatedData.email, false, 'login');
         if (result.warning) {
           toast.warning(result.warning);
@@ -70,12 +70,10 @@ const Login = () => {
         return;
       }
       
-      // Enregistrer le succès
       await recordAttempt(validatedData.email, true, 'login');
       
       const { data: userData } = await supabase.auth.getUser();
       if (userData.user) {
-        // Check if user is suspended
         const { data: suspension } = await supabase
           .from('user_suspensions')
           .select('reason, suspended_at')
@@ -91,7 +89,6 @@ const Login = () => {
           return;
         }
 
-        // Rediriger vers la page de vérification OTP (garder la session active)
         sessionStorage.setItem('pending_otp_email', validatedData.email);
         navigate('/verify-otp');
       } else {
@@ -108,15 +105,10 @@ const Login = () => {
     }
   };
 
-
-
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Utiliser le système sécurisé qui ne révèle jamais si le compte existe
     await sendSecureEmailAction('password_reset', resetEmail);
     setResetSuccess(true);
-    // Ne PAS fermer le formulaire pour montrer le message de succès
   };
 
   return (
@@ -125,32 +117,31 @@ const Login = () => {
         <div className="text-center">
           <Link to="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Retour à l'accueil
+            {t('login.backToHome')}
           </Link>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-            Connexion
+            {t('login.title')}
           </h1>
           <p className="text-muted-foreground mt-2">
-            Accédez à votre compte
+            {t('login.subtitle')}
           </p>
         </div>
 
         <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle>Se connecter</CardTitle>
+            <CardTitle>{t('login.signIn')}</CardTitle>
             <CardDescription>
-              Entrez vos identifiants pour accéder à votre compte
+              {t('login.enterCredentials')}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Alert brute force */}
             {blocked && (
               <Alert variant="destructive" className="mb-4">
                 <Shield className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Compte temporairement bloqué</strong>
+                  <strong>{t('login.accountBlocked')}</strong>
                   <p className="text-sm mt-1">{reason}</p>
-                  <p className="text-sm">Réessayez dans {formatRemainingTime()}</p>
+                  <p className="text-sm">{t('login.retryIn')} {formatRemainingTime()}</p>
                 </AlertDescription>
               </Alert>
             )}
@@ -168,11 +159,10 @@ const Login = () => {
               <Alert className="mb-4 border-orange-500 bg-orange-500/10">
                 <AlertTriangle className="h-4 w-4 text-orange-500" />
                 <AlertDescription className="text-orange-500">
-                  {remainingAttempts} tentative{remainingAttempts > 1 ? 's' : ''} restante{remainingAttempts > 1 ? 's' : ''} avant blocage
+                  {remainingAttempts} {t('login.attemptsRemaining')}
                 </AlertDescription>
               </Alert>
             )}
-
 
             {showResetPassword ? (
               <div className="space-y-4">
@@ -187,20 +177,20 @@ const Login = () => {
                   }}
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Retour
+                  {t('common.back')}
                 </Button>
                 
                 {resetSuccess ? (
                   <Alert className="border-green-500 bg-green-500/10">
                     <CheckCircle className="h-4 w-4 text-green-500" />
                     <AlertDescription className="text-green-500">
-                      {lastMessage || "Si cette adresse email est associée à un compte, vous recevrez un email avec les instructions."}
+                      {lastMessage || t('login.ifAccountExists')}
                     </AlertDescription>
                   </Alert>
                 ) : (
                   <form onSubmit={handleResetPassword} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="reset-email">Email</Label>
+                      <Label htmlFor="reset-email">{t('login.email')}</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -214,7 +204,7 @@ const Login = () => {
                         />
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Si un compte existe avec cette adresse, vous recevrez les instructions
+                        {t('login.ifAccountExists')}
                       </p>
                     </div>
                     <Button 
@@ -222,7 +212,7 @@ const Login = () => {
                       className="w-full" 
                       disabled={isSecureActionLoading}
                     >
-                      {isSecureActionLoading ? 'Envoi...' : 'Réinitialiser mon mot de passe'}
+                      {isSecureActionLoading ? t('login.sending') : t('login.resetPassword')}
                     </Button>
                   </form>
                 )}
@@ -230,7 +220,7 @@ const Login = () => {
             ) : (
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('login.email')}</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -245,7 +235,7 @@ const Login = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Mot de passe</Label>
+                  <Label htmlFor="password">{t('login.password')}</Label>
                   <div className="relative">
                     <Input
                       id="password"
@@ -262,11 +252,7 @@ const Login = () => {
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
                 </div>
@@ -275,7 +261,7 @@ const Login = () => {
                   className="w-full" 
                   disabled={isLoading || blocked}
                 >
-                  {isLoading ? 'Connexion...' : blocked ? 'Compte bloqué' : 'Se connecter'}
+                  {isLoading ? t('login.signingIn') : blocked ? t('login.blocked') : t('login.signIn')}
                 </Button>
                 <div className="text-center">
                   <Button
@@ -284,16 +270,16 @@ const Login = () => {
                     className="text-sm text-muted-foreground hover:text-primary"
                     onClick={() => setShowResetPassword(true)}
                   >
-                    Mot de passe oublié ?
+                    {t('login.forgotPassword')}
                   </Button>
                 </div>
               </form>
             )}
 
             <div className="mt-6 text-center text-sm">
-              <span className="text-muted-foreground">Pas encore de compte ?</span>{' '}
+              <span className="text-muted-foreground">{t('login.noAccount')}</span>{' '}
               <Link to="/signup" className="text-primary hover:underline font-medium">
-                Créer un compte
+                {t('login.createAccount')}
               </Link>
             </div>
           </CardContent>
