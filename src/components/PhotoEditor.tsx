@@ -241,7 +241,7 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
     }
   };
 
-  // Sauvegarder sur le serveur - Upload direct vers Storage (plus rapide)
+  // Sauvegarder sur le serveur - Upload vers R2 via presigned URL
   const handleServerSave = async () => {
     if (!canvasRef.current || !contentId || !effectiveUrl) {
       toast.error('Impossible de sauvegarder: données manquantes');
@@ -262,11 +262,7 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
 
       canvas.width = bitmapImg.width;
       canvas.height = bitmapImg.height;
-
-      // Nettoyer le canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Dessiner l'image originale depuis le bitmap (pas de taint)
       ctx.drawImage(bitmapImg, 0, 0);
       bitmapImg.close();
       
@@ -274,6 +270,7 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const filteredData = applyFiltersToImageData(imageData);
       ctx.putImageData(filteredData, 0, 0);
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error('Non authentifié');
@@ -302,7 +299,7 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
         throw new Error('Non autorisé à modifier ce contenu');
       }
 
-      // Convertir le canvas en Blob (beaucoup plus rapide que base64)
+      // Convertir le canvas en Blob
       const canvasBlob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((b) => {
           if (b) resolve(b);
@@ -310,34 +307,37 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
         }, 'image/png', 0.9);
       });
 
-      // Upload direct vers Storage
-      const timestamp = Date.now();
-      const fileName = `edited_${timestamp}.png`;
-      const filePath = `${user.id}/${fileName}`;
+      // Upload vers R2 via presigned URL (comme le reste de la plateforme)
+      const fileName = `edited_${Date.now()}.png`;
+      const { data: uploadData, error: uploadError } = await supabase.functions.invoke('r2-upload-url', {
+        body: { fileName, contentType: 'image/png', fileSize: canvasBlob.size },
+      });
 
-      const { error: uploadError } = await supabase.storage
-        .from('content')
-        .upload(filePath, canvasBlob, {
-          contentType: 'image/png',
-          upsert: false
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Stocker le filePath au lieu de l'URL publique (sécurité)
-      const newFilePath = filePath;
-
-      // Supprimer l'ancienne image du storage
-      const oldUrl = content.file_url;
-      if (oldUrl) {
-        // Support both old URL format and new filePath format
-        const oldPathMatch = oldUrl.match(/\/storage\/v1\/object\/public\/content\/(.+)/);
-        const oldPath = oldPathMatch ? decodeURIComponent(oldPathMatch[1]) : oldUrl;
-        console.log('Suppression de l\'ancienne image:', oldPath);
-        await supabase.storage.from('content').remove([oldPath]);
+      if (uploadError || !uploadData?.uploadUrl) {
+        throw new Error(uploadData?.error || uploadError?.message || 'Impossible d\'obtenir l\'URL d\'upload');
       }
 
-      // Mettre à jour le contenu avec le nouveau filePath
+      // PUT direct vers R2
+      const uploadResponse = await fetch(uploadData.uploadUrl, {
+        method: 'PUT',
+        body: canvasBlob,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload échoué (HTTP ${uploadResponse.status})`);
+      }
+
+      const newFilePath = uploadData.filePath;
+
+      // Supprimer l'ancien fichier R2
+      const oldPath = content.file_url;
+      if (oldPath) {
+        supabase.functions.invoke('delete-r2-file', {
+          body: { filePath: oldPath },
+        }).catch(err => console.warn('Cleanup ancien fichier (non-critique):', err));
+      }
+
+      // Mettre à jour le contenu avec le nouveau filePath R2
       const { error: updateError } = await supabase
         .from('content')
         .update({ 
@@ -348,6 +348,12 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
         .eq('id', contentId);
 
       if (updateError) throw updateError;
+
+      // Pré-remplir le cache R2 pour affichage instantané
+      if (uploadData.viewUrl && uploadData.viewExpiresAt) {
+        const { prefillR2UrlCache } = await import('@/hooks/useSecureR2Url');
+        prefillR2UrlCache(newFilePath, uploadData.viewUrl, uploadData.viewExpiresAt);
+      }
 
       // Invalider le cache React Query pour rafraîchir la galerie
       queryClient.invalidateQueries({ queryKey: ['contents'] });
