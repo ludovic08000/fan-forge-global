@@ -23,6 +23,16 @@ export interface ChunkUploadResult {
   error?: string;
 }
 
+const EXTENSION_CONTENT_TYPES: Record<string, string> = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp',
+  mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', avi: 'video/x-msvideo',
+};
+
+function getContentTypeFromExtension(fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+  return EXTENSION_CONTENT_TYPES[ext] || 'application/octet-stream';
+}
+
 /**
  * Upload un fichier directement vers R2 via presigned URL
  */
@@ -65,11 +75,17 @@ export async function uploadFileInChunks(
       fileSize: file.size,
     });
     
+    // Fallback contentType par extension si file.type est vide
+    const contentType = file.type || getContentTypeFromExtension(file.name);
+    
     const { data, error: fnError } = await supabase.functions.invoke('r2-upload-url', {
       body: {
         fileName: file.name,
-        contentType: file.type,
+        contentType,
         fileSize: file.size,
+      },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
       },
     });
 
