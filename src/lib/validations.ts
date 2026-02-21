@@ -70,6 +70,7 @@ export const signUpSchema = authSchema.extend({
   gender: z.string().optional(),
   stageName: z.string().trim().max(50, { message: "Le surnom doit contenir moins de 50 caractères" }).optional().or(z.literal('')),
   category: z.string().optional(),
+  categories: z.array(z.string()).max(3, { message: "Maximum 3 catégories" }).optional(),
   termsAccepted: z.boolean().refine(val => val === true, { message: "Vous devez accepter les conditions d'utilisation" }),
   privacyAccepted: z.boolean().refine(val => val === true, { message: "Vous devez accepter la politique de confidentialité" }),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -92,12 +93,12 @@ export const signUpSchema = authSchema.extend({
   message: "Le surnom est requis pour les créateurs",
   path: ["stageName"],
 }).refine((data) => {
-  if (data.role === 'creator' && !data.category) {
+  if (data.role === 'creator' && !data.category && (!data.categories || data.categories.length === 0)) {
     return false;
   }
   return true;
 }, {
-  message: "La catégorie est requise pour les créateurs",
+  message: "Au moins une catégorie est requise pour les créateurs",
   path: ["category"],
 });
 

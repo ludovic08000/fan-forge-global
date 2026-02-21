@@ -329,6 +329,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           // Si créateur, créer l'entrée dans la table creators
           if (role === 'creator') {
+            // Parse categories from category string (could be comma-separated or single)
+            const categoriesArray = category ? [category] : [];
             const { error: creatorError } = await supabase
               .from('creators')
               .insert({
@@ -336,7 +338,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 subscription_price: 9.99,
                 gender: gender || null,
                 stage_name: stageName || null,
-                category: category || null
+                category: category || null,
+                categories: categoriesArray
               });
 
             if (creatorError) {

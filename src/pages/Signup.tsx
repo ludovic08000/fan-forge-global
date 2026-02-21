@@ -38,6 +38,7 @@ const Signup = () => {
     gender: '',
     stageName: '',
     category: '',
+    categories: [] as string[],
     termsAccepted: false,
     privacyAccepted: false
   });
@@ -297,7 +298,7 @@ const Signup = () => {
                   </div>
 
                   <div className="space-y-3">
-                    <Label>Catégorie de contenu *</Label>
+                    <Label>Catégories de contenu * <span className="text-xs text-muted-foreground font-normal">(3 max)</span></Label>
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                       {[
                         { id: 'Glamour', label: 'Glamour', icon: Sparkles, gradient: 'from-pink-500 to-rose-500' },
@@ -314,16 +315,30 @@ const Signup = () => {
                         { id: 'Art & Création', label: 'Art', icon: Palette, gradient: 'from-fuchsia-500 to-pink-500' },
                       ].map((niche) => {
                         const Icon = niche.icon;
-                        const isActive = signUpForm.category === niche.id;
+                        const isActive = signUpForm.categories.includes(niche.id);
+                        const isDisabled = !isActive && signUpForm.categories.length >= 3;
                         return (
                           <button
                             key={niche.id}
                             type="button"
-                            onClick={() => setSignUpForm({ ...signUpForm, category: niche.id })}
+                            disabled={isDisabled}
+                            onClick={() => {
+                              const cats = signUpForm.categories;
+                              const newCats = isActive
+                                ? cats.filter(c => c !== niche.id)
+                                : [...cats, niche.id];
+                              setSignUpForm({ 
+                                ...signUpForm, 
+                                categories: newCats,
+                                category: newCats[0] || '' 
+                              });
+                            }}
                             className={`flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[64px] ${
                               isActive
                                 ? `bg-gradient-to-br ${niche.gradient} text-white shadow-lg ring-2 ring-primary/30`
-                                : 'bg-card border border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/30 hover:shadow-md'
+                                : isDisabled
+                                  ? 'bg-card border border-border/30 text-muted-foreground/40 cursor-not-allowed opacity-50'
+                                  : 'bg-card border border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/30 hover:shadow-md'
                             }`}
                           >
                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
@@ -336,6 +351,11 @@ const Signup = () => {
                         );
                       })}
                     </div>
+                    {signUpForm.categories.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {signUpForm.categories.length}/3 sélectionnée{signUpForm.categories.length > 1 ? 's' : ''}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
