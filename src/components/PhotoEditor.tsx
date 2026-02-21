@@ -300,59 +300,77 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black flex flex-col animate-in fade-in duration-200">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-white/10">
+    <div className="fixed inset-0 z-[9999] bg-gradient-to-b from-black via-black/95 to-black flex flex-col animate-in fade-in duration-300">
+      {/* Header - Glassmorphism */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.08] backdrop-blur-xl bg-white/[0.03]">
         <button
           onClick={onClose}
-          className="p-2 rounded-full hover:bg-white/10 transition-colors"
+          className="p-2.5 rounded-xl hover:bg-white/10 transition-all duration-300 group"
         >
-          <X className="w-6 h-6 text-white" />
+          <X className="w-5 h-5 text-white/70 group-hover:text-white transition-colors" />
         </button>
-        <h2 className="text-white font-semibold text-lg">Éditer la photo</h2>
+        <h2 className="text-white/90 font-semibold text-base tracking-wide uppercase" style={{ fontFamily: 'Poppins, sans-serif', letterSpacing: '0.1em' }}>
+          Éditeur Photo
+        </h2>
         <div className="flex gap-2">
-          <Button variant="ghost" size="sm" onClick={handleReset} className="text-white hover:bg-white/10">
-            <RotateCcw className="w-4 h-4 mr-1" />
+          {/* Reset Button */}
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white/60 hover:text-white text-xs font-medium transition-all duration-300 hover:bg-white/10 border border-white/[0.06] hover:border-white/20"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
             Reset
-          </Button>
-          <Button variant="ghost" size="sm" onClick={handleDownload} className="text-white hover:bg-white/10">
-            <Download className="w-4 h-4 mr-1" />
+          </button>
+          {/* Download Button */}
+          <button
+            onClick={handleDownload}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-white/80 text-xs font-medium transition-all duration-300 bg-white/[0.08] hover:bg-white/15 border border-white/[0.1] hover:border-white/25 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+          >
+            <Download className="w-3.5 h-3.5" />
             Télécharger
-          </Button>
+          </button>
+          {/* Server Save Button - Premium Gradient */}
           {contentId && (
-            <Button 
-              size="sm" 
-              onClick={handleServerSave} 
+            <button
+              onClick={handleServerSave}
               disabled={isSaving || !imageLoaded}
-              className="bg-primary hover:bg-primary/90"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold transition-all duration-300 bg-gradient-to-r from-primary via-primary/90 to-primary/70 hover:from-primary hover:via-primary hover:to-primary/80 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_20px_hsl(var(--primary)/0.3)] hover:shadow-[0_0_30px_hsl(var(--primary)/0.5)] border border-primary/30 hover:border-primary/50 hover:scale-[1.02] active:scale-[0.98]"
             >
               {isSaving ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   Sauvegarde...
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4 mr-1" />
+                  <Save className="w-3.5 h-3.5" />
                   Sauvegarder
                 </>
               )}
-            </Button>
+            </button>
           )}
           {onSave && !contentId && (
-            <Button size="sm" onClick={handleSave} className="bg-primary hover:bg-primary/90">
+            <button
+              onClick={handleSave}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold transition-all duration-300 bg-gradient-to-r from-primary via-primary/90 to-primary/70 hover:from-primary hover:via-primary hover:to-primary/80 shadow-[0_0_20px_hsl(var(--primary)/0.3)] hover:shadow-[0_0_30px_hsl(var(--primary)/0.5)] border border-primary/30 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Save className="w-3.5 h-3.5" />
               Sauvegarder
-            </Button>
+            </button>
           )}
         </div>
       </div>
 
       {/* Zone image principale */}
-      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden bg-black/50">
+      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden relative">
+        {/* Ambient glow behind image */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-[60%] h-[60%] rounded-full bg-primary/[0.04] blur-[100px]" />
+        </div>
         {(urlLoading || (!imageLoaded && !imageError)) && (
-          <div className="text-white/70 flex flex-col items-center gap-2">
-            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            <span>Chargement...</span>
+          <div className="text-white/70 flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            <span className="text-sm text-white/50">Chargement...</span>
           </div>
         )}
         {imageError && !urlLoading && (
@@ -371,7 +389,7 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
               ...getFilterStyle(),
               display: imageLoaded && !urlLoading ? 'block' : 'none',
             }}
-            className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-2xl"
+            className="max-w-full max-h-[60vh] object-contain rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] ring-1 ring-white/[0.08]"
             onLoad={() => setImageLoaded(true)}
             onError={() => setImageError(true)}
           />
@@ -379,85 +397,57 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
         <canvas ref={canvasRef} className="hidden" />
       </div>
 
-      {/* Contrôles des ajustements */}
-      <div className="p-4 border-t border-white/10 space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="space-y-2">
-            <label className="text-white/70 text-sm flex items-center gap-2">
-              <Sun className="w-4 h-4" /> Luminosité
-            </label>
-            <Slider
-              value={[brightness]}
-              onValueChange={([v]) => setBrightness(v)}
-              min={0}
-              max={200}
-              step={1}
-              className="w-full"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-white/70 text-sm flex items-center gap-2">
-              <Contrast className="w-4 h-4" /> Contraste
-            </label>
-            <Slider
-              value={[contrast]}
-              onValueChange={([v]) => setContrast(v)}
-              min={0}
-              max={200}
-              step={1}
-              className="w-full"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-white/70 text-sm flex items-center gap-2">
-              <Droplets className="w-4 h-4" /> Saturation
-            </label>
-            <Slider
-              value={[saturation]}
-              onValueChange={([v]) => setSaturation(v)}
-              min={0}
-              max={200}
-              step={1}
-              className="w-full"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-white/70 text-sm flex items-center gap-2">
-              <CloudFog className="w-4 h-4" /> Flou
-            </label>
-            <Slider
-              value={[blur]}
-              onValueChange={([v]) => setBlur(v)}
-              min={0}
-              max={10}
-              step={0.1}
-              className="w-full"
-            />
-          </div>
+      {/* Contrôles des ajustements - Glassmorphism panel */}
+      <div className="px-5 py-4 border-t border-white/[0.06] backdrop-blur-xl bg-white/[0.02]">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+          {[
+            { icon: <Sun className="w-3.5 h-3.5 text-amber-400" />, label: 'Luminosité', value: brightness, onChange: setBrightness, min: 0, max: 200, step: 1 },
+            { icon: <Contrast className="w-3.5 h-3.5 text-blue-400" />, label: 'Contraste', value: contrast, onChange: setContrast, min: 0, max: 200, step: 1 },
+            { icon: <Droplets className="w-3.5 h-3.5 text-cyan-400" />, label: 'Saturation', value: saturation, onChange: setSaturation, min: 0, max: 200, step: 1 },
+            { icon: <CloudFog className="w-3.5 h-3.5 text-purple-400" />, label: 'Flou', value: blur, onChange: setBlur, min: 0, max: 10, step: 0.1 },
+          ].map((ctrl) => (
+            <div key={ctrl.label} className="space-y-2 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.12] transition-colors">
+              <label className="text-white/50 text-[11px] font-medium uppercase tracking-wider flex items-center gap-2">
+                {ctrl.icon} {ctrl.label}
+              </label>
+              <Slider
+                value={[ctrl.value]}
+                onValueChange={([v]) => ctrl.onChange(v)}
+                min={ctrl.min}
+                max={ctrl.max}
+                step={ctrl.step}
+                className="w-full"
+              />
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Filtres Instagram-style */}
-      <div className="p-4 border-t border-white/10">
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-white/20">
+      {/* Filtres - Premium horizontal scroll */}
+      <div className="px-5 py-4 border-t border-white/[0.06] backdrop-blur-xl bg-white/[0.02]">
+        <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-white/10">
           {FILTERS.map((filter) => (
             <button
               key={filter.id}
               onClick={() => setSelectedFilter(filter.id)}
-              className={`flex-shrink-0 flex flex-col items-center gap-2 p-2 rounded-lg transition-all ${
+              className={`flex-shrink-0 flex flex-col items-center gap-2 p-2 rounded-xl transition-all duration-300 group ${
                 selectedFilter === filter.id
-                  ? 'bg-primary/20 ring-2 ring-primary'
-                  : 'bg-white/5 hover:bg-white/10'
+                  ? 'bg-primary/15 ring-2 ring-primary/60 shadow-[0_0_20px_hsl(var(--primary)/0.2)] scale-[1.05]'
+                  : 'bg-white/[0.04] hover:bg-white/[0.08] border border-transparent hover:border-white/[0.1]'
               }`}
             >
               <div
-                className="w-16 h-16 rounded-lg overflow-hidden bg-cover bg-center bg-muted"
+                className={`w-16 h-16 rounded-xl overflow-hidden bg-cover bg-center transition-all duration-300 ${
+                  selectedFilter === filter.id ? 'ring-1 ring-primary/40' : 'ring-1 ring-white/[0.06] group-hover:ring-white/[0.15]'
+                }`}
                 style={{
                   backgroundImage: effectiveUrl ? `url(${effectiveUrl})` : 'none',
                   ...filter.style,
                 }}
               />
-              <span className="text-white/80 text-xs font-medium">{filter.name}</span>
+              <span className={`text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+                selectedFilter === filter.id ? 'text-primary' : 'text-white/40 group-hover:text-white/70'
+              }`}>{filter.name}</span>
             </button>
           ))}
         </div>
