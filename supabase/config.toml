@@ -189,9 +189,9 @@ verify_jwt = true
 [functions.confirm-live-extension]
 verify_jwt = true
 
-# R2 Signed URLs
+# R2 Signed URLs - JWT validated manually in code
 [functions.get-replay-url]
-verify_jwt = true
+verify_jwt = false
 
 # R2 Upload presigned URLs - JWT validated manually in code
 [functions.r2-upload-url]
