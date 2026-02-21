@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Search, X, TrendingUp, Crown } from 'lucide-react';
 import { useSearch } from '@/hooks/useSearch';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface SearchBarProps {
   className?: string;
@@ -15,8 +16,10 @@ interface SearchBarProps {
 
 const SearchBar: React.FC<SearchBarProps> = ({ 
   className,
-  placeholder = "Rechercher des créateurs..." 
+  placeholder
 }) => {
+  const { t } = useTranslation();
+  const finalPlaceholder = placeholder || t('searchBar.placeholder');
   const navigate = useNavigate();
   const [isFocused, setIsFocused] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -93,7 +96,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         <Input
           ref={inputRef}
           type="text"
-          placeholder={placeholder}
+          placeholder={finalPlaceholder}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onFocus={() => {
@@ -133,7 +136,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             {searchTerm.length >= 2 && (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-medium text-muted-foreground">Créateurs</h4>
+                  <h4 className="text-sm font-medium text-muted-foreground">{t('searchBar.creators')}</h4>
                   {isLoading && (
                     <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   )}
@@ -142,7 +145,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 {suggestions.length > 0 ? (
                   <div className="space-y-2">
                     {suggestions.map((creator) => {
-                      const creatorName = creator.stage_name || creator.display_name || creator.username || 'Créateur';
+                      const creatorName = creator.stage_name || creator.display_name || creator.username || t('searchBar.creators');
                       return (
                         <div
                           key={creator.id}
@@ -171,7 +174,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                             <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                               {creator.category && <span>{creator.category}</span>}
                               <span>•</span>
-                              <span>{creator.total_subscribers} abonnés</span>
+                              <span>{creator.total_subscribers} {t('searchBar.subscribers')}</span>
                               {creator.subscription_price > 0 && (
                                 <>
                                   <span>•</span>
@@ -195,7 +198,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                   </div>
                 ) : searchTerm.length >= 2 && !isLoading ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    Aucun créateur trouvé pour "{searchTerm}"
+                    {t('searchBar.noResults')} "{searchTerm}"
                   </p>
                 ) : null}
               </div>
@@ -204,7 +207,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             {/* Categories */}
             {(!searchTerm || searchTerm.length < 2) && categories.length > 0 && (
               <div className="mt-4">
-                <h4 className="text-sm font-medium text-muted-foreground mb-2">Catégories populaires</h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">{t('searchBar.popularCategories')}</h4>
                 <div className="flex flex-wrap gap-2">
                   {categories.slice(0, 6).map(({ category, count }) => (
                     <Badge
@@ -223,10 +226,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
             {/* Featured Creators */}
             {(!searchTerm || searchTerm.length < 2) && featuredCreators.length > 0 && (
               <div className="mt-4">
-                <h4 className="text-sm font-medium text-muted-foreground mb-2">Créateurs en vedette</h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">{t('searchBar.featuredCreators')}</h4>
                 <div className="space-y-2">
                   {featuredCreators.slice(0, 3).map((creator) => {
-                    const creatorName = creator.stage_name || creator.display_name || creator.username || 'Créateur';
+                    const creatorName = creator.stage_name || creator.display_name || creator.username || t('searchBar.creators');
                     return (
                       <div
                         key={creator.id}
@@ -248,7 +251,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                             </Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            {creator.total_subscribers} abonnés • {creator.category || 'Divers'}
+                            {creator.total_subscribers} {t('searchBar.subscribers')} • {creator.category || 'Divers'}
                           </p>
                         </div>
                       </div>

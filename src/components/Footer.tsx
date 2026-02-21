@@ -14,11 +14,6 @@ import { Button } from "@/components/ui/button";
 const LANGUAGES = [
   { code: 'fr' as Language, name: 'Français', flag: '🇫🇷' },
   { code: 'en' as Language, name: 'English', flag: '🇬🇧' },
-  { code: 'es' as Language, name: 'Español', flag: '🇪🇸' },
-  { code: 'de' as Language, name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'it' as Language, name: 'Italiano', flag: '🇮🇹' },
-  { code: 'pt' as Language, name: 'Português', flag: '🇵🇹' },
-  { code: 'nl' as Language, name: 'Nederlands', flag: '🇳🇱' },
 ];
 
 const Footer = memo(() => {

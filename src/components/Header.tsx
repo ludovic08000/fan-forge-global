@@ -123,7 +123,7 @@ const Header = memo(() => {
                 <DropdownMenuItem asChild>
                   <Link to="/live-calendar" className="flex items-center">
                     <Calendar className="mr-2 h-4 w-4" aria-hidden="true" />
-                    <span>Mes lives privés</span>
+                    <span>{t('header.privateLives')}</span>
                   </Link>
                 </DropdownMenuItem>
                 {(userRole === 'creator' || userRole === 'admin') && (
@@ -242,7 +242,7 @@ const Header = memo(() => {
                     className="block px-3 py-2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary rounded"
                     onClick={closeMenu}
                   >
-                    Mes lives privés
+                    {t('header.privateLives')}
                   </Link>
                   {(userRole === 'creator' || userRole === 'admin') && (
                     <Link 
