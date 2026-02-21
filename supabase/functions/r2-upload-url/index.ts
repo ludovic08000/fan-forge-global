@@ -124,10 +124,10 @@ serve(async (req) => {
       );
     }
 
-    // Validate file size (max 500 MB)
-    if (fileSize && fileSize > 500 * 1024 * 1024) {
+    // Validate file size (max 1 GB)
+    if (fileSize && fileSize > 1024 * 1024 * 1024) {
       return new Response(
-        JSON.stringify({ error: "File too large (max 500 MB)" }),
+        JSON.stringify({ error: "File too large (max 1 GB)" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

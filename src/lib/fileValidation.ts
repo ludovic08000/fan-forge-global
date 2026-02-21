@@ -63,7 +63,7 @@ const ALLOWED_MIME_TYPES = [
 // Tailles maximales par type (en bytes)
 const MAX_FILE_SIZES: Record<string, number> = {
   'image': 20 * 1024 * 1024,   // 20MB pour images
-  'video': 500 * 1024 * 1024   // 500MB pour vidéos (chunked upload)
+  'video': 1024 * 1024 * 1024   // 1GB pour vidéos (chunked upload)
 };
 
 // Caractères dangereux dans les noms de fichiers

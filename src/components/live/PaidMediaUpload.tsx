@@ -45,10 +45,10 @@ export const PaidMediaUpload = ({ liveStreamId, creatorId, onMediaSent }: PaidMe
       return;
     }
 
-    // Limite de taille (50MB pour les vidéos, 10MB pour les images)
-    const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    // Limite de taille (1GB pour les vidéos, 10MB pour les images)
+    const maxSize = isVideo ? 1024 * 1024 * 1024 : 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast.error(`Fichier trop volumineux (max ${isVideo ? '50' : '10'}MB)`);
+      toast.error(`Fichier trop volumineux (max ${isVideo ? '1 Go' : '10 Mo'})`);
       return;
     }
 
@@ -172,7 +172,7 @@ export const PaidMediaUpload = ({ liveStreamId, creatorId, onMediaSent }: PaidMe
                   Cliquez pour sélectionner une image ou vidéo
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Images: max 10MB • Vidéos: max 50MB
+                  Images: max 10Mo • Vidéos: max 1Go
                 </p>
               </div>
             )}
