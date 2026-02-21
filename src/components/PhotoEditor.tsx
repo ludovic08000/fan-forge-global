@@ -255,9 +255,11 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
     setIsSaving(true);
 
     try {
-      // Fetch l'image comme blob pour éviter les problèmes CORS/tainted canvas
+      console.log('[PhotoEditor] Step 1: Fetching image...');
       const fetchResponse = await fetch(effectiveUrl);
+      if (!fetchResponse.ok) throw new Error(`Fetch failed: ${fetchResponse.status}`);
       const imgBlob = await fetchResponse.blob();
+      console.log('[PhotoEditor] Step 2: Blob size:', imgBlob.size);
       const bitmapImg = await createImageBitmap(imgBlob);
 
       canvas.width = bitmapImg.width;
@@ -270,7 +272,7 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const filteredData = applyFiltersToImageData(imageData);
       ctx.putImageData(filteredData, 0, 0);
-
+      console.log('[PhotoEditor] Step 4: Filters applied');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error('Non authentifié');
@@ -306,14 +308,17 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
           else reject(new Error('Impossible de créer le blob'));
         }, 'image/png', 0.9);
       });
+      console.log('[PhotoEditor] Step 8: Canvas blob size:', canvasBlob.size);
 
       // Upload vers R2 via presigned URL (comme le reste de la plateforme)
       const fileName = `edited_${Date.now()}.png`;
+      console.log('[PhotoEditor] Step 9: Requesting R2 upload URL...');
       const { data: uploadData, error: uploadError } = await supabase.functions.invoke('r2-upload-url', {
         body: { fileName, contentType: 'image/png', fileSize: canvasBlob.size },
       });
 
       if (uploadError || !uploadData?.uploadUrl) {
+        console.error('[PhotoEditor] R2 URL error:', uploadError, uploadData);
         throw new Error(uploadData?.error || uploadError?.message || 'Impossible d\'obtenir l\'URL d\'upload');
       }
 
@@ -324,6 +329,8 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
       });
 
       if (!uploadResponse.ok) {
+        const errText = await uploadResponse.text().catch(() => '');
+        console.error('[PhotoEditor] R2 PUT failed:', uploadResponse.status, errText);
         throw new Error(`Upload échoué (HTTP ${uploadResponse.status})`);
       }
 
