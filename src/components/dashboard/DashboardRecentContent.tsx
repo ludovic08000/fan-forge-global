@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Eye, Heart, Wand2, Plus, ImageIcon } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface Content {
   id: string;
@@ -23,17 +24,14 @@ interface DashboardRecentContentProps {
 
 const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
 
-// Check if it's a relative path (not a full URL)
 const isRelativePath = (url: string): boolean => {
   return !url.startsWith('http://') && !url.startsWith('https://');
 };
 
-// Build the full public URL from a relative path
 const buildPublicUrl = (path: string, bucket: string = 'content'): string => {
   return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
 };
 
-// Get the display URL for a content item
 const getDisplayUrl = (url: string | null): string | null => {
   if (!url) return null;
   if (isRelativePath(url)) {
@@ -50,12 +48,14 @@ export const DashboardRecentContent: React.FC<DashboardRecentContentProps> = ({
   onNewContent,
   onViewAll,
 }) => {
+  const { t } = useTranslation();
+
   return (
     <div className="rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
       <div className="flex items-center justify-between p-5 border-b border-border/50">
-        <h3 className="font-semibold text-lg">Derniers contenus</h3>
+        <h3 className="font-semibold text-lg">{t('dashboard.recentContent')}</h3>
         <Button variant="ghost" size="sm" onClick={onViewAll} className="text-muted-foreground hover:text-foreground">
-          Voir tout →
+          {t('dashboard.viewAll')} →
         </Button>
       </div>
       <div className="p-5">
@@ -103,10 +103,10 @@ export const DashboardRecentContent: React.FC<DashboardRecentContentProps> = ({
             <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
               <ImageIcon className="h-7 w-7 text-muted-foreground/50" />
             </div>
-            <p className="text-muted-foreground mb-3">Aucun contenu encore</p>
+            <p className="text-muted-foreground mb-3">{t('dashboard.noContentYet')}</p>
             <Button onClick={onNewContent} size="sm" className="rounded-xl">
               <Plus className="h-4 w-4 mr-2" />
-              Ajouter du contenu
+              {t('dashboard.addContent')}
             </Button>
           </div>
         )}

@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { useAnalytics } from '@/lib/analytics';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { useContent } from '@/hooks/useContent';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 // Dashboard Components
 import {
@@ -43,15 +44,18 @@ const LiveHistory = lazy(() => import('@/components/live/LiveHistory'));
 const DashboardPartnershipsSection = lazy(() => import('@/components/dashboard/DashboardPartnershipsSection'));
 
 // Fallback components
-const LoadingFallback = ({ message = "Chargement..." }: { message?: string }) => (
-  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-    <Loader2 className="h-8 w-8 animate-spin mb-4" />
-    <p>{message}</p>
-  </div>
-);
+const LoadingFallback = ({ message }: { message?: string }) => {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+      <Loader2 className="h-8 w-8 animate-spin mb-4" />
+      <p>{message || '...'}</p>
+    </div>
+  );
+};
 
 const Dashboard = () => {
   const { user, userRole, loading } = useAuth();
+  const { t } = useTranslation();
   const { useMyContent } = useContent();
   const { trackPageView } = useAnalytics();
   const { unreadCount } = useUnreadMessages();
@@ -99,7 +103,7 @@ const Dashboard = () => {
   };
 
   const handleDeleteContent = async (contentId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce contenu ?')) return;
+    if (!confirm(t('dashboard.deleteConfirm'))) return;
     
     try {
       // 1. Récupérer le file_url (R2 path) avant de supprimer
@@ -120,11 +124,11 @@ const Dashboard = () => {
         }).catch(err => console.warn('R2 delete warning:', err));
       }
 
-      toast.success('Contenu supprimé');
+      toast.success(t('dashboard.contentDeleted'));
       refetch();
     } catch (error) {
       console.error('Error deleting content:', error);
-      toast.error('Erreur lors de la suppression');
+      toast.error(t('dashboard.deleteError'));
     }
   };
 
@@ -132,7 +136,7 @@ const Dashboard = () => {
     if (shareLink) {
       navigator.clipboard.writeText(shareLink);
       setCopied(true);
-      toast.success('Lien copié !');
+      toast.success(t('dashboard.linkCopied'));
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -335,7 +339,7 @@ const Dashboard = () => {
     // Handle boost activation after Stripe checkout
     const sessionId = urlParams.get('session_id');
     if (urlParams.get('boost_success') === 'true' && sessionId) {
-      toast.loading('Activation du boost en cours...');
+      toast.loading(t('dashboard.boostActivating'));
       supabase.functions.invoke('activate-creator-boost', {
         body: { session_id: sessionId }
       })
@@ -343,9 +347,9 @@ const Dashboard = () => {
           toast.dismiss();
           if (error) {
             console.error('Boost activation error:', error);
-            toast.error('Erreur lors de l\'activation du boost');
+            toast.error(t('dashboard.boostError'));
           } else if (data?.success) {
-            toast.success('🚀 Boost activé ! Votre profil est maintenant en tête des résultats.');
+            toast.success(t('dashboard.boostActivated'));
           } else if (data?.error) {
             toast.error(data.error);
           }
@@ -356,21 +360,21 @@ const Dashboard = () => {
         });
     } else if (urlParams.get('boost_success') === 'true') {
       // No session_id - might already be processed
-      toast.success('Boost activé !');
+      toast.success(t('dashboard.boostActivated'));
       window.history.replaceState({}, document.title, window.location.pathname);
     }
     
     if (urlParams.get('boost_cancelled') === 'true' || urlParams.get('boost_canceled') === 'true') {
-      toast.error('Achat de boost annulé.');
+      toast.error(t('dashboard.boostCancelled'));
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
     if (urlParams.get('stripe_connect') === 'success') {
-      toast.success('Vérification Stripe en cours...');
+      toast.success(t('dashboard.stripeVerifying'));
       supabase.functions.invoke('check-stripe-connect-status')
         .then(({ data, error }) => {
           if (!error && data?.payouts_enabled) {
-            toast.success('Stripe Connect activé !');
+            toast.success(t('dashboard.stripeActivated'));
           }
         })
         .finally(() => {
@@ -402,15 +406,15 @@ const Dashboard = () => {
 
   // Menu items
   const menuItems = [
-    { id: 'overview' as DashboardSection, label: 'Aperçu', icon: BarChart3, badge: 0 },
-    { id: 'content' as DashboardSection, label: 'Mon contenu', icon: ImageIcon, badge: 0 },
-    { id: 'live' as DashboardSection, label: 'Live', icon: Radio, badge: 0 },
-    { id: 'messages' as DashboardSection, label: 'Messages', icon: MessageCircle, badge: unreadCount },
-    { id: 'analytics' as DashboardSection, label: 'Statistiques', icon: BarChart3, badge: 0 },
-    { id: 'partnerships' as DashboardSection, label: 'Partenariats', icon: Handshake, badge: 0 },
-    { id: 'payments' as DashboardSection, label: 'Paiements', icon: Banknote, badge: 0 },
-    { id: 'pricing' as DashboardSection, label: 'Abonnement & Boost', icon: Sparkles, badge: 0 },
-    { id: 'settings' as DashboardSection, label: 'Paramètres', icon: Settings, badge: 0 },
+    { id: 'overview' as DashboardSection, label: t('dashboard.overview'), icon: BarChart3, badge: 0 },
+    { id: 'content' as DashboardSection, label: t('dashboard.myContent'), icon: ImageIcon, badge: 0 },
+    { id: 'live' as DashboardSection, label: t('dashboard.live'), icon: Radio, badge: 0 },
+    { id: 'messages' as DashboardSection, label: t('dashboard.messages'), icon: MessageCircle, badge: unreadCount },
+    { id: 'analytics' as DashboardSection, label: t('dashboard.analytics'), icon: BarChart3, badge: 0 },
+    { id: 'partnerships' as DashboardSection, label: t('dashboard.partnerships'), icon: Handshake, badge: 0 },
+    { id: 'payments' as DashboardSection, label: t('dashboard.payments'), icon: Banknote, badge: 0 },
+    { id: 'pricing' as DashboardSection, label: t('dashboard.subscriptionBoost'), icon: Sparkles, badge: 0 },
+    { id: 'settings' as DashboardSection, label: t('dashboard.settings'), icon: Settings, badge: 0 },
   ];
 
   return (
@@ -443,8 +447,8 @@ const Dashboard = () => {
         <Dialog open={showUpload} onOpenChange={setShowUpload}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Ajouter du contenu</DialogTitle>
-              <DialogDescription>Partagez une nouvelle photo ou vidéo avec votre audience</DialogDescription>
+              <DialogTitle>{t('dashboard.addContentTitle')}</DialogTitle>
+              <DialogDescription>{t('dashboard.addContentDesc')}</DialogDescription>
             </DialogHeader>
             <Suspense fallback={<LoadingFallback />}>
               <ContentUpload 
@@ -494,8 +498,8 @@ const Dashboard = () => {
             {/* Lien vers le calendrier des lives privés */}
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold">Studio Live</h3>
-                <p className="text-sm text-muted-foreground">Diffusez en direct pour vos abonnés</p>
+                <h3 className="text-lg font-semibold">{t('dashboard.liveStudio')}</h3>
+                <p className="text-sm text-muted-foreground">{t('dashboard.broadcastForSubscribers')}</p>
               </div>
               <Link to="/live-calendar">
                 <Button 
@@ -504,11 +508,11 @@ const Dashboard = () => {
                 >
                   <Sparkles className="h-5 w-5" />
                   <Video className="h-5 w-5" />
-                  Lives privés
+                  {t('dashboard.privateLives')}
                 </Button>
               </Link>
             </div>
-            <Suspense fallback={<LoadingFallback message="Chargement du studio live..." />}>
+            <Suspense fallback={<LoadingFallback message={t('dashboard.loadingLiveStudio')} />}>
               <LiveStreamStudio />
             </Suspense>
             <Suspense fallback={<LoadingFallback />}>
