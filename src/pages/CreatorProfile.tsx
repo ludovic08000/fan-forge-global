@@ -388,58 +388,62 @@ const CreatorProfile: React.FC = () => {
                     </div>
                   </div>
 
-                     {user && isSubscribed && (
-                       <div className="space-y-2">
-                         <p className="text-green-600 font-medium">✓ Vous êtes abonné(e)</p>
-                         <Button
-                           onClick={() => setShowChat(!showChat)}
-                           variant="outline"
-                           size="sm"
-                         >
-                           {showChat ? 'Masquer le chat' : 'Chat privé'}
-                         </Button>
-                       </div>
-                     )}
-                   <div className="space-y-3">
-                     {creator.subscription_price > 0 ? (
-                       <Button
-                         variant={isSubscribed ? "outline" : "premium"}
-                         className="w-full"
-                         onClick={handleSubscribe}
-                         disabled={isSubscribed}
-                       >
-                         {isSubscribed ? (
-                           <>
-                             <Crown className="h-4 w-4 mr-2" />
-                             Abonné
-                           </>
-                         ) : (
-                           <>
-                             <Lock className="h-4 w-4 mr-2" />
-                             S'abonner • {formatPrice(creator.subscription_price)}/mois
-                           </>
-                         )}
-                       </Button>
-                     ) : (
-                       <Button
-                         variant="outline"
-                         className="w-full"
-                         disabled
-                       >
-                         <Crown className="h-4 w-4 mr-2" />
-                         Abonnement gratuit
-                       </Button>
-                     )}
+                  {user && isSubscribed && (
+                    <div className="space-y-2 mb-4">
+                      <p className="text-green-600 font-medium">✓ Vous êtes abonné(e)</p>
+                    </div>
+                  )}
 
-                     <Button
-                       variant={isFollowing ? "secondary" : "outline"}
-                       className="w-full"
-                       onClick={handleFollow}
-                     >
-                       <Heart className={`h-4 w-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
-                       {isFollowing ? 'Suivi' : 'Suivre'}
-                     </Button>
-                   </div>
+                  <div className="space-y-3">
+                    {creator.subscription_price > 0 ? (
+                      <Button
+                        variant={isSubscribed ? "outline" : "premium"}
+                        className="w-full"
+                        onClick={handleSubscribe}
+                        disabled={isSubscribed}
+                      >
+                        {isSubscribed ? (
+                          <>
+                            <Crown className="h-4 w-4 mr-2" />
+                            Abonné
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="h-4 w-4 mr-2" />
+                            S'abonner • {formatPrice(creator.subscription_price)}/mois
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        disabled
+                      >
+                        <Crown className="h-4 w-4 mr-2" />
+                        Abonnement gratuit
+                      </Button>
+                    )}
+
+                    <Button
+                      variant={isFollowing ? "secondary" : "outline"}
+                      className="w-full"
+                      onClick={handleFollow}
+                    >
+                      <Heart className={`h-4 w-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
+                      {isFollowing ? 'Suivi' : 'Suivre'}
+                    </Button>
+
+                    {user && isSubscribed && (
+                      <Button
+                        onClick={() => setShowChat(!showChat)}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        {showChat ? 'Masquer le chat' : 'Chat privé'}
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -454,26 +458,14 @@ const CreatorProfile: React.FC = () => {
                       <span>Prix mensuel</span>
                       <span className="font-semibold">{formatPrice(creator.subscription_price)}</span>
                     </div>
-                    
                     <div className="text-xs text-muted-foreground">
                       Accès à tout le contenu premium de ce créateur
                     </div>
                   </CardContent>
                 </Card>
               )}
-                     </div>
-
-                     {/* Chat Button for subscribers */}
-                     {user && isSubscribed && (
-                       <Button
-                         onClick={() => setShowChat(!showChat)}
-                         variant="outline"
-                         className="w-full"
-                       >
-                         {showChat ? 'Masquer le chat' : 'Chat privé'}
-                       </Button>
-                     )}
-                   </div>
+            </div>
+          </div>
 
           {/* Main Content */}
           <div className="lg:col-span-2">
