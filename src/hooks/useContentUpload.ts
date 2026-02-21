@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { validateFile } from '@/lib/fileValidation';
 import { uploadFileInChunks, ChunkUploadProgress } from '@/lib/chunkedUpload';
+import { prefillR2UrlCache } from '@/hooks/useSecureR2Url';
 
 export interface ContentUploadData {
   title: string;
@@ -78,6 +79,12 @@ export const useContentUpload = () => {
       }
 
       const filePath = uploadResult.filePath;
+
+      // Pre-fill the R2 URL cache so the image displays instantly
+      if (uploadResult.viewUrl && uploadResult.viewExpiresAt) {
+        prefillR2UrlCache(filePath, uploadResult.viewUrl, uploadResult.viewExpiresAt);
+        console.log('[UPLOAD] Pre-filled R2 URL cache for instant display');
+      }
 
       setProgress(85);
       setUploadStage('Finalisation...');

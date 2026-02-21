@@ -25,14 +25,14 @@ async function sha256(data: string): Promise<string> {
 }
 
 // Generate AWS Signature V4 presigned URL for PUT
-async function generatePresignedPutUrl(
+async function generatePresignedUrl(
+  method: string,
   accessKeyId: string,
   secretAccessKey: string,
   region: string,
   bucket: string,
   key: string,
   accountId: string,
-  _contentType: string,
   expiresIn: number = 3600
 ): Promise<string> {
   const now = new Date();
@@ -49,7 +49,6 @@ async function generatePresignedPutUrl(
   const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
   const credential = encodeURIComponent(`${accessKeyId}/${credentialScope}`);
 
-  // Only sign 'host' header - do NOT sign content-type to avoid mismatch
   const queryParams = [
     ['X-Amz-Algorithm', 'AWS4-HMAC-SHA256'],
     ['X-Amz-Content-Sha256', 'UNSIGNED-PAYLOAD'],
@@ -68,16 +67,13 @@ async function generatePresignedPutUrl(
   const payloadHash = 'UNSIGNED-PAYLOAD';
 
   const canonicalRequest = [
-    'PUT',
+    method,
     canonicalUri,
     canonicalQueryString,
     canonicalHeaders,
     signedHeaders,
     payloadHash
   ].join('\n');
-
-  console.log('[r2-upload-url] Canonical URI:', canonicalUri);
-  console.log('[r2-upload-url] Signed headers:', signedHeaders);
 
   const canonicalRequestHash = await sha256(canonicalRequest);
   const stringToSign = [
@@ -181,26 +177,24 @@ serve(async (req) => {
     const r2SecretAccessKey = Deno.env.get("R2_SECRET_ACCESS_KEY")!;
     const r2BucketName = Deno.env.get("R2_BUCKET_NAME") || "crub";
 
-    const expiresIn = 600; // 10 minutes to upload
+    const uploadExpiresIn = 600; // 10 minutes to upload
+    const viewExpiresIn = 3600; // 1 hour to view
 
-    const uploadUrl = await generatePresignedPutUrl(
-      r2AccessKeyId,
-      r2SecretAccessKey,
-      'auto',
-      r2BucketName,
-      r2Key,
-      r2AccountId,
-      contentType,
-      expiresIn
-    );
+    // Generate both PUT (upload) and GET (view) presigned URLs
+    const [uploadUrl, viewUrl] = await Promise.all([
+      generatePresignedUrl('PUT', r2AccessKeyId, r2SecretAccessKey, 'auto', r2BucketName, r2Key, r2AccountId, uploadExpiresIn),
+      generatePresignedUrl('GET', r2AccessKeyId, r2SecretAccessKey, 'auto', r2BucketName, r2Key, r2AccountId, viewExpiresIn),
+    ]);
 
-    console.log(`[r2-upload-url] Generated presigned PUT URL for user ${userId}, key: ${r2Key}`);
+    console.log(`[r2-upload-url] Generated presigned URLs for user ${userId}, key: ${r2Key}`);
 
     return new Response(
       JSON.stringify({
         uploadUrl,
+        viewUrl,
         filePath: r2Key,
-        expiresIn,
+        expiresIn: uploadExpiresIn,
+        viewExpiresAt: new Date(Date.now() + viewExpiresIn * 1000).toISOString(),
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

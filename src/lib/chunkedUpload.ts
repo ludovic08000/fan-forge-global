@@ -20,6 +20,8 @@ export interface ChunkUploadResult {
   filePath: string;
   bucket: string;
   error?: string;
+  viewUrl?: string;
+  viewExpiresAt?: string;
 }
 
 const EXTENSION_CONTENT_TYPES: Record<string, string> = {
@@ -71,7 +73,7 @@ export async function uploadFileInChunks(
       throw new Error(data?.error || error?.message || 'Impossible d\'obtenir l\'URL d\'upload');
     }
 
-    const { uploadUrl, filePath } = data;
+    const { uploadUrl, filePath, viewUrl, viewExpiresAt } = data;
 
     onProgress?.({
       stage: 'uploading',
@@ -122,6 +124,8 @@ export async function uploadFileInChunks(
       success: true,
       filePath,
       bucket: 'r2',
+      viewUrl,
+      viewExpiresAt,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur d\'upload';
