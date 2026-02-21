@@ -8,8 +8,10 @@ import { TrendingUp, Users, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const PopularCreators = () => {
+  const { t } = useTranslation();
   const { data: creators, isLoading } = useQuery({
     queryKey: ['popular-creators'],
     queryFn: async () => {
@@ -93,7 +95,7 @@ const PopularCreators = () => {
 
   if (isLoading) {
     return (
-      <section className="py-16 bg-gradient-to-b from-background to-muted/20" aria-label="Chargement des créateurs populaires">
+      <section className="py-16 bg-gradient-to-b from-background to-muted/20" aria-label={t('popularCreators.loading')}>
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-10">
             <div className="flex items-center gap-4">
@@ -101,12 +103,12 @@ const PopularCreators = () => {
                 <TrendingUp className="h-6 w-6 text-primary" aria-hidden="true" />
               </div>
               <div>
-                <h2 className="text-2xl md:text-3xl font-bold">Créateurs populaires</h2>
-                <p className="text-muted-foreground text-sm mt-1">Découvrez les talents du moment</p>
+                <h2 className="text-2xl md:text-3xl font-bold">{t('popularCreators.title')}</h2>
+                <p className="text-muted-foreground text-sm mt-1">{t('popularCreators.subtitle')}</p>
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" role="status" aria-label="Chargement">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" role="status" aria-label={t('common.loading')}>
             {[...Array(8)].map((_, i) => (
               <div key={i} className="rounded-2xl overflow-hidden">
                 <Skeleton className="h-28 w-full" />
@@ -149,11 +151,11 @@ const PopularCreators = () => {
             </div>
             <div>
               <h2 id="popular-creators-heading" className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-                Créateurs populaires
+                {t('popularCreators.title')}
                 <Sparkles className="h-5 w-5 text-amber-500" />
               </h2>
               <p className="text-muted-foreground text-sm mt-1">
-                Découvrez les talents les plus suivis
+                {t('popularCreators.subtitle')}
               </p>
             </div>
           </div>
@@ -161,7 +163,7 @@ const PopularCreators = () => {
           <Link to="/search">
             <Button variant="outline" className="hidden sm:flex items-center gap-2 group hover:border-primary/50 transition-all">
               <Users className="h-4 w-4 group-hover:text-primary transition-colors" aria-hidden="true" />
-              <span className="group-hover:text-primary transition-colors">Voir tous</span>
+              <span className="group-hover:text-primary transition-colors">{t('popularCreators.viewAll')}</span>
             </Button>
           </Link>
         </motion.div>
@@ -170,7 +172,7 @@ const PopularCreators = () => {
         <div 
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           role="list"
-          aria-label="Liste des créateurs populaires"
+          aria-label={t('popularCreators.title')}
         >
           {creators.map((creator, index) => (
             <div key={creator.id} role="listitem">
@@ -189,7 +191,7 @@ const PopularCreators = () => {
           <Link to="/search">
             <Button className="w-full bg-gradient-to-r from-primary to-primary/90 shadow-lg shadow-primary/20">
               <Users className="h-4 w-4 mr-2" aria-hidden="true" />
-              Voir tous les créateurs
+              {t('popularCreators.viewAllCreators')}
             </Button>
           </Link>
         </motion.div>

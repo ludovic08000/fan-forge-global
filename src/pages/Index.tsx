@@ -6,9 +6,11 @@ import ContentGallery from "@/components/ContentGallery";
 import AgeVerificationGate from "@/components/AgeVerificationGate";
 import SEOHead from "@/components/SEOHead";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 const Index = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   return (
     <AgeVerificationGate>
@@ -32,7 +34,7 @@ const Index = () => {
               
               <section className="py-12 bg-background">
                 <div className="container mx-auto px-4">
-                  <h2 className="text-2xl font-bold mb-6">Découvrir les médias</h2>
+                  <h2 className="text-2xl font-bold mb-6">{t('discovery.discoverMedia')}</h2>
                   <ContentGallery />
                 </div>
               </section>

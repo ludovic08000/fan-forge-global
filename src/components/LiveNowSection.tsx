@@ -13,6 +13,7 @@ import { Circle, Users, Play, Radio } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface LiveStream {
   id: string;
@@ -33,6 +34,7 @@ interface CreatorInfo {
 }
 
 const LiveNowSection = () => {
+  const { t } = useTranslation();
   const [liveStreams, setLiveStreams] = useState<LiveStream[]>([]);
   const [creatorInfos, setCreatorInfos] = useState<Record<string, CreatorInfo>>({});
   const [loading, setLoading] = useState(true);
@@ -134,7 +136,7 @@ const LiveNowSection = () => {
               <Radio className="h-6 w-6 text-red-500" />
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />
             </div>
-            <h2 className="text-2xl font-bold">En direct maintenant</h2>
+            <h2 className="text-2xl font-bold">{t('liveNow.title')}</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
@@ -158,17 +160,17 @@ const LiveNowSection = () => {
             </div>
             <div>
               <h2 className="text-2xl font-bold flex items-center gap-2">
-                En direct maintenant
+                {t('liveNow.title')}
                 <Badge variant="destructive" className="animate-pulse">
                   {liveStreams.length} live{liveStreams.length > 1 ? 's' : ''}
                 </Badge>
               </h2>
-              <p className="text-sm text-muted-foreground">Regardez vos créateurs préférés en live</p>
+              <p className="text-sm text-muted-foreground">{t('liveNow.subtitle')}</p>
             </div>
           </div>
           <Link to="/lives">
             <Button variant="outline" size="sm">
-              Voir tous
+              {t('liveNow.viewAll')}
             </Button>
           </Link>
         </div>
@@ -207,7 +209,7 @@ const LiveNowSection = () => {
                         <div className="absolute top-3 left-3">
                           <Badge variant="destructive" className="gap-1.5 shadow-lg">
                             <Circle className="h-2 w-2 fill-current animate-pulse" />
-                            EN DIRECT
+                            {t('liveNow.live')}
                           </Badge>
                         </div>
 

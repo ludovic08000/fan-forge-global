@@ -5,6 +5,7 @@ import { Crown, ShieldAlert, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdultAccess } from "@/hooks/useAdultAccess";
 import { Link } from "react-router-dom";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 const AGE_VERIFICATION_KEY = "age-verified";
 const VERIFICATION_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 jours
@@ -70,6 +71,7 @@ export const requiresAgeVerification = (category?: string | null, contentType?: 
 };
 
 const AgeVerificationGate = ({ children, category, contentType }: AgeVerificationGateProps) => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { isAdult: isUserAdult, isLoading: isLoadingAge, hasBirthdate, age } = useAdultAccess();
   const [isVerified, setIsVerified] = useState<boolean | null>(null);
@@ -136,38 +138,36 @@ const AgeVerificationGate = ({ children, category, contentType }: AgeVerificatio
             <div className="mx-auto bg-destructive/20 p-4 rounded-2xl w-fit">
               <AlertTriangle className="h-12 w-12 text-destructive" />
             </div>
-            <CardTitle className="text-2xl font-bold text-destructive">
-              Accès interdit
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <CardDescription className="text-center text-base leading-relaxed">
-              Vous avez {age} ans. Ce contenu est strictement réservé aux personnes majeures (18 ans et plus).
-              Selon votre date de naissance enregistrée, vous n'êtes pas autorisé(e) à accéder à cette section.
-            </CardDescription>
+             <CardTitle className="text-2xl font-bold text-destructive">
+               {t('ageVerification.accessDenied')}
+             </CardTitle>
+           </CardHeader>
+           <CardContent className="space-y-6">
+             <CardDescription className="text-center text-base leading-relaxed">
+               {t('ageVerification.youAre')} {age} {t('ageVerification.yearsOld')}. {t('ageVerification.adultContentRestricted')}
+             </CardDescription>
 
-            <div className="bg-destructive/10 p-4 rounded-lg border border-destructive/30">
-              <p className="text-sm text-muted-foreground text-center">
-                Cette restriction est automatique et basée sur votre profil. 
-                Si vous pensez qu'il s'agit d'une erreur, vérifiez votre date de naissance dans vos paramètres.
-              </p>
-            </div>
+             <div className="bg-destructive/10 p-4 rounded-lg border border-destructive/30">
+               <p className="text-sm text-muted-foreground text-center">
+                 {t('ageVerification.restrictionAutomatic')}
+               </p>
+             </div>
 
-            <div className="space-y-3">
-              <Link to="/profile">
-                <Button variant="outline" className="w-full">
-                  Vérifier mon profil
-                </Button>
-              </Link>
-              <Link to="/">
-                <Button className="w-full">
-                  Retour à l'accueil
-                </Button>
-              </Link>
-            </div>
+             <div className="space-y-3">
+               <Link to="/profile">
+                 <Button variant="outline" className="w-full">
+                   {t('ageVerification.checkProfile')}
+                 </Button>
+               </Link>
+               <Link to="/">
+                 <Button className="w-full">
+                   {t('ageVerification.backToHome')}
+                 </Button>
+               </Link>
+             </div>
 
-          </CardContent>
-        </Card>
+           </CardContent>
+         </Card>
       </div>
     );
   }
@@ -196,24 +196,23 @@ const AgeVerificationGate = ({ children, category, contentType }: AgeVerificatio
               <Crown className="h-12 w-12 text-primary-foreground" />
             </div>
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent">
-              Contenu réservé aux adultes
+              {t('ageVerification.adultContent')}
             </CardTitle>
             <div className="flex items-center justify-center gap-2 text-destructive">
               <ShieldAlert className="h-5 w-5" />
-              <span className="font-semibold">Section Charme / Érotique</span>
+              <span className="font-semibold">{t('ageVerification.adultSection')}</span>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
             <CardDescription className="text-center text-base leading-relaxed">
-              Ce créateur propose du contenu pour adultes (charme/érotique).
-              Vous devez confirmer avoir l'âge légal (18 ans ou plus) pour accéder à cette page.
+              {t('ageVerification.adultContentDescription')}
             </CardDescription>
 
             <div className="bg-muted/50 p-4 rounded-lg border border-border">
               <p className="text-sm text-muted-foreground text-center">
-                En cliquant sur "J'ai 18 ans ou plus", vous confirmez être majeur et acceptez nos{" "}
+                {t('ageVerification.confirmAge')}{" "}
                 <a href="/terms" className="text-primary hover:underline">
-                  Conditions d'Utilisation
+                  {t('ageVerification.termsOfService')}
                 </a>
                 .
               </p>
@@ -224,14 +223,14 @@ const AgeVerificationGate = ({ children, category, contentType }: AgeVerificatio
                 onClick={() => handleVerification(true)}
                 className="w-full bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-lg py-6"
               >
-                J'ai 18 ans ou plus
+                {t('ageVerification.iAmAdult')}
               </Button>
               <Button 
                 variant="outline"
                 onClick={() => handleVerification(false)}
                 className="w-full py-6"
               >
-                Je suis mineur - Quitter
+                {t('ageVerification.iAmMinor')}
               </Button>
             </div>
 
