@@ -83,44 +83,29 @@ export async function uploadFileInChunks(
       totalChunks: 1,
     });
 
-    // 3. Upload directly to R2 via presigned URL using XHR for progress
-    await new Promise<void>((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      const startTime = Date.now();
+    // 3. Upload directly to R2 via presigned URL using fetch (clean headers)
+    console.log('[upload] PUT to R2, Content-Type:', contentType, 'Size:', file.size);
+    
+    const uploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': contentType },
+      body: file,
+    });
 
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          const elapsed = (Date.now() - startTime) / 1000;
-          const speed = e.loaded / elapsed;
-          const mappedProgress = 10 + Math.round((e.loaded / e.total) * 85);
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text().catch(() => '');
+      console.error('[upload] R2 PUT failed:', uploadResponse.status, errorText);
+      throw new Error(`Upload échoué (HTTP ${uploadResponse.status})`);
+    }
 
-          onProgress?.({
-            stage: 'uploading',
-            progress: mappedProgress,
-            message: `Upload • ${formatSpeed(speed)}`,
-            bytesUploaded: e.loaded,
-            totalBytes: e.total,
-            currentChunk: 1,
-            totalChunks: 1,
-            speed: formatSpeed(speed),
-          });
-        }
-      });
-
-      xhr.addEventListener('load', () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          resolve();
-        } else {
-          reject(new Error(`Upload échoué (HTTP ${xhr.status})`));
-        }
-      });
-
-      xhr.addEventListener('error', () => reject(new Error('Erreur réseau')));
-      xhr.addEventListener('abort', () => reject(new Error('Upload annulé')));
-
-      xhr.open('PUT', uploadUrl);
-      xhr.setRequestHeader('Content-Type', contentType);
-      xhr.send(file);
+    onProgress?.({
+      stage: 'uploading',
+      progress: 95,
+      message: 'Finalisation...',
+      bytesUploaded: totalBytes,
+      totalBytes,
+      currentChunk: 1,
+      totalChunks: 1,
     });
 
     onProgress?.({
