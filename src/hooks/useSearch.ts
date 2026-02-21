@@ -109,6 +109,8 @@ export const useSearch = () => {
     'Éducation',
     'Culture',
     'Agriculture',
+    'Voyage',
+    'Tech & Innovation',
   ];
 
   // Get popular categories avec cache long - utilise la vue publique
