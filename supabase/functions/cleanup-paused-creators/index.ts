@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { S3Client, ListObjectsV2Command, DeleteObjectsCommand } from "npm:@aws-sdk/client-s3@3.600.0";
+import { S3Client, ListObjectsV2Command, DeleteObjectsCommand, CopyObjectCommand } from "npm:@aws-sdk/client-s3@3.600.0";
 import { verifyCronSecret } from "../_shared/auth.ts";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 
@@ -75,18 +75,22 @@ Deno.serve(async (req) => {
       console.log(`Processing creator ${creator.id} (${creator.stage_name})...`);
 
       try {
-        // 1. Supprimer le compte Stripe Connect
+        // ÉTAPE 0: Archiver les fichiers flaggés dans legal-archives/ AVANT suppression
+        if (s3Client) {
+          await archiveEvidenceFiles(s3Client, r2BucketName, supabaseAdmin, creator.user_id, creator.id);
+        }
+
+        // ÉTAPE 1: Supprimer le compte Stripe Connect
         if (stripe && creator.stripe_account_id) {
           try {
             await stripe.accounts.del(creator.stripe_account_id);
             console.log(`Stripe account ${creator.stripe_account_id} deleted`);
           } catch (stripeErr: any) {
-            // Le compte peut déjà être supprimé
             console.warn(`Stripe deletion warning for ${creator.stripe_account_id}:`, stripeErr.message);
           }
         }
 
-        // 2. Supprimer tous les fichiers R2 du créateur
+        // ÉTAPE 2: Supprimer tous les fichiers R2 du créateur (sauf legal-archives/)
         if (s3Client && creator.stage_name) {
           const sanitizedName = creator.stage_name.toLowerCase().replace(/[^a-z0-9_-]/g, "_");
           await deleteR2Prefix(s3Client, r2BucketName, `${sanitizedName}/`);
@@ -102,7 +106,7 @@ Deno.serve(async (req) => {
         if (s3Client && contentFiles) {
           const keys = contentFiles
             .flatMap((c) => [c.file_url, c.thumbnail_url])
-            .filter(Boolean) as string[];
+            .filter((k): k is string => Boolean(k) && !k.startsWith("legal-archives/"));
           
           if (keys.length > 0) {
             await deleteR2Keys(s3Client, r2BucketName, keys);
@@ -110,7 +114,8 @@ Deno.serve(async (req) => {
           }
         }
 
-        // 3. Supprimer les données DB via la fonction existante
+        // ÉTAPE 3: Supprimer les données DB via la fonction existante
+        // (archive_illegal_content_evidence est appelée dedans avec IP + logs)
         const { error: deleteErr } = await supabaseAdmin.rpc("delete_creator_completely", {
           _creator_id: creator.id,
         });
@@ -121,7 +126,7 @@ Deno.serve(async (req) => {
         }
 
         deletedCount++;
-        console.log(`Creator ${creator.id} fully deleted (DB + Stripe + R2)`);
+        console.log(`Creator ${creator.id} fully deleted (DB + Stripe + R2, evidence archived)`);
       } catch (creatorErr) {
         console.error(`Error processing creator ${creator.id}:`, creatorErr);
       }
@@ -133,7 +138,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         deletedCount,
-        message: `${deletedCount} compte(s) créateur(s) en pause supprimé(s) (DB + Stripe + R2)`,
+        message: `${deletedCount} compte(s) créateur(s) supprimé(s) (DB + Stripe + R2, preuves archivées)`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
@@ -145,6 +150,59 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+/**
+ * Copie les fichiers flaggés par l'IA dans le dossier legal-archives/{user_id}/
+ * avant que les originaux soient supprimés
+ */
+async function archiveEvidenceFiles(
+  s3Client: S3Client,
+  bucket: string,
+  supabaseAdmin: any,
+  userId: string,
+  creatorId: string
+) {
+  // Récupérer les fichiers flaggés par l'IA
+  const { data: flaggedContent } = await supabaseAdmin
+    .from("ai_moderation_queue")
+    .select("file_url, thumbnail_url, ai_category, status")
+    .eq("user_id", userId)
+    .or("ai_category.in.(illegal,child_exploitation,csam,violence_extreme),status.in.(quarantined,rejected)");
+
+  if (!flaggedContent || flaggedContent.length === 0) {
+    console.log(`No flagged content to archive for user ${userId}`);
+    return;
+  }
+
+  console.log(`Archiving ${flaggedContent.length} flagged files for user ${userId}...`);
+
+  for (const item of flaggedContent) {
+    const filesToCopy = [item.file_url, item.thumbnail_url].filter(Boolean);
+    
+    for (const sourceKey of filesToCopy) {
+      const destKey = `legal-archives/${userId}/${sourceKey}`;
+      try {
+        await s3Client.send(new CopyObjectCommand({
+          Bucket: bucket,
+          CopySource: `${bucket}/${sourceKey}`,
+          Key: destKey,
+        }));
+        console.log(`Archived: ${sourceKey} → ${destKey}`);
+      } catch (copyErr: any) {
+        // Le fichier peut ne plus exister (déjà en quarantaine par ex.)
+        console.warn(`Could not archive ${sourceKey}: ${copyErr.message}`);
+      }
+    }
+  }
+
+  // Mettre à jour les r2_evidence_keys dans legal_evidence_archives
+  await supabaseAdmin
+    .from("legal_evidence_archives")
+    .update({
+      archived_by: "cleanup_with_r2_copy"
+    })
+    .eq("original_user_id", userId);
+}
 
 // Supprimer tous les objets R2 sous un préfixe
 async function deleteR2Prefix(s3Client: S3Client, bucket: string, prefix: string) {
@@ -175,7 +233,6 @@ async function deleteR2Prefix(s3Client: S3Client, bucket: string, prefix: string
 
 // Supprimer des clés R2 spécifiques
 async function deleteR2Keys(s3Client: S3Client, bucket: string, keys: string[]) {
-  // Batch par 1000 (limite S3)
   for (let i = 0; i < keys.length; i += 1000) {
     const batch = keys.slice(i, i + 1000);
     await s3Client.send(new DeleteObjectsCommand({
