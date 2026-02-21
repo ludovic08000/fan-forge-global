@@ -75,9 +75,29 @@ export const usePreloadedSession = () => {
 };
 
 /**
- * Obtenir la session de manière async (avec cache)
+ * Obtenir la session de manière async (toujours fraîche)
+ * Appelle supabase.auth.getSession() qui gère le refresh automatique
  */
 export const getSessionAsync = async (): Promise<Session | null> => {
-  if (cachedSession) return cachedSession;
-  return preloadSession();
+  // If cached session exists and token is not expired (30s margin), use it
+  if (cachedSession?.expires_at) {
+    const expiresAtMs = cachedSession.expires_at * 1000;
+    if (expiresAtMs > Date.now() + 30000) {
+      return cachedSession;
+    }
+  }
+  
+  // Otherwise fetch fresh session (handles token refresh)
+  try {
+    const { data } = await supabase.auth.getSession();
+    cachedSession = data.session;
+    if (data.session) {
+      sessionVersion++;
+    }
+    isInitialized = true;
+    return cachedSession;
+  } catch (err) {
+    console.warn('[getSessionAsync] Error:', err);
+    return null;
+  }
 };
