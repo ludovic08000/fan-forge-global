@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sparkles, Heart, Music, Gamepad2, Gavel, Trophy, Dribbble, Dumbbell, ChefHat, Crown, Camera, Palette } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
@@ -295,31 +296,46 @@ const Signup = () => {
                     </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Catégorie de contenu *</Label>
-                    <Select
-                      value={signUpForm.category}
-                      onValueChange={(value) => setSignUpForm({ ...signUpForm, category: value })}
-                      required={signUpForm.role === 'creator'}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionnez une catégorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Glamour">Glamour</SelectItem>
-                        <SelectItem value="Lifestyle">Lifestyle</SelectItem>
-                        <SelectItem value="DJing">DJing</SelectItem>
-                        <SelectItem value="Gaming">Gaming</SelectItem>
-                        <SelectItem value="Avocat">Avocat</SelectItem>
-                        <SelectItem value="Football">Football</SelectItem>
-                        <SelectItem value="Basketball">Basketball</SelectItem>
-                        <SelectItem value="Coach sportif">Coach sportif</SelectItem>
-                        <SelectItem value="Cuisine">Cuisine</SelectItem>
-                        <SelectItem value="Luxe">Luxe</SelectItem>
-                        <SelectItem value="Mannequin">Mannequin</SelectItem>
-                        <SelectItem value="Art & Création">Art & Création</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-3">
+                    <Label>Catégorie de contenu *</Label>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {[
+                        { id: 'Glamour', label: 'Glamour', icon: Sparkles, gradient: 'from-pink-500 to-rose-500' },
+                        { id: 'Lifestyle', label: 'Lifestyle', icon: Heart, gradient: 'from-red-500 to-pink-500' },
+                        { id: 'DJing', label: 'DJ', icon: Music, gradient: 'from-violet-500 to-purple-500' },
+                        { id: 'Gaming', label: 'Gaming', icon: Gamepad2, gradient: 'from-emerald-500 to-green-500' },
+                        { id: 'Avocat', label: 'Avocat', icon: Gavel, gradient: 'from-amber-500 to-yellow-500' },
+                        { id: 'Football', label: 'Football', icon: Trophy, gradient: 'from-sky-500 to-blue-500' },
+                        { id: 'Basketball', label: 'Basketball', icon: Dribbble, gradient: 'from-orange-500 to-amber-500' },
+                        { id: 'Coach sportif', label: 'Coach', icon: Dumbbell, gradient: 'from-teal-500 to-cyan-500' },
+                        { id: 'Cuisine', label: 'Cuisine', icon: ChefHat, gradient: 'from-rose-500 to-red-500' },
+                        { id: 'Luxe', label: 'Luxe', icon: Crown, gradient: 'from-yellow-500 to-amber-400' },
+                        { id: 'Mannequin', label: 'Mannequin', icon: Camera, gradient: 'from-indigo-500 to-violet-500' },
+                        { id: 'Art & Création', label: 'Art', icon: Palette, gradient: 'from-fuchsia-500 to-pink-500' },
+                      ].map((niche) => {
+                        const Icon = niche.icon;
+                        const isActive = signUpForm.category === niche.id;
+                        return (
+                          <button
+                            key={niche.id}
+                            type="button"
+                            onClick={() => setSignUpForm({ ...signUpForm, category: niche.id })}
+                            className={`flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[64px] ${
+                              isActive
+                                ? `bg-gradient-to-br ${niche.gradient} text-white shadow-lg ring-2 ring-primary/30`
+                                : 'bg-card border border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/30 hover:shadow-md'
+                            }`}
+                          >
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                              isActive ? 'bg-white/20' : `bg-gradient-to-br ${niche.gradient} text-white`
+                            }`}>
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <span className="truncate w-full text-center">{niche.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
