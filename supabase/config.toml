@@ -225,6 +225,14 @@ verify_jwt = false
 [functions.private-live-payment-webhook]
 verify_jwt = false
 
+# Delete replay - JWT validated manually in code
+[functions.delete-replay]
+verify_jwt = false
+
+# Delete R2 file - JWT validated manually in code
+[functions.delete-r2-file]
+verify_jwt = false
+
 # R2 Upload Proxy - JWT validated manually in code
 [functions.r2-upload]
 verify_jwt = false
