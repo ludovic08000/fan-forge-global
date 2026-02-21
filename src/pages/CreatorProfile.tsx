@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -15,7 +15,8 @@ import {
   Eye, 
   ArrowLeft,
   Star,
-  Lock
+  Lock,
+  ShieldAlert
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useContent } from '@/hooks/useContent';
@@ -25,6 +26,7 @@ import ContentCard from '@/components/ContentCard';
 import ModernPrivateChat from '@/components/ModernPrivateChat';
 import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
 // import AgeVerificationGate, { requiresAgeVerification } from '@/components/AgeVerificationGate';
+import { useGeoLocation } from '@/hooks/useGeoLocation';
 
 interface Creator {
   id: string;
@@ -41,6 +43,8 @@ interface Creator {
   subscription_active: boolean;
   plan_type: string;
   created_at: string;
+  hide_subscriber_count: boolean | null;
+  blocked_countries: string[] | null;
   profiles: {
     username: string | null;
     display_name: string | null;
@@ -57,12 +61,14 @@ const CreatorProfile: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { geoData } = useGeoLocation();
   const { useCreatorContent } = useContent();
   const [creator, setCreator] = useState<Creator | null>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showChat, setShowChat] = useState(false);
+  const [isGeoBlocked, setIsGeoBlocked] = useState(false);
 
   // Charger le profil du créateur
   useEffect(() => {
@@ -92,6 +98,15 @@ const CreatorProfile: React.FC = () => {
 
         const combined = { ...creatorData, profiles: profileData || null } as any;
         setCreator(combined);
+
+        // Geo-blocking check
+        if (creatorData.blocked_countries && creatorData.blocked_countries.length > 0) {
+          if (creatorData.blocked_countries.includes(geoData.countryCode)) {
+            setIsGeoBlocked(true);
+            setLoading(false);
+            return;
+          }
+        }
 
         // Vérifier si l'utilisateur suit ce créateur
         if (user) {
@@ -225,6 +240,23 @@ const CreatorProfile: React.FC = () => {
     );
   }
 
+  if (isGeoBlocked) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center max-w-md space-y-4">
+          <ShieldAlert className="h-16 w-16 text-muted-foreground mx-auto" />
+          <h1 className="text-2xl font-bold">Contenu non disponible</h1>
+          <p className="text-muted-foreground">
+            Ce profil n'est pas accessible depuis votre région.
+          </p>
+          <Link to="/">
+            <Button className="mt-4">Retour à l'accueil</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (!creator) {
     return (
       <div className="min-h-screen bg-background pt-16 flex items-center justify-center">
@@ -345,7 +377,9 @@ const CreatorProfile: React.FC = () => {
                   {/* Stats */}
                   <div className="grid grid-cols-2 gap-4 mb-6 text-center">
                     <div>
-                      <div className="text-xl font-bold">{creator.total_subscribers}</div>
+                      <div className="text-xl font-bold">
+                        {creator.hide_subscriber_count ? '—' : creator.total_subscribers}
+                      </div>
                       <div className="text-xs text-muted-foreground">Abonnés</div>
                     </div>
                     <div>
@@ -472,7 +506,9 @@ const CreatorProfile: React.FC = () => {
                         <div className="text-sm text-muted-foreground">Publications</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-500">{creator.total_subscribers}</div>
+                        <div className="text-2xl font-bold text-blue-500">
+                          {creator.hide_subscriber_count ? '—' : creator.total_subscribers}
+                        </div>
                         <div className="text-sm text-muted-foreground">Abonnés</div>
                       </div>
                     </div>

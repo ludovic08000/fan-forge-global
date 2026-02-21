@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Heart, Eye, Lock, Crown, CheckCircle2, MessageCircle, UserMinus, Play, Image, Video, Home, Grid3X3, ShoppingBag, SlidersHorizontal, ChevronDown, ChevronUp, Coins, Instagram, Youtube, ExternalLink, User, LogOut, Settings, Menu, Calendar, Radio } from 'lucide-react';
+import { Heart, Eye, Lock, Crown, CheckCircle2, MessageCircle, UserMinus, Play, Image, Video, Home, Grid3X3, ShoppingBag, SlidersHorizontal, ChevronDown, ChevronUp, Coins, Instagram, Youtube, ExternalLink, User, LogOut, Settings, Menu, Calendar, Radio, ShieldAlert } from 'lucide-react';
 import { OptimizedImage } from '@/components/ui/optimized-image';
 import { EmbeddedCheckout } from '@/components/EmbeddedCheckout';
 import SEOHead from '@/components/SEOHead';
@@ -16,6 +16,7 @@ import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { useContentProtection } from '@/hooks/useContentProtection';
 import { SecureVideoPreviewCard } from '@/components/SecureVideoPreviewCard';
 import { SecureVideoLightbox } from '@/components/SecureVideoLightbox';
+import { useGeoLocation } from '@/hooks/useGeoLocation';
 
 import { PrivateLiveReplays } from '@/components/live/PrivateLiveReplays';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -29,6 +30,7 @@ const CreatorPublicPage = () => {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { user, signOut, userProfile } = useAuth();
+  const { geoData } = useGeoLocation();
   const [creator, setCreator] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [content, setContent] = useState<any[]>([]);
@@ -48,6 +50,8 @@ const CreatorPublicPage = () => {
   const [scheduledLives, setScheduledLives] = useState<any[]>([]);
   const [showPrivateLiveDialog, setShowPrivateLiveDialog] = useState(false);
   const [privateReplaysCount, setPrivateReplaysCount] = useState(0);
+  const [isGeoBlocked, setIsGeoBlocked] = useState(false);
+  const [hideSubscriberCount, setHideSubscriberCount] = useState(false);
 
   useContentProtection(!showCheckout && !selectedImage);
 
@@ -150,6 +154,26 @@ const CreatorPublicPage = () => {
         if (creatorError) throw creatorError;
         setCreator(creatorData);
 
+        // Fetch privacy settings from creators table (not in public_creators view)
+        const { data: privacyData } = await supabase
+          .from('creators')
+          .select('hide_subscriber_count, blocked_countries')
+          .eq('id', creatorData.id)
+          .single();
+
+        if (privacyData?.hide_subscriber_count) {
+          setHideSubscriberCount(true);
+        }
+
+        // Geo-blocking check
+        if (privacyData?.blocked_countries && privacyData.blocked_countries.length > 0) {
+          if (privacyData.blocked_countries.includes(geoData.countryCode)) {
+            setIsGeoBlocked(true);
+            setLoading(false);
+            return;
+          }
+        }
+
         const { data: contentData } = await supabase
           .from('content')
           .select('*')
@@ -192,7 +216,7 @@ const CreatorPublicPage = () => {
     };
 
     loadCreator();
-  }, [username, user]);
+  }, [username, user, geoData.countryCode]);
 
   // Charger les lives programmés du créateur
   useEffect(() => {
@@ -501,6 +525,24 @@ const CreatorPublicPage = () => {
   const creatorImage = profile?.avatar_url || '/og-image.jpg';
   const creatorUrl = `https://crub.fr/creator/${profile?.username || username}`;
 
+  // Geo-blocked page
+  if (isGeoBlocked) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center max-w-md space-y-4">
+          <ShieldAlert className="h-16 w-16 text-muted-foreground mx-auto" />
+          <h1 className="text-2xl font-bold">Contenu non disponible</h1>
+          <p className="text-muted-foreground">
+            Ce profil n'est pas accessible depuis votre région.
+          </p>
+          <Link to="/">
+            <Button className="mt-4">Retour à l'accueil</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
@@ -516,7 +558,7 @@ const CreatorPublicPage = () => {
           username: profile?.username || '',
           category: creator?.category,
           bio: profile?.bio,
-          subscriberCount: creator?.total_subscribers || 0,
+          subscriberCount: hideSubscriberCount ? 0 : (creator?.total_subscribers || 0),
           contentCount: content.length,
           isVerified: profile?.is_verified,
           subscriptionPrice: creator?.subscription_price,
@@ -525,8 +567,6 @@ const CreatorPublicPage = () => {
         }}
         modifiedTime={creator?.updated_at}
       />
-
-
       {/* Cover Photo */}
       <div className="relative h-56 md:h-72 bg-gradient-to-br from-primary/30 to-primary/10">
         {profile.cover_url ? (
