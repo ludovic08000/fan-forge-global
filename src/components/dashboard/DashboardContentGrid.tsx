@@ -3,7 +3,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Eye, Heart, Wand2, Plus, Upload, Trash2, Play, Video, Crown, Volume2, VolumeX, Shield, Lock, Users, Euro, Loader2 } from 'lucide-react';
-import { useSignedUrl } from '@/hooks/useSignedUrl';
 import { useSecureR2Url, isR2Url } from '@/hooks/useSecureR2Url';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -66,31 +65,21 @@ const SecureContentCard: React.FC<{
   const isPremium = item.is_premium === true;
   const isExternalR2 = isR2Url(item.file_url);
 
-  // Hook pour URLs R2 sécurisées (replays Cloudflare)
+  // Hook pour URLs R2 sécurisées — pour TOUT contenu R2 (images + vidéos)
   const { secureUrl: r2SecureUrl, loading: r2Loading } = useSecureR2Url(
-    isVideo && isExternalR2 ? item.file_url : null,
+    isExternalR2 ? item.file_url : null,
     {
       contentId: item.id,
-      enabled: isVideo && isExternalR2
+      enabled: isExternalR2
     }
   );
 
-  // Hook pour URLs Supabase signées (contenu stocké sur Supabase)
-  const { signedUrl: supabaseSignedUrl, loading: supabaseLoading } = useSignedUrl(
-    isVideo && !isExternalR2 ? item.file_url : null,
-    {
-      bucket: 'content',
-      contentId: item.id,
-      enabled: isVideo && isPremium && !isExternalR2
-    }
-  );
-
-  // URL sécurisée finale à utiliser
-  const secureVideoUrl = isExternalR2 
-    ? r2SecureUrl 
-    : (isPremium ? supabaseSignedUrl : item.file_url);
+  // URL sécurisée finale pour vidéos
+  const secureVideoUrl = isExternalR2 ? r2SecureUrl : item.file_url;
+  // URL sécurisée pour images
+  const secureImageUrl = isExternalR2 ? r2SecureUrl : item.file_url;
   
-  const urlLoading = isExternalR2 ? r2Loading : supabaseLoading;
+  const urlLoading = r2Loading;
 
   const handleMouseEnter = () => {
     setIsHovering(true);
@@ -133,7 +122,7 @@ const SecureContentCard: React.FC<{
         {isVideo && (
           <>
             {/* Skeleton discret pendant chargement URL signée */}
-            {urlLoading && (isExternalR2 || isPremium) && (
+            {urlLoading && (
               <Skeleton className="absolute inset-0 z-20" />
             )}
 
@@ -224,14 +213,18 @@ const SecureContentCard: React.FC<{
         {/* Image pour les contenus non-vidéo */}
         {!isVideo && (
           <>
-            <img
-              src={item.thumbnail_url || item.file_url}
-              alt={item.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              onContextMenu={(e) => e.preventDefault()}
-              draggable={false}
-              loading="lazy"
-            />
+            {urlLoading ? (
+              <Skeleton className="w-full h-full" />
+            ) : (
+              <img
+                src={secureImageUrl || item.thumbnail_url || item.file_url}
+                alt={item.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onContextMenu={(e) => e.preventDefault()}
+                draggable={false}
+                loading="lazy"
+              />
+            )}
             {isPremium && (
               <div className="absolute top-2 left-2 flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 rounded-full z-10">
                 <Crown className="h-3 w-3 text-white" />
