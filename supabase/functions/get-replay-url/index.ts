@@ -304,7 +304,7 @@ serve(async (req) => {
     const r2SecretAccessKey = Deno.env.get("R2_SECRET_ACCESS_KEY")!;
     const r2BucketName = Deno.env.get("R2_BUCKET_NAME") || "crub";
 
-    const expiresIn = 3600;
+    const expiresIn = 300; // 5 minutes for replays
 
     const signedUrl = await generatePresignedUrl(
       r2AccessKeyId,

@@ -85,15 +85,15 @@ serve(async (req) => {
 
     console.error('Rate limit check error:', errorDetails);
 
-    // Fail open: allow the request even if rate-limit check fails
+    // Fail closed: block the request if rate-limit check fails
     return new Response(
       JSON.stringify({
-        allowed: true,
-        error: errorDetails || 'Unknown error occurred',
+        allowed: false,
+        error: 'Rate limit check failed',
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
+        status: 429,
       }
     );
   }

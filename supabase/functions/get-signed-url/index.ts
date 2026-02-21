@@ -145,7 +145,7 @@ serve(async (req) => {
     }
 
     // Generate signed URL for the ACTUAL file path from DB (not client-provided)
-    const expiresIn = 3600;
+    const expiresIn = 120; // 2 minutes - short-lived for security
     
     const { data: signedUrlData, error: signedUrlError } = await supabaseAdmin
       .storage
