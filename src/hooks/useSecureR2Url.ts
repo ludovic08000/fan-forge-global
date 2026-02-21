@@ -180,28 +180,17 @@ export const useSecureR2Url = (
       if (!pending) {
         pending = (async () => {
           try {
-            // Use proxy approach: fetch image blob via proxy-r2-image edge function
-            // This avoids CORS issues with direct R2 presigned URLs
-            const { data, error: fnError } = await supabase.functions.invoke('proxy-r2-image', {
-              body: { filePath },
+            // Use get-replay-url which validates access rights in DB
+            // and returns a short-lived presigned URL (works in <img>/<video> without CORS)
+            const { data, error: fnError } = await supabase.functions.invoke('get-replay-url', {
+              body: { filePath, contentId, liveStreamId },
               headers: { Authorization: `Bearer ${session.access_token}` },
             });
 
             if (fnError) throw fnError;
 
-            // proxy-r2-image returns raw binary data, create a blob URL
-            if (data instanceof Blob) {
-              const blobUrl = URL.createObjectURL(data);
-              r2UrlCache.set(key, {
-                url: blobUrl,
-                expiresAt: Date.now() + 300000, // 5 minutes (proxy uses 5 min cache)
-              });
-              return blobUrl;
-            }
-            
-            // Fallback: if response is JSON with url field (shouldn't happen with proxy)
-            if (data?.url || data?.signedUrl) {
-              const signedUrl = data.url || data.signedUrl;
+            const signedUrl = data?.url || data?.signedUrl;
+            if (signedUrl) {
               r2UrlCache.set(key, {
                 url: signedUrl,
                 expiresAt: data.expiresAt ? new Date(data.expiresAt).getTime() : Date.now() + 3600000,
@@ -240,11 +229,6 @@ export const useSecureR2Url = (
         const session = await getSessionAsync();
         if (session) {
           const key = `r2:${path}:${session.user.id}`;
-          const cached = r2UrlCache.get(key);
-          // Revoke blob URL to free memory
-          if (cached?.url.startsWith('blob:')) {
-            URL.revokeObjectURL(cached.url);
-          }
           r2UrlCache.delete(key);
         }
       }

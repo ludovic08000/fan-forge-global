@@ -256,10 +256,19 @@ serve(async (req) => {
         }
       }
     }
+    // Route 3: Direct filePath (for avatars, covers, etc. without contentId)
+    else if (clientFilePath) {
+      console.log("[get-replay-url] Direct filePath access:", clientFilePath);
+      filePath = clientFilePath;
+      creatorId = '';
+      // For direct filePath, grant access to any authenticated user
+      // (avatars/covers are not premium content)
+      hasAccess = true;
+    }
     // No valid identifier provided
     else {
       return new Response(
-        JSON.stringify({ error: "contentId or liveStreamId is required" }),
+        JSON.stringify({ error: "contentId, liveStreamId, or filePath is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
