@@ -94,17 +94,23 @@ serve(async (req) => {
       .replace(/\{creator_name\}/gi, senderName);
 
     // Prepare message data with optional media
+    // IMPORTANT: private_messages uses creator_id + subscriber_id for conversation routing
+    // and sender_id for display purposes. Both must be set correctly.
     const messageData: Record<string, any> = {
+      creator_id: creatorId,
+      subscriber_id: subscriberId,
       sender_id: creator.user_id,
-      receiver_id: subscriberId,
       content: personalizedContent,
-      is_read: false,
+      message_type: 'text',
+      price: 0,
+      is_paid: true,
+      is_deleted: false,
     };
 
     // Add media if present (only for welcome messages typically)
     if (autoMessage.media_url) {
       messageData.media_url = autoMessage.media_url;
-      messageData.media_type = autoMessage.media_type || 'image';
+      messageData.message_type = autoMessage.media_type || 'image';
     }
 
     // Envoyer le message privé
