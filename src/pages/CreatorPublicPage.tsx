@@ -998,10 +998,16 @@ const CreatorPublicPage = () => {
 
       {/* Image Lightbox */}
       {selectedImage && (
-        <div 
+        <ProtectedMedia
           className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center"
-          onClick={() => setSelectedImage(null)}
+          watermarkText={creator?.stage_name || profile?.username}
+          enableForensicWatermark={true}
+          forensicOpacity={0.03}
         >
+          <div 
+            className="absolute inset-0"
+            onClick={() => setSelectedImage(null)}
+          />
           <button
             type="button"
             onClick={() => setSelectedImage(null)}
@@ -1011,7 +1017,7 @@ const CreatorPublicPage = () => {
           </button>
           
           <div 
-            className="relative max-w-[95vw] max-h-[95vh] flex flex-col items-center"
+            className="relative max-w-[95vw] max-h-[95vh] flex flex-col items-center z-[1]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative" onDoubleClick={() => handleLikeContent(selectedImage.id)}>
@@ -1070,7 +1076,7 @@ const CreatorPublicPage = () => {
               </div>
             </div>
           </div>
-        </div>
+        </ProtectedMedia>
       )}
       {/* Dialog demande de live privé */}
       <PrivateLiveRequestDialog
