@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { X, Download, RotateCcw, Sun, Contrast, Droplets, Sparkles, Palette, CloudFog, Flame, Snowflake, Moon, Heart, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
+import RotaryKnob from '@/components/ui/rotary-knob';
 import { toast } from 'sonner';
 import { useSignedUrl } from '@/hooks/useSignedUrl';
 import { supabase } from '@/integrations/supabase/client';
@@ -397,29 +397,49 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
         <canvas ref={canvasRef} className="hidden" />
       </div>
 
-      {/* Contrôles des ajustements - Glassmorphism panel */}
+      {/* Contrôles - Premium Rotary Knobs */}
       <div className="px-5 py-4 border-t border-white/[0.06] backdrop-blur-xl bg-white/[0.02]">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-          {[
-            { icon: <Sun className="w-3.5 h-3.5 text-amber-400" />, label: 'Luminosité', value: brightness, onChange: setBrightness, min: 0, max: 200, step: 1 },
-            { icon: <Contrast className="w-3.5 h-3.5 text-blue-400" />, label: 'Contraste', value: contrast, onChange: setContrast, min: 0, max: 200, step: 1 },
-            { icon: <Droplets className="w-3.5 h-3.5 text-cyan-400" />, label: 'Saturation', value: saturation, onChange: setSaturation, min: 0, max: 200, step: 1 },
-            { icon: <CloudFog className="w-3.5 h-3.5 text-purple-400" />, label: 'Flou', value: blur, onChange: setBlur, min: 0, max: 10, step: 0.1 },
-          ].map((ctrl) => (
-            <div key={ctrl.label} className="space-y-2 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.12] transition-colors">
-              <label className="text-white/50 text-[11px] font-medium uppercase tracking-wider flex items-center gap-2">
-                {ctrl.icon} {ctrl.label}
-              </label>
-              <Slider
-                value={[ctrl.value]}
-                onValueChange={([v]) => ctrl.onChange(v)}
-                min={ctrl.min}
-                max={ctrl.max}
-                step={ctrl.step}
-                className="w-full"
-              />
-            </div>
-          ))}
+        <div className="flex justify-center gap-6 md:gap-10">
+          <RotaryKnob
+            value={brightness}
+            min={0}
+            max={200}
+            step={1}
+            onChange={setBrightness}
+            label="Luminosité"
+            icon={<Sun className="w-3 h-3 text-amber-400" />}
+            color="#f59e0b"
+          />
+          <RotaryKnob
+            value={contrast}
+            min={0}
+            max={200}
+            step={1}
+            onChange={setContrast}
+            label="Contraste"
+            icon={<Contrast className="w-3 h-3 text-blue-400" />}
+            color="#60a5fa"
+          />
+          <RotaryKnob
+            value={saturation}
+            min={0}
+            max={200}
+            step={1}
+            onChange={setSaturation}
+            label="Saturation"
+            icon={<Droplets className="w-3 h-3 text-cyan-400" />}
+            color="#22d3ee"
+          />
+          <RotaryKnob
+            value={blur}
+            min={0}
+            max={10}
+            step={0.1}
+            onChange={setBlur}
+            label="Flou"
+            icon={<CloudFog className="w-3 h-3 text-purple-400" />}
+            color="#a78bfa"
+          />
         </div>
       </div>
 
