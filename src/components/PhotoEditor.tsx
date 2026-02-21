@@ -175,28 +175,35 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
     setBlur(0);
   };
 
-  const handleDownload = async () => {
-    if (!canvasRef.current || !effectiveUrl) return;
-
+  // Helper: draw the already-loaded <img> element to canvas with filters
+  const drawImageToCanvas = useCallback(() => {
     const canvas = canvasRef.current;
+    const img = imageRef.current;
+    if (!canvas || !img || !img.naturalWidth) return null;
+
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) return null;
+
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const filteredData = applyFiltersToImageData(imageData);
+    ctx.putImageData(filteredData, 0, 0);
+
+    return ctx;
+  }, [applyFiltersToImageData]);
+
+  const handleDownload = async () => {
+    if (!canvasRef.current || !imageRef.current || !imageLoaded) return;
 
     try {
-      const resp = await fetch(effectiveUrl);
-      const b = await resp.blob();
-      const bmp = await createImageBitmap(b);
+      const ctx = drawImageToCanvas();
+      if (!ctx) throw new Error('Canvas draw failed');
 
-      canvas.width = bmp.width;
-      canvas.height = bmp.height;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(bmp, 0, 0);
-      bmp.close();
-
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const filtered = applyFiltersToImageData(imgData);
-      ctx.putImageData(filtered, 0, 0);
-
+      const canvas = canvasRef.current!;
       const link = document.createElement('a');
       link.download = `photo-edited-${Date.now()}.png`;
       link.href = canvas.toDataURL('image/png');
@@ -210,27 +217,13 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
   };
 
   const handleSave = async () => {
-    if (!canvasRef.current || !onSave || !effectiveUrl) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!canvasRef.current || !onSave || !imageRef.current || !imageLoaded) return;
 
     try {
-      const resp = await fetch(effectiveUrl);
-      const b = await resp.blob();
-      const bmp = await createImageBitmap(b);
+      const ctx = drawImageToCanvas();
+      if (!ctx) throw new Error('Canvas draw failed');
 
-      canvas.width = bmp.width;
-      canvas.height = bmp.height;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(bmp, 0, 0);
-      bmp.close();
-
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const filtered = applyFiltersToImageData(imgData);
-      ctx.putImageData(filtered, 0, 0);
-
+      const canvas = canvasRef.current!;
       const dataUrl = canvas.toDataURL('image/png');
       onSave(dataUrl);
       toast.success('Photo sauvegardée!');
@@ -243,36 +236,19 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
 
   // Sauvegarder sur le serveur - Upload vers R2 via presigned URL
   const handleServerSave = async () => {
-    if (!canvasRef.current || !contentId || !effectiveUrl) {
+    if (!canvasRef.current || !contentId || !imageRef.current || !imageLoaded) {
       toast.error('Impossible de sauvegarder: données manquantes');
       return;
     }
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
     setIsSaving(true);
 
     try {
-      console.log('[PhotoEditor] Step 1: Fetching image...');
-      const fetchResponse = await fetch(effectiveUrl);
-      if (!fetchResponse.ok) throw new Error(`Fetch failed: ${fetchResponse.status}`);
-      const imgBlob = await fetchResponse.blob();
-      console.log('[PhotoEditor] Step 2: Blob size:', imgBlob.size);
-      const bitmapImg = await createImageBitmap(imgBlob);
+      // Dessiner depuis l'élément <img> déjà chargé (évite fetch bloqué par CSP)
+      const ctx = drawImageToCanvas();
+      if (!ctx) throw new Error('Canvas draw failed');
 
-      canvas.width = bitmapImg.width;
-      canvas.height = bitmapImg.height;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(bitmapImg, 0, 0);
-      bitmapImg.close();
-      
-      // Appliquer les filtres manuellement (compatible Safari/iOS)
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const filteredData = applyFiltersToImageData(imageData);
-      ctx.putImageData(filteredData, 0, 0);
-      console.log('[PhotoEditor] Step 4: Filters applied');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error('Non authentifié');
