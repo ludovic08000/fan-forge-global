@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getSessionSync, getSessionAsync } from './useSessionPreload';
+import { getSessionSync, getSessionAsync, getSessionVersion } from './useSessionPreload';
 import type { Session } from '@supabase/supabase-js';
 
 interface R2UrlCache {
@@ -101,11 +101,24 @@ export const useSecureR2Url = (
     [isR2, originalUrl]
   );
   
+  // Track session version to re-trigger when session becomes available
+  const [sessVersion, setSessVersion] = useState(() => getSessionVersion());
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const current = getSessionVersion();
+      if (current !== sessVersion) {
+        setSessVersion(current);
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, [sessVersion]);
+  
   const cacheKey = useMemo(() => {
     if (!filePath) return null;
     const session = getSessionSync();
     return session ? `r2:${filePath}:${session.user.id}` : `r2:${filePath}:anon`;
-  }, [filePath]);
+  }, [filePath, sessVersion]);
   
   const cachedUrl = useMemo(() => 
     cacheKey ? getCachedUrl(cacheKey) : null,
@@ -220,7 +233,7 @@ export const useSecureR2Url = (
 
     setLoading(true);
     fetchUrl();
-  }, [originalUrl, enabled, isR2, filePath, cachedUrl, contentId, liveStreamId]);
+  }, [originalUrl, enabled, isR2, filePath, cachedUrl, contentId, liveStreamId, sessVersion]);
 
   const refresh = useCallback(async () => {
     if (originalUrl) {
