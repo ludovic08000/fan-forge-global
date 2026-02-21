@@ -1,5 +1,5 @@
 /**
- * R2 Upload System - via Edge Function proxy (no CORS issues)
+ * R2 Upload System - Direct upload via presigned URL
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -33,7 +33,7 @@ function getContentTypeFromExtension(fileName: string): string {
 }
 
 /**
- * Upload a file to R2 via Edge Function proxy
+ * Upload a file to R2 via presigned URL (direct browser → R2)
  */
 export async function uploadFileInChunks(
   file: File,
@@ -62,6 +62,17 @@ export async function uploadFileInChunks(
 
     const contentType = file.type || getContentTypeFromExtension(file.name);
 
+    // 2. Get presigned URL from edge function
+    const { data, error } = await supabase.functions.invoke('r2-upload-url', {
+      body: { fileName: file.name, contentType, fileSize: file.size },
+    });
+
+    if (error || !data?.uploadUrl) {
+      throw new Error(data?.error || error?.message || 'Impossible d\'obtenir l\'URL d\'upload');
+    }
+
+    const { uploadUrl, filePath } = data;
+
     onProgress?.({
       stage: 'uploading',
       progress: 10,
@@ -72,16 +83,8 @@ export async function uploadFileInChunks(
       totalChunks: 1,
     });
 
-    // 2. Upload via edge function proxy using XHR for progress
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('fileName', file.name);
-    formData.append('contentType', contentType);
-
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const uploadUrl = `${supabaseUrl}/functions/v1/r2-upload`;
-
-    const result = await new Promise<{ success: boolean; filePath: string; error?: string }>((resolve, reject) => {
+    // 3. Upload directly to R2 via presigned URL using XHR for progress
+    await new Promise<void>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       const startTime = Date.now();
 
@@ -89,7 +92,7 @@ export async function uploadFileInChunks(
         if (e.lengthComputable) {
           const elapsed = (Date.now() - startTime) / 1000;
           const speed = e.loaded / elapsed;
-          const mappedProgress = 10 + Math.round((e.loaded / e.total) * 80);
+          const mappedProgress = 10 + Math.round((e.loaded / e.total) * 85);
 
           onProgress?.({
             stage: 'uploading',
@@ -105,14 +108,9 @@ export async function uploadFileInChunks(
       });
 
       xhr.addEventListener('load', () => {
-        try {
-          const response = JSON.parse(xhr.responseText);
-          if (xhr.status >= 200 && xhr.status < 300 && response.success) {
-            resolve({ success: true, filePath: response.filePath });
-          } else {
-            reject(new Error(response.error || `Upload échoué (HTTP ${xhr.status})`));
-          }
-        } catch {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
           reject(new Error(`Upload échoué (HTTP ${xhr.status})`));
         }
       });
@@ -120,10 +118,9 @@ export async function uploadFileInChunks(
       xhr.addEventListener('error', () => reject(new Error('Erreur réseau')));
       xhr.addEventListener('abort', () => reject(new Error('Upload annulé')));
 
-      xhr.open('POST', uploadUrl);
-      xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
-      xhr.setRequestHeader('apikey', import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
-      xhr.send(formData);
+      xhr.open('PUT', uploadUrl);
+      xhr.setRequestHeader('Content-Type', contentType);
+      xhr.send(file);
     });
 
     onProgress?.({
@@ -138,7 +135,7 @@ export async function uploadFileInChunks(
 
     return {
       success: true,
-      filePath: result.filePath,
+      filePath,
       bucket: 'r2',
     };
   } catch (error) {
