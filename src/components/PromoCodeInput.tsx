@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Ticket, Check, X, Loader2 } from 'lucide-react';
+import { Ticket, Check, X, Loader2, CalendarClock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { differenceInDays, addMonths, format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface PromoCodeInputProps {
   creatorId: string;
@@ -28,6 +30,8 @@ export const PromoCodeInput: React.FC<PromoCodeInputProps> = ({
     message: string;
     discount?: { type: 'percentage' | 'fixed'; value: number };
     code?: string;
+    durationMonths?: number;
+    codeCreatedAt?: string;
   } | null>(null);
 
   // Load saved promo code from localStorage
@@ -118,10 +122,12 @@ export const PromoCodeInput: React.FC<PromoCodeInputProps> = ({
       setValidationResult({
         valid: true,
         message: discount.type === 'percentage' 
-          ? `-${discount.value}% sur le premier mois`
-          : `-${discount.value}€ sur le premier mois`,
+          ? `-${discount.value}% sur ${(data.duration_months || 1) > 1 ? `les ${data.duration_months} premiers mois` : 'le premier mois'}`
+          : `-${discount.value}€ sur ${(data.duration_months || 1) > 1 ? `les ${data.duration_months} premiers mois` : 'le premier mois'}`,
         discount,
-        code: data.code
+        code: data.code,
+        durationMonths: data.duration_months || 1,
+        codeCreatedAt: data.created_at
       });
 
       // Save to localStorage for persistence
@@ -222,18 +228,76 @@ export const PromoCodeInput: React.FC<PromoCodeInputProps> = ({
 
       {validationResult && (
         <div className={cn(
-          "text-sm flex items-center gap-2",
+          "text-sm flex flex-col gap-2",
           validationResult.valid ? "text-green-600" : "text-destructive"
         )}>
-          {validationResult.valid ? (
-            <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
-              {validationResult.message}
-            </Badge>
-          ) : (
-            <span>{validationResult.message}</span>
+          <div className="flex items-center gap-2">
+            {validationResult.valid ? (
+              <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/30">
+                {validationResult.message}
+              </Badge>
+            ) : (
+              <span>{validationResult.message}</span>
+            )}
+          </div>
+          
+          {/* Affichage du temps restant avec calendrier */}
+          {validationResult.valid && validationResult.durationMonths && validationResult.codeCreatedAt && (
+            <RemainingTimeDisplay 
+              durationMonths={validationResult.durationMonths} 
+              codeCreatedAt={validationResult.codeCreatedAt} 
+            />
           )}
         </div>
       )}
+    </div>
+  );
+};
+
+/** Composant pour afficher le temps restant du code promo */
+const RemainingTimeDisplay: React.FC<{ durationMonths: number; codeCreatedAt: string }> = ({ 
+  durationMonths, 
+  codeCreatedAt 
+}) => {
+  const now = new Date();
+  const endDate = addMonths(new Date(codeCreatedAt), durationMonths);
+  const daysRemaining = Math.max(0, differenceInDays(endDate, now));
+  const totalDays = differenceInDays(endDate, new Date(codeCreatedAt));
+  const progress = totalDays > 0 ? Math.min(100, ((totalDays - daysRemaining) / totalDays) * 100) : 100;
+
+  if (daysRemaining <= 0) {
+    return (
+      <div className="flex items-center gap-2 text-destructive text-xs">
+        <CalendarClock className="h-3.5 w-3.5" />
+        <span>Code promo expiré</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <CalendarClock className="h-3.5 w-3.5" />
+          <span>Réduction valable {durationMonths} mois</span>
+        </div>
+        <span className="font-medium text-foreground">
+          {daysRemaining}j restant{daysRemaining > 1 ? 's' : ''}
+        </span>
+      </div>
+      
+      {/* Barre de progression */}
+      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+        <div 
+          className="h-full bg-primary rounded-full transition-all duration-300"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      
+      <div className="flex justify-between text-[10px] text-muted-foreground">
+        <span>{format(new Date(codeCreatedAt), 'dd MMM yyyy', { locale: fr })}</span>
+        <span>{format(endDate, 'dd MMM yyyy', { locale: fr })}</span>
+      </div>
     </div>
   );
 };

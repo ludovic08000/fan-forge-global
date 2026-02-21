@@ -119,12 +119,9 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
         codeData.discount_percentage = 0;
       }
 
-      // Durée de la réduction
-      if (newCode.duration === 'forever') {
-        codeData.duration_months = 0; // 0 = forever
-      } else {
-        codeData.duration_months = parseInt(newCode.duration);
-      }
+      // Durée de la réduction (max 2 mois)
+      const durationMonths = Math.min(parseInt(newCode.duration) || 1, 2);
+      codeData.duration_months = durationMonths;
 
       if (newCode.maxUses) {
         codeData.max_uses = parseInt(newCode.maxUses);
@@ -326,23 +323,21 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
                 )}
 
                 <div className="space-y-2">
-                  <Label>Durée de la réduction</Label>
+                  <Label>Durée de la réduction (max 2 mois)</Label>
                   <div className="flex gap-2 flex-wrap">
-                    {['1', '2', '3', '6', 'forever'].map((d) => (
+                    {['1', '2'].map((d) => (
                       <Button
                         key={d}
                         variant={newCode.duration === d ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setNewCode(prev => ({ ...prev, duration: d }))}
                       >
-                        {d === 'forever' ? 'Toujours' : d === '1' ? '1 mois' : `${d} mois`}
+                        {d === '1' ? '1 mois' : `${d} mois`}
                       </Button>
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {newCode.duration === 'forever' 
-                      ? 'La réduction s\'applique à tous les paiements' 
-                      : `La réduction s'applique aux ${newCode.duration} premier${parseInt(newCode.duration) > 1 ? 's' : ''} mois`}
+                    {`La réduction s'applique au${parseInt(newCode.duration) > 1 ? 'x' : ''} ${newCode.duration} premier${parseInt(newCode.duration) > 1 ? 's' : ''} mois`}
                   </p>
                 </div>
 
