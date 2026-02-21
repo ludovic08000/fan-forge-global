@@ -1,10 +1,10 @@
 /**
  * Configuration CORS centralisée et sécurisée
- * Comparaison EXACTE des origines - pas de wildcard
+ * Comparaison exacte + pattern strict pour previews Lovable
  */
 
-// Domaines autorisés (liste exhaustive)
-const ALLOWED_ORIGINS = new Set([
+// Domaines autorisés (liste exacte)
+const EXACT_ORIGINS = new Set([
   'https://fan-forge-global.lovable.app',
   'https://id-preview--d6571390-5df4-4a85-b36b-d85a8872c669.lovable.app',
   'http://localhost:5173',
@@ -12,15 +12,25 @@ const ALLOWED_ORIGINS = new Set([
   'http://127.0.0.1:5173',
 ]);
 
+// Pattern strict pour previews Lovable dynamiques
+// Format: https://{id-preview--uuid}.lovable.app ou https://{id-preview--uuid}.lovableproject.com
+const LOVABLE_PREVIEW_REGEX = /^https:\/\/id-preview--[0-9a-f-]+\.(lovable\.app|lovableproject\.com)$/;
+
+/**
+ * Vérifie si une origine est autorisée
+ */
+function isOriginAllowed(origin: string): boolean {
+  if (EXACT_ORIGINS.has(origin)) return true;
+  if (LOVABLE_PREVIEW_REGEX.test(origin)) return true;
+  return false;
+}
+
 /**
  * Génère les headers CORS en fonction de l'origine de la requête
- * Comparaison EXACTE uniquement - pas de substring/wildcard
  */
 export function getCorsHeaders(request: Request): Record<string, string> {
   const origin = request.headers.get('Origin') || '';
-  
-  // Comparaison exacte uniquement
-  const allowedOrigin = ALLOWED_ORIGINS.has(origin) ? origin : '';
+  const allowedOrigin = isOriginAllowed(origin) ? origin : '';
   
   return {
     'Access-Control-Allow-Origin': allowedOrigin,

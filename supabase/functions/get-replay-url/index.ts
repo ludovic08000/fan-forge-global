@@ -256,24 +256,34 @@ serve(async (req) => {
         }
       }
     }
-    // Route 3: Direct filePath (RESTRICTED to public assets only)
+    // Route 3: Direct filePath (for non-premium assets: avatars, covers, thumbnails, creator profile images)
     else if (clientFilePath) {
-      // SECURITY: Only allow safe prefixes (avatars, covers, thumbnails)
-      // Block access to videos/, images/, replays/, content/, etc.
-      const ALLOWED_PREFIXES = ['avatars/', 'covers/', 'thumbnails/'];
-      const isAllowedPath = ALLOWED_PREFIXES.some(prefix => clientFilePath.startsWith(prefix));
-      
-      if (!isAllowedPath) {
-        console.warn("[get-replay-url] BLOCKED direct filePath access:", clientFilePath);
+      // SECURITY: Block path traversal attacks
+      if (clientFilePath.includes('..') || clientFilePath.includes('\0')) {
+        console.warn("[get-replay-url] BLOCKED path traversal attempt:", clientFilePath);
         return new Response(
-          JSON.stringify({ error: "Direct file access not allowed. Use contentId or liveStreamId." }),
+          JSON.stringify({ error: "Invalid file path" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      // SECURITY: Block access to premium content directories via direct path
+      // These MUST go through Route 1 (liveStreamId) or Route 2 (contentId)
+      const BLOCKED_PREFIXES = ['replays/', 'private-replays/', 'live-media/'];
+      const isBlockedPath = BLOCKED_PREFIXES.some(prefix => clientFilePath.startsWith(prefix));
+      
+      if (isBlockedPath) {
+        console.warn("[get-replay-url] BLOCKED direct access to premium path:", clientFilePath);
+        return new Response(
+          JSON.stringify({ error: "Use contentId or liveStreamId for this content" }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
-      console.log("[get-replay-url] Direct filePath access (allowed prefix):", clientFilePath);
+      console.log("[get-replay-url] Direct filePath access:", clientFilePath);
       filePath = clientFilePath;
       creatorId = '';
+      // Authenticated users can access non-premium assets (avatars, covers, profile images)
       hasAccess = true;
     }
     // No valid identifier provided
