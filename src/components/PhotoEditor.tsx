@@ -79,93 +79,19 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
     }
   }, [isOpen, imageUrl]);
 
-  const getFilterStyle = useCallback((): React.CSSProperties => {
+  const getFilterString = useCallback((): string => {
     const baseFilter = FILTERS.find(f => f.id === selectedFilter)?.style.filter || '';
     const customFilter = `brightness(${brightness / 100}) contrast(${contrast / 100}) saturate(${saturation / 100}) blur(${blur}px)`;
-    return {
-      filter: baseFilter ? `${baseFilter} ${customFilter}` : customFilter,
-      transition: 'filter 0.3s ease',
-    };
+    return baseFilter ? `${baseFilter} ${customFilter}` : customFilter;
   }, [selectedFilter, brightness, contrast, saturation, blur]);
 
-  // Appliquer les filtres manuellement sur l'ImageData (pour Safari/iOS)
-  const applyFiltersToImageData = useCallback((imageData: ImageData) => {
-    const data = imageData.data;
-    const filter = FILTERS.find(f => f.id === selectedFilter);
-    
-    // Déterminer si on doit appliquer le grayscale
-    const isGrayscale = filter?.style.filter?.includes('grayscale(1)');
-    const isSepia = filter?.style.filter?.includes('sepia');
-    
-    // Extraire les valeurs du filtre de base
-    let baseContrast = 1;
-    let baseBrightness = 1;
-    let baseSaturation = 1;
-    
-    if (filter?.style.filter) {
-      const contrastMatch = filter.style.filter.match(/contrast\(([0-9.]+)\)/);
-      const brightnessMatch = filter.style.filter.match(/brightness\(([0-9.]+)\)/);
-      const saturateMatch = filter.style.filter.match(/saturate\(([0-9.]+)\)/);
-      
-      if (contrastMatch) baseContrast = parseFloat(contrastMatch[1]);
-      if (brightnessMatch) baseBrightness = parseFloat(brightnessMatch[1]);
-      if (saturateMatch) baseSaturation = parseFloat(saturateMatch[1]);
-    }
-    
-    // Combiner avec les ajustements utilisateur
-    const finalBrightness = baseBrightness * (brightness / 100);
-    const finalContrast = baseContrast * (contrast / 100);
-    const finalSaturation = baseSaturation * (saturation / 100);
-    
-    for (let i = 0; i < data.length; i += 4) {
-      let r = data[i];
-      let g = data[i + 1];
-      let b = data[i + 2];
-      
-      // Appliquer grayscale
-      if (isGrayscale) {
-        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-        r = g = b = gray;
-      }
-      
-      // Appliquer sepia
-      if (isSepia) {
-        const sepiaMatch = filter?.style.filter?.match(/sepia\(([0-9.]+)\)/);
-        const sepiaAmount = sepiaMatch ? parseFloat(sepiaMatch[1]) : 0.5;
-        const tr = 0.393 * r + 0.769 * g + 0.189 * b;
-        const tg = 0.349 * r + 0.686 * g + 0.168 * b;
-        const tb = 0.272 * r + 0.534 * g + 0.131 * b;
-        r = r + (tr - r) * sepiaAmount;
-        g = g + (tg - g) * sepiaAmount;
-        b = b + (tb - b) * sepiaAmount;
-      }
-      
-      // Appliquer saturation
-      if (finalSaturation !== 1) {
-        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-        r = gray + (r - gray) * finalSaturation;
-        g = gray + (g - gray) * finalSaturation;
-        b = gray + (b - gray) * finalSaturation;
-      }
-      
-      // Appliquer brightness
-      r *= finalBrightness;
-      g *= finalBrightness;
-      b *= finalBrightness;
-      
-      // Appliquer contrast
-      r = ((r / 255 - 0.5) * finalContrast + 0.5) * 255;
-      g = ((g / 255 - 0.5) * finalContrast + 0.5) * 255;
-      b = ((b / 255 - 0.5) * finalContrast + 0.5) * 255;
-      
-      // Clamper les valeurs
-      data[i] = Math.max(0, Math.min(255, r));
-      data[i + 1] = Math.max(0, Math.min(255, g));
-      data[i + 2] = Math.max(0, Math.min(255, b));
-    }
-    
-    return imageData;
-  }, [selectedFilter, brightness, contrast, saturation]);
+  const getFilterStyle = useCallback((): React.CSSProperties => {
+    return {
+      filter: getFilterString(),
+      transition: 'filter 0.3s ease',
+    };
+  }, [getFilterString]);
+
 
   const handleReset = () => {
     setSelectedFilter('normal');
@@ -175,35 +101,53 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
     setBlur(0);
   };
 
-  // Helper: draw the already-loaded <img> element to canvas with filters
-  const drawImageToCanvas = useCallback(() => {
+  // Fetch image via same-origin proxy to avoid tainted canvas / CSP issues
+  const fetchImageViaProxy = useCallback(async (): Promise<HTMLCanvasElement | null> => {
     const canvas = canvasRef.current;
-    const img = imageRef.current;
-    if (!canvas || !img || !img.naturalWidth) return null;
+    if (!canvas || !imageUrl) return null;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
+    // Get auth token for the edge function call
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error('Non authentifié');
+
+    // Direct fetch to edge function (returns raw image bytes)
+    const response = await fetch(`https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/proxy-r2-image`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ filePath: imageUrl }),
+    });
+
+    if (!response.ok) throw new Error(`Proxy fetch failed: ${response.status}`);
+    
+    const blob = await response.blob();
+    const bmp = await createImageBitmap(blob);
+
+    canvas.width = bmp.width;
+    canvas.height = bmp.height;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0);
 
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const filteredData = applyFiltersToImageData(imageData);
-    ctx.putImageData(filteredData, 0, 0);
+    // Apply CSS filters via canvas context
+    ctx.filter = getFilterString();
+    ctx.drawImage(bmp, 0, 0);
+    ctx.filter = 'none';
+    bmp.close();
 
-    return ctx;
-  }, [applyFiltersToImageData]);
+    return canvas;
+  }, [imageUrl, getFilterString]);
 
   const handleDownload = async () => {
-    if (!canvasRef.current || !imageRef.current || !imageLoaded) return;
+    if (!canvasRef.current || !imageLoaded) return;
 
     try {
-      const ctx = drawImageToCanvas();
-      if (!ctx) throw new Error('Canvas draw failed');
+      const canvas = await fetchImageViaProxy();
+      if (!canvas) throw new Error('Canvas draw failed');
 
-      const canvas = canvasRef.current!;
       const link = document.createElement('a');
       link.download = `photo-edited-${Date.now()}.png`;
       link.href = canvas.toDataURL('image/png');
@@ -217,13 +161,12 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
   };
 
   const handleSave = async () => {
-    if (!canvasRef.current || !onSave || !imageRef.current || !imageLoaded) return;
+    if (!canvasRef.current || !onSave || !imageLoaded) return;
 
     try {
-      const ctx = drawImageToCanvas();
-      if (!ctx) throw new Error('Canvas draw failed');
+      const canvas = await fetchImageViaProxy();
+      if (!canvas) throw new Error('Canvas draw failed');
 
-      const canvas = canvasRef.current!;
       const dataUrl = canvas.toDataURL('image/png');
       onSave(dataUrl);
       toast.success('Photo sauvegardée!');
@@ -236,7 +179,7 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
 
   // Sauvegarder sur le serveur - Upload vers R2 via presigned URL
   const handleServerSave = async () => {
-    if (!canvasRef.current || !contentId || !imageRef.current || !imageLoaded) {
+    if (!canvasRef.current || !contentId || !imageLoaded) {
       toast.error('Impossible de sauvegarder: données manquantes');
       return;
     }
@@ -245,9 +188,9 @@ const PhotoEditor: React.FC<PhotoEditorProps> = ({
     setIsSaving(true);
 
     try {
-      // Dessiner depuis l'élément <img> déjà chargé (évite fetch bloqué par CSP)
-      const ctx = drawImageToCanvas();
-      if (!ctx) throw new Error('Canvas draw failed');
+      // Fetch image via same-origin proxy to avoid tainted canvas
+      const resultCanvas = await fetchImageViaProxy();
+      if (!resultCanvas) throw new Error('Canvas draw failed');
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
