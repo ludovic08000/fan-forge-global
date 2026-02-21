@@ -1,13 +1,14 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 
-// Build public URL from relative path
+// Build public URL from relative path (only if not already a full URL)
 const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
 const buildPublicUrl = (path: string): string => {
   if (!path) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
+  // Don't try to build Supabase URL for R2 paths - they should be resolved upstream
   const cleanPath = path.split('?')[0];
   return `${SUPABASE_URL}/storage/v1/object/public/content/${cleanPath}`;
 };
