@@ -148,13 +148,19 @@ const ContentCard: React.FC<ContentCardProps> = ({
 
   // Résoudre les URLs R2 via des URLs signées
   const mediaUrl = content.content_type === 'video' ? rawVideoUrl : rawImageUrl;
+  const needsR2 = isR2Url(mediaUrl);
   const { secureUrl: resolvedMediaUrl, loading: mediaLoading } = useSecureR2Url(mediaUrl, {
     contentId: content.id,
-    enabled: isR2Url(mediaUrl),
+    enabled: needsR2,
   });
 
-  const imageUrl = content.content_type !== 'video' ? (resolvedMediaUrl || rawImageUrl) : rawImageUrl;
-  const videoUrl = content.content_type === 'video' ? (resolvedMediaUrl || rawVideoUrl) : rawVideoUrl;
+  // Pour les URLs R2: attendre la résolution, ne PAS fallback sur le chemin brut
+  const imageUrl = needsR2 
+    ? (resolvedMediaUrl || '') 
+    : rawImageUrl;
+  const videoUrl = needsR2 
+    ? (resolvedMediaUrl || '') 
+    : rawVideoUrl;
 
   // Précharger agressivement au hover pour affichage instantané
   const handleMouseEnter = useCallback(() => {
@@ -201,23 +207,31 @@ const ContentCard: React.FC<ContentCardProps> = ({
         )}
 
         {/* Media - chargement optimisé */}
-        {content.content_type === 'video' ? (
-          <SecureVideoPreviewCard
-            src={videoUrl}
-            contentId={content.id}
-            poster={videoPoster}
-            className="w-full h-full"
-            blurred={shouldBlur}
-            showPlayButton={!shouldBlur}
-            isPremium={content.is_premium}
-          />
-        ) : (
+        {mediaLoading && needsR2 ? (
+          <div className="w-full h-full bg-muted animate-pulse" />
+        ) : content.content_type === 'video' ? (
+          videoUrl ? (
+            <SecureVideoPreviewCard
+              src={videoUrl}
+              contentId={content.id}
+              poster={videoPoster}
+              className="w-full h-full"
+              blurred={shouldBlur}
+              showPlayButton={!shouldBlur}
+              isPremium={content.is_premium}
+            />
+          ) : (
+            <div className="w-full h-full bg-muted" />
+          )
+        ) : imageUrl ? (
           <LazyContentImage
             src={imageUrl}
             alt={content.title}
             className="group-hover:scale-105"
             blurred={shouldBlur}
           />
+        ) : (
+          <div className="w-full h-full bg-muted" />
         )}
 
         {/* Premium Badge */}

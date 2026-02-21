@@ -165,7 +165,7 @@ export const useSecureR2Url = (
       if (!session) {
         if (mountedRef.current) {
           setError('Auth required');
-          setSecureUrl(originalUrl);
+          setSecureUrl(null);
           setLoading(false);
         }
         return;
@@ -218,8 +218,9 @@ export const useSecureR2Url = (
       const signedUrl = await pending;
       
       if (mountedRef.current) {
-        setSecureUrl(signedUrl || originalUrl);
+        setSecureUrl(signedUrl || null);
         setLoading(false);
+        if (!signedUrl) setError('Failed to get signed URL');
       }
     };
 
