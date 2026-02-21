@@ -30,20 +30,29 @@ const AccountDeletion: React.FC<AccountDeletionProps> = ({ isCreator = false, cr
     setDeleting(true);
     try {
       if (isCreator && creatorId) {
-        // Supprimer le compte créateur complet
-        const { error } = await supabase.rpc('delete_creator_completely', {
-          _creator_id: creatorId
-        });
+        // Mettre le compte créateur en pause → suppression auto après 1 mois
+        const { error } = await supabase
+          .from('creators')
+          .update({
+            is_paused: true,
+            paused_at: new Date().toISOString()
+          })
+          .eq('id', creatorId);
         if (error) throw error;
+
+        toast.success(
+          'Votre compte est maintenant en pause. Il sera définitivement supprimé dans 30 jours. Vous pouvez annuler en vous reconnectant.',
+          { duration: 8000 }
+        );
       } else {
-        // Supprimer le compte utilisateur simple
+        // Supprimer le compte utilisateur simple (pas créateur = suppression immédiate)
         const { error } = await supabase.rpc('delete_user_completely', {
           _user_id: user.id
         });
         if (error) throw error;
+        toast.success('Votre compte a été supprimé');
       }
 
-      toast.success('Votre compte a été supprimé');
       await signOut();
       navigate('/');
     } catch (error) {
@@ -63,7 +72,7 @@ const AccountDeletion: React.FC<AccountDeletionProps> = ({ isCreator = false, cr
         </CardTitle>
         <CardDescription>
           {isCreator 
-            ? "Supprimez définitivement votre compte créateur et tout votre contenu"
+            ? "Votre compte sera mis en pause puis supprimé après 30 jours (délai légal)"
             : "Supprimez définitivement votre compte et toutes vos données"
           }
         </CardDescription>
@@ -75,13 +84,18 @@ const AccountDeletion: React.FC<AccountDeletionProps> = ({ isCreator = false, cr
             <div className="text-sm">
               <p className="font-medium text-destructive">Attention : cette action est irréversible</p>
               <ul className="mt-2 space-y-1 text-muted-foreground">
-                <li>• Votre profil sera supprimé</li>
-                <li>• Vos photos et données personnelles seront effacées</li>
-                {isCreator && (
+                {isCreator ? (
                   <>
-                    <li>• Tout votre contenu sera supprimé</li>
+                    <li>• Votre compte Stripe sera suspendu immédiatement</li>
+                    <li>• Votre profil sera masqué des recherches</li>
+                    <li>• Après 30 jours, tout sera supprimé : contenu, données R2, compte Stripe</li>
                     <li>• Vos abonnés perdront l'accès à votre contenu</li>
-                    <li>• Vos revenus en attente seront perdus</li>
+                    <li>• Vous pouvez annuler en vous reconnectant dans les 30 jours</li>
+                  </>
+                ) : (
+                  <>
+                    <li>• Votre profil sera supprimé</li>
+                    <li>• Vos photos et données personnelles seront effacées</li>
                   </>
                 )}
               </ul>
@@ -101,8 +115,10 @@ const AccountDeletion: React.FC<AccountDeletionProps> = ({ isCreator = false, cr
               <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
               <AlertDialogDescription className="space-y-4">
                 <p>
-                  Cette action ne peut pas être annulée. Votre compte et toutes vos données 
-                  seront définitivement supprimés de nos serveurs.
+                  {isCreator
+                    ? "Votre compte sera mis en pause immédiatement. Après 30 jours, toutes vos données (contenu, fichiers R2, compte Stripe) seront définitivement supprimées."
+                    : "Cette action ne peut pas être annulée. Votre compte et toutes vos données seront définitivement supprimés de nos serveurs."
+                  }
                 </p>
                 <div className="space-y-2">
                   <p className="font-medium text-foreground">
@@ -131,7 +147,7 @@ const AccountDeletion: React.FC<AccountDeletionProps> = ({ isCreator = false, cr
                 ) : (
                   <Trash2 className="h-4 w-4 mr-2" />
                 )}
-                Supprimer définitivement
+                {isCreator ? 'Mettre en pause et supprimer' : 'Supprimer définitivement'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
