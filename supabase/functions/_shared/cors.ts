@@ -14,7 +14,7 @@ const EXACT_ORIGINS = new Set([
 
 // Pattern strict pour previews Lovable dynamiques
 // Format: https://{id-preview--uuid}.lovable.app ou https://{id-preview--uuid}.lovableproject.com
-const LOVABLE_PREVIEW_REGEX = /^https:\/\/id-preview--[0-9a-f-]+\.(lovable\.app|lovableproject\.com)$/;
+const LOVABLE_PREVIEW_REGEX = /^https:\/\/(id-preview--)?[0-9a-f-]+\.(lovable\.app|lovableproject\.com)$/;
 
 /**
  * Vérifie si une origine est autorisée
