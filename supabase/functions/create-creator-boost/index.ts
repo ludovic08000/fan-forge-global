@@ -6,7 +6,7 @@ import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
 // Available boost options with price IDs
 const BOOST_OPTIONS: Record<string, { price_id: string; duration_hours: number; name: string }> = {
   "30min": {
-    price_id: "price_1S9QlTG4R6fTor2d573eKcGj",
+    price_id: "price_1T35fVG4R6fTor2dlSAHC2I0",
     duration_hours: 0.5,
     name: "30 minutes"
   },
