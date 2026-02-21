@@ -70,103 +70,97 @@ serve(async (req) => {
     }
 
     const userId = authResult.userId!;
-    const { filePath, contentId } = await req.json();
-    if (!filePath) {
-      return new Response(JSON.stringify({ error: "filePath required" }), {
+    const { contentId } = await req.json();
+
+    // SECURITY: contentId is MANDATORY - no arbitrary filePath access
+    if (!contentId) {
+      return new Response(JSON.stringify({ error: "contentId is required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
 
-    // SECURITY: If contentId is provided, verify access rights
-    if (contentId) {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-      const { data: content } = await supabaseAdmin
-        .from('content')
-        .select('id, file_url, creator_id, is_premium, is_preview, status')
-        .eq('id', contentId)
-        .single();
+    // Fetch content from DB - filePath comes from DB, NEVER from client
+    const { data: content } = await supabaseAdmin
+      .from('content')
+      .select('id, file_url, creator_id, is_premium, is_preview, status')
+      .eq('id', contentId)
+      .single();
 
-      if (!content) {
-        return new Response(JSON.stringify({ error: "Content not found" }), {
-          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }
+    if (!content) {
+      return new Response(JSON.stringify({ error: "Content not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // SECURITY: Use file_url from DB (prevents BOLA)
+    const filePath = content.file_url;
+
+    // Check admin status once
+    const { data: adminRole } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    const isAdmin = !!adminRole;
+
+    // Get creator info once
+    const { data: creator } = await supabaseAdmin
+      .from('creators')
+      .select('user_id')
+      .eq('id', content.creator_id)
+      .single();
+
+    const isOwner = creator?.user_id === userId;
+
+    // Block unpublished content (except owner/admin)
+    if (content.status !== 'published' && !isOwner && !isAdmin) {
+      return new Response(JSON.stringify({ error: "Content not available" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // Check subscription for premium non-preview content
+    if (content.is_premium && !content.is_preview && !isOwner && !isAdmin) {
+      const { data: subscription } = await supabaseAdmin
+        .from('subscriptions')
+        .select('id')
+        .eq('subscriber_id', userId)
+        .eq('creator_id', content.creator_id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (!subscription) {
+        return new Response(JSON.stringify({ error: "Subscription required" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
-
-      // Block access to unpublished content (except for the creator)
-      if (content.status !== 'published') {
-        const { data: creator } = await supabaseAdmin
-          .from('creators')
-          .select('user_id')
-          .eq('id', content.creator_id)
-          .single();
-
-        const isOwner = creator?.user_id === userId;
-        const { data: adminRole } = await supabaseAdmin
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', userId)
-          .eq('role', 'admin')
-          .maybeSingle();
-
-        if (!isOwner && !adminRole) {
-          return new Response(JSON.stringify({ error: "Content not available" }), {
-            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
-          });
-        }
-      }
-
-      // Check subscription for premium non-preview content
-      if (content.is_premium && !content.is_preview) {
-        const { data: creator } = await supabaseAdmin
-          .from('creators')
-          .select('user_id')
-          .eq('id', content.creator_id)
-          .single();
-
-        const isOwner = creator?.user_id === userId;
-
-        if (!isOwner) {
-          const { data: subscription } = await supabaseAdmin
-            .from('subscriptions')
-            .select('id')
-            .eq('subscriber_id', userId)
-            .eq('creator_id', content.creator_id)
-            .eq('status', 'active')
-            .maybeSingle();
-
-          const { data: adminRole } = await supabaseAdmin
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', userId)
-            .eq('role', 'admin')
-            .maybeSingle();
-
-          if (!subscription && !adminRole) {
-            return new Response(JSON.stringify({ error: "Subscription required" }), {
-              status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
-            });
-          }
-        }
-      }
-
-      // SECURITY: Use the file_url from DB, not the client-provided filePath
-      // This prevents BOLA attacks
     }
 
     // Log access for security alerting (non-blocking)
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabaseLog = createClient(supabaseUrl, supabaseServiceKey);
-    supabaseLog.from('security_access_logs').insert({
+    supabaseAdmin.from('security_access_logs').insert({
       user_id: userId,
       endpoint: 'proxy-r2-image',
       resource_path: filePath,
-      content_id: contentId || null,
+      content_id: contentId,
       ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown",
-    }).catch(() => {});
+    }).then(() => {}).catch(() => {});
+
+    // Extract R2 path from file_url
+    let r2FilePath = filePath;
+    try {
+      if (filePath.startsWith('http')) {
+        const url = new URL(filePath);
+        r2FilePath = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
+      }
+    } catch {
+      // Already a relative path
+    }
 
     const r2AccountId = Deno.env.get("R2_ACCOUNT_ID")!;
     const r2AccessKeyId = Deno.env.get("R2_ACCESS_KEY_ID")!;
@@ -174,7 +168,7 @@ serve(async (req) => {
     const r2BucketName = Deno.env.get("R2_BUCKET_NAME") || "crub";
 
     const signedUrl = await generatePresignedGetUrl(
-      r2AccessKeyId, r2SecretAccessKey, 'auto', r2BucketName, filePath, r2AccountId
+      r2AccessKeyId, r2SecretAccessKey, 'auto', r2BucketName, r2FilePath, r2AccountId
     );
 
     const r2Response = await fetch(signedUrl);

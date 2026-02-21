@@ -57,10 +57,6 @@ async function generatePresignedGetUrl(
   return `https://${host}${canonicalUri}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
 }
 
-const logStep = (step: string, details?: any) => {
-  console.log(`[proxy-r2-video] ${step}`, details ? JSON.stringify(details) : '');
-};
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return handleCorsOptions(req);
   const corsHeaders = getCorsHeaders(req);
@@ -75,10 +71,11 @@ serve(async (req) => {
     }
 
     const userId = authResult.userId!;
-    const { filePath, contentId } = await req.json();
+    const { contentId } = await req.json();
 
-    if (!filePath) {
-      return new Response(JSON.stringify({ error: "filePath required" }), {
+    // SECURITY: contentId is MANDATORY - no arbitrary filePath access
+    if (!contentId) {
+      return new Response(JSON.stringify({ error: "contentId is required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
@@ -87,103 +84,96 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // SECURITY: If contentId is provided, verify access rights
-    if (contentId) {
-      const { data: content } = await supabaseAdmin
-        .from('content')
-        .select('id, file_url, creator_id, is_premium, is_preview, status')
-        .eq('id', contentId)
-        .single();
+    // Fetch content from DB - filePath comes from DB, NEVER from client
+    const { data: content } = await supabaseAdmin
+      .from('content')
+      .select('id, file_url, creator_id, is_premium, is_preview, status')
+      .eq('id', contentId)
+      .single();
 
-      if (!content) {
-        logStep('Content not found', { contentId });
-        return new Response(JSON.stringify({ error: "Content not found" }), {
-          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }
+    if (!content) {
+      return new Response(JSON.stringify({ error: "Content not found" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // SECURITY: Use file_url from DB (prevents BOLA)
+    const filePath = content.file_url;
+
+    // Check admin status once
+    const { data: adminRole } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    const isAdmin = !!adminRole;
+
+    // Get creator info once
+    const { data: creator } = await supabaseAdmin
+      .from('creators')
+      .select('user_id')
+      .eq('id', content.creator_id)
+      .single();
+
+    const isOwner = creator?.user_id === userId;
+
+    // Block unpublished content (except owner/admin)
+    if (content.status !== 'published' && !isOwner && !isAdmin) {
+      return new Response(JSON.stringify({ error: "Content not available" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // Check subscription for premium non-preview content
+    if (content.is_premium && !content.is_preview && !isOwner && !isAdmin) {
+      const { data: subscription } = await supabaseAdmin
+        .from('subscriptions')
+        .select('id')
+        .eq('subscriber_id', userId)
+        .eq('creator_id', content.creator_id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (!subscription) {
+        return new Response(JSON.stringify({ error: "Subscription required" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
-      }
-
-      // Block access to unpublished content (except creator/admin)
-      if (content.status !== 'published') {
-        const { data: creator } = await supabaseAdmin
-          .from('creators')
-          .select('user_id')
-          .eq('id', content.creator_id)
-          .single();
-
-        const isOwner = creator?.user_id === userId;
-        const { data: adminRole } = await supabaseAdmin
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', userId)
-          .eq('role', 'admin')
-          .maybeSingle();
-
-        if (!isOwner && !adminRole) {
-          logStep('Access denied - unpublished', { contentId, userId });
-          return new Response(JSON.stringify({ error: "Content not available" }), {
-            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
-          });
-        }
-      }
-
-      // Check subscription for premium non-preview content
-      if (content.is_premium && !content.is_preview) {
-        const { data: creator } = await supabaseAdmin
-          .from('creators')
-          .select('user_id')
-          .eq('id', content.creator_id)
-          .single();
-
-        const isOwner = creator?.user_id === userId;
-
-        if (!isOwner) {
-          const { data: subscription } = await supabaseAdmin
-            .from('subscriptions')
-            .select('id')
-            .eq('subscriber_id', userId)
-            .eq('creator_id', content.creator_id)
-            .eq('status', 'active')
-            .maybeSingle();
-
-          const { data: adminRole } = await supabaseAdmin
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', userId)
-            .eq('role', 'admin')
-            .maybeSingle();
-
-          if (!subscription && !adminRole) {
-            logStep('Access denied - no subscription', { contentId, userId });
-            return new Response(JSON.stringify({ error: "Subscription required" }), {
-              status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" }
-            });
-          }
-        }
       }
     }
 
-    // Log access for alerting
-    await supabaseAdmin.from('security_access_logs').insert({
+    // Log access for alerting (non-blocking)
+    supabaseAdmin.from('security_access_logs').insert({
       user_id: userId,
       endpoint: 'proxy-r2-video',
       resource_path: filePath,
-      content_id: contentId || null,
+      content_id: contentId,
       ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown",
-    }).catch(() => {}); // Non-blocking
+    }).then(() => {}).catch(() => {});
 
-    // Generate short-lived presigned URL and redirect (302) for streaming
+    // Extract R2 path from file_url
+    let r2FilePath = filePath;
+    try {
+      if (filePath.startsWith('http')) {
+        const url = new URL(filePath);
+        r2FilePath = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
+      }
+    } catch {
+      // Already a relative path
+    }
+
     const r2AccountId = Deno.env.get("R2_ACCOUNT_ID")!;
     const r2AccessKeyId = Deno.env.get("R2_ACCESS_KEY_ID")!;
     const r2SecretAccessKey = Deno.env.get("R2_SECRET_ACCESS_KEY")!;
     const r2BucketName = Deno.env.get("R2_BUCKET_NAME") || "crub";
 
     const signedUrl = await generatePresignedGetUrl(
-      r2AccessKeyId, r2SecretAccessKey, 'auto', r2BucketName, filePath, r2AccountId, 120
+      r2AccessKeyId, r2SecretAccessKey, 'auto', r2BucketName, r2FilePath, r2AccountId, 120
     );
 
-    logStep('Generated signed video URL', { userId, filePath: filePath.substring(0, 30) });
+    console.log(`[proxy-r2-video] Signed URL for content ${contentId} user ${userId}`);
 
-    // Return the signed URL (not proxying the bytes - videos are too large)
     return new Response(
       JSON.stringify({
         url: signedUrl,
