@@ -256,13 +256,24 @@ serve(async (req) => {
         }
       }
     }
-    // Route 3: Direct filePath (for avatars, covers, etc. without contentId)
+    // Route 3: Direct filePath (RESTRICTED to public assets only)
     else if (clientFilePath) {
-      console.log("[get-replay-url] Direct filePath access:", clientFilePath);
+      // SECURITY: Only allow safe prefixes (avatars, covers, thumbnails)
+      // Block access to videos/, images/, replays/, content/, etc.
+      const ALLOWED_PREFIXES = ['avatars/', 'covers/', 'thumbnails/'];
+      const isAllowedPath = ALLOWED_PREFIXES.some(prefix => clientFilePath.startsWith(prefix));
+      
+      if (!isAllowedPath) {
+        console.warn("[get-replay-url] BLOCKED direct filePath access:", clientFilePath);
+        return new Response(
+          JSON.stringify({ error: "Direct file access not allowed. Use contentId or liveStreamId." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      console.log("[get-replay-url] Direct filePath access (allowed prefix):", clientFilePath);
       filePath = clientFilePath;
       creatorId = '';
-      // For direct filePath, grant access to any authenticated user
-      // (avatars/covers are not premium content)
       hasAccess = true;
     }
     // No valid identifier provided

@@ -1,17 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
+import { verifyCronSecret } from "../_shared/auth.ts";
 
 /**
  * Security Alerting Edge Function
  * 
- * Called on a schedule (cron) or manually by admins.
- * Analyzes security_access_logs + rate_limit_logs for anomalies:
- * - Proxy access spikes (unusual number of requests per user)
- * - 429 rate limit breaches
- * - Upload volume spikes
- * 
- * Stores alerts in security_alerts table for admin dashboard.
+ * SECURITY: Requires x-cron-secret header (no fallback).
+ * Analyzes security_access_logs + rate_limit_logs for anomalies.
  */
 
 const logStep = (step: string, details?: any) => {
@@ -19,31 +15,26 @@ const logStep = (step: string, details?: any) => {
 };
 
 // Thresholds
-const PROXY_SPIKE_THRESHOLD = 100;    // >100 proxy requests per user per 10min
-const RATE_LIMIT_SPIKE_THRESHOLD = 20; // >20 rate-limited requests per user per 10min
-const UPLOAD_SPIKE_THRESHOLD = 30;     // >30 uploads per user per 10min
+const PROXY_SPIKE_THRESHOLD = 100;
+const RATE_LIMIT_SPIKE_THRESHOLD = 20;
+const UPLOAD_SPIKE_THRESHOLD = 30;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return handleCorsOptions(req);
   const corsHeaders = getCorsHeaders(req);
 
   try {
+    // SECURITY: Strictly require CRON_SECRET - no fallback
+    if (!verifyCronSecret(req)) {
+      console.warn("[security-alerting] Unauthorized access attempt");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Optional: verify admin or cron secret
-    const cronSecret = Deno.env.get("CRON_SECRET");
-    const authHeader = req.headers.get("Authorization");
-    
-    if (cronSecret) {
-      const providedSecret = req.headers.get("x-cron-secret");
-      if (providedSecret !== cronSecret && !authHeader) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
-      }
-    }
 
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
     const alerts: Array<{
@@ -56,46 +47,38 @@ serve(async (req) => {
       threshold: number;
     }> = [];
 
-    // 1. Check proxy access spikes (security_access_logs)
+    // 1. Check proxy access spikes
     logStep('Checking proxy access spikes');
-    const { data: proxySpikes } = await supabaseAdmin.rpc('get_proxy_access_spikes', {
-      since_timestamp: tenMinutesAgo,
-      min_count: PROXY_SPIKE_THRESHOLD,
-    }).catch(() => ({ data: null }));
+    const { data: rawLogs } = await supabaseAdmin
+      .from('security_access_logs')
+      .select('user_id, ip_address')
+      .gte('created_at', tenMinutesAgo);
 
-    // Fallback: direct query if RPC doesn't exist
-    if (proxySpikes === null) {
-      const { data: rawLogs } = await supabaseAdmin
-        .from('security_access_logs')
-        .select('user_id, ip_address')
-        .gte('created_at', tenMinutesAgo);
+    if (rawLogs) {
+      const userCounts = new Map<string, { count: number; ip: string }>();
+      for (const log of rawLogs) {
+        const key = log.user_id || log.ip_address || 'unknown';
+        const existing = userCounts.get(key) || { count: 0, ip: log.ip_address || '' };
+        existing.count++;
+        userCounts.set(key, existing);
+      }
 
-      if (rawLogs) {
-        const userCounts = new Map<string, { count: number; ip: string }>();
-        for (const log of rawLogs) {
-          const key = log.user_id || log.ip_address || 'unknown';
-          const existing = userCounts.get(key) || { count: 0, ip: log.ip_address || '' };
-          existing.count++;
-          userCounts.set(key, existing);
-        }
-
-        for (const [key, data] of userCounts) {
-          if (data.count >= PROXY_SPIKE_THRESHOLD) {
-            alerts.push({
-              alert_type: 'proxy_access_spike',
-              severity: data.count >= PROXY_SPIKE_THRESHOLD * 3 ? 'critical' : 'warning',
-              user_id: key.includes('-') ? key : null,
-              ip_address: data.ip || null,
-              details: { endpoint: 'proxy-r2-video/proxy-r2-image', window_minutes: 10 },
-              metric_value: data.count,
-              threshold: PROXY_SPIKE_THRESHOLD,
-            });
-          }
+      for (const [key, data] of userCounts) {
+        if (data.count >= PROXY_SPIKE_THRESHOLD) {
+          alerts.push({
+            alert_type: 'proxy_access_spike',
+            severity: data.count >= PROXY_SPIKE_THRESHOLD * 3 ? 'critical' : 'warning',
+            user_id: key.includes('-') ? key : null,
+            ip_address: data.ip || null,
+            details: { endpoint: 'proxy-r2-video/proxy-r2-image', window_minutes: 10 },
+            metric_value: data.count,
+            threshold: PROXY_SPIKE_THRESHOLD,
+          });
         }
       }
     }
 
-    // 2. Check rate limit breaches (rate_limit_logs)
+    // 2. Check rate limit breaches
     logStep('Checking rate limit breaches');
     const { data: rateLimitLogs } = await supabaseAdmin
       .from('rate_limit_logs')
@@ -127,7 +110,7 @@ serve(async (req) => {
       }
     }
 
-    // 3. Check upload spikes (security_access_logs where endpoint = upload)
+    // 3. Check upload spikes
     logStep('Checking upload spikes');
     const { data: uploadLogs } = await supabaseAdmin
       .from('security_access_logs')
@@ -162,18 +145,11 @@ serve(async (req) => {
     // Store alerts
     if (alerts.length > 0) {
       logStep('Inserting alerts', { count: alerts.length });
-      const { error: insertError } = await supabaseAdmin
-        .from('security_alerts')
-        .insert(alerts);
+      await supabaseAdmin.from('security_alerts').insert(alerts);
 
-      if (insertError) {
-        logStep('Failed to insert alerts', { error: insertError.message });
-      }
-
-      // Also create admin notifications for critical alerts
+      // Admin notifications for critical alerts
       const criticalAlerts = alerts.filter(a => a.severity === 'critical');
       if (criticalAlerts.length > 0) {
-        // Get admin user IDs
         const { data: admins } = await supabaseAdmin
           .from('user_roles')
           .select('user_id')
@@ -189,7 +165,6 @@ serve(async (req) => {
               data: { alert_type: alert.alert_type, user_id: alert.user_id, ip: alert.ip_address },
             }))
           );
-
           await supabaseAdmin.from('notifications').insert(notifications).catch(() => {});
         }
       }
@@ -198,15 +173,7 @@ serve(async (req) => {
     logStep('Alerting complete', { alertsGenerated: alerts.length });
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        alertsGenerated: alerts.length,
-        alerts: alerts.map(a => ({
-          type: a.alert_type,
-          severity: a.severity,
-          value: a.metric_value,
-        })),
-      }),
+      JSON.stringify({ success: true, alertsGenerated: alerts.length }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
