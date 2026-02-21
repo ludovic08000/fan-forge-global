@@ -16,6 +16,7 @@ import { ProtectedMedia } from '@/components/ProtectedMedia';
 import { useContentProtection } from '@/hooks/useContentProtection';
 import { SecureVideoPreviewCard } from '@/components/SecureVideoPreviewCard';
 import { SecureVideoLightbox } from '@/components/SecureVideoLightbox';
+import { SecureImageLightbox } from '@/components/SecureImageLightbox';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
 
 import { PrivateLiveReplays } from '@/components/live/PrivateLiveReplays';
@@ -1024,8 +1025,9 @@ const CreatorPublicPage = () => {
                   controls
                 />
               ) : (
-                <OptimizedImage
+                <SecureImageLightbox
                   src={selectedImage.thumbnail_url || selectedImage.file_url}
+                  contentId={selectedImage.id}
                   alt={selectedImage.title}
                   className="max-w-full max-h-[80vh] object-contain rounded-lg cursor-pointer"
                 />
