@@ -1444,6 +1444,78 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_evidence_archives: {
+        Row: {
+          ai_category: string | null
+          ai_confidence: number | null
+          ai_moderation_data: Json
+          archived_at: string
+          archived_by: string
+          created_at: string
+          flagged_content_urls: string[] | null
+          full_name: string | null
+          id: string
+          identity_verification_data: Json | null
+          login_timestamps: Json | null
+          original_content_id: string | null
+          original_creator_id: string | null
+          original_file_url: string | null
+          original_user_id: string
+          r2_evidence_keys: string[] | null
+          stage_name: string | null
+          user_email: string | null
+          user_ip_addresses: Json | null
+          violation_details: string | null
+          violation_type: string
+        }
+        Insert: {
+          ai_category?: string | null
+          ai_confidence?: number | null
+          ai_moderation_data?: Json
+          archived_at?: string
+          archived_by?: string
+          created_at?: string
+          flagged_content_urls?: string[] | null
+          full_name?: string | null
+          id?: string
+          identity_verification_data?: Json | null
+          login_timestamps?: Json | null
+          original_content_id?: string | null
+          original_creator_id?: string | null
+          original_file_url?: string | null
+          original_user_id: string
+          r2_evidence_keys?: string[] | null
+          stage_name?: string | null
+          user_email?: string | null
+          user_ip_addresses?: Json | null
+          violation_details?: string | null
+          violation_type: string
+        }
+        Update: {
+          ai_category?: string | null
+          ai_confidence?: number | null
+          ai_moderation_data?: Json
+          archived_at?: string
+          archived_by?: string
+          created_at?: string
+          flagged_content_urls?: string[] | null
+          full_name?: string | null
+          id?: string
+          identity_verification_data?: Json | null
+          login_timestamps?: Json | null
+          original_content_id?: string | null
+          original_creator_id?: string | null
+          original_file_url?: string | null
+          original_user_id?: string
+          r2_evidence_keys?: string[] | null
+          stage_name?: string | null
+          user_email?: string | null
+          user_ip_addresses?: Json | null
+          violation_details?: string | null
+          violation_type?: string
+        }
+        Relationships: []
+      }
       live_reservations: {
         Row: {
           created_at: string
@@ -3868,6 +3940,10 @@ export type Database = {
       }
     }
     Functions: {
+      archive_illegal_content_evidence: {
+        Args: { _creator_id?: string; _user_id: string }
+        Returns: undefined
+      }
       auto_block_if_needed: {
         Args: {
           block_duration?: unknown
