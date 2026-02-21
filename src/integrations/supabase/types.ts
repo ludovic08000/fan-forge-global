@@ -3827,6 +3827,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_login_logs_safe: {
+        Row: {
+          created_at: string | null
+          id: string | null
+          ip_address: string | null
+          login_method: string | null
+          masked_email: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string | null
+          ip_address?: string | null
+          login_method?: string | null
+          masked_email?: never
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string | null
+          ip_address?: string | null
+          login_method?: string | null
+          masked_email?: never
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       auto_block_if_needed: {

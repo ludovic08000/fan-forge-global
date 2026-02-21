@@ -82,7 +82,7 @@ interface LoginLog {
   id: string;
   user_id: string;
   username: string;
-  email: string;
+  masked_email: string;
   ip_address: string;
   user_agent: string;
   login_method: string;
@@ -156,13 +156,13 @@ const AdminDashboard = () => {
   const loadLoginLogs = async () => {
     try {
       const { data, error } = await supabase
-        .from('user_login_logs')
+        .from('user_login_logs_safe' as any)
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
       if (error) throw error;
-      setLoginLogs(data || []);
+      setLoginLogs((data as unknown as LoginLog[]) || []);
     } catch (error) {
       console.error('Erreur chargement logs:', error);
       toast.error('Erreur lors du chargement des logs');
@@ -280,7 +280,7 @@ const AdminDashboard = () => {
   const filteredLogs = loginLogs.filter((log) => {
     const search = searchTerm.toLowerCase();
     return (
-      log.email?.toLowerCase().includes(search) ||
+      log.masked_email?.toLowerCase().includes(search) ||
       log.username?.toLowerCase().includes(search) ||
       log.ip_address?.includes(search) ||
       log.user_id?.includes(search)
@@ -840,7 +840,7 @@ const AdminDashboard = () => {
                         {new Date(log.created_at).toLocaleString('fr-FR')}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
-                        {maskEmail(log.email)}
+                        {log.masked_email}
                       </TableCell>
                       <TableCell>{log.username || '-'}</TableCell>
                       <TableCell className="font-mono text-sm">
