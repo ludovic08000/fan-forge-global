@@ -15,8 +15,8 @@ const Index = () => {
   return (
     <AgeVerificationGate>
       <SEOHead 
-        title="Crub - Partagez votre contenu"
-        description="Créez votre espace sur Crub pour partager du contenu exclusif."
+        title={t('seo.title')}
+        description={t('seo.description')}
       />
       <div className="min-h-screen flex flex-col bg-background">
         <main className="flex-1">

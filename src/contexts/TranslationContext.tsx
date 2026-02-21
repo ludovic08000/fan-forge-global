@@ -12,7 +12,7 @@ interface TranslationContextType {
 
 const TranslationContext = createContext<TranslationContextType | undefined>(undefined);
 
-const SUPPORTED_LANGUAGES: Language[] = ['en', 'fr', 'es', 'de', 'it', 'pt', 'nl'];
+const SUPPORTED_LANGUAGES: Language[] = ['en', 'fr'];
 
 // Singleton store pour garantir la synchronisation globale
 let currentLanguage: Language = 'fr';
