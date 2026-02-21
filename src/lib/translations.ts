@@ -30,7 +30,8 @@ export const translations: Record<string, any> = {
       legal: "Legal Notice",
       copyright: "All rights reserved.",
       gdprCompliant: "GDPR Compliant",
-      adultPlatform: "18+ Platform"
+      adultPlatform: "18+ Platform",
+      language: "Language"
     },
     common: {
       loading: "Loading...",
@@ -40,7 +41,78 @@ export const translations: Record<string, any> = {
       delete: "Delete",
       edit: "Edit",
       search: "Search",
-      noResults: "No results found"
+      noResults: "No results found",
+      viewAll: "View all",
+      seeAll: "See all",
+      back: "Back",
+      confirm: "Confirm",
+      close: "Close"
+    },
+    popularCreators: {
+      title: "Popular Creators",
+      subtitle: "Discover the most followed talents",
+      viewAll: "View all",
+      viewAllCreators: "View all creators",
+      loading: "Loading popular creators"
+    },
+    liveNow: {
+      title: "Live Now",
+      subtitle: "Watch your favorite creators live",
+      viewAll: "View all",
+      live: "LIVE",
+      premium: "Premium",
+      free: "Free",
+      viewers: "viewers",
+      loading: "Loading live streams"
+    },
+    discovery: {
+      searchPlaceholder: "Search a creator...",
+      searchButton: "Search",
+      discoverMedia: "Discover media"
+    },
+    ageVerification: {
+      accessDenied: "Access Denied",
+      youAre: "You are",
+      yearsOld: "years old",
+      adultContentRestricted: "This content is strictly reserved for adults (18 years and older).",
+      restrictionAutomatic: "This restriction is automatic and based on your profile. If you believe this is an error, check your birth date in your settings.",
+      checkProfile: "Check my profile",
+      backToHome: "Back to home",
+      adultContent: "Adult Content",
+      adultSection: "Adult / Erotic Section",
+      adultContentDescription: "This creator offers adult content (glamour/erotic). You must confirm you are of legal age (18 or older) to access this page.",
+      confirmAge: "By clicking \"I am 18 or older\", you confirm you are of legal age and accept our",
+      termsOfService: "Terms of Service",
+      iAmAdult: "I am 18 or older",
+      iAmMinor: "I am a minor - Leave"
+    },
+    cookies: {
+      title: "Cookie Management",
+      rgpdLabel: "GDPR / EU",
+      description: "We use cookies to improve your experience. You can customize your preferences below.",
+      essential: "Essential cookies (required)",
+      essentialDesc: "Authentication, session, security, payments. Required for the site to function.",
+      duration: "Duration",
+      session: "Session / 30 days",
+      functional: "Functional cookies",
+      functionalDesc: "Theme (light/dark), language, display preferences.",
+      oneYear: "1 year",
+      analytics: "Analytics cookies",
+      analyticsDesc: "Anonymous statistics to improve the service.",
+      thirteenMonths: "13 months",
+      marketing: "Advertising cookies",
+      marketingDesc: "Personalization of content recommendations.",
+      yourRights: "Your rights",
+      rightsDesc: "You can modify your preferences, access your data or request their deletion at any time via your account settings.",
+      cookiePolicy: "Cookie policy",
+      privacyLink: "Privacy",
+      consentValid: "Consent valid",
+      days: "days",
+      customize: "Customize",
+      hide: "Hide",
+      savePreferences: "Save",
+      rejectOptional: "Reject optional",
+      acceptAll: "Accept all"
     }
   },
   fr: {
@@ -74,7 +146,8 @@ export const translations: Record<string, any> = {
       legal: "Mentions Légales",
       copyright: "Tous droits réservés.",
       gdprCompliant: "Conforme RGPD",
-      adultPlatform: "Plateforme 18+"
+      adultPlatform: "Plateforme 18+",
+      language: "Langue"
     },
     common: {
       loading: "Chargement...",
@@ -84,7 +157,78 @@ export const translations: Record<string, any> = {
       delete: "Supprimer",
       edit: "Modifier",
       search: "Rechercher",
-      noResults: "Aucun résultat trouvé"
+      noResults: "Aucun résultat trouvé",
+      viewAll: "Voir tous",
+      seeAll: "Tout voir",
+      back: "Retour",
+      confirm: "Confirmer",
+      close: "Fermer"
+    },
+    popularCreators: {
+      title: "Créateurs populaires",
+      subtitle: "Découvrez les talents les plus suivis",
+      viewAll: "Voir tous",
+      viewAllCreators: "Voir tous les créateurs",
+      loading: "Chargement des créateurs populaires"
+    },
+    liveNow: {
+      title: "En direct maintenant",
+      subtitle: "Regardez vos créateurs préférés en live",
+      viewAll: "Voir tous",
+      live: "EN DIRECT",
+      premium: "Premium",
+      free: "Gratuit",
+      viewers: "spectateurs",
+      loading: "Chargement des lives"
+    },
+    discovery: {
+      searchPlaceholder: "Rechercher un créateur...",
+      searchButton: "Rechercher",
+      discoverMedia: "Découvrir les médias"
+    },
+    ageVerification: {
+      accessDenied: "Accès interdit",
+      youAre: "Vous avez",
+      yearsOld: "ans",
+      adultContentRestricted: "Ce contenu est strictement réservé aux personnes majeures (18 ans et plus).",
+      restrictionAutomatic: "Cette restriction est automatique et basée sur votre profil. Si vous pensez qu'il s'agit d'une erreur, vérifiez votre date de naissance dans vos paramètres.",
+      checkProfile: "Vérifier mon profil",
+      backToHome: "Retour à l'accueil",
+      adultContent: "Contenu réservé aux adultes",
+      adultSection: "Section Charme / Érotique",
+      adultContentDescription: "Ce créateur propose du contenu pour adultes (charme/érotique). Vous devez confirmer avoir l'âge légal (18 ans ou plus) pour accéder à cette page.",
+      confirmAge: "En cliquant sur \"J'ai 18 ans ou plus\", vous confirmez être majeur et acceptez nos",
+      termsOfService: "Conditions d'Utilisation",
+      iAmAdult: "J'ai 18 ans ou plus",
+      iAmMinor: "Je suis mineur - Quitter"
+    },
+    cookies: {
+      title: "Gestion des cookies",
+      rgpdLabel: "RGPD / UE",
+      description: "Nous utilisons des cookies pour améliorer votre expérience. Vous pouvez personnaliser vos préférences ci-dessous.",
+      essential: "Cookies essentiels (obligatoires)",
+      essentialDesc: "Authentification, session, sécurité, paiements. Nécessaires au fonctionnement du site.",
+      duration: "Durée",
+      session: "Session / 30 jours",
+      functional: "Cookies fonctionnels",
+      functionalDesc: "Thème (clair/sombre), langue, préférences d'affichage.",
+      oneYear: "1 an",
+      analytics: "Cookies analytiques",
+      analyticsDesc: "Statistiques anonymes pour améliorer le service.",
+      thirteenMonths: "13 mois",
+      marketing: "Cookies publicitaires",
+      marketingDesc: "Personnalisation des recommandations de contenu.",
+      yourRights: "Vos droits",
+      rightsDesc: "Vous pouvez modifier vos préférences, accéder à vos données ou demander leur suppression à tout moment via vos paramètres de compte.",
+      cookiePolicy: "Politique cookies",
+      privacyLink: "Confidentialité",
+      consentValid: "Consentement valide",
+      days: "jours",
+      customize: "Personnaliser",
+      hide: "Masquer",
+      savePreferences: "Sauvegarder",
+      rejectOptional: "Refuser optionnels",
+      acceptAll: "Tout accepter"
     }
   },
   es: {
@@ -118,7 +262,8 @@ export const translations: Record<string, any> = {
       legal: "Aviso Legal",
       copyright: "Todos los derechos reservados.",
       gdprCompliant: "Cumple RGPD",
-      adultPlatform: "Plataforma 18+"
+      adultPlatform: "Plataforma 18+",
+      language: "Idioma"
     },
     common: {
       loading: "Cargando...",
@@ -128,7 +273,12 @@ export const translations: Record<string, any> = {
       delete: "Eliminar",
       edit: "Editar",
       search: "Buscar",
-      noResults: "No se encontraron resultados"
+      noResults: "No se encontraron resultados",
+      viewAll: "Ver todos",
+      seeAll: "Ver todo",
+      back: "Volver",
+      confirm: "Confirmar",
+      close: "Cerrar"
     }
   },
   de: {
@@ -161,7 +311,8 @@ export const translations: Record<string, any> = {
       legal: "Impressum",
       copyright: "Alle Rechte vorbehalten.",
       gdprCompliant: "DSGVO-konform",
-      adultPlatform: "18+ Plattform"
+      adultPlatform: "18+ Plattform",
+      language: "Sprache"
     },
     common: {
       loading: "Laden...",
@@ -171,7 +322,12 @@ export const translations: Record<string, any> = {
       delete: "Löschen",
       edit: "Bearbeiten",
       search: "Suchen",
-      noResults: "Keine Ergebnisse gefunden"
+      noResults: "Keine Ergebnisse gefunden",
+      viewAll: "Alle anzeigen",
+      seeAll: "Alles sehen",
+      back: "Zurück",
+      confirm: "Bestätigen",
+      close: "Schließen"
     }
   },
   it: {
@@ -204,7 +360,8 @@ export const translations: Record<string, any> = {
       legal: "Note Legali",
       copyright: "Tutti i diritti riservati.",
       gdprCompliant: "Conforme GDPR",
-      adultPlatform: "Piattaforma 18+"
+      adultPlatform: "Piattaforma 18+",
+      language: "Lingua"
     },
     common: {
       loading: "Caricamento...",
@@ -214,7 +371,12 @@ export const translations: Record<string, any> = {
       delete: "Elimina",
       edit: "Modifica",
       search: "Cerca",
-      noResults: "Nessun risultato trovato"
+      noResults: "Nessun risultato trovato",
+      viewAll: "Vedi tutti",
+      seeAll: "Vedi tutto",
+      back: "Indietro",
+      confirm: "Conferma",
+      close: "Chiudi"
     }
   },
   pt: {
@@ -247,7 +409,8 @@ export const translations: Record<string, any> = {
       legal: "Aviso Legal",
       copyright: "Todos os direitos reservados.",
       gdprCompliant: "Conforme LGPD",
-      adultPlatform: "Plataforma 18+"
+      adultPlatform: "Plataforma 18+",
+      language: "Idioma"
     },
     common: {
       loading: "Carregando...",
@@ -257,7 +420,12 @@ export const translations: Record<string, any> = {
       delete: "Excluir",
       edit: "Editar",
       search: "Pesquisar",
-      noResults: "Nenhum resultado encontrado"
+      noResults: "Nenhum resultado encontrado",
+      viewAll: "Ver todos",
+      seeAll: "Ver tudo",
+      back: "Voltar",
+      confirm: "Confirmar",
+      close: "Fechar"
     }
   },
   nl: {
@@ -290,7 +458,8 @@ export const translations: Record<string, any> = {
       legal: "Juridische kennisgeving",
       copyright: "Alle rechten voorbehouden.",
       gdprCompliant: "AVG-conform",
-      adultPlatform: "18+ Platform"
+      adultPlatform: "18+ Platform",
+      language: "Taal"
     },
     common: {
       loading: "Laden...",
@@ -300,7 +469,12 @@ export const translations: Record<string, any> = {
       delete: "Verwijderen",
       edit: "Bewerken",
       search: "Zoeken",
-      noResults: "Geen resultaten gevonden"
+      noResults: "Geen resultaten gevonden",
+      viewAll: "Alles bekijken",
+      seeAll: "Alles zien",
+      back: "Terug",
+      confirm: "Bevestigen",
+      close: "Sluiten"
     }
   }
 };

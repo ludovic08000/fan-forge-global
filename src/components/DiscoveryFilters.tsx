@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Search, X, Dumbbell, Gamepad2, ChefHat, Sparkles, Heart, Music, Camera, Gavel, Trophy, Dribbble, Crown, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface DiscoveryFiltersProps {
   className?: string;
@@ -26,6 +27,7 @@ const NICHES = [
 ];
 
 const DiscoveryFilters: React.FC<DiscoveryFiltersProps> = ({ className }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
@@ -50,7 +52,7 @@ const DiscoveryFilters: React.FC<DiscoveryFiltersProps> = ({ className }) => {
         <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="text"
-          placeholder="Rechercher par nom..."
+          placeholder={t('discovery.searchPlaceholder')}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSearch()}

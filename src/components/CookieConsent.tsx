@@ -7,6 +7,7 @@ import { Cookie, Shield, Settings, ShieldCheck, BarChart3, Fingerprint } from "l
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 interface CookiePreferences {
   essential: boolean;
@@ -30,6 +31,7 @@ const CONSENT_DURATION_DAYS = 365;
 const CONSENT_DURATION_MS = CONSENT_DURATION_DAYS * 24 * 60 * 60 * 1000;
 
 export const CookieConsent = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [isVisible, setIsVisible] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -178,11 +180,11 @@ export const CookieConsent = () => {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-lg font-bold">Gestion des cookies</h2>
-                <span className="text-xs bg-muted px-2 py-0.5 rounded">RGPD / UE</span>
+                <h2 className="text-lg font-bold">{t('cookies.title')}</h2>
+                <span className="text-xs bg-muted px-2 py-0.5 rounded">{t('cookies.rgpdLabel')}</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Nous utilisons des cookies pour améliorer votre expérience. Vous pouvez personnaliser vos préférences ci-dessous.
+                {t('cookies.description')}
               </p>
             </div>
           </div>
@@ -195,12 +197,12 @@ export const CookieConsent = () => {
                 <div className="flex items-start gap-3">
                   <Shield className="h-4 w-4 text-green-500 mt-1" />
                   <div>
-                    <Label className="font-medium text-sm">Cookies essentiels (obligatoires)</Label>
+                   <Label className="font-medium text-sm">{t('cookies.essential')}</Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Authentification, session, sécurité, paiements. Nécessaires au fonctionnement du site.
+                      {t('cookies.essentialDesc')}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      <strong>Durée:</strong> Session / 30 jours
+                      <strong>{t('cookies.duration')}:</strong> {t('cookies.session')}
                     </p>
                   </div>
                 </div>
@@ -212,12 +214,12 @@ export const CookieConsent = () => {
                 <div className="flex items-start gap-3">
                   <Settings className="h-4 w-4 text-blue-500 mt-1" />
                   <div>
-                    <Label className="font-medium text-sm">Cookies fonctionnels</Label>
+                    <Label className="font-medium text-sm">{t('cookies.functional')}</Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Thème (clair/sombre), langue, préférences d'affichage.
+                      {t('cookies.functionalDesc')}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      <strong>Durée:</strong> 1 an
+                      <strong>{t('cookies.duration')}:</strong> {t('cookies.oneYear')}
                     </p>
                   </div>
                 </div>
@@ -232,12 +234,12 @@ export const CookieConsent = () => {
                 <div className="flex items-start gap-3">
                   <BarChart3 className="h-4 w-4 text-orange-500 mt-1" />
                   <div>
-                    <Label className="font-medium text-sm">Cookies analytiques</Label>
+                    <Label className="font-medium text-sm">{t('cookies.analytics')}</Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Statistiques anonymes pour améliorer le service.
+                      {t('cookies.analyticsDesc')}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      <strong>Durée:</strong> 13 mois
+                      <strong>{t('cookies.duration')}:</strong> {t('cookies.thirteenMonths')}
                     </p>
                   </div>
                 </div>
@@ -252,12 +254,12 @@ export const CookieConsent = () => {
                 <div className="flex items-start gap-3">
                   <Fingerprint className="h-4 w-4 text-purple-500 mt-1" />
                   <div>
-                    <Label className="font-medium text-sm">Cookies publicitaires</Label>
+                    <Label className="font-medium text-sm">{t('cookies.marketing')}</Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Personnalisation des recommandations de contenu.
+                      {t('cookies.marketingDesc')}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      <strong>Durée:</strong> 13 mois
+                      <strong>{t('cookies.duration')}:</strong> {t('cookies.thirteenMonths')}
                     </p>
                   </div>
                 </div>
@@ -272,8 +274,7 @@ export const CookieConsent = () => {
                 <div className="flex items-start gap-2">
                   <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                   <p className="text-xs text-muted-foreground">
-                    <strong>Vos droits:</strong> Vous pouvez modifier vos préférences, accéder à vos données 
-                    ou demander leur suppression à tout moment via vos paramètres de compte.
+                    <strong>{t('cookies.yourRights')}:</strong> {t('cookies.rightsDesc')}
                   </p>
                 </div>
               </div>
@@ -283,9 +284,9 @@ export const CookieConsent = () => {
           {/* Liens légaux et boutons */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <Link to="/cookies" className="text-primary hover:underline">Politique cookies</Link>
-              <Link to="/privacy" className="text-primary hover:underline">Confidentialité</Link>
-              <span>Consentement valide {CONSENT_DURATION_DAYS} jours</span>
+              <Link to="/cookies" className="text-primary hover:underline">{t('cookies.cookiePolicy')}</Link>
+              <Link to="/privacy" className="text-primary hover:underline">{t('cookies.privacyLink')}</Link>
+              <span>{t('cookies.consentValid')} {CONSENT_DURATION_DAYS} {t('cookies.days')}</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -296,12 +297,12 @@ export const CookieConsent = () => {
                 className="text-muted-foreground hover:text-foreground"
               >
                 <Settings className="h-4 w-4 mr-2" />
-                {showDetails ? "Masquer" : "Personnaliser"}
+                {showDetails ? t('cookies.hide') : t('cookies.customize')}
               </Button>
 
               {showDetails ? (
                 <Button onClick={handleSavePreferences} size="sm">
-                  Sauvegarder
+                  {t('cookies.savePreferences')}
                 </Button>
               ) : (
                 <>
@@ -310,13 +311,13 @@ export const CookieConsent = () => {
                     onClick={handleAcceptEssential}
                     size="sm"
                   >
-                    Refuser optionnels
+                    {t('cookies.rejectOptional')}
                   </Button>
                   <Button 
                     onClick={handleAcceptAll}
                     size="sm"
                   >
-                    Tout accepter
+                    {t('cookies.acceptAll')}
                   </Button>
                 </>
               )}
