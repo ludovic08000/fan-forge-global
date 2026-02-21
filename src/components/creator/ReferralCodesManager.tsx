@@ -33,13 +33,14 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
   const [codes, setCodes] = useState<ReferralCode[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [hasFreeCodeThisYear, setHasFreeCodeThisYear] = useState(false);
   const [newCode, setNewCode] = useState({
     code: '',
     discountType: 'percentage' as 'percentage' | 'amount' | 'free',
     discountValue: '',
     maxUses: '',
     expiresAt: '',
-    duration: '1' as string // Durée en mois (1 = premier mois, 2 = 2 premiers mois, etc.)
+    duration: '1' as string
   });
   const [creating, setCreating] = useState(false);
 
@@ -68,6 +69,16 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
       });
       
       setCodes(validCodes);
+
+      // Vérifier si un code gratuit (100%) a été créé dans les 12 derniers mois
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      
+      const hasFree = (data || []).some(code => 
+        code.discount_percentage === 100 && 
+        new Date(code.created_at) >= oneYearAgo
+      );
+      setHasFreeCodeThisYear(hasFree);
     } catch (error) {
       console.error('Error loading referral codes:', error);
       toast.error('Erreur lors du chargement des codes');
@@ -94,6 +105,12 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
     // Validation selon le type
     if (newCode.discountType !== 'free' && (!newCode.discountValue || parseFloat(newCode.discountValue) <= 0)) {
       toast.error('Veuillez entrer une réduction valide');
+      return;
+    }
+
+    // Vérifier la limite d'1 code gratuit par an
+    if (newCode.discountType === 'free' && hasFreeCodeThisYear) {
+      toast.error('Vous avez déjà créé un code gratuit cette année. Limite : 1 par an.');
       return;
     }
 
@@ -279,11 +296,18 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
                     <Button
                       variant={newCode.discountType === 'free' ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => setNewCode(prev => ({ ...prev, discountType: 'free', discountValue: '100' }))}
+                      onClick={() => {
+                        if (hasFreeCodeThisYear) {
+                          toast.error('Vous avez déjà utilisé votre code gratuit cette année (1 par an max).');
+                          return;
+                        }
+                        setNewCode(prev => ({ ...prev, discountType: 'free', discountValue: '100' }));
+                      }}
                       className="flex-1"
+                      disabled={hasFreeCodeThisYear}
                     >
                       <Gift className="h-4 w-4 mr-2" />
-                      Gratuit
+                      Gratuit {hasFreeCodeThisYear ? '(utilisé)' : ''}
                     </Button>
                     <Button
                       variant={newCode.discountType === 'percentage' ? 'default' : 'outline'}
