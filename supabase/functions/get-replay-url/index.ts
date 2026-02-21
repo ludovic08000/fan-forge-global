@@ -256,34 +256,49 @@ serve(async (req) => {
         }
       }
     }
-    // Route 3: Direct filePath (for non-premium assets: avatars, covers, thumbnails, creator profile images)
+    // Route 3: Direct filePath access (STRICT ALLOWLIST ONLY)
+    // Purpose: allow only non-sensitive public-ish assets like avatars/covers/thumbnails.
+    // Anything else must go through contentId/liveStreamId flows with proper access checks.
     else if (clientFilePath) {
-      // SECURITY: Block path traversal attacks
-      if (clientFilePath.includes('..') || clientFilePath.includes('\0')) {
+      // Normalize path: remove leading slashes, collapse backslashes, prevent weird traversal
+      const normalizedPath = String(clientFilePath)
+        .trim()
+        .replace(/\\/g, "/")
+        .replace(/^\/+/, "");
+
+      // Basic sanity checks
+      if (!normalizedPath || normalizedPath.length > 512) {
+        return new Response(JSON.stringify({ error: "Invalid filePath" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (normalizedPath.includes("..")) {
         console.warn("[get-replay-url] BLOCKED path traversal attempt:", clientFilePath);
-        return new Response(
-          JSON.stringify({ error: "Invalid file path" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Invalid filePath" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
-      
-      // SECURITY: Block access to premium content directories via direct path
-      // These MUST go through Route 1 (liveStreamId) or Route 2 (contentId)
-      const BLOCKED_PREFIXES = ['replays/', 'private-replays/', 'live-media/'];
-      const isBlockedPath = BLOCKED_PREFIXES.some(prefix => clientFilePath.startsWith(prefix));
-      
-      if (isBlockedPath) {
-        console.warn("[get-replay-url] BLOCKED direct access to premium path:", clientFilePath);
-        return new Response(
-          JSON.stringify({ error: "Use contentId or liveStreamId for this content" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+
+      // ✅ STRICT allowlist: ONLY these prefixes are allowed
+      const ALLOWED_PREFIXES = ["avatars/", "covers/", "thumbnails/"];
+      const hasAllowedPrefix = ALLOWED_PREFIXES.some((p) =>
+        normalizedPath.startsWith(p)
+      );
+
+      if (!hasAllowedPrefix) {
+        console.warn("[get-replay-url] BLOCKED non-allowlisted path:", normalizedPath);
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
-      
-      console.log("[get-replay-url] Direct filePath access:", clientFilePath);
-      filePath = clientFilePath;
+
+      console.log("[get-replay-url] Allowlisted filePath access:", normalizedPath);
+      filePath = normalizedPath;
       creatorId = '';
-      // Authenticated users can access non-premium assets (avatars, covers, profile images)
       hasAccess = true;
     }
     // No valid identifier provided
