@@ -108,6 +108,7 @@ export const useSearch = () => {
     'Musique',
     'Éducation',
     'Culture',
+    'Agriculture',
   ];
 
   // Get popular categories avec cache long - utilise la vue publique
