@@ -1,11 +1,30 @@
-import { Crown } from "lucide-react";
+import { Crown, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
 import { memo } from "react";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { Language } from "@/hooks/useLanguageDetection";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+
+const LANGUAGES = [
+  { code: 'fr' as Language, name: 'Français', flag: '🇫🇷' },
+  { code: 'en' as Language, name: 'English', flag: '🇬🇧' },
+  { code: 'es' as Language, name: 'Español', flag: '🇪🇸' },
+  { code: 'de' as Language, name: 'Deutsch', flag: '🇩🇪' },
+  { code: 'it' as Language, name: 'Italiano', flag: '🇮🇹' },
+  { code: 'pt' as Language, name: 'Português', flag: '🇵🇹' },
+  { code: 'nl' as Language, name: 'Nederlands', flag: '🇳🇱' },
+];
 
 const Footer = memo(() => {
-  const { t } = useTranslation();
+  const { t, language, changeLanguage } = useTranslation();
   const currentYear = new Date().getFullYear();
+  const currentLang = LANGUAGES.find(l => l.code === language);
   
   return (
     <footer className="bg-card/50 backdrop-blur-sm border-t border-border" role="contentinfo">
@@ -55,6 +74,34 @@ const Footer = memo(() => {
               </li>
             </ul>
           </nav>
+
+          {/* Language Selector */}
+          <div>
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              {t('footer.language') || 'Language'}
+            </h2>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full justify-start gap-2">
+                  <span>{currentLang?.flag}</span>
+                  <span>{currentLang?.name}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {LANGUAGES.map(lang => (
+                  <DropdownMenuItem
+                    key={lang.code}
+                    onClick={() => changeLanguage(lang.code)}
+                    className={language === lang.code ? 'bg-accent' : ''}
+                  >
+                    <span className="mr-2">{lang.flag}</span>
+                    {lang.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         {/* Bottom Bar */}
