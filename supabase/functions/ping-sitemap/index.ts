@@ -37,7 +37,7 @@ serve(async (req) => {
         const response = await fetch(pingUrl, {
           method: "GET",
           headers: {
-            "User-Agent": "Crub-Sitemap-Pinger/1.0",
+            "User-Agent": "TheForge-Sitemap-Pinger/1.0",
           },
         });
 
@@ -70,7 +70,7 @@ serve(async (req) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "User-Agent": "Crub-Sitemap-Pinger/1.0",
+          "User-Agent": "TheForge-Sitemap-Pinger/1.0",
         },
         body: JSON.stringify({
           host: "crub.fr",

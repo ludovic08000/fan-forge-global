@@ -40,7 +40,7 @@ serve(async (req) => {
       en: "English",
     };
 
-    const prompt = `You are a professional translator for a web platform called "Crub" (a premium content creator platform similar to OnlyFans/Patreon).
+    const prompt = `You are a professional translator for a web platform called "TheForge" (a premium content creator platform similar to OnlyFans/Patreon).
 
 Translate the following English UI texts into these languages: ${targetLanguages.map(l => `${languageNames[l] || l} (${l})`).join(", ")}.
 
@@ -50,7 +50,7 @@ ${JSON.stringify(sourceTexts, null, 2)}
 Rules:
 - Keep the same JSON structure and keys
 - Translate values only, not keys
-- Keep brand names (Crub, Stripe, etc.) unchanged
+- Keep brand names (TheForge, Stripe, etc.) unchanged
 - Use formal/polite tone appropriate for each language
 - For French, use RGPD instead of GDPR
 - Keep technical terms when no good translation exists
