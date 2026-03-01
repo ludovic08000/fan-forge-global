@@ -9,8 +9,8 @@ const LegalNotice = () => {
   return (
     <main className="min-h-screen bg-background py-16">
       <SEOHead 
-        title="Mentions Légales - Crub"
-        description="Mentions légales de Crub. Informations sur l'éditeur, l'hébergeur, la propriété intellectuelle et les conditions d'utilisation du site."
+        title="Mentions Légales - TheForge"
+        description="Mentions légales de TheForge. Informations sur l'éditeur, l'hébergeur, la propriété intellectuelle et les conditions d'utilisation du site."
         keywords="mentions légales, éditeur site, hébergeur, propriété intellectuelle, informations légales, RGPD"
         url="https://crub.com/legal"
         noindex={false}
@@ -23,7 +23,7 @@ const LegalNotice = () => {
           <section className="bg-primary/10 border border-primary/30 rounded-lg p-6">
             <h2 className="text-2xl font-semibold mb-4 text-primary">📋 RÉSUMÉ</h2>
             <ul className="text-muted-foreground space-y-2">
-              <li>✅ <strong>Crub</strong> est une plateforme de monétisation de contenu pour créateurs</li>
+              <li>✅ <strong>TheForge</strong> est une plateforme de monétisation de contenu pour créateurs</li>
               <li>✅ Société basée en France, conforme au RGPD</li>
               <li>✅ Paiements sécurisés via Stripe</li>
               <li>✅ Hébergement sécurisé via Supabase</li>
@@ -33,7 +33,7 @@ const LegalNotice = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Éditeur du site</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Le site Crub (crub.com) est édité par :<br /><br />
+              Le site TheForge (theforge.fr) est édité par :<br /><br />
               <strong>[Nom de la société]</strong><br />
               Forme juridique : [SAS / SARL / etc.]<br />
               Capital social : [Montant] €<br />
@@ -46,7 +46,7 @@ const LegalNotice = () => {
               France<br /><br />
               <strong>Contact :</strong><br />
               Téléphone : [Numéro]<br />
-              Email : <a href="mailto:contact@crub.com" className="text-primary hover:underline">contact@crub.com</a>
+              Email : <a href="mailto:contact@theforge.com" className="text-primary hover:underline">contact@theforge.com</a>
             </p>
           </section>
 
@@ -55,7 +55,7 @@ const LegalNotice = () => {
             <p className="text-muted-foreground leading-relaxed">
               Le directeur de la publication est : <strong>[Nom du dirigeant]</strong><br />
               En qualité de : [Fonction - ex: Président / Gérant]<br />
-              Email : <a href="mailto:direction@crub.com" className="text-primary hover:underline">direction@crub.com</a>
+              Email : <a href="mailto:direction@theforge.com" className="text-primary hover:underline">direction@theforge.com</a>
             </p>
           </section>
 
@@ -73,7 +73,7 @@ const LegalNotice = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">4. Nature du site</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              Crub est une plateforme de monétisation de contenu pour créateurs. 
+              TheForge est une plateforme de monétisation de contenu pour créateurs. 
               Le site permet aux créateurs de proposer des abonnements 
               et du contenu payant à leurs abonnés.
             </p>
@@ -120,7 +120,7 @@ const LegalNotice = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">7. Contenu généré par les utilisateurs</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              Crub est une plateforme permettant aux utilisateurs de publier du contenu. 
+              TheForge est une plateforme permettant aux utilisateurs de publier du contenu. 
               Les créateurs sont seuls responsables du contenu qu'ils publient et doivent :
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
@@ -131,7 +131,7 @@ const LegalNotice = () => {
             </ul>
             <p className="text-muted-foreground leading-relaxed mt-4">
               Conformément à la loi pour la confiance dans l'économie numérique (LCEN), 
-              Crub agit en qualité d'hébergeur et n'est pas responsable a priori du contenu 
+              TheForge agit en qualité d'hébergeur et n'est pas responsable a priori du contenu 
               publié par les utilisateurs, sous réserve de retirer promptement tout contenu 
               manifestement illicite qui lui serait signalé.
             </p>
@@ -162,7 +162,7 @@ const LegalNotice = () => {
               manifestement illicite en nous contactant à :
             </p>
             <p className="text-muted-foreground leading-relaxed">
-              <strong>Email prioritaire :</strong> <a href="mailto:abuse@crub.com" className="text-primary hover:underline">abuse@crub.com</a><br /><br />
+              <strong>Email prioritaire :</strong> <a href="mailto:abuse@theforge.com" className="text-primary hover:underline">abuse@theforge.com</a><br /><br />
               Votre signalement doit contenir :<br />
               - Vos coordonnées complètes<br />
               - La description du contenu litigieux et sa localisation précise (URL)<br />
@@ -179,7 +179,7 @@ const LegalNotice = () => {
               <br /><br />
               Conformément au RGPD, vous disposez d'un droit d'accès, de rectification et de suppression 
               de vos données. Pour exercer ces droits, contactez notre DPO : 
-              <a href="mailto:dpo@crub.com" className="text-primary hover:underline ml-1">dpo@crub.com</a>
+              <a href="mailto:dpo@theforge.com" className="text-primary hover:underline ml-1">dpo@theforge.com</a>
             </p>
           </section>
 
@@ -227,7 +227,7 @@ const LegalNotice = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">15. Crédits</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Conception et développement : Crub<br />
+              Conception et développement : TheForge<br />
               Icônes : Lucide React<br />
               Hébergement : Supabase / Lovable<br />
               Paiements : Stripe

@@ -9,8 +9,8 @@ const CookiePolicy = () => {
   return (
     <main className="min-h-screen bg-background py-16">
       <SEOHead 
-        title="Politique des Cookies - Crub"
-        description="Politique des cookies de Crub. Découvrez les cookies utilisés sur notre plateforme et comment les gérer conformément au RGPD."
+        title="Politique des Cookies - TheForge"
+        description="Politique des cookies de TheForge. Découvrez les cookies utilisés sur notre plateforme et comment les gérer conformément au RGPD."
         keywords="cookies, politique cookies, traceurs, RGPD cookies, consentement cookies"
         url="https://crub.com/cookies"
         noindex={false}
@@ -338,7 +338,7 @@ const CookiePolicy = () => {
               <li><strong>Droit de retirer votre consentement :</strong> À tout moment via la bannière de cookies</li>
             </ul>
             <p className="text-muted-foreground leading-relaxed mt-4">
-              Pour exercer ces droits, contactez-nous à : <a href="mailto:privacy@crub.com" className="text-primary hover:underline">privacy@crub.com</a>
+              Pour exercer ces droits, contactez-nous à : <a href="mailto:privacy@theforge.com" className="text-primary hover:underline">privacy@theforge.com</a>
             </p>
           </section>
 
@@ -357,8 +357,8 @@ const CookiePolicy = () => {
               Pour toute question concernant cette politique des cookies ou l'utilisation de vos données :
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li><strong>Email :</strong> <a href="mailto:privacy@crub.com" className="text-primary hover:underline">privacy@crub.com</a></li>
-              <li><strong>Délégué à la Protection des Données (DPO) :</strong> <a href="mailto:dpo@crub.com" className="text-primary hover:underline">dpo@crub.com</a></li>
+              <li><strong>Email :</strong> <a href="mailto:privacy@theforge.com" className="text-primary hover:underline">privacy@theforge.com</a></li>
+              <li><strong>Délégué à la Protection des Données (DPO) :</strong> <a href="mailto:dpo@theforge.com" className="text-primary hover:underline">dpo@theforge.com</a></li>
             </ul>
             <p className="text-muted-foreground leading-relaxed mt-4">
               Vous pouvez également introduire une réclamation auprès de la CNIL (Commission Nationale de l'Informatique et des Libertés) : 

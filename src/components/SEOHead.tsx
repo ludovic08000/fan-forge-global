@@ -260,7 +260,7 @@ const SEOHead = ({
         "dateModified": modifiedTime || new Date().toISOString(),
         "author": {
           "@type": "Person",
-          "name": author || "Crub"
+          "name": author || "TheForge"
         },
         "publisher": {
           "@type": "Organization",
