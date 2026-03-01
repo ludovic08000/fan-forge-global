@@ -33,9 +33,9 @@ const SUPPORTED_LANGUAGES = ['fr', 'en'] as const;
 const DEFAULT_LANGUAGE = 'fr';
 
 const SEOHead = ({
-  title = "Crub – Plateforme Créateurs Premium | Contenus Exclusifs et Communauté Privée",
-  description = "Découvrez Crub, la plateforme moderne dédiée aux créateurs et à leurs communautés. Partage privé, contenus exclusifs, espace sécurisé et expérience premium.",
-  keywords = "Crub, plateforme Crub, réseau Crub, Crub créateurs, plateforme créateurs premium, contenu exclusif en ligne, communauté créative privée, plateforme créateurs sécurisée, hub digital pour créateurs",
+  title = "TheForge – Plateforme Créateurs Premium | Contenus Exclusifs et Communauté Privée",
+  description = "Découvrez TheForge, la plateforme moderne dédiée aux créateurs et à leurs communautés. Partage privé, contenus exclusifs, espace sécurisé et expérience premium.",
+  keywords = "TheForge, plateforme TheForge, réseau TheForge, TheForge créateurs, plateforme créateurs premium, contenu exclusif en ligne, communauté créative privée, plateforme créateurs sécurisée, hub digital pour créateurs",
   image = "https://crub.fr/og-image.jpg",
   url,
   type = "website",
@@ -52,7 +52,7 @@ const SEOHead = ({
   // Nettoyer l'URL (retirer les paramètres de query pour le canonical)
   const cleanUrl = currentUrl.split('?')[0];
   
-  const fullTitle = title.includes("Crub") ? title : `${title} | Crub`;
+  const fullTitle = title.includes("TheForge") ? title : `${title} | TheForge`;
   const absoluteImage = image.startsWith('http') ? image : `${baseUrl}${image.startsWith('/') ? '' : '/'}${image}`;
 
   useEffect(() => {
@@ -112,7 +112,7 @@ const SEOHead = ({
     setMeta('og:image:height', '630', true);
     setMeta('og:image:alt', title, true);
     setMeta('og:locale', `${lang}_${lang === 'en' ? 'US' : lang.toUpperCase()}`, true);
-    setMeta('og:site_name', 'Crub', true);
+    setMeta('og:site_name', 'TheForge', true);
 
     // Profile-specific OG tags
     if (type === 'profile' && creator) {
@@ -139,8 +139,8 @@ const SEOHead = ({
 
     // Twitter Card tags - utiliser le stage_name pour l'affichage
     setMeta('twitter:card', 'summary_large_image');
-    setMeta('twitter:site', '@CrubFr');
-    setMeta('twitter:creator', creator ? (creator.name || `@${creator.username}`) : '@CrubFr');
+    setMeta('twitter:site', '@TheForge');
+    setMeta('twitter:creator', creator ? (creator.name || `@${creator.username}`) : '@TheForge');
     setMeta('twitter:url', cleanUrl);
     setMeta('twitter:title', fullTitle);
     setMeta('twitter:description', description);
@@ -260,11 +260,11 @@ const SEOHead = ({
         "dateModified": modifiedTime || new Date().toISOString(),
         "author": {
           "@type": "Person",
-          "name": author || "Crub"
+          "name": author || "TheForge"
         },
         "publisher": {
           "@type": "Organization",
-          "name": "Crub",
+          "name": "TheForge",
           "logo": {
             "@type": "ImageObject",
             "url": `${baseUrl}/favicon.png`
@@ -277,14 +277,14 @@ const SEOHead = ({
       jsonLdData = {
         "@context": "https://schema.org",
         "@type": "WebSite",
-        "name": "Crub",
-        "alternateName": "Crub - Plateforme Créateurs Premium",
+        "name": "TheForge",
+        "alternateName": "TheForge - Plateforme Créateurs Premium",
         "url": baseUrl,
         "description": "La Plateforme Premium des Créateurs Modernes. Partage privé, contenus exclusifs, espace sécurisé.",
         "inLanguage": lang,
         "publisher": {
           "@type": "Organization",
-          "name": "Crub",
+          "name": "TheForge",
           "logo": {
             "@type": "ImageObject",
             "url": `${baseUrl}/favicon.png`

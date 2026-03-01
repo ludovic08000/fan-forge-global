@@ -32,7 +32,7 @@ const Footer = memo(() => {
                 <Crown className="h-6 w-6 text-primary-foreground" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent">
-                Crub
+                TheForge
               </span>
             </div>
             <p className="text-muted-foreground mb-2">
@@ -103,7 +103,7 @@ const Footer = memo(() => {
         <div className="pt-8 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-muted-foreground text-sm">
-              © {currentYear} Crub. {t('footer.copyright')}
+              © {currentYear} TheForge. {t('footer.copyright')}
             </div>
             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
               <span>{t('footer.gdprCompliant')}</span>

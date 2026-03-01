@@ -22,8 +22,8 @@ export const translations: Record<string, any> = {
       exploreContent: "Discover Creators"
     },
     footer: {
-      tagline: "Crub is a premium platform dedicated to creators and their community.",
-      description: "A modern, secure hub designed for exclusive content creation. Crub – The new generation of creative platforms.",
+      tagline: "TheForge is a premium platform dedicated to creators and their community.",
+      description: "A modern, secure hub designed for exclusive content creation. TheForge – The new generation of creative platforms.",
       legalTitle: "Legal Information",
       terms: "Terms of Service",
       privacy: "Privacy Policy",
@@ -154,8 +154,8 @@ export const translations: Record<string, any> = {
       acceptAll: "Accept all"
     },
     seo: {
-      title: "Crub - Share your content",
-      description: "Create your space on Crub to share exclusive content."
+      title: "TheForge - Share your content",
+      description: "Create your space on TheForge to share exclusive content."
     },
     dashboard: {
       myCreatorSpace: "My creator space",
@@ -276,7 +276,7 @@ export const translations: Record<string, any> = {
     messages: {
       title: "Messages",
       privateMessages: "Private messages",
-      manageConversations: "Manage your private conversations on Crub",
+      manageConversations: "Manage your private conversations on TheForge",
       noConversation: "No conversation",
       subscribersCanMessage: "Your subscribers can send you private messages",
       subscribeToMessage: "Subscribe to creators to send them messages",
@@ -617,8 +617,8 @@ export const translations: Record<string, any> = {
       exploreContent: "Découvrir les créateurs"
     },
     footer: {
-      tagline: "Crub est une plateforme premium dédiée aux créateurs et à leur communauté.",
-      description: "Un hub moderne, sécurisé et conçu pour la création de contenu exclusif. Crub – La nouvelle génération de plateformes créatives.",
+      tagline: "TheForge est une plateforme premium dédiée aux créateurs et à leur communauté.",
+      description: "Un hub moderne, sécurisé et conçu pour la création de contenu exclusif. TheForge – La nouvelle génération de plateformes créatives.",
       legalTitle: "Informations légales",
       terms: "Conditions d'Utilisation",
       privacy: "Politique de Confidentialité",
@@ -749,8 +749,8 @@ export const translations: Record<string, any> = {
       acceptAll: "Tout accepter"
     },
     seo: {
-      title: "Crub - Partagez votre contenu",
-      description: "Créez votre espace sur Crub pour partager du contenu exclusif."
+      title: "TheForge - Partagez votre contenu",
+      description: "Créez votre espace sur TheForge pour partager du contenu exclusif."
     },
     dashboard: {
       myCreatorSpace: "Mon espace créateur",
@@ -871,7 +871,7 @@ export const translations: Record<string, any> = {
     messages: {
       title: "Messages",
       privateMessages: "Messages privés",
-      manageConversations: "Gérez vos conversations privées sur Crub",
+      manageConversations: "Gérez vos conversations privées sur TheForge",
       noConversation: "Aucune conversation",
       subscribersCanMessage: "Vos abonnés peuvent vous envoyer des messages privés",
       subscribeToMessage: "Abonnez-vous à des créateurs pour leur envoyer des messages",

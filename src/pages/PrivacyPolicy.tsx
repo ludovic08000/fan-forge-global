@@ -9,8 +9,8 @@ const PrivacyPolicy = () => {
   return (
     <main className="min-h-screen bg-background py-16">
       <SEOHead 
-        title="Politique de Confidentialité RGPD - Crub"
-        description="Politique de confidentialité de Crub conforme au RGPD. Découvrez comment nous collectons, utilisons et protégeons vos données personnelles sur notre plateforme."
+        title="Politique de Confidentialité RGPD - TheForge"
+        description="Politique de confidentialité de TheForge conforme au RGPD. Découvrez comment nous collectons, utilisons et protégeons vos données personnelles sur notre plateforme."
         keywords="politique confidentialité, RGPD, protection données, vie privée, données personnelles"
         url="https://crub.com/privacy"
         noindex={false}
@@ -34,7 +34,7 @@ const PrivacyPolicy = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Introduction</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Crub s'engage à protéger la vie privée de ses utilisateurs conformément au 
+              TheForge s'engage à protéger la vie privée de ses utilisateurs conformément au 
               Règlement Général sur la Protection des Données (RGPD) et à la loi Informatique et Libertés.<br /><br />
               Cette politique décrit comment nous collectons, utilisons et protégeons vos données personnelles 
               dans le cadre de notre plateforme de monétisation de contenu pour créateurs.
@@ -48,7 +48,7 @@ const PrivacyPolicy = () => {
               <strong>[Nom de votre société]</strong><br />
               [Adresse]<br />
               [Code postal, Ville]<br />
-              Email : <a href="mailto:dpo@crub.com" className="text-primary hover:underline">dpo@crub.com</a>
+              Email : <a href="mailto:dpo@theforge.com" className="text-primary hover:underline">dpo@theforge.com</a>
             </p>
           </section>
 
@@ -175,7 +175,7 @@ const PrivacyPolicy = () => {
             </ul>
             <p className="text-muted-foreground leading-relaxed mt-4">
               Pour exercer ces droits, contactez-nous à : 
-              <a href="mailto:dpo@crub.com" className="text-primary hover:underline ml-1">dpo@crub.com</a><br /><br />
+              <a href="mailto:dpo@theforge.com" className="text-primary hover:underline ml-1">dpo@theforge.com</a><br /><br />
               <strong>Note :</strong> Certaines données ne peuvent être supprimées en raison d'obligations légales 
               (données fiscales, logs de connexion).
             </p>
@@ -226,7 +226,7 @@ const PrivacyPolicy = () => {
             <h2 className="text-2xl font-semibold mb-4">12. Réclamations</h2>
             <p className="text-muted-foreground leading-relaxed">
               Si vous estimez que vos droits ne sont pas respectés, vous pouvez :<br /><br />
-              1. Nous contacter à <a href="mailto:dpo@crub.com" className="text-primary hover:underline">dpo@crub.com</a><br /><br />
+              1. Nous contacter à <a href="mailto:dpo@theforge.com" className="text-primary hover:underline">dpo@theforge.com</a><br /><br />
               2. Déposer une réclamation auprès de la CNIL (Commission Nationale de l'Informatique et des Libertés) : 
               <a href="https://www.cnil.fr" className="text-primary hover:underline ml-1" target="_blank" rel="noopener noreferrer">
                 www.cnil.fr
@@ -247,9 +247,9 @@ const PrivacyPolicy = () => {
             <h2 className="text-2xl font-semibold mb-4">14. Contact DPO</h2>
             <p className="text-muted-foreground leading-relaxed">
               Délégué à la Protection des Données :<br />
-              Email : <a href="mailto:dpo@crub.com" className="text-primary hover:underline">dpo@crub.com</a><br /><br />
+              Email : <a href="mailto:dpo@theforge.com" className="text-primary hover:underline">dpo@theforge.com</a><br /><br />
               Signalement de contenu illicite :<br />
-              Email : <a href="mailto:abuse@crub.com" className="text-primary hover:underline">abuse@crub.com</a>
+              Email : <a href="mailto:abuse@theforge.com" className="text-primary hover:underline">abuse@theforge.com</a>
             </p>
           </section>
         </div>

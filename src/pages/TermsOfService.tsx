@@ -9,8 +9,8 @@ const TermsOfService = () => {
   return (
     <main className="min-h-screen bg-background py-16">
       <SEOHead 
-        title="Conditions Générales d'Utilisation (CGU) - Crub"
-        description="Lisez les Conditions Générales d'Utilisation de Crub. Découvrez vos droits et obligations en tant qu'utilisateur de notre plateforme de créateurs de contenu."
+        title="Conditions Générales d'Utilisation (CGU) - TheForge"
+        description="Lisez les Conditions Générales d'Utilisation de TheForge. Découvrez vos droits et obligations en tant qu'utilisateur de notre plateforme de créateurs de contenu."
         keywords="CGU, conditions utilisation, mentions légales, règlement, plateforme créateurs"
         url="https://crub.com/terms"
         noindex={false}
@@ -23,7 +23,7 @@ const TermsOfService = () => {
           <section className="bg-primary/10 border border-primary/30 rounded-lg p-6">
             <h2 className="text-2xl font-semibold mb-4 text-primary">📋 RÉSUMÉ DES CONDITIONS</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Crub est une plateforme de monétisation de contenu permettant aux créateurs de proposer des abonnements 
+              TheForge est une plateforme de monétisation de contenu permettant aux créateurs de proposer des abonnements 
               et du contenu payant à leur communauté. En utilisant notre plateforme, vous acceptez de respecter 
               nos règles et la législation française et européenne en vigueur.
             </p>
@@ -32,8 +32,8 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">1. Objet et acceptation</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Les présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation de la plateforme Crub, 
-              accessible à l'adresse crub.com. Crub est une plateforme de monétisation de contenu 
+              Les présentes Conditions Générales d'Utilisation (CGU) régissent l'utilisation de la plateforme TheForge, 
+              accessible à l'adresse theforge.fr. TheForge est une plateforme de monétisation de contenu 
               permettant aux créateurs de proposer des abonnements et du contenu payant à leurs abonnés.<br /><br />
               <strong>En accédant à notre plateforme, vous acceptez sans réserve les présentes conditions et certifiez :</strong>
             </p>
@@ -48,7 +48,7 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">2. Définitions</h2>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li><strong>Plateforme :</strong> Le site web et les services Crub (crub.com)</li>
+              <li><strong>Plateforme :</strong> Le site web et les services TheForge (theforge.fr)</li>
               <li><strong>Utilisateur :</strong> Toute personne accédant à la plateforme</li>
               <li><strong>Créateur :</strong> Utilisateur proposant du contenu sur la plateforme</li>
               <li><strong>Abonné :</strong> Utilisateur souscrivant à un abonnement auprès d'un Créateur</li>
@@ -71,7 +71,7 @@ const TermsOfService = () => {
               <li>Ne pas créer plusieurs comptes pour la même personne</li>
             </ul>
             <p className="text-muted-foreground leading-relaxed mt-4">
-              Crub se réserve le droit de demander une vérification d'identité à tout moment et de 
+              TheForge se réserve le droit de demander une vérification d'identité à tout moment et de 
               suspendre tout compte en cas de non-respect des conditions.
             </p>
           </section>
@@ -79,7 +79,7 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">4. Nature du contenu</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              Crub est une plateforme permettant aux créateurs de partager différents types de contenus :
+              TheForge est une plateforme permettant aux créateurs de partager différents types de contenus :
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Photos et images</li>
@@ -140,7 +140,7 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">8. Consentement et droits des participants</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              Crub exige le respect strict des droits de toutes les personnes apparaissant dans le contenu :
+              TheForge exige le respect strict des droits de toutes les personnes apparaissant dans le contenu :
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Tout contenu doit être créé avec le consentement éclairé de toutes les parties</li>
@@ -190,7 +190,7 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">11. Protection du contenu et Technologies de sécurité</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              Crub déploie un arsenal complet de technologies de protection pour sécuriser le contenu des créateurs et les données des utilisateurs :
+              TheForge déploie un arsenal complet de technologies de protection pour sécuriser le contenu des créateurs et les données des utilisateurs :
             </p>
             
             <h3 className="text-xl font-semibold mt-6 mb-3">11.1 Protection anti-capture et anti-copie</h3>
@@ -254,18 +254,18 @@ const TermsOfService = () => {
             <h2 className="text-2xl font-semibold mb-4">12. Propriété intellectuelle</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
               Les créateurs conservent l'intégralité de leurs droits de propriété intellectuelle sur leur contenu. 
-              En publiant sur Crub, ils accordent à la plateforme une licence limitée et non exclusive pour 
+              En publiant sur TheForge, ils accordent à la plateforme une licence limitée et non exclusive pour 
               héberger et diffuser le contenu aux abonnés autorisés.
             </p>
             <p className="text-muted-foreground leading-relaxed">
-              La marque Crub, le logo et tous les éléments graphiques sont la propriété exclusive de la plateforme.
+              La marque TheForge, le logo et tous les éléments graphiques sont la propriété exclusive de la plateforme.
             </p>
           </section>
 
           <section>
             <h2 className="text-2xl font-semibold mb-4">13. Modération et Signalements</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              Crub dispose d'une équipe de modération active :
+              TheForge dispose d'une équipe de modération active :
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Tout contenu illicite peut être signalé via le bouton dédié</li>
@@ -299,10 +299,10 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">15. Limitation de responsabilité</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Crub agit en qualité d'hébergeur au sens de la LCEN et ne peut être tenu responsable 
+              TheForge agit en qualité d'hébergeur au sens de la LCEN et ne peut être tenu responsable 
               des contenus publiés par les utilisateurs. La plateforme s'engage à retirer promptement 
               tout contenu manifestement illicite qui lui serait signalé.<br /><br />
-              Crub ne garantit pas une disponibilité continue du service et ne pourra être tenu 
+              TheForge ne garantit pas une disponibilité continue du service et ne pourra être tenu 
               responsable des interruptions temporaires.
             </p>
           </section>
@@ -332,7 +332,7 @@ const TermsOfService = () => {
           <section>
             <h2 className="text-2xl font-semibold mb-4">18. Modifications des CGU</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Crub se réserve le droit de modifier les présentes CGU à tout moment. 
+              TheForge se réserve le droit de modifier les présentes CGU à tout moment. 
               Les utilisateurs seront informés par email et notification sur la plateforme. 
               La continuation de l'utilisation vaut acceptation des nouvelles conditions.
             </p>
@@ -342,8 +342,8 @@ const TermsOfService = () => {
             <h2 className="text-2xl font-semibold mb-4">19. Contact</h2>
             <p className="text-muted-foreground leading-relaxed">
               Pour toute question concernant ces CGU :<br />
-              Email : <a href="mailto:contact@crub.com" className="text-primary hover:underline">contact@crub.com</a><br />
-              Signalement de contenu illicite : <a href="mailto:abuse@crub.com" className="text-primary hover:underline">abuse@crub.com</a>
+              Email : <a href="mailto:contact@theforge.com" className="text-primary hover:underline">contact@theforge.com</a><br />
+              Signalement de contenu illicite : <a href="mailto:abuse@theforge.com" className="text-primary hover:underline">abuse@theforge.com</a>
             </p>
           </section>
         </div>

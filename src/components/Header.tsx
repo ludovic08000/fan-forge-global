@@ -60,9 +60,9 @@ const Header = memo(() => {
           <Link 
             to={getHomeDestination()} 
             className="font-bold text-xl bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent hover:scale-105 transition-transform focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
-            aria-label="Crub - Accueil"
+            aria-label="TheForge - Accueil"
           >
-            Crub
+            TheForge
           </Link>
         </div>
 
