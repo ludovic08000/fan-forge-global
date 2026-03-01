@@ -204,8 +204,8 @@ const Suspended = () => {
           </Button>
           <p className="text-xs text-center text-muted-foreground">
             Pour toute question urgente, contactez-nous à{' '}
-            <a href="mailto:support@crub.fr" className="text-primary hover:underline">
-              support@crub.fr
+            <a href="mailto:support@theforge.fr" className="text-primary hover:underline">
+              support@theforge.fr
             </a>
           </p>
         </div>
