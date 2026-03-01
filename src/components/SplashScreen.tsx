@@ -25,7 +25,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     };
   }, [onComplete]);
 
-  const letters = ['C', 'r', 'u', 'b'];
+  const letters = ['T', 'h', 'e', 'F', 'o', 'r', 'g', 'e'];
   const showText = phase === 'text' || phase === 'tagline' || phase === 'exit';
   const showTagline = phase === 'tagline' || phase === 'exit';
 
@@ -84,7 +84,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
             >
               <img 
                 src={creatorsHero} 
-                alt="Créateurs Crub" 
+                alt="Créateurs TheForge" 
                 className="w-full h-auto max-w-[140%] sm:max-w-full md:w-full md:h-full md:object-cover"
                 style={{ 
                   filter: 'brightness(1.1) contrast(1.1) saturate(1.2)',
