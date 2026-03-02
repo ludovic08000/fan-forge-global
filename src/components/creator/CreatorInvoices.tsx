@@ -317,7 +317,7 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
           live_revenue: revenue.live_revenue,
           private_content_revenue: revenue.private_content_revenue,
           gross_amount: grossAmount,
-          platform_commission_rate: 0.15,
+          platform_commission_rate: 15,
           platform_commission_amount: commissionAmount,
           creator_country: newInvoice.country,
           vat_rate: taxRate,

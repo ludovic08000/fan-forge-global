@@ -184,8 +184,8 @@ serve(async (req) => {
           .eq('id', creatorId)
           .single();
 
-        const commissionRate = creator?.platform_commission_rate || 0.15;
-        const commissionAmount = amount * commissionRate;
+        const commissionRate = creator?.platform_commission_rate || 15;
+        const commissionAmount = amount * commissionRate / 100;
         const creatorPayout = amount - commissionAmount;
 
         const now = new Date().toISOString();

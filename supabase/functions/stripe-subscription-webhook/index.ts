@@ -700,8 +700,8 @@ serve(async (req) => {
                 // Enregistrer la commission de la plateforme (seulement si montant > 0)
                 const subscriptionRevenue = priceAmount / 100;
                 if (subscriptionRevenue > 0 && creator) {
-                  const commissionRate = creator.platform_commission_rate || 0.15;
-                  const commissionAmount = subscriptionRevenue * commissionRate;
+                const commissionRate = creator.platform_commission_rate || 15;
+                  const commissionAmount = subscriptionRevenue * commissionRate / 100;
                   const creatorPayout = subscriptionRevenue - commissionAmount;
 
                   const periodStart = new Date().toISOString();

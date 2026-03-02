@@ -341,7 +341,7 @@ const PlatformCommissions: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(avgCommissionRate * 100).toFixed(1)}%
+              {avgCommissionRate.toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground">Commission moyenne</p>
           </CardContent>
@@ -424,7 +424,7 @@ const PlatformCommissions: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {(commission.commission_rate * 100).toFixed(0)}%
+                        {(commission.commission_rate).toFixed(0)}%
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-medium text-green-600">

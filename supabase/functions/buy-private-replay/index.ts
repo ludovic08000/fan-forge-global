@@ -8,7 +8,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 
-const PLATFORM_COMMISSION_RATE = 0.15;
+const PLATFORM_COMMISSION_RATE = 15; // 15%
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -129,7 +129,7 @@ serve(async (req) => {
     }
 
     const amount = Math.round(replay.replay_price * 100); // Convertir en centimes
-    const platformFee = Math.round(amount * PLATFORM_COMMISSION_RATE);
+    const platformFee = Math.round(amount * PLATFORM_COMMISSION_RATE / 100);
 
     logStep("Creating Stripe session", { 
       amount: replay.replay_price, 

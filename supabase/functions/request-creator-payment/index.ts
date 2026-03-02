@@ -184,7 +184,7 @@ serve(async (req) => {
           tips_revenue: revenueBreakdown.tips_revenue,
           live_revenue: revenueBreakdown.live_revenue,
           private_content_revenue: revenueBreakdown.private_content_revenue,
-          commission_rate: creator.platform_commission_rate || 0.15,
+          commission_rate: creator.platform_commission_rate || 15,
           commission_amount: revenueBreakdown.commission_amount,
           creator_payout: amount,
           currency: creator.currency || "EUR",
