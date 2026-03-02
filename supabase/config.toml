@@ -264,3 +264,11 @@ verify_jwt = true
 # Auction payment webhook - no JWT (Stripe webhook)
 [functions.auction-payment-webhook]
 verify_jwt = false
+
+# Bundle checkout - requires auth
+[functions.create-bundle-checkout]
+verify_jwt = true
+
+# Bundle payment webhook - no JWT (Stripe webhook)
+[functions.bundle-payment-webhook]
+verify_jwt = false
