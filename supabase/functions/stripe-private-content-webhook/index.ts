@@ -152,8 +152,8 @@ serve(async (req) => {
         .single();
 
       const revenue = messageData.price;
-      const commissionRate = creator?.platform_commission_rate || 0.15;
-      const commissionAmount = revenue * commissionRate;
+      const commissionRate = creator?.platform_commission_rate || 15;
+      const commissionAmount = revenue * commissionRate / 100;
       const creatorPayout = revenue - commissionAmount;
 
       const now = new Date().toISOString();

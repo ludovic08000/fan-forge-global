@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 
 const EXTENSION_DURATION_MINUTES = 20;
-const PLATFORM_COMMISSION_RATE = 0.15; // 15%
+const PLATFORM_COMMISSION_RATE = 15; // 15%
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -88,7 +88,7 @@ serve(async (req) => {
 
     // Enregistrer la commission plateforme (15%)
     const amountPaid = session.amount_total || 500;
-    const commission = Math.round(amountPaid * PLATFORM_COMMISSION_RATE);
+    const commission = Math.round(amountPaid * PLATFORM_COMMISSION_RATE / 100);
 
     await supabaseAdmin
       .from("platform_commissions")
@@ -97,7 +97,7 @@ serve(async (req) => {
         amount: commission / 100, // Convertir en euros
         source_type: "live_extension",
         source_id: liveStreamId,
-        commission_rate: PLATFORM_COMMISSION_RATE,
+        commission_rate: PLATFORM_COMMISSION_RATE / 100,
       });
 
     console.log("[confirm-live-extension] Commission recorded:", commission / 100, "€");

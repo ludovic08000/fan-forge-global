@@ -122,7 +122,7 @@ serve(async (req) => {
         transfer_data: {
           destination: creator.stripe_account_id,
         },
-        application_fee_amount: Math.round(amountInCents * 0.15),
+        application_fee_amount: Math.round(amountInCents * 15 / 100),
       };
     }
 
