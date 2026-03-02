@@ -6,7 +6,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, Link } from 'react-router-dom';
-import { Loader2, BarChart3, ImageIcon, Radio, MessageCircle, Sparkles, Settings, Banknote, Handshake, Calendar, Video, BrainCircuit, Gavel } from 'lucide-react';
+import { Loader2, BarChart3, ImageIcon, Radio, MessageCircle, Sparkles, Settings, Banknote, Handshake, Calendar, Video, BrainCircuit, Gavel, Package } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
@@ -44,6 +44,7 @@ const LiveHistory = lazy(() => import('@/components/live/LiveHistory'));
 const DashboardPartnershipsSection = lazy(() => import('@/components/dashboard/DashboardPartnershipsSection'));
 const DashboardAIMarketing = lazy(() => import('@/components/dashboard/DashboardAIMarketing'));
 const CreatorAuctionsSection = lazy(() => import('@/components/auction/CreatorAuctionsSection'));
+const CreatorBundlesSection = lazy(() => import('@/components/bundle/CreatorBundlesSection'));
 
 // Fallback components
 const LoadingFallback = ({ message }: { message?: string }) => {
@@ -414,6 +415,7 @@ const Dashboard = () => {
     { id: 'messages' as DashboardSection, label: t('dashboard.messages'), icon: MessageCircle, badge: unreadCount },
     { id: 'analytics' as DashboardSection, label: t('dashboard.analytics'), icon: BarChart3, badge: 0 },
     { id: 'auctions' as DashboardSection, label: 'Enchères', icon: Gavel, badge: 0 },
+    { id: 'bundles' as DashboardSection, label: 'Bundles', icon: Package, badge: 0 },
     { id: 'ai-marketing' as DashboardSection, label: 'IA Marketing', icon: BrainCircuit, badge: 0 },
     { id: 'partnerships' as DashboardSection, label: t('dashboard.partnerships'), icon: Handshake, badge: 0 },
     { id: 'payments' as DashboardSection, label: t('dashboard.payments'), icon: Banknote, badge: 0 },
@@ -543,6 +545,13 @@ const Dashboard = () => {
         {activeSection === 'auctions' && creatorProfile?.id && (
           <Suspense fallback={<LoadingFallback />}>
             <CreatorAuctionsSection creatorId={creatorProfile.id} />
+          </Suspense>
+        )}
+
+        {/* Section: Bundles */}
+        {activeSection === 'bundles' && creatorProfile?.id && (
+          <Suspense fallback={<LoadingFallback />}>
+            <CreatorBundlesSection creatorId={creatorProfile.id} />
           </Suspense>
         )}
 

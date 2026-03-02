@@ -201,6 +201,83 @@ export type Database = {
           },
         ]
       }
+      bundle_items: {
+        Row: {
+          bundle_id: string
+          content_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          bundle_id: string
+          content_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          bundle_id?: string
+          content_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bundle_items_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "content_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bundle_items_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bundle_purchases: {
+        Row: {
+          amount: number
+          bundle_id: string
+          buyer_id: string
+          created_at: string
+          currency: string
+          id: string
+          status: string
+          stripe_payment_intent_id: string | null
+        }
+        Insert: {
+          amount: number
+          bundle_id: string
+          buyer_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+        }
+        Update: {
+          amount?: number
+          bundle_id?: string
+          buyer_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bundle_purchases_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "content_bundles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collaborative_content: {
         Row: {
           content_id: string
@@ -583,6 +660,86 @@ export type Database = {
           },
           {
             foreignKeyName: "content_auctions_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_bundles: {
+        Row: {
+          bundle_price: number
+          cover_url: string | null
+          created_at: string
+          creator_id: string
+          currency: string
+          description: string | null
+          discount_percentage: number
+          id: string
+          max_sales: number | null
+          original_price: number
+          sales_count: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          bundle_price?: number
+          cover_url?: string | null
+          created_at?: string
+          creator_id: string
+          currency?: string
+          description?: string | null
+          discount_percentage?: number
+          id?: string
+          max_sales?: number | null
+          original_price?: number
+          sales_count?: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          bundle_price?: number
+          cover_url?: string | null
+          created_at?: string
+          creator_id?: string
+          currency?: string
+          description?: string | null
+          discount_percentage?: number
+          id?: string
+          max_sales?: number | null
+          original_price?: number
+          sales_count?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_bundles_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "content_bundles_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_bundles_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_bundles_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "public_creators_safe"
