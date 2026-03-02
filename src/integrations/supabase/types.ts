@@ -140,6 +140,38 @@ export type Database = {
           },
         ]
       }
+      auction_bids: {
+        Row: {
+          amount: number
+          auction_id: string
+          bidder_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          amount: number
+          auction_id: string
+          bidder_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          amount?: number
+          auction_id?: string
+          bidder_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auction_bids_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "content_auctions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auto_message_logs: {
         Row: {
           id: string
@@ -446,6 +478,111 @@ export type Database = {
           },
           {
             foreignKeyName: "content_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_auctions: {
+        Row: {
+          bid_count: number
+          content_id: string | null
+          created_at: string
+          creator_id: string
+          currency: string
+          current_price: number
+          description: string | null
+          ends_at: string
+          id: string
+          media_type: string | null
+          media_url: string | null
+          min_increment: number
+          paid_at: string | null
+          starting_price: number
+          starts_at: string
+          status: string
+          stripe_payment_intent_id: string | null
+          title: string
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          bid_count?: number
+          content_id?: string | null
+          created_at?: string
+          creator_id: string
+          currency?: string
+          current_price?: number
+          description?: string | null
+          ends_at: string
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          min_increment?: number
+          paid_at?: string | null
+          starting_price?: number
+          starts_at?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          title: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          bid_count?: number
+          content_id?: string | null
+          created_at?: string
+          creator_id?: string
+          currency?: string
+          current_price?: number
+          description?: string | null
+          ends_at?: string
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          min_increment?: number
+          paid_at?: string | null
+          starting_price?: number
+          starts_at?: string
+          status?: string
+          stripe_payment_intent_id?: string | null
+          title?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_auctions_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_auctions_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "content_auctions_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_auctions_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_auctions_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "public_creators_safe"
@@ -4077,6 +4214,7 @@ export type Database = {
         Returns: undefined
       }
       delete_user_completely: { Args: { _user_id: string }; Returns: undefined }
+      finalize_expired_auctions: { Args: never; Returns: number }
       find_similar_images: {
         Args: { p_max_distance?: number; p_phash: string }
         Returns: {
@@ -4239,6 +4377,10 @@ export type Database = {
           p_target_type: string
         }
         Returns: string
+      }
+      place_auction_bid: {
+        Args: { p_amount: number; p_auction_id: string }
+        Returns: Json
       }
       record_story_view: { Args: { p_story_id: string }; Returns: undefined }
       search_creators:

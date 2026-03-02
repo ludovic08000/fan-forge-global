@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { LucideIcon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-export type DashboardSection = 'overview' | 'content' | 'live' | 'messages' | 'analytics' | 'partnerships' | 'payments' | 'pricing' | 'ai-marketing' | 'settings';
+export type DashboardSection = 'overview' | 'content' | 'live' | 'messages' | 'analytics' | 'auctions' | 'partnerships' | 'payments' | 'pricing' | 'ai-marketing' | 'settings';
 
 interface MenuItem {
   id: DashboardSection;

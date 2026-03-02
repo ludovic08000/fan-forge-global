@@ -256,3 +256,11 @@ verify_jwt = false
 # Security alerting - cron job, no JWT (uses CRON_SECRET)
 [functions.security-alerting]
 verify_jwt = false
+
+# Auction checkout - requires auth
+[functions.create-auction-checkout]
+verify_jwt = true
+
+# Auction payment webhook - no JWT (Stripe webhook)
+[functions.auction-payment-webhook]
+verify_jwt = false

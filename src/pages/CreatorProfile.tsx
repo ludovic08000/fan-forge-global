@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 import ContentCard from '@/components/ContentCard';
 import ModernPrivateChat from '@/components/ModernPrivateChat';
 import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
+import { ProfileAuctionsSection } from '@/components/auction/ProfileAuctionsSection';
 // import AgeVerificationGate, { requiresAgeVerification } from '@/components/AgeVerificationGate';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
 
@@ -477,6 +478,7 @@ const CreatorProfile: React.FC = () => {
               </TabsList>
 
               <TabsContent value="posts" className="space-y-6">
+                <ProfileAuctionsSection creatorId={creator.id} />
                 <OptimizedContentGallery creatorId={creator.id} />
               </TabsContent>
 
