@@ -436,6 +436,229 @@ Return format:
     { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
+// ============ ACTION: ai-marketing ============
+async function handleAIMarketing(
+  body: Record<string, any>,
+  userId: string,
+  apiKey: string,
+  corsHeaders: Record<string, string>
+) {
+  const { marketingAction, creatorStats, stageName, context, contentTitle, contentType, promoType, promoContext } = body;
+
+  if (!marketingAction) {
+    return new Response(JSON.stringify({ error: "marketingAction required" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
+  logStep("marketing", `Action: ${marketingAction}`, { stageName });
+
+  const statsContext = `Stats du créateur "${stageName || 'Créateur'}":
+- Abonnés: ${creatorStats?.totalSubscribers || 0}
+- Vues totales: ${creatorStats?.totalViews || 0}
+- Likes totaux: ${creatorStats?.totalLikes || 0}
+- Revenus totaux: ${creatorStats?.totalEarnings?.toFixed(2) || '0'}€`;
+
+  let systemPrompt = "";
+  let userPrompt = "";
+  let toolDef: any = null;
+
+  switch (marketingAction) {
+    case 'content-suggestions':
+      systemPrompt = "Tu es un expert en marketing pour créateurs de contenu sur une plateforme premium (type OnlyFans/Patreon). Tu donnes des conseils concrets et actionnables.";
+      userPrompt = `${statsContext}
+${context ? `Contexte: ${context}` : ''}
+
+Génère 5 suggestions de contenu concrètes pour maximiser les revenus et l'engagement. Pour chaque suggestion, indique le type, un titre accrocheur, une description détaillée, le meilleur moment pour poster, et des tags pertinents.`;
+      toolDef = {
+        name: "content_suggestions",
+        description: "Retourner des suggestions de contenu",
+        parameters: {
+          type: "object",
+          properties: {
+            suggestions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  type: { type: "string", description: "photo, video, live, story" },
+                  title: { type: "string" },
+                  description: { type: "string" },
+                  bestTime: { type: "string" },
+                  tags: { type: "array", items: { type: "string" } }
+                },
+                required: ["type", "title", "description"]
+              }
+            }
+          },
+          required: ["suggestions"],
+          additionalProperties: false
+        }
+      };
+      break;
+
+    case 'generate-description':
+      systemPrompt = "Tu es un copywriter expert pour créateurs de contenu premium. Tu écris des descriptions accrocheuses qui maximisent l'engagement et les conversions.";
+      userPrompt = `${statsContext}
+
+Génère 3 options de titre + description pour un contenu de type "${contentType || 'photo'}" sur le thème: "${contentTitle}". Chaque option doit avoir un style différent (provocant, mystérieux, direct). Inclus des hashtags pertinents.`;
+      toolDef = {
+        name: "generate_descriptions",
+        description: "Retourner des options de descriptions",
+        parameters: {
+          type: "object",
+          properties: {
+            options: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  description: { type: "string" },
+                  hashtags: { type: "array", items: { type: "string" } },
+                  style: { type: "string" }
+                },
+                required: ["title", "description"]
+              }
+            }
+          },
+          required: ["options"],
+          additionalProperties: false
+        }
+      };
+      break;
+
+    case 'revenue-analysis':
+      systemPrompt = "Tu es un consultant business spécialisé dans la monétisation pour créateurs de contenu premium. Tu analyses les données et donnes des recommandations concrètes avec des chiffres.";
+      userPrompt = `${statsContext}
+
+Analyse les performances de ce créateur et donne:
+1. Une analyse globale de la situation
+2. 4-5 recommandations concrètes pour augmenter les revenus (avec estimation d'impact: faible/moyen/élevé)
+3. Une suggestion de prix d'abonnement optimal avec justification`;
+      toolDef = {
+        name: "revenue_analysis",
+        description: "Retourner l'analyse des revenus et recommandations",
+        parameters: {
+          type: "object",
+          properties: {
+            analysis: { type: "string", description: "Analyse globale" },
+            recommendations: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  description: { type: "string" },
+                  impact: { type: "string", enum: ["faible", "moyen", "élevé"] }
+                },
+                required: ["title", "description", "impact"]
+              }
+            },
+            priceSuggestion: { type: "number", description: "Prix d'abonnement suggéré en euros" },
+            priceReason: { type: "string" }
+          },
+          required: ["analysis", "recommendations"],
+          additionalProperties: false
+        }
+      };
+      break;
+
+    case 'promo-message':
+      const promoLabels: Record<string, string> = {
+        welcome: "message de bienvenue pour un nouvel abonné",
+        retention: "message de rétention pour fidéliser un abonné existant",
+        reactivation: "message de réactivation pour un ancien abonné qui s'est désabonné",
+        special_offer: "message promotionnel pour une offre spéciale",
+        new_content: "annonce de nouveau contenu pour créer de l'anticipation"
+      };
+      systemPrompt = "Tu es un expert en copywriting et marketing relationnel pour créateurs de contenu premium. Tu écris des messages engageants, personnels et efficaces.";
+      userPrompt = `${statsContext}
+${promoContext ? `Contexte: ${promoContext}` : ''}
+
+Génère 3 variantes de ${promoLabels[promoType] || 'message marketing'} pour le créateur "${stageName}". Chaque message doit avoir un ton différent (chaleureux, exclusif, urgent). Inclus un call-to-action pour chaque.`;
+      toolDef = {
+        name: "promo_messages",
+        description: "Retourner des messages promotionnels",
+        parameters: {
+          type: "object",
+          properties: {
+            messages: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  tone: { type: "string", description: "chaleureux, exclusif, urgent" },
+                  text: { type: "string" },
+                  callToAction: { type: "string" }
+                },
+                required: ["tone", "text"]
+              }
+            }
+          },
+          required: ["messages"],
+          additionalProperties: false
+        }
+      };
+      break;
+
+    default:
+      return new Response(JSON.stringify({ error: `Unknown marketing action: ${marketingAction}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
+  const aiBody: Record<string, unknown> = {
+    model: "google/gemini-3-flash-preview",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt }
+    ],
+  };
+
+  if (toolDef) {
+    aiBody.tools = [{ type: "function", function: toolDef }];
+    aiBody.tool_choice = { type: "function", function: { name: toolDef.name } };
+  }
+
+  const response = await callAI(apiKey, aiBody);
+
+  if (!response.ok) {
+    const errorResp = handleAIError(response, corsHeaders);
+    if (errorResp) return errorResp;
+    await response.text();
+    return new Response(JSON.stringify({ error: "AI marketing failed" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
+  const data = await response.json();
+  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+
+  if (toolCall?.function?.arguments) {
+    try {
+      const result = JSON.parse(toolCall.function.arguments);
+      return new Response(JSON.stringify(result),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    } catch {
+      // Fallback to content
+    }
+  }
+
+  // Fallback: parse text content
+  const content = data.choices?.[0]?.message?.content;
+  if (content) {
+    try {
+      const result = JSON.parse(cleanJsonResponse(content));
+      return new Response(JSON.stringify(result),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    } catch {
+      return new Response(JSON.stringify({ text: content }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+  }
+
+  return new Response(JSON.stringify({ error: "No AI response" }),
+    { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+}
+
 // ============ MAIN HANDLER ============
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -455,7 +678,7 @@ serve(async (req) => {
     const { action, ...params } = requestBody;
 
     if (!action) {
-      return new Response(JSON.stringify({ error: "action parameter required (moderate-content, verify-id-age, add-watermark, generate-translations)" }),
+      return new Response(JSON.stringify({ error: "action parameter required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -481,6 +704,8 @@ serve(async (req) => {
         return await handleAddWatermark(params, userId!, LOVABLE_API_KEY, corsHeaders);
       case 'generate-translations':
         return await handleGenerateTranslations(params, LOVABLE_API_KEY, corsHeaders);
+      case 'ai-marketing':
+        return await handleAIMarketing(params, userId!, LOVABLE_API_KEY, corsHeaders);
       default:
         return new Response(JSON.stringify({ error: `Unknown action: ${action}` }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
