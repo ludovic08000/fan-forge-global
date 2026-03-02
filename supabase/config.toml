@@ -166,9 +166,13 @@ verify_jwt = true
 [functions.livekit-recording-webhook]
 verify_jwt = false
 
-# AI Content Moderation
+# AI Content Moderation (legacy - replaced by ai-gateway)
 [functions.moderate-content]
 verify_jwt = true
+
+# Unified AI Gateway - handles moderation, ID verification, watermarks, translations
+[functions.ai-gateway]
+verify_jwt = false
 
 # SEO - Ping sitemap to search engines
 [functions.ping-sitemap]
