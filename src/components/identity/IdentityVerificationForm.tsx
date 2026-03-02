@@ -131,8 +131,9 @@ const IdentityVerificationForm: React.FC<IdentityVerificationFormProps> = ({ onC
     try {
       const imageBase64 = await fileToBase64(idFrontFile);
       
-      const { data, error } = await supabase.functions.invoke('verify-id-age', {
+      const { data, error } = await supabase.functions.invoke('ai-gateway', {
         body: {
+          action: 'verify-id-age',
           imageBase64,
           documentType,
           declaredBirthdate: birthdate,

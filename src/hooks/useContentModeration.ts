@@ -74,8 +74,9 @@ export const useContentModeration = () => {
       const imageBase64 = await base64Promise;
 
       // Call moderation edge function
-      const { data, error } = await supabase.functions.invoke('moderate-content', {
+      const { data, error } = await supabase.functions.invoke('ai-gateway', {
         body: {
+          action: 'moderate-content',
           imageBase64,
           contentType: file.type,
           contentId,

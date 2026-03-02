@@ -85,8 +85,9 @@ async function checkAndGenerateMissingTranslations(lang: Language) {
   try {
     console.log(`[Translation] Generating missing translations for ${lang}...`);
     
-    const { data, error } = await supabase.functions.invoke('generate-translations', {
+    const { data, error } = await supabase.functions.invoke('ai-gateway', {
       body: {
+        action: 'generate-translations',
         sourceTexts: missingKeys,
         targetLanguages: [lang],
       },
