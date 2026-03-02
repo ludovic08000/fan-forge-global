@@ -272,3 +272,11 @@ verify_jwt = true
 # Bundle payment webhook - no JWT (Stripe webhook)
 [functions.bundle-payment-webhook]
 verify_jwt = false
+
+# Wishlist contribution checkout - requires auth
+[functions.create-wishlist-contribution]
+verify_jwt = true
+
+# Wishlist payment webhook - no JWT (Stripe webhook)
+[functions.wishlist-payment-webhook]
+verify_jwt = false

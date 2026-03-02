@@ -8,6 +8,8 @@ import DiscoveryFilters from '@/components/DiscoveryFilters';
 import { MySubscriptionsSection } from '@/components/subscriptions/MySubscriptionsSection';
 import { LiveStreamsSection } from '@/components/subscriptions/LiveStreamsSection';
 import { ActiveCreatorsSection } from '@/components/subscriptions/ActiveCreatorsSection';
+import { StoriesBar } from '@/components/stories/StoriesBar';
+import { UserBadgesSection } from '@/components/gamification/UserBadgesSection';
 import { Loader2 } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 
@@ -184,8 +186,11 @@ const MySubscriptions = () => {
           <DiscoveryFilters />
         </div>
 
+        <StoriesBar />
+        <div className="mt-6" />
         <MySubscriptionsSection subscriptions={subscriptions} isLoading={isLoadingSubs} onUpdate={loadSubscriptions} />
         <LiveStreamsSection liveNow={liveNow} upcomingLives={upcomingLives} creatorInfos={creatorInfos} hasAccess={hasAccess} />
+        <UserBadgesSection />
         <ActiveCreatorsSection creators={activeCreators} isLoading={creatorsLoading} />
       </div>
     </div>
