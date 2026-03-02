@@ -145,7 +145,7 @@ serve(async (req) => {
       };
       logStep("Stripe Connect transfer configured", { 
         destination: liveStream.creator.stripe_account_id,
-        fee: Math.round(amountInCents * 0.15)
+        fee: Math.round(amountInCents * 15 / 100)
       });
     }
 
