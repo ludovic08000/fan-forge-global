@@ -6,7 +6,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, Link } from 'react-router-dom';
-import { Loader2, BarChart3, ImageIcon, Radio, MessageCircle, Sparkles, Settings, Banknote, Handshake, Calendar, Video, BrainCircuit, Gavel, Package } from 'lucide-react';
+import { Loader2, BarChart3, ImageIcon, Radio, MessageCircle, Sparkles, Settings, Banknote, Handshake, Calendar, Video, BrainCircuit, Gavel, Package, Gift, Vote } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
@@ -45,6 +45,8 @@ const DashboardPartnershipsSection = lazy(() => import('@/components/dashboard/D
 const DashboardAIMarketing = lazy(() => import('@/components/dashboard/DashboardAIMarketing'));
 const CreatorAuctionsSection = lazy(() => import('@/components/auction/CreatorAuctionsSection'));
 const CreatorBundlesSection = lazy(() => import('@/components/bundle/CreatorBundlesSection'));
+const CreatorWishlistSection = lazy(() => import('@/components/wishlist/CreatorWishlistSection'));
+const CreatorPollsSection = lazy(() => import('@/components/polls/CreatorPollsSection'));
 
 // Fallback components
 const LoadingFallback = ({ message }: { message?: string }) => {
@@ -416,6 +418,8 @@ const Dashboard = () => {
     { id: 'analytics' as DashboardSection, label: t('dashboard.analytics'), icon: BarChart3, badge: 0 },
     { id: 'auctions' as DashboardSection, label: 'Enchères', icon: Gavel, badge: 0 },
     { id: 'bundles' as DashboardSection, label: 'Bundles', icon: Package, badge: 0 },
+    { id: 'wishlists' as DashboardSection, label: 'Wishlist', icon: Gift, badge: 0 },
+    { id: 'polls' as DashboardSection, label: 'Sondages', icon: Vote, badge: 0 },
     { id: 'ai-marketing' as DashboardSection, label: 'IA Marketing', icon: BrainCircuit, badge: 0 },
     { id: 'partnerships' as DashboardSection, label: t('dashboard.partnerships'), icon: Handshake, badge: 0 },
     { id: 'payments' as DashboardSection, label: t('dashboard.payments'), icon: Banknote, badge: 0 },
@@ -552,6 +556,20 @@ const Dashboard = () => {
         {activeSection === 'bundles' && creatorProfile?.id && (
           <Suspense fallback={<LoadingFallback />}>
             <CreatorBundlesSection creatorId={creatorProfile.id} />
+          </Suspense>
+        )}
+
+        {/* Section: Wishlists */}
+        {activeSection === 'wishlists' && creatorProfile?.id && (
+          <Suspense fallback={<LoadingFallback />}>
+            <CreatorWishlistSection creatorId={creatorProfile.id} />
+          </Suspense>
+        )}
+
+        {/* Section: Polls */}
+        {activeSection === 'polls' && creatorProfile?.id && (
+          <Suspense fallback={<LoadingFallback />}>
+            <CreatorPollsSection creatorId={creatorProfile.id} />
           </Suspense>
         )}
 

@@ -201,6 +201,39 @@ export type Database = {
           },
         ]
       }
+      badge_definitions: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description: string
+          icon?: string
+          id?: string
+          name: string
+          requirement_type: string
+          requirement_value?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          requirement_type?: string
+          requirement_value?: number
+        }
+        Relationships: []
+      }
       bundle_items: {
         Row: {
           bundle_id: string
@@ -1282,6 +1315,80 @@ export type Database = {
           },
         ]
       }
+      creator_polls: {
+        Row: {
+          created_at: string
+          creator_id: string
+          currency: string
+          ends_at: string | null
+          id: string
+          is_paid: boolean
+          question: string
+          status: string
+          subscribers_only: boolean
+          total_votes: number
+          updated_at: string
+          vote_price: number | null
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          currency?: string
+          ends_at?: string | null
+          id?: string
+          is_paid?: boolean
+          question: string
+          status?: string
+          subscribers_only?: boolean
+          total_votes?: number
+          updated_at?: string
+          vote_price?: number | null
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          currency?: string
+          ends_at?: string | null
+          id?: string
+          is_paid?: boolean
+          question?: string
+          status?: string
+          subscribers_only?: boolean
+          total_votes?: number
+          updated_at?: string
+          vote_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_polls_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "creator_polls_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_polls_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_polls_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creator_referral_codes: {
         Row: {
           code: string
@@ -1399,6 +1506,77 @@ export type Database = {
           },
           {
             foreignKeyName: "creator_stories_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_wishlists: {
+        Row: {
+          created_at: string
+          creator_id: string
+          currency: string
+          current_amount: number
+          description: string | null
+          goal_amount: number
+          id: string
+          reward_description: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          currency?: string
+          current_amount?: number
+          description?: string | null
+          goal_amount?: number
+          id?: string
+          reward_description?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          currency?: string
+          current_amount?: number
+          description?: string | null
+          goal_amount?: number
+          id?: string
+          reward_description?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_wishlists_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "admin_creator_revenue"
+            referencedColumns: ["creator_id"]
+          },
+          {
+            foreignKeyName: "creator_wishlists_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_wishlists_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_wishlists_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "public_creators_safe"
@@ -2618,6 +2796,80 @@ export type Database = {
           },
         ]
       }
+      poll_options: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          poll_id: string
+          sort_order: number
+          vote_count: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          poll_id: string
+          sort_order?: number
+          vote_count?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          poll_id?: string
+          sort_order?: number
+          vote_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_options_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "creator_polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          option_id: string
+          poll_id: string
+          voter_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_id: string
+          poll_id: string
+          voter_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_id?: string
+          poll_id?: string
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "poll_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "creator_polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       private_content_payments: {
         Row: {
           amount: number
@@ -3828,6 +4080,35 @@ export type Database = {
           },
         ]
       }
+      user_badges: {
+        Row: {
+          awarded_at: string
+          badge_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          badge_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string
+          badge_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badge_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_login_logs: {
         Row: {
           created_at: string | null
@@ -3955,6 +4236,53 @@ export type Database = {
             columns: ["leak_id"]
             isOneToOne: false
             referencedRelation: "content_leaks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wishlist_contributions: {
+        Row: {
+          amount: number
+          contributor_id: string
+          created_at: string
+          currency: string
+          id: string
+          is_anonymous: boolean
+          message: string | null
+          status: string
+          stripe_payment_intent_id: string | null
+          wishlist_id: string
+        }
+        Insert: {
+          amount: number
+          contributor_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_anonymous?: boolean
+          message?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          wishlist_id: string
+        }
+        Update: {
+          amount?: number
+          contributor_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_anonymous?: boolean
+          message?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          wishlist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wishlist_contributions_wishlist_id_fkey"
+            columns: ["wishlist_id"]
+            isOneToOne: false
+            referencedRelation: "creator_wishlists"
             referencedColumns: ["id"]
           },
         ]
@@ -4344,6 +4672,10 @@ export type Database = {
         Args: { _live_stream_id: string; _minute_number: number }
         Returns: undefined
       }
+      cast_poll_vote: {
+        Args: { p_option_id: string; p_poll_id: string }
+        Returns: Json
+      }
       check_duplicate_hash: {
         Args: { p_sha256_hash: string }
         Returns: {
@@ -4495,6 +4827,10 @@ export type Database = {
       }
       increment_creator_noshow: {
         Args: { p_creator_id: string }
+        Returns: undefined
+      }
+      increment_wishlist_amount: {
+        Args: { p_amount: number; p_wishlist_id: string }
         Returns: undefined
       }
       is_active_creator: { Args: { _user_id: string }; Returns: boolean }

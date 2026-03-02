@@ -27,6 +27,9 @@ import ModernPrivateChat from '@/components/ModernPrivateChat';
 import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
 import { ProfileAuctionsSection } from '@/components/auction/ProfileAuctionsSection';
 import { ProfileBundlesSection } from '@/components/bundle/ProfileBundlesSection';
+import { ProfileWishlistSection } from '@/components/wishlist/ProfileWishlistSection';
+import { ProfilePollsSection } from '@/components/polls/ProfilePollsSection';
+import { StoriesBar } from '@/components/stories/StoriesBar';
 // import AgeVerificationGate, { requiresAgeVerification } from '@/components/AgeVerificationGate';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
 
@@ -479,6 +482,9 @@ const CreatorProfile: React.FC = () => {
               </TabsList>
 
               <TabsContent value="posts" className="space-y-6">
+                <StoriesBar creatorId={creator.id} />
+                <ProfilePollsSection creatorId={creator.id} />
+                <ProfileWishlistSection creatorId={creator.id} />
                 <ProfileBundlesSection creatorId={creator.id} />
                 <ProfileAuctionsSection creatorId={creator.id} />
                 <OptimizedContentGallery creatorId={creator.id} />
