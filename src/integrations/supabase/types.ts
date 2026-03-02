@@ -4829,6 +4829,10 @@ export type Database = {
         Args: { p_creator_id: string }
         Returns: undefined
       }
+      increment_wishlist_amount: {
+        Args: { p_amount: number; p_wishlist_id: string }
+        Returns: undefined
+      }
       is_active_creator: { Args: { _user_id: string }; Returns: boolean }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_blocked: { Args: { check_identifier: string }; Returns: boolean }

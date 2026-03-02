@@ -122,7 +122,7 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId }) => {
     setViewIndex(0);
     // Record view
     if (group.stories[0]) {
-      supabase.rpc('record_story_view', { p_story_id: group.stories[0].id }).catch(() => {});
+      supabase.rpc('record_story_view', { p_story_id: group.stories[0].id }).then(() => {});
     }
   };
 
@@ -131,7 +131,7 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId }) => {
     if (viewIndex < viewingGroup.stories.length - 1) {
       const next = viewIndex + 1;
       setViewIndex(next);
-      supabase.rpc('record_story_view', { p_story_id: viewingGroup.stories[next].id }).catch(() => {});
+      supabase.rpc('record_story_view', { p_story_id: viewingGroup.stories[next].id }).then(() => {});
     } else {
       setViewingGroup(null);
     }
