@@ -544,6 +544,17 @@ const Dashboard = () => {
           </Suspense>
         )}
 
+        {/* Section: AI Marketing */}
+        {activeSection === 'ai-marketing' && creatorProfile?.id && (
+          <Suspense fallback={<LoadingFallback message="Chargement de l'IA Marketing..." />}>
+            <DashboardAIMarketing
+              creatorId={creatorProfile.id}
+              creatorStats={creatorStats}
+              stageName={shareDisplayName}
+            />
+          </Suspense>
+        )}
+
         {/* Section: Payments */}
         {activeSection === 'payments' && creatorProfile?.id && (
           <DashboardPaymentsSection creatorId={creatorProfile.id} />
