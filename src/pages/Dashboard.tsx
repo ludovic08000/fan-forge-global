@@ -6,7 +6,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, Link } from 'react-router-dom';
-import { Loader2, BarChart3, ImageIcon, Radio, MessageCircle, Sparkles, Settings, Banknote, Handshake, Calendar, Video, BrainCircuit, Gavel, Package, Gift, Vote } from 'lucide-react';
+import { Loader2, BarChart3, ImageIcon, Radio, MessageCircle, Sparkles, Settings, Banknote, Handshake, Calendar, Video, BrainCircuit, Package, Gift, Vote } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
@@ -43,7 +43,7 @@ const PhotoEditor = lazy(() => import('@/components/PhotoEditor'));
 const LiveHistory = lazy(() => import('@/components/live/LiveHistory'));
 const DashboardPartnershipsSection = lazy(() => import('@/components/dashboard/DashboardPartnershipsSection'));
 const DashboardAIMarketing = lazy(() => import('@/components/dashboard/DashboardAIMarketing'));
-const CreatorAuctionsSection = lazy(() => import('@/components/auction/CreatorAuctionsSection'));
+
 const CreatorBundlesSection = lazy(() => import('@/components/bundle/CreatorBundlesSection'));
 const CreatorWishlistSection = lazy(() => import('@/components/wishlist/CreatorWishlistSection'));
 const CreatorPollsSection = lazy(() => import('@/components/polls/CreatorPollsSection'));
@@ -417,7 +417,7 @@ const Dashboard = () => {
     { id: 'live' as DashboardSection, label: t('dashboard.live'), icon: Radio, badge: 0 },
     { id: 'messages' as DashboardSection, label: t('dashboard.messages'), icon: MessageCircle, badge: unreadCount },
     { id: 'analytics' as DashboardSection, label: t('dashboard.analytics'), icon: BarChart3, badge: 0 },
-    { id: 'auctions' as DashboardSection, label: 'Enchères', icon: Gavel, badge: 0 },
+    
     { id: 'bundles' as DashboardSection, label: 'Bundles', icon: Package, badge: 0 },
     { id: 'wishlists' as DashboardSection, label: 'Wishlist', icon: Gift, badge: 0 },
     { id: 'polls' as DashboardSection, label: 'Sondages', icon: Vote, badge: 0 },
@@ -547,12 +547,6 @@ const Dashboard = () => {
           </Suspense>
         )}
 
-        {/* Section: Auctions */}
-        {activeSection === 'auctions' && creatorProfile?.id && (
-          <Suspense fallback={<LoadingFallback />}>
-            <CreatorAuctionsSection creatorId={creatorProfile.id} />
-          </Suspense>
-        )}
 
         {/* Section: Bundles */}
         {activeSection === 'bundles' && creatorProfile?.id && (
