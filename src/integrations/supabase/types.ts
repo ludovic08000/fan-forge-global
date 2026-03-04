@@ -4640,7 +4640,7 @@ export type Database = {
       }
       auto_block_if_needed: {
         Args: {
-          block_duration?: unknown
+          block_duration?: string
           check_identifier: string
           check_ip?: string
           max_attempts?: number
@@ -4695,7 +4695,7 @@ export type Database = {
       cleanup_paused_creators: { Args: never; Returns: number }
       cleanup_stale_live_streams: { Args: never; Returns: undefined }
       count_failed_attempts: {
-        Args: { check_identifier: string; time_window?: unknown }
+        Args: { check_identifier: string; time_window?: string }
         Returns: number
       }
       delete_creator_completely: {

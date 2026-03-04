@@ -47,6 +47,7 @@ const CreatorAuctionsSection = lazy(() => import('@/components/auction/CreatorAu
 const CreatorBundlesSection = lazy(() => import('@/components/bundle/CreatorBundlesSection'));
 const CreatorWishlistSection = lazy(() => import('@/components/wishlist/CreatorWishlistSection'));
 const CreatorPollsSection = lazy(() => import('@/components/polls/CreatorPollsSection'));
+import { StoriesBar } from '@/components/stories/StoriesBar';
 
 // Fallback components
 const LoadingFallback = ({ message }: { message?: string }) => {
@@ -474,6 +475,7 @@ const Dashboard = () => {
         {/* Section: Overview */}
         {activeSection === 'overview' && (
           <div className="space-y-8">
+            <StoriesBar />
             <DashboardStats stats={creatorStats} />
             <DashboardQuickActions 
               onNewContent={() => setShowUpload(true)}
