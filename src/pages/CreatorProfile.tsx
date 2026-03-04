@@ -25,7 +25,7 @@ import { toast } from 'sonner';
 import ContentCard from '@/components/ContentCard';
 import ModernPrivateChat from '@/components/ModernPrivateChat';
 import { OptimizedContentGallery } from '@/components/OptimizedContentGallery';
-import { ProfileAuctionsSection } from '@/components/auction/ProfileAuctionsSection';
+
 import { ProfileBundlesSection } from '@/components/bundle/ProfileBundlesSection';
 import { ProfileWishlistSection } from '@/components/wishlist/ProfileWishlistSection';
 import { ProfilePollsSection } from '@/components/polls/ProfilePollsSection';
@@ -486,7 +486,7 @@ const CreatorProfile: React.FC = () => {
                 <ProfilePollsSection creatorId={creator.id} />
                 <ProfileWishlistSection creatorId={creator.id} />
                 <ProfileBundlesSection creatorId={creator.id} />
-                <ProfileAuctionsSection creatorId={creator.id} />
+                
                 <OptimizedContentGallery creatorId={creator.id} />
               </TabsContent>
 
