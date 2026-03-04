@@ -475,6 +475,7 @@ const Dashboard = () => {
         {/* Section: Overview */}
         {activeSection === 'overview' && (
           <div className="space-y-8">
+            <StoriesBar />
             <DashboardStats stats={creatorStats} />
             <DashboardQuickActions 
               onNewContent={() => setShowUpload(true)}
