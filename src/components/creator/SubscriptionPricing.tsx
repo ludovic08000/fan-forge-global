@@ -210,7 +210,7 @@ const SubscriptionPricing: React.FC<SubscriptionPricingProps> = ({ creatorId }) 
           <h4 className="font-medium text-sm">Ce que vous recevrez :</h4>
           <div className="space-y-1 text-sm text-muted-foreground">
             <p>• Commission plateforme : 15% du montant total</p>
-            <p>• Votre revenu : {price ? (parseFloat(price) * 0.85).toFixed(2) : '0.00'} {getSymbol()}/mois par abonné</p>
+            <p>• Votre revenu : {price ? (parseFloat(price) * (85 / 100)).toFixed(2) : '0.00'} {getSymbol()}/mois par abonné</p>
           </div>
         </div>
 
