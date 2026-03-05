@@ -185,11 +185,11 @@ serve(async (req) => {
         transfer_data: {
           destination: messageWithCreator.creator.stripe_account_id,
         },
-        application_fee_amount: Math.round(amountInCents * 0.15),
+        application_fee_amount: Math.round(amountInCents * (15 / 100)),
       };
       logStep("Stripe Connect transfer configured", { 
         destination: messageWithCreator.creator.stripe_account_id,
-        fee: Math.round(amountInCents * 0.15)
+        fee: Math.round(amountInCents * (15 / 100))
       });
     } else if (isCollaborativeContent) {
       // Pour le contenu collaboratif, on stocke les infos pour le webhook

@@ -301,8 +301,8 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
                   </div>
                 </td>
                 <td className="p-3 text-right font-mono text-sm tabular-nums">{formatAmount(totals.subscriptions)}</td>
-                <td className="p-3 text-right font-mono text-sm tabular-nums text-amber-600">-{formatAmount(totals.subscriptions * 0.15)}</td>
-                <td className="p-3 text-right font-mono text-sm tabular-nums font-semibold text-emerald-600">{formatAmount(totals.subscriptions * 0.85)}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums text-amber-600">-{formatAmount(totals.subscriptions * (15 / 100))}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums font-semibold text-emerald-600">{formatAmount(totals.subscriptions * (85 / 100))}</td>
               </tr>
               
               {/* Tips */}
@@ -316,8 +316,8 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
                   </div>
                 </td>
                 <td className="p-3 text-right font-mono text-sm tabular-nums">{formatAmount(totals.tips)}</td>
-                <td className="p-3 text-right font-mono text-sm tabular-nums text-amber-600">-{formatAmount(totals.tips * 0.15)}</td>
-                <td className="p-3 text-right font-mono text-sm tabular-nums font-semibold text-emerald-600">{formatAmount(totals.tips * 0.85)}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums text-amber-600">-{formatAmount(totals.tips * (15 / 100))}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums font-semibold text-emerald-600">{formatAmount(totals.tips * (85 / 100))}</td>
               </tr>
               
               {/* Messages privés */}
@@ -331,8 +331,8 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
                   </div>
                 </td>
                 <td className="p-3 text-right font-mono text-sm tabular-nums">{formatAmount(totals.privateContent)}</td>
-                <td className="p-3 text-right font-mono text-sm tabular-nums text-amber-600">-{formatAmount(totals.privateContent * 0.15)}</td>
-                <td className="p-3 text-right font-mono text-sm tabular-nums font-semibold text-emerald-600">{formatAmount(totals.privateContent * 0.85)}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums text-amber-600">-{formatAmount(totals.privateContent * (15 / 100))}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums font-semibold text-emerald-600">{formatAmount(totals.privateContent * (85 / 100))}</td>
               </tr>
               
               {/* Lives */}
@@ -346,8 +346,8 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
                   </div>
                 </td>
                 <td className="p-3 text-right font-mono text-sm tabular-nums">{formatAmount(totals.live)}</td>
-                <td className="p-3 text-right font-mono text-sm tabular-nums text-amber-600">-{formatAmount(totals.live * 0.15)}</td>
-                <td className="p-3 text-right font-mono text-sm tabular-nums font-semibold text-emerald-600">{formatAmount(totals.live * 0.85)}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums text-amber-600">-{formatAmount(totals.live * (15 / 100))}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums font-semibold text-emerald-600">{formatAmount(totals.live * (85 / 100))}</td>
               </tr>
             </tbody>
             {/* Total row dans tfoot pour alignement parfait */}
