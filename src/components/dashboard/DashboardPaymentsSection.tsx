@@ -301,8 +301,8 @@ export const DashboardPaymentsSection: React.FC<DashboardPaymentsSectionProps> =
                   </div>
                 </td>
                 <td className="p-3 text-right font-mono text-sm tabular-nums">{formatAmount(totals.subscriptions)}</td>
-                <td className="p-3 text-right font-mono text-sm tabular-nums text-amber-600">-{formatAmount(totals.subscriptions * 0.15)}</td>
-                <td className="p-3 text-right font-mono text-sm tabular-nums font-semibold text-emerald-600">{formatAmount(totals.subscriptions * 0.85)}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums text-amber-600">-{formatAmount(totals.subscriptions * (15 / 100))}</td>
+                <td className="p-3 text-right font-mono text-sm tabular-nums font-semibold text-emerald-600">{formatAmount(totals.subscriptions * (85 / 100))}</td>
               </tr>
               
               {/* Tips */}

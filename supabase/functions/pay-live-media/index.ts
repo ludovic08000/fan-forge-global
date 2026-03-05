@@ -165,7 +165,7 @@ serve(async (req) => {
     // Si le créateur a un compte Stripe Connect, utiliser le transfert automatique
     if (creatorStripeAccountId) {
       // Commission plateforme de 15%
-      const platformFee = Math.round(price * 100 * 0.15);
+      const platformFee = Math.round(price * 100 * (15 / 100));
       sessionConfig.payment_intent_data = {
         application_fee_amount: platformFee,
         transfer_data: {

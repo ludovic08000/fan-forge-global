@@ -91,7 +91,7 @@ serve(async (req) => {
 
     // Calculer les détails de la facture
     const grossAmount = paymentRequest.amount;
-    const commissionRate = paymentRequest.creator.platform_commission_rate || 0.15;
+    const commissionRate = (paymentRequest.creator.platform_commission_rate || 15) / 100;
     const commissionAmount = grossAmount * commissionRate;
     const netAmount = grossAmount - commissionAmount;
 

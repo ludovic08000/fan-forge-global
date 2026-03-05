@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { validateJwtAndGetUserId } from "../_shared/auth.ts";
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
 
-const PLATFORM_COMMISSION_RATE = 0.15; // 15%
+const PLATFORM_COMMISSION_RATE = 15 / 100; // 15%
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';

@@ -239,7 +239,7 @@ serve(async (req) => {
               tips_revenue: revenue.tips_revenue,
               live_revenue: revenue.live_revenue,
               private_content_revenue: revenue.private_content_revenue,
-              commission_rate: 0.15,
+              commission_rate: 15,
               commission_amount: revenue.commission_amount,
               creator_payout: amountAfterCommission,
               currency: creator.currency || 'EUR'
