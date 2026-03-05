@@ -633,7 +633,7 @@ const LiveCalendar = () => {
                 <Card>
                   <CardContent className="p-3 text-center">
                     <div className="text-2xl font-bold text-primary">
-                      {requests.filter(r => r.status === 'paid').reduce((acc, r) => acc + (r.price || 0) * 0.85, 0).toFixed(0)}€
+                      {requests.filter(r => r.status === 'paid').reduce((acc, r) => acc + (r.price || 0) * (85 / 100), 0).toFixed(0)}€
                     </div>
                     <div className="text-xs text-muted-foreground">Revenus</div>
                   </CardContent>
@@ -900,7 +900,7 @@ const LiveCalendar = () => {
                   />
                   {price && parseFloat(price) >= 10 && (
                     <p className="text-xs text-muted-foreground">
-                      Vous recevrez {(parseFloat(price) * 0.85).toFixed(2)}€ (après 15% de commission)
+                      Vous recevrez {(parseFloat(price) * (85 / 100)).toFixed(2)}€ (après 15% de commission)
                     </p>
                   )}
                 </div>

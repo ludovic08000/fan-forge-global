@@ -324,7 +324,7 @@ const DayRequestsDialog: React.FC<DayRequestsDialogProps> = ({
                 />
                 {price && parseFloat(price) >= 10 && (
                   <p className="text-xs text-muted-foreground">
-                    Vous recevrez {(parseFloat(price) * 0.85).toFixed(2)}€
+                    Vous recevrez {(parseFloat(price) * (85 / 100)).toFixed(2)}€
                   </p>
                 )}
               </div>

@@ -374,7 +374,7 @@ const PrivateReplayCard: React.FC<{
           </span>
           <span className="flex items-center gap-1">
             <Euro className="h-3 w-3" />
-            {(replay.purchase_count * replay.replay_price * 0.85).toFixed(0)}€ gagnés
+            {(replay.purchase_count * replay.replay_price * (85 / 100)).toFixed(0)}€ gagnés
           </span>
         </div>
 
@@ -429,7 +429,7 @@ const PrivateReplayCard: React.FC<{
                 className="w-full px-3 py-2 border rounded-md bg-background"
               />
               <p className="text-xs text-muted-foreground">
-                Prix original du show: {replay.original_price}€ • Vous recevrez 85% ({(newPrice * 0.85).toFixed(2)}€)
+                Prix original du show: {replay.original_price}€ • Vous recevrez 85% ({(newPrice * (85 / 100)).toFixed(2)}€)
               </p>
             </div>
             <div className="flex gap-2">
@@ -542,7 +542,7 @@ const PrivateReplaysSection: React.FC = () => {
     );
   }
 
-  const totalEarnings = replays.reduce((sum, r) => sum + (r.purchase_count * r.replay_price * 0.85), 0);
+  const totalEarnings = replays.reduce((sum, r) => sum + (r.purchase_count * r.replay_price * (85 / 100)), 0);
 
   return (
     <div className="space-y-4">
