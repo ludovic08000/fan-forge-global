@@ -209,7 +209,7 @@ serve(async (req) => {
         period_start: paymentRequest.period_start,
         period_end: paymentRequest.period_end,
         gross_amount: grossAmount,
-        platform_commission_rate: commissionRate,
+        platform_commission_rate: paymentRequest.creator.platform_commission_rate || 15,
         platform_commission_amount: commissionAmount,
         vat_rate: vatRate,
         vat_amount: vatOnCommission,

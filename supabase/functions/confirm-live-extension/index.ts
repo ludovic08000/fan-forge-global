@@ -97,7 +97,7 @@ serve(async (req) => {
         amount: commission / 100, // Convertir en euros
         source_type: "live_extension",
         source_id: liveStreamId,
-        commission_rate: PLATFORM_COMMISSION_RATE / 100,
+        commission_rate: PLATFORM_COMMISSION_RATE,
       });
 
     console.log("[confirm-live-extension] Commission recorded:", commission / 100, "€");
