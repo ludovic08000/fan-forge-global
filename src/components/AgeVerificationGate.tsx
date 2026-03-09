@@ -179,19 +179,21 @@ const AgeVerificationGate = ({ children, category, contentType }: AgeVerificatio
             </div>
 
             <div className="space-y-3">
-              <Button 
-                onClick={() => handleVerification(true)}
-                className="w-full bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-lg py-6"
-              >
-                {t('ageVerification.iAmAdult')}
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => handleVerification(false)}
-                className="w-full py-6"
-              >
-                {t('ageVerification.iAmMinor')}
-              </Button>
+              <Link to="/login">
+                <Button 
+                  className="w-full bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-lg py-6"
+                >
+                  {t('ageVerification.loginToVerify') || 'Se connecter pour vérifier'}
+                </Button>
+              </Link>
+              <Link to="/">
+                <Button 
+                  variant="outline"
+                  className="w-full py-6"
+                >
+                  {t('ageVerification.backToHome') || 'Retour à l\'accueil'}
+                </Button>
+              </Link>
             </div>
 
           </CardContent>
