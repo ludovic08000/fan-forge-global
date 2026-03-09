@@ -682,16 +682,14 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Auth required for all actions except generate-translations
+    // Auth required for all actions
     let userId: string | null = null;
-    if (action !== 'generate-translations') {
-      const authResult = await validateJwtAndGetUserId(req.headers.get('Authorization'));
-      if (authResult.error) {
-        return new Response(JSON.stringify({ error: authResult.error }),
-          { status: authResult.statusCode, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      userId = authResult.userId!;
+    const authResult = await validateJwtAndGetUserId(req.headers.get('Authorization'));
+    if (authResult.error) {
+      return new Response(JSON.stringify({ error: authResult.error }),
+        { status: authResult.statusCode, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    userId = authResult.userId!;
 
     logStep(action, "Processing request");
 

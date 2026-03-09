@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
+import { validateJwtAndGetUserId } from "../_shared/auth.ts";
 
 /**
  * Génère les traductions manquantes via Lovable AI
@@ -13,6 +14,15 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
   try {
+    // Require authentication
+    const { userId, error: authError, statusCode } = await validateJwtAndGetUserId(req.headers.get('Authorization'));
+    if (authError) {
+      return new Response(
+        JSON.stringify({ error: authError }),
+        { status: statusCode, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(
