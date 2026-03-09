@@ -7,8 +7,8 @@ import { useAdultAccess } from "@/hooks/useAdultAccess";
 import { Link } from "react-router-dom";
 import { useTranslation } from "@/contexts/TranslationContext";
 
-const AGE_VERIFICATION_KEY = "age-verified";
-const VERIFICATION_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 jours
+// Age verification now requires authentication + birthdate in DB
+// No localStorage fallback to prevent bypass
 
 // Catégories qui nécessitent une vérification d'âge
 const ADULT_CATEGORIES = ["charme", "erotique", "adult", "sensuel", "glamour"];
