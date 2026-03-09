@@ -19,37 +19,18 @@ interface AgeVerificationGateProps {
   contentType?: string[] | null;
 }
 
-// Hook pour vérifier si l'âge a été vérifié
+// Hook pour vérifier si l'âge a été vérifié (server-side only)
 export const useAgeVerification = () => {
-  const [isVerified, setIsVerified] = useState<boolean | null>(null);
+  const { user } = useAuth();
+  const { isUserAdult, isLoading: isLoadingAge, hasBirthdate } = useAdultAccess();
+  
+  const isVerified = user && hasBirthdate && isUserAdult === true;
 
-  useEffect(() => {
-    const storedVerification = localStorage.getItem(AGE_VERIFICATION_KEY);
-    
-    if (storedVerification) {
-      const { timestamp, verified } = JSON.parse(storedVerification);
-      const isExpired = Date.now() - timestamp > VERIFICATION_DURATION;
-      
-      if (!isExpired && verified) {
-        setIsVerified(true);
-      } else {
-        localStorage.removeItem(AGE_VERIFICATION_KEY);
-        setIsVerified(false);
-      }
-    } else {
-      setIsVerified(false);
-    }
-  }, []);
-
-  const verifyAge = () => {
-    localStorage.setItem(
-      AGE_VERIFICATION_KEY,
-      JSON.stringify({ verified: true, timestamp: Date.now() })
-    );
-    setIsVerified(true);
+  return { 
+    isVerified: isVerified ?? false, 
+    verifyAge: () => {}, // No-op: verification is server-side only
+    isLoading: isLoadingAge 
   };
-
-  return { isVerified, verifyAge };
 };
 
 // Fonction pour vérifier si une catégorie nécessite une vérification d'âge
