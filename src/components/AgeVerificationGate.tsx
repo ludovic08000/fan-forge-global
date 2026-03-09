@@ -22,7 +22,7 @@ interface AgeVerificationGateProps {
 // Hook pour vérifier si l'âge a été vérifié (server-side only)
 export const useAgeVerification = () => {
   const { user } = useAuth();
-  const { isUserAdult, isLoading: isLoadingAge, hasBirthdate } = useAdultAccess();
+  const { isAdult: isUserAdult, isLoading: isLoadingAge, hasBirthdate } = useAdultAccess();
   
   const isVerified = user && hasBirthdate && isUserAdult === true;
 
