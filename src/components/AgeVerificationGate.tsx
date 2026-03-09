@@ -7,8 +7,8 @@ import { useAdultAccess } from "@/hooks/useAdultAccess";
 import { Link } from "react-router-dom";
 import { useTranslation } from "@/contexts/TranslationContext";
 
-const AGE_VERIFICATION_KEY = "age-verified";
-const VERIFICATION_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 jours
+// Age verification now requires authentication + birthdate in DB
+// No localStorage fallback to prevent bypass
 
 // Catégories qui nécessitent une vérification d'âge
 const ADULT_CATEGORIES = ["charme", "erotique", "adult", "sensuel", "glamour"];
@@ -19,37 +19,18 @@ interface AgeVerificationGateProps {
   contentType?: string[] | null;
 }
 
-// Hook pour vérifier si l'âge a été vérifié
+// Hook pour vérifier si l'âge a été vérifié (server-side only)
 export const useAgeVerification = () => {
-  const [isVerified, setIsVerified] = useState<boolean | null>(null);
+  const { user } = useAuth();
+  const { isAdult: isUserAdult, isLoading: isLoadingAge, hasBirthdate } = useAdultAccess();
+  
+  const isVerified = user && hasBirthdate && isUserAdult === true;
 
-  useEffect(() => {
-    const storedVerification = localStorage.getItem(AGE_VERIFICATION_KEY);
-    
-    if (storedVerification) {
-      const { timestamp, verified } = JSON.parse(storedVerification);
-      const isExpired = Date.now() - timestamp > VERIFICATION_DURATION;
-      
-      if (!isExpired && verified) {
-        setIsVerified(true);
-      } else {
-        localStorage.removeItem(AGE_VERIFICATION_KEY);
-        setIsVerified(false);
-      }
-    } else {
-      setIsVerified(false);
-    }
-  }, []);
-
-  const verifyAge = () => {
-    localStorage.setItem(
-      AGE_VERIFICATION_KEY,
-      JSON.stringify({ verified: true, timestamp: Date.now() })
-    );
-    setIsVerified(true);
+  return { 
+    isVerified: isVerified ?? false, 
+    verifyAge: () => {}, // No-op: verification is server-side only
+    isLoading: isLoadingAge 
   };
-
-  return { isVerified, verifyAge };
 };
 
 // Fonction pour vérifier si une catégorie nécessite une vérification d'âge
@@ -97,36 +78,15 @@ const AgeVerificationGate = ({ children, category, contentType }: AgeVerificatio
       }
     }
 
-    // Fallback: vérification localStorage pour les non-connectés ou sans date de naissance
-    const storedVerification = localStorage.getItem(AGE_VERIFICATION_KEY);
-    
-    if (storedVerification) {
-      const { timestamp, verified } = JSON.parse(storedVerification);
-      const isExpired = Date.now() - timestamp > VERIFICATION_DURATION;
-      
-      if (!isExpired && verified) {
-        setIsVerified(true);
-      } else {
-        localStorage.removeItem(AGE_VERIFICATION_KEY);
-        setIsVerified(false);
-      }
-    } else {
-      setIsVerified(false);
-    }
-    
+    // Utilisateur non connecté ou sans date de naissance → forcer la connexion
+    // Pas de fallback localStorage pour éviter le contournement
+    setIsVerified(false);
     setIsChecking(false);
   }, [needsVerification, user, isUserAdult, isLoadingAge, hasBirthdate]);
 
-  const handleVerification = (isAdult: boolean) => {
-    if (isAdult) {
-      localStorage.setItem(
-        AGE_VERIFICATION_KEY,
-        JSON.stringify({ verified: true, timestamp: Date.now() })
-      );
-      setIsVerified(true);
-    } else {
-      window.location.href = "https://www.google.com";
-    }
+  // Unauthenticated or no birthdate → require login
+  const handleLoginRedirect = () => {
+    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
   };
 
   // Si utilisateur connecté et mineur (date de naissance vérifiée)
@@ -219,19 +179,21 @@ const AgeVerificationGate = ({ children, category, contentType }: AgeVerificatio
             </div>
 
             <div className="space-y-3">
-              <Button 
-                onClick={() => handleVerification(true)}
-                className="w-full bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-lg py-6"
-              >
-                {t('ageVerification.iAmAdult')}
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => handleVerification(false)}
-                className="w-full py-6"
-              >
-                {t('ageVerification.iAmMinor')}
-              </Button>
+              <Link to="/login">
+                <Button 
+                  className="w-full bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-lg py-6"
+                >
+                  {t('ageVerification.loginToVerify') || 'Se connecter pour vérifier'}
+                </Button>
+              </Link>
+              <Link to="/">
+                <Button 
+                  variant="outline"
+                  className="w-full py-6"
+                >
+                  {t('ageVerification.backToHome') || 'Retour à l\'accueil'}
+                </Button>
+              </Link>
             </div>
 
           </CardContent>
