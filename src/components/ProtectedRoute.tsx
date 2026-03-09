@@ -94,7 +94,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   };
 
   // Pour les callbacks externes, ne pas bloquer sur le loading des CGU
-  if (loading || checkingProfile || (termsLoading && !isExternalCallback)) {
+  if (loading || checkingProfile || termsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
