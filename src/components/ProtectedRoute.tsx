@@ -107,8 +107,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={fallbackPath} state={{ from: location }} replace />;
   }
 
-  // Utilisateur connecté mais OTP non vérifié (sauf pour les callbacks externes)
-  if (otpVerified !== true && !isExternalCallback) {
+  // Utilisateur connecté mais OTP non vérifié
+  if (otpVerified !== true) {
     // Stocker l'email pour la page OTP
     if (user.email) {
       sessionStorage.setItem('pending_otp_email', user.email);
