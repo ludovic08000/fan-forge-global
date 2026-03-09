@@ -4686,6 +4686,7 @@ export type Database = {
           uploader_id: string
         }[]
       }
+      check_report_rate_limit: { Args: never; Returns: boolean }
       cleanup_expired_otp_codes: { Args: never; Returns: undefined }
       cleanup_expired_quarantine: { Args: never; Returns: number }
       cleanup_old_email_logs: { Args: never; Returns: undefined }
@@ -4876,69 +4877,40 @@ export type Database = {
         Returns: Json
       }
       record_story_view: { Args: { p_story_id: string }; Returns: undefined }
-      search_creators:
-        | {
-            Args: {
-              category_filter?: string
-              content_type_filter?: string[]
-              featured_only?: boolean
-              gender_filter?: string
-              limit_count?: number
-              offset_count?: number
-              orientation_filter?: string
-              price_filter?: string
-              search_term?: string
-            }
-            Returns: {
-              avatar_url: string
-              bio: string
-              category: string
-              content_type: string[]
-              created_at: string
-              currency: string
-              display_name: string
-              gender: string
-              id: string
-              is_featured: boolean
-              is_verified: boolean
-              orientation: string
-              similarity_score: number
-              stage_name: string
-              subscription_price: number
-              total_content: number
-              total_subscribers: number
-              user_id: string
-              username: string
-            }[]
-          }
-        | {
-            Args: {
-              category_filter?: string
-              featured_only?: boolean
-              limit_count?: number
-              offset_count?: number
-              price_filter?: string
-              search_term?: string
-            }
-            Returns: {
-              avatar_url: string
-              bio: string
-              category: string
-              created_at: string
-              currency: string
-              display_name: string
-              id: string
-              is_featured: boolean
-              is_verified: boolean
-              similarity_score: number
-              stage_name: string
-              subscription_price: number
-              total_content: number
-              total_subscribers: number
-              user_id: string
-              username: string
-            }[]
-          }
+      search_creators: {
+        Args: {
+          category_filter?: string
+          content_type_filter?: string[]
+          featured_only?: boolean
+          gender_filter?: string
+          limit_count?: number
+          offset_count?: number
+          orientation_filter?: string
+          price_filter?: string
+          search_term?: string
+        }
+        Returns: {
+          avatar_url: string
+          bio: string
+          category: string
+          content_type: string[]
+          created_at: string
+          currency: string
+          display_name: string
+          gender: string
+          id: string
+          is_featured: boolean
+          is_verified: boolean
+          orientation: string
+          similarity_score: number
+          stage_name: string
+          subscription_price: number
+          total_content: number
+          total_subscribers: number
+          user_id: string
+          username: string
+        }[]
+      }
       toggle_content_like: { Args: { p_content_id: string }; Returns: Json }
     }
     Enums: {
