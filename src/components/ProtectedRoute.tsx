@@ -24,16 +24,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Vérification de l'acceptation des CGU
   const { needsAcceptance, isLoading: termsLoading, refreshStatus } = useTermsAcceptance();
   const [showTermsModal, setShowTermsModal] = useState(false);
-  
-  // Détecter si c'est un callback externe (Stripe, etc.)
-  const urlParams = new URLSearchParams(window.location.search);
-  const isExternalCallback = urlParams.get('stripe_connect') === 'success' ||
-                              urlParams.get('boost_success') === 'true' ||
-                              urlParams.get('boost_canceled') === 'true';
 
   useEffect(() => {
     const checkProfileStatus = async () => {
-      // Attendre que le loading soit terminé
       if (loading) {
         return;
       }
@@ -43,26 +36,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return;
       }
 
-      // Vérifier si on revient d'un callback externe (Stripe Connect, boost, etc.)
-      const urlParams = new URLSearchParams(window.location.search);
-      const isExternalCallback = urlParams.get('stripe_connect') === 'success' ||
-                                  urlParams.get('boost_success') === 'true' ||
-                                  urlParams.get('boost_canceled') === 'true';
-
       try {
-        // Si c'est un callback externe, mettre à jour otp_verified IMMÉDIATEMENT
-        // car l'utilisateur était déjà authentifié avant de partir vers Stripe
-        if (isExternalCallback) {
-          console.log('📧 Retour de callback externe, mise à jour otp_verified immédiate');
-          await supabase
-            .from('profiles')
-            .update({ otp_verified: true })
-            .eq('user_id', user.id);
-          setOtpVerified(true);
-          setCheckingProfile(false);
-          return;
-        }
-
         const { data: profile } = await supabase
           .from('profiles')
           .select('otp_verified')
