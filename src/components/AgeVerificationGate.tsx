@@ -84,16 +84,9 @@ const AgeVerificationGate = ({ children, category, contentType }: AgeVerificatio
     setIsChecking(false);
   }, [needsVerification, user, isUserAdult, isLoadingAge, hasBirthdate]);
 
-  const handleVerification = (isAdult: boolean) => {
-    if (isAdult) {
-      localStorage.setItem(
-        AGE_VERIFICATION_KEY,
-        JSON.stringify({ verified: true, timestamp: Date.now() })
-      );
-      setIsVerified(true);
-    } else {
-      window.location.href = "https://www.google.com";
-    }
+  // Unauthenticated or no birthdate → require login
+  const handleLoginRedirect = () => {
+    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
   };
 
   // Si utilisateur connecté et mineur (date de naissance vérifiée)
