@@ -63,12 +63,7 @@ export const usePrivateMessages = (targetId?: string, subscriberId?: string) => 
       // Construire le filtre pour couvrir tous les cas de conversation
       let filterParts: string[] = [];
       
-      console.log('[usePrivateMessages] Building filter:', {
-        targetId,
-        subscriberId,
-        myCreatorId,
-        userId: user.id
-      });
+      console.log('[usePrivateMessages] Building filter for conversation');
       
       // Si subscriberId est fourni, c'est un créateur qui consulte ses messages avec un abonné
       if (subscriberId && myCreatorId) {

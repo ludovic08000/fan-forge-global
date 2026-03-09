@@ -97,23 +97,9 @@ const AgeVerificationGate = ({ children, category, contentType }: AgeVerificatio
       }
     }
 
-    // Fallback: vérification localStorage pour les non-connectés ou sans date de naissance
-    const storedVerification = localStorage.getItem(AGE_VERIFICATION_KEY);
-    
-    if (storedVerification) {
-      const { timestamp, verified } = JSON.parse(storedVerification);
-      const isExpired = Date.now() - timestamp > VERIFICATION_DURATION;
-      
-      if (!isExpired && verified) {
-        setIsVerified(true);
-      } else {
-        localStorage.removeItem(AGE_VERIFICATION_KEY);
-        setIsVerified(false);
-      }
-    } else {
-      setIsVerified(false);
-    }
-    
+    // Utilisateur non connecté ou sans date de naissance → forcer la connexion
+    // Pas de fallback localStorage pour éviter le contournement
+    setIsVerified(false);
     setIsChecking(false);
   }, [needsVerification, user, isUserAdult, isLoadingAge, hasBirthdate]);
 
