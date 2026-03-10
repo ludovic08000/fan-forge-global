@@ -79,19 +79,48 @@ export const usePreloadedSession = () => {
  * Appelle supabase.auth.getSession() qui gère le refresh automatique
  */
 export const getSessionAsync = async (): Promise<Session | null> => {
-  // If cached session exists and token is not expired (30s margin), use it
+  // If cached session exists and token is not expired (60s margin), use it
   if (cachedSession?.expires_at) {
     const expiresAtMs = cachedSession.expires_at * 1000;
-    if (expiresAtMs > Date.now() + 30000) {
+    if (expiresAtMs > Date.now() + 60000) {
       return cachedSession;
+    }
+    
+    // Token is expired or near-expiry — force refresh
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      if (!error && data.session) {
+        cachedSession = data.session;
+        sessionVersion++;
+        isInitialized = true;
+        return cachedSession;
+      }
+    } catch (err) {
+      console.warn('[getSessionAsync] refreshSession failed:', err);
     }
   }
   
-  // Otherwise fetch fresh session (handles token refresh)
+  // No cached session or refresh failed — try getSession
   try {
     const { data } = await supabase.auth.getSession();
-    cachedSession = data.session;
     if (data.session) {
+      // Verify token is actually valid (not expired)
+      const expiresAtMs = (data.session.expires_at || 0) * 1000;
+      if (expiresAtMs <= Date.now() + 30000) {
+        // Token from storage is expired, force refresh
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        if (!refreshError && refreshData.session) {
+          cachedSession = refreshData.session;
+          sessionVersion++;
+          isInitialized = true;
+          return cachedSession;
+        }
+        // Refresh failed — user needs to re-login
+        cachedSession = null;
+        isInitialized = true;
+        return null;
+      }
+      cachedSession = data.session;
       sessionVersion++;
     }
     isInitialized = true;
