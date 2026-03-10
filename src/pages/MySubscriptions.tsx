@@ -190,7 +190,7 @@ const MySubscriptions = () => {
         <div className="mt-6" />
         <MySubscriptionsSection subscriptions={subscriptions} isLoading={isLoadingSubs} onUpdate={loadSubscriptions} />
         <LiveStreamsSection liveNow={liveNow} upcomingLives={upcomingLives} creatorInfos={creatorInfos} hasAccess={hasAccess} />
-        <UserBadgesSection />
+        {/* <UserBadgesSection /> */}
         <ActiveCreatorsSection creators={activeCreators} isLoading={creatorsLoading} />
       </div>
     </div>
