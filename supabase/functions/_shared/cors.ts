@@ -7,6 +7,8 @@
 const EXACT_ORIGINS = new Set([
   'https://fan-forge-global.lovable.app',
   'https://id-preview--d6571390-5df4-4a85-b36b-d85a8872c669.lovable.app',
+  'https://theforge.fans',
+  'https://www.theforge.fans',
   'http://localhost:5173',
   'http://localhost:3000',
   'http://127.0.0.1:5173',
