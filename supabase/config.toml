@@ -19,23 +19,24 @@ major_version = 15
 [functions.auto-process-creator-payments]
 verify_jwt = false
 
+# JWT validated manually in code for custom domain CORS support
 [functions.check-subscription]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-checkout]
-verify_jwt = true
+verify_jwt = false
 
 [functions.customer-portal]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-creator-checkout]
-verify_jwt = true
+verify_jwt = false
 
 [functions.pay-private-content]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-creator-boost]
-verify_jwt = true
+verify_jwt = false
 
 [functions.activate-creator-boost]
 verify_jwt = false
@@ -44,10 +45,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.create-live-checkout]
-verify_jwt = true
+verify_jwt = false
 
 [functions.verify-live-access]
-verify_jwt = true
+verify_jwt = false
 
 [functions.rate-limit-check]
 verify_jwt = false
@@ -59,7 +60,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.add-watermark]
-verify_jwt = true
+verify_jwt = false
 
 [functions.check-stripe-connect-status]
 verify_jwt = false
@@ -68,10 +69,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.request-creator-payment]
-verify_jwt = true
+verify_jwt = false
 
 [functions.process-creator-payment]
-verify_jwt = true
+verify_jwt = false
 
 [functions.livekit-token]
 verify_jwt = false
@@ -80,16 +81,16 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.get-signed-url]
-verify_jwt = true
+verify_jwt = false
 
 [functions.decode-watermark]
-verify_jwt = true
+verify_jwt = false
 
 [functions.cleanup-paused-creators]
 verify_jwt = false
 
 [functions.csrf-token]
-verify_jwt = true
+verify_jwt = false
 
 [functions.brute-force-check]
 verify_jwt = false
@@ -108,32 +109,31 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.calculate-tax]
-verify_jwt = true
+verify_jwt = false
 
 [functions.scan-file-virus]
-verify_jwt = true
+verify_jwt = false
 
 [functions.get-creator-invoices]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-creator-payout-invoice]
-verify_jwt = true
+verify_jwt = false
 
 [functions.save-edited-image]
-verify_jwt = true
+verify_jwt = false
 
 [functions.cleanup-stale-lives]
 verify_jwt = false
 
 [functions.pay-live-media]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-live-tip]
-verify_jwt = true
+verify_jwt = false
 
-# Notification IBAN change - nécessite JWT maintenant
 [functions.notify-iban-change]
-verify_jwt = true
+verify_jwt = false
 
 [functions.stripe-connect-login-link]
 verify_jwt = false
@@ -143,24 +143,24 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.cancel-subscription]
-verify_jwt = true
+verify_jwt = false
 
-# OTP 2FA - nécessite JWT
+# OTP 2FA - JWT validated manually in code
 [functions.send-otp]
-verify_jwt = true
+verify_jwt = false
 
 [functions.verify-otp-code]
-verify_jwt = true
+verify_jwt = false
 
 [functions.verify-otp-status]
-verify_jwt = true
+verify_jwt = false
 
 # LiveKit Recording
 [functions.start-live-recording]
-verify_jwt = true
+verify_jwt = false
 
 [functions.stop-live-recording]
-verify_jwt = true
+verify_jwt = false
 
 # LiveKit Recording Webhook - DOIT être false car LiveKit ne peut pas envoyer de JWT
 [functions.livekit-recording-webhook]
@@ -168,7 +168,7 @@ verify_jwt = false
 
 # AI Content Moderation (legacy - replaced by ai-gateway)
 [functions.moderate-content]
-verify_jwt = true
+verify_jwt = false
 
 # Unified AI Gateway - handles moderation, ID verification, watermarks, translations
 [functions.ai-gateway]
@@ -180,18 +180,18 @@ verify_jwt = false
 
 # Video processing
 [functions.process-video]
-verify_jwt = true
+verify_jwt = false
 
 # Media fingerprinting
 [functions.compute-media-fingerprint]
-verify_jwt = true
+verify_jwt = false
 
-# Live extension - requires JWT for creator auth
+# Live extension - JWT validated manually in code
 [functions.create-live-extension]
-verify_jwt = true
+verify_jwt = false
 
 [functions.confirm-live-extension]
-verify_jwt = true
+verify_jwt = false
 
 # R2 Signed URLs - JWT validated manually in code
 [functions.get-replay-url]
@@ -209,15 +209,15 @@ verify_jwt = false
 [functions.cleanup-old-messages]
 verify_jwt = false
 
-# Private live checkout - requires JWT for payment
+# Private live checkout - JWT validated manually in code
 [functions.create-private-live-checkout]
 verify_jwt = false
 
-# Cancel private live - requires JWT
+# Cancel private live - JWT validated manually in code
 [functions.cancel-private-live]
 verify_jwt = false
 
-# Report private live no-show - requires JWT
+# Report private live no-show - JWT validated manually in code
 [functions.report-private-live-noshow]
 verify_jwt = false
 
@@ -245,7 +245,7 @@ verify_jwt = false
 [functions.auto-cleanup-expired-codes]
 verify_jwt = false
 
-# Generate translations via AI - requires JWT
+# Generate translations via AI - JWT validated manually in code
 [functions.generate-translations]
 verify_jwt = false
 
@@ -257,25 +257,25 @@ verify_jwt = false
 [functions.security-alerting]
 verify_jwt = false
 
-# Auction checkout - requires auth
+# Auction checkout - JWT validated manually in code
 [functions.create-auction-checkout]
-verify_jwt = true
+verify_jwt = false
 
 # Auction payment webhook - no JWT (Stripe webhook)
 [functions.auction-payment-webhook]
 verify_jwt = false
 
-# Bundle checkout - requires auth
+# Bundle checkout - JWT validated manually in code
 [functions.create-bundle-checkout]
-verify_jwt = true
+verify_jwt = false
 
 # Bundle payment webhook - no JWT (Stripe webhook)
 [functions.bundle-payment-webhook]
 verify_jwt = false
 
-# Wishlist contribution checkout - requires auth
+# Wishlist contribution checkout - JWT validated manually in code
 [functions.create-wishlist-contribution]
-verify_jwt = true
+verify_jwt = false
 
 # Wishlist payment webhook - no JWT (Stripe webhook)
 [functions.wishlist-payment-webhook]
