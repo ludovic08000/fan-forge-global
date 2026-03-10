@@ -1,3 +1,4 @@
+// v2 - CORS redeploy for theforge.fans
 /**
  * Edge Function pour activer un boost créateur après paiement Stripe
  * SECURISE: validation d'entrée, vérification session Stripe, protection anti-replay
