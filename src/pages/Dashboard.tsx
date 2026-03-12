@@ -537,65 +537,9 @@ const Dashboard = () => {
           </Suspense>
         )}
 
-        {/* Section: Analytics */}
-        {activeSection === 'analytics' && (
-          <Suspense fallback={<LoadingFallback message="Chargement des statistiques..." />}>
-            <CreatorAnalyticsDashboard />
-          </Suspense>
-        )}
 
+        {/* Sections: Analytics, Payments, Pricing removed — now inside Settings */}
 
-        {/* Section: Bundles */}
-        {activeSection === 'bundles' && creatorProfile?.id && (
-          <Suspense fallback={<LoadingFallback />}>
-            <CreatorBundlesSection creatorId={creatorProfile.id} />
-          </Suspense>
-        )}
-
-        {/* Section: Wishlists */}
-        {activeSection === 'wishlists' && creatorProfile?.id && (
-          <Suspense fallback={<LoadingFallback />}>
-            <CreatorWishlistSection creatorId={creatorProfile.id} />
-          </Suspense>
-        )}
-
-        {/* Section: Polls */}
-        {activeSection === 'polls' && creatorProfile?.id && (
-          <Suspense fallback={<LoadingFallback />}>
-            <CreatorPollsSection creatorId={creatorProfile.id} />
-          </Suspense>
-        )}
-
-        {/* Section: Partnerships */}
-        {activeSection === 'partnerships' && creatorProfile?.id && (
-          <Suspense fallback={<LoadingFallback />}>
-            <DashboardPartnershipsSection creatorId={creatorProfile.id} />
-          </Suspense>
-        )}
-
-        {/* Section: AI Marketing */}
-        {activeSection === 'ai-marketing' && creatorProfile?.id && (
-          <Suspense fallback={<LoadingFallback message="Chargement de l'IA Marketing..." />}>
-            <DashboardAIMarketing
-              creatorId={creatorProfile.id}
-              creatorStats={creatorStats}
-              stageName={shareDisplayName}
-            />
-          </Suspense>
-        )}
-
-        {/* Section: Payments */}
-        {activeSection === 'payments' && creatorProfile?.id && (
-          <DashboardPaymentsSection creatorId={creatorProfile.id} />
-        )}
-
-        {/* Section: Pricing & Boost */}
-        {activeSection === 'pricing' && creatorProfile?.id && (
-          <DashboardPricingSection 
-            creatorId={creatorProfile.id} 
-            currentBoostUntil={creatorProfile.featured_until}
-          />
-        )}
 
         {/* Section: Settings */}
         {activeSection === 'settings' && creatorProfile?.id && (
