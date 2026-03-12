@@ -31,7 +31,7 @@ export const useMessageNotifications = () => {
     return false;
   };
 
-  // Afficher une notification
+  // Afficher une notification native (cross-browser)
   const showNotification = (title: string, body: string, data?: { url?: string }) => {
     if (notificationPermission.current !== 'granted') return;
 
@@ -40,7 +40,8 @@ export const useMessageNotifications = () => {
         body,
         icon: '/pwa-icon-192.png',
         badge: '/pwa-icon-192.png',
-        tag: 'new-message',
+        tag: `notification-${Date.now()}`,
+        silent: false, // Laisser le navigateur jouer le son système aussi
       });
 
       notification.onclick = () => {
@@ -51,20 +52,18 @@ export const useMessageNotifications = () => {
         notification.close();
       };
 
-      // Fermer automatiquement après 5 secondes
       setTimeout(() => notification.close(), 5000);
     } catch (error) {
-      console.error('Erreur lors de l\'affichage de la notification:', error);
+      // Safari peut rejeter new Notification, utiliser le toast comme fallback
+      console.warn('Notification API error, using toast fallback:', error);
     }
   };
 
   useEffect(() => {
     if (!user) return;
 
-    // Demander la permission au chargement
     requestPermission();
 
-    // Récupérer l'ID du créateur si l'utilisateur est un créateur
     const getCreatorId = async () => {
       if (userRole === 'creator') {
         const { data } = await supabase
@@ -78,8 +77,8 @@ export const useMessageNotifications = () => {
 
     getCreatorId();
 
-    // S'abonner aux nouveaux messages en temps réel
-    const channel = supabase
+    // Channel 1: Nouveaux messages privés
+    const messagesChannel = supabase
       .channel('private-messages-notifications')
       .on(
         'postgres_changes',
@@ -91,18 +90,15 @@ export const useMessageNotifications = () => {
         async (payload) => {
           const newMessage = payload.new as any;
 
-          // Vérifier si le message nous concerne
           let isForMe = false;
           let senderName = 'Quelqu\'un';
           let chatUrl = '';
 
           if (userRole === 'creator' && creatorIdRef.current) {
-            // Si je suis créateur et le message est pour moi
             if (newMessage.creator_id === creatorIdRef.current && newMessage.subscriber_id !== user.id) {
               isForMe = true;
               chatUrl = `/chat/${newMessage.subscriber_id}`;
               
-              // Récupérer le nom de l'abonné
               const { data: profile } = await supabase
                 .from('profiles')
                 .select('display_name, username')
@@ -112,12 +108,10 @@ export const useMessageNotifications = () => {
               senderName = profile?.display_name || profile?.username || 'Un abonné';
             }
           } else {
-            // Si je suis abonné et le message vient d'un créateur
             if (newMessage.subscriber_id === user.id) {
               isForMe = true;
               chatUrl = `/chat/${newMessage.creator_id}`;
               
-              // Récupérer le nom du créateur
               const { data: creator } = await supabase
                 .from('creators')
                 .select('stage_name')
@@ -128,10 +122,8 @@ export const useMessageNotifications = () => {
             }
           }
 
-          // Ne pas notifier si je suis sur la page de chat de cette conversation
           const currentPath = window.location.pathname;
           if (isForMe && !currentPath.includes(chatUrl)) {
-            // Déterminer le contenu du message
             let messagePreview = newMessage.content || '';
             if (newMessage.message_type === 'image') {
               messagePreview = '📷 Image';
@@ -141,17 +133,14 @@ export const useMessageNotifications = () => {
               messagePreview = '💎 Contenu payant';
             }
 
-            // Jouer le son de notification
             playNotificationSound();
 
-            // Afficher la notification
             showNotification(
               `Nouveau message de ${senderName}`,
               messagePreview.substring(0, 100),
               { url: chatUrl }
             );
 
-            // Toast pour les utilisateurs sur le site
             toast.info(`Nouveau message de ${senderName}`, {
               description: messagePreview.substring(0, 50),
               action: {
@@ -166,8 +155,103 @@ export const useMessageNotifications = () => {
       )
       .subscribe();
 
+    // Channel 2: Notifications de début de live
+    const liveChannel = supabase
+      .channel('live-start-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'live_streams',
+        },
+        async (payload) => {
+          const updatedLive = payload.new as any;
+          const oldLive = payload.old as any;
+
+          // Détecter uniquement le passage à "live"
+          if (updatedLive.status !== 'live' || oldLive?.status === 'live') return;
+
+          // Ne pas notifier le créateur lui-même
+          const { data: creator } = await supabase
+            .from('creators')
+            .select('user_id, stage_name')
+            .eq('id', updatedLive.creator_id)
+            .single();
+
+          if (!creator || creator.user_id === user.id) return;
+
+          // Vérifier si l'utilisateur est abonné à ce créateur
+          const { data: sub } = await supabase
+            .from('subscriptions')
+            .select('id')
+            .eq('subscriber_id', user.id)
+            .eq('creator_id', updatedLive.creator_id)
+            .eq('status', 'active')
+            .maybeSingle();
+
+          if (!sub) return;
+
+          const creatorName = creator.stage_name || 'Un créateur';
+          const liveUrl = `/watch/${updatedLive.id}`;
+          const currentPath = window.location.pathname;
+
+          if (!currentPath.includes(liveUrl)) {
+            playNotificationSound();
+
+            showNotification(
+              `${creatorName} est en live ! 🔴`,
+              updatedLive.title || 'Un live vient de commencer',
+              { url: liveUrl }
+            );
+
+            toast.info(`🔴 ${creatorName} est en live !`, {
+              description: updatedLive.title || 'Cliquez pour regarder',
+              duration: 8000,
+              action: {
+                label: 'Regarder',
+                onClick: () => {
+                  window.location.href = liveUrl;
+                },
+              },
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    // Channel 3: Notifications générales (tips, abonnements, etc.)
+    const notifChannel = supabase
+      .channel('general-notifications-sound')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const notif = payload.new as any;
+          
+          // Jouer le son pour les notifications importantes
+          const importantTypes = ['tip_received', 'new_subscriber', 'sale', 'payment_success', 'auction_bid'];
+          if (importantTypes.includes(notif.type)) {
+            playNotificationSound();
+
+            showNotification(
+              notif.title || 'TheForge',
+              notif.message || 'Nouvelle notification',
+            );
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(liveChannel);
+      supabase.removeChannel(notifChannel);
     };
   }, [user, userRole, playNotificationSound]);
 
