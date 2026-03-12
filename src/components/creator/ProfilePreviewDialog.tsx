@@ -60,8 +60,11 @@ const ProfilePreviewDialog: React.FC<ProfilePreviewDialogProps> = ({
         
         {/* Preview Container - simule le rendu mobile */}
         <div className="bg-background">
-          {/* Cover Photo Preview - matching real 3:1 ratio */}
-          <div className="relative aspect-[3/1] bg-gradient-to-br from-primary/30 to-primary/10 overflow-hidden">
+          {/* Cover Photo Preview - identique à ResponsiveCover */}
+          <div
+            className="relative w-full overflow-hidden bg-gradient-to-br"
+            style={{ height: 'clamp(120px, 28vw, 180px)' }}
+          >
             {coverUrl ? (
               <motion.img 
                 src={coverUrl} 
@@ -80,20 +83,6 @@ const ProfilePreviewDialog: React.FC<ProfilePreviewDialogProps> = ({
                 </div>
               </div>
             )}
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/5 to-transparent" />
-            
-            {/* Navigation preview (disabled) */}
-            <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
-              <div className="p-2 rounded-full bg-black/40">
-                <div className="h-4 w-4 bg-white/50 rounded" />
-              </div>
-              <div className="flex gap-2">
-                <div className="p-2 rounded-full bg-black/40">
-                  <div className="h-4 w-4 bg-white/50 rounded" />
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Profile Section */}
