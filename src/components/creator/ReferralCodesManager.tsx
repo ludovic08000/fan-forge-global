@@ -259,8 +259,8 @@ const ReferralCodesManager: React.FC<ReferralCodesManagerProps> = ({ creatorId }
             }
           }}>
             <DialogTrigger asChild>
-              <Button variant="premium" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
+              <Button variant="premium" size="sm" className="whitespace-nowrap overflow-hidden">
+                <Plus className="h-4 w-4 mr-2 shrink-0" />
                 Nouveau code
               </Button>
             </DialogTrigger>
