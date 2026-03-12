@@ -5,6 +5,7 @@ import LiveNowSection from "@/components/LiveNowSection";
 import ContentGallery from "@/components/ContentGallery";
 import AgeVerificationGate from "@/components/AgeVerificationGate";
 import SEOHead from "@/components/SEOHead";
+import { StoriesBar } from "@/components/stories/StoriesBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "@/contexts/TranslationContext";
 
@@ -24,6 +25,12 @@ const Index = () => {
           
           {user && (
             <>
+              <section className="py-4 bg-background">
+                <div className="container mx-auto px-4">
+                  <StoriesBar />
+                </div>
+              </section>
+
               <section className="py-8 bg-muted/20 relative z-50">
                 <div className="container mx-auto px-4">
                   <DiscoveryFilters />
