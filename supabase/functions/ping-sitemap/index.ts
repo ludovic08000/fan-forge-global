@@ -65,7 +65,31 @@ serve(async (req) => {
 
     // Also ping IndexNow for Bing/Yandex (modern protocol)
     try {
-      const indexNowUrl = "https://www.bing.com/indexnow";
+      const indexNowUrl = "https://api.indexnow.org/indexnow";
+      
+      // Fetch recent creators for IndexNow
+      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.57.2");
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      
+      const { data: recentCreators } = await supabase
+        .from('creators')
+        .select('user_id')
+        .or('is_paused.is.null,is_paused.eq.false')
+        .order('updated_at', { ascending: false })
+        .limit(20);
+      
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, username')
+        .in('user_id', recentCreators?.map(c => c.user_id) || []);
+      
+      const creatorUrls = profiles
+        ?.filter(p => p.username)
+        .map(p => `https://crub.fr/creator/${p.username}`) || [];
+
       const indexNowResponse = await fetch(indexNowUrl, {
         method: "POST",
         headers: {
@@ -74,10 +98,13 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           host: "crub.fr",
-          key: "crub-indexnow-key", // Clé simple, peut être améliorée
+          key: "crub-indexnow-key",
+          keyLocation: "https://crub.fr/crub-indexnow-key.txt",
           urlList: [
             "https://crub.fr/",
             "https://crub.fr/search",
+            "https://crub.fr/lives",
+            ...creatorUrls,
           ],
         }),
       });

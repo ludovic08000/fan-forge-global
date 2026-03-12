@@ -164,6 +164,41 @@ serve(async (req) => {
   
   <!-- ==================== PAGES CRÉATEURS ==================== -->`;
 
+    // Fetch recent public content for content detail pages
+    const { data: recentContent } = await supabase
+      .from('content')
+      .select('id, title, created_at, updated_at, creator_id, content_type, thumbnail_url')
+      .eq('status', 'published')
+      .eq('is_premium', false)
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (recentContent && recentContent.length > 0) {
+      xml += `
+  
+  <!-- ==================== CONTENUS PUBLICS ==================== -->`;
+
+      recentContent.forEach(content => {
+        const lastmod = (content.updated_at || content.created_at)?.split('T')[0] || today;
+        xml += `
+  <url>
+    <loc>${baseUrl}/content/${content.id}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>`;
+        if (content.thumbnail_url) {
+          xml += `
+    <image:image>
+      <image:loc>${content.thumbnail_url}</image:loc>
+      <image:title>${content.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')}</image:title>
+    </image:image>`;
+        }
+        xml += `
+  </url>`;
+      });
+    }
+
+    logStep("Added content pages", { count: recentContent?.length || 0 });
 
     // Add creator profile pages - only those who haven't opted out
     visibleCreators.forEach(creator => {
@@ -207,11 +242,13 @@ serve(async (req) => {
     xml += `
 </urlset>`;
 
+    const contentPages = recentContent?.length || 0;
     const stats = {
       staticPages: 10,
       creatorPages: visibleCreators.length,
+      contentPages,
       hiddenCreators: (creators?.length || 0) - visibleCreators.length,
-      totalUrls: 10 + visibleCreators.length,
+      totalUrls: 10 + visibleCreators.length + contentPages,
       generatedAt: new Date().toISOString()
     };
 
