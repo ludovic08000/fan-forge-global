@@ -74,16 +74,18 @@ const Header = memo(() => {
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="ghost" 
-                  className="relative h-14 w-14 rounded-full p-0 ring-2 ring-primary/50 hover:ring-primary hover:ring-offset-2 hover:ring-offset-background transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-primary/40"
+                  className="relative h-12 w-12 rounded-full p-0 group transition-all duration-300 hover:scale-110"
                   aria-label="Menu utilisateur"
                 >
-                  <Avatar className="h-14 w-14 border-2 border-primary/30 shadow-xl">
+                  <span className="absolute inset-[-3px] rounded-full bg-gradient-to-tr from-primary via-primary-glow to-accent opacity-80 group-hover:opacity-100 group-hover:animate-spin-slow transition-opacity blur-[1px]" />
+                  <span className="absolute inset-[-2px] rounded-full bg-gradient-to-tr from-primary via-primary-glow to-accent opacity-90" />
+                  <Avatar className="relative h-12 w-12 border-2 border-background shadow-xl">
                     <AvatarImage 
                       src={getAvatarUrl() || undefined} 
                       alt={getDisplayName() || 'Avatar'} 
                       className="object-cover"
                     />
-                    <AvatarFallback className="bg-gradient-to-br from-primary via-primary-glow to-accent text-primary-foreground font-bold text-lg">
+                    <AvatarFallback className="bg-gradient-to-br from-primary via-primary-glow to-accent text-primary-foreground font-bold text-base">
                       {getInitials()}
                     </AvatarFallback>
                   </Avatar>
