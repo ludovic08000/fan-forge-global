@@ -161,7 +161,7 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId, forceCreatorI
     if (viewIndex < viewingGroup.stories.length - 1) {
       const next = viewIndex + 1;
       setViewIndex(next);
-      supabase.rpc('record_story_view', { p_story_id: viewingGroup.stories[next].id }).catch(() => {});
+      supabase.rpc('record_story_view', { p_story_id: viewingGroup.stories[next].id }).then(() => {});
     } else {
       setViewingGroup(null);
     }
