@@ -56,6 +56,8 @@ interface Creator {
     bio: string | null;
     avatar_url: string | null;
     cover_url: string | null;
+    cover_position: number | null;
+    cover_position_x: number | null;
     location: string | null;
     website: string | null;
     is_verified: boolean;
