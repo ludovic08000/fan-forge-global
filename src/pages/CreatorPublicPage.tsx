@@ -520,9 +520,10 @@ const CreatorPublicPage = () => {
     );
   }
 
-  // Éviter d'afficher le début de l'email : préférer stage_name > username > display_name nettoyé
+  // Affichage public: toujours privilégier le nom de scène, jamais le username
+  const stageName = creator?.stage_name?.trim();
   const safeDisplayName = profile?.display_name && !profile.display_name.includes('@') ? profile.display_name : null;
-  const creatorName = creator?.stage_name || profile?.username || safeDisplayName || 'Créateur';
+  const creatorName = stageName || safeDisplayName || 'Créateur';
   const creatorDescription = profile?.bio 
     ? `${profile.bio.substring(0, 150)}${profile.bio.length > 150 ? '...' : ''}`
     : `Découvrez le profil de ${creatorName} sur Crub.`;
@@ -910,7 +911,7 @@ const CreatorPublicPage = () => {
               <ProtectedMedia
                 key={item.id}
                 className="relative aspect-square overflow-hidden cursor-pointer group"
-                watermarkText={canView ? (creator?.stage_name || profile?.username) : undefined}
+                watermarkText={canView ? creatorName : undefined}
                 enableForensicWatermark={canView && item.is_premium}
               >
                 <div 
