@@ -242,11 +242,13 @@ serve(async (req) => {
     xml += `
 </urlset>`;
 
+    const contentPages = recentContent?.length || 0;
     const stats = {
       staticPages: 10,
       creatorPages: visibleCreators.length,
+      contentPages,
       hiddenCreators: (creators?.length || 0) - visibleCreators.length,
-      totalUrls: 10 + visibleCreators.length,
+      totalUrls: 10 + visibleCreators.length + contentPages,
       generatedAt: new Date().toISOString()
     };
 
