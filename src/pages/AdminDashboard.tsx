@@ -34,7 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp, Shield, ShieldAlert, Brain, BarChart3, XCircle, Video, CalendarX } from 'lucide-react';
+import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp, Shield, ShieldAlert, Brain, BarChart3, XCircle, Video, CalendarX, ScanSearch } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentRequestsManager from '@/components/admin/PaymentRequestsManager';
 import PlatformCommissions from '@/components/admin/PlatformCommissions';
@@ -50,6 +50,7 @@ import AdvancedAnalytics from '@/components/admin/AdvancedAnalytics';
 import FailedPayments from '@/components/admin/FailedPayments';
 import PrivateLivesManager from '@/components/admin/PrivateLivesManager';
 import NoShowManager from '@/components/admin/NoShowManager';
+import PaymentAuditPanel from '@/components/admin/PaymentAuditPanel';
 
 interface ContentReport {
   id: string;
@@ -455,7 +456,16 @@ const AdminDashboard = () => {
             <CalendarX className="h-3 w-3" />
             No-Shows
           </TabsTrigger>
+          <TabsTrigger value="payment-audit" className="flex items-center gap-1">
+            <ScanSearch className="h-3 w-3" />
+            Audit IA Paiements
+          </TabsTrigger>
         </TabsList>
+
+        {/* Onglet Audit IA Paiements */}
+        <TabsContent value="payment-audit" className="space-y-4">
+          <PaymentAuditPanel />
+        </TabsContent>
 
         {/* Onglet Analytics Avancés */}
         <TabsContent value="analytics" className="space-y-4">

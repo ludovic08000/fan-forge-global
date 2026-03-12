@@ -2706,6 +2706,45 @@ export type Database = {
           },
         ]
       }
+      payment_audit_results: {
+        Row: {
+          ai_analysis: string | null
+          anomalies: Json | null
+          anomalies_found: number | null
+          audit_type: string
+          created_at: string | null
+          id: string
+          period_end: string
+          period_start: string
+          score: number | null
+          total_transactions: number | null
+        }
+        Insert: {
+          ai_analysis?: string | null
+          anomalies?: Json | null
+          anomalies_found?: number | null
+          audit_type: string
+          created_at?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+          score?: number | null
+          total_transactions?: number | null
+        }
+        Update: {
+          ai_analysis?: string | null
+          anomalies?: Json | null
+          anomalies_found?: number | null
+          audit_type?: string
+          created_at?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          score?: number | null
+          total_transactions?: number | null
+        }
+        Relationships: []
+      }
       performance_metrics: {
         Row: {
           ai_analyzed_at: string | null

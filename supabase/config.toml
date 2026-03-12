@@ -284,3 +284,7 @@ verify_jwt = false
 # Performance analytics - no JWT (anonymous metrics collection)
 [functions.analyze-performance]
 verify_jwt = false
+
+# Payment audit - JWT validated manually (admin or cron)
+[functions.audit-payments]
+verify_jwt = false
