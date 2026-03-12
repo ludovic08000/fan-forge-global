@@ -280,3 +280,7 @@ verify_jwt = false
 # Wishlist payment webhook - no JWT (Stripe webhook)
 [functions.wishlist-payment-webhook]
 verify_jwt = false
+
+# Performance analytics - no JWT (anonymous metrics collection)
+[functions.analyze-performance]
+verify_jwt = false

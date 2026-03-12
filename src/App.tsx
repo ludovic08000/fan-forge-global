@@ -96,6 +96,7 @@ const queryClient = new QueryClient({
 const AppRoutes = () => {
   useContentProtection(true);
   useAdaptiveLayout();
+  useWebVitalsCollector();
 
   const location = useLocation();
   const navigate = useNavigate();
