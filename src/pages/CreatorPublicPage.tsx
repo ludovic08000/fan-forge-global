@@ -572,20 +572,21 @@ const CreatorPublicPage = () => {
         }}
         modifiedTime={creator?.updated_at}
       />
-      {/* Cover Photo */}
-      <div className="relative h-56 md:h-72 bg-gradient-to-br from-primary/30 to-primary/10">
+      {/* Cover Photo - responsive aspect ratio */}
+      <div className="relative w-full aspect-[3/1] max-h-[340px] bg-gradient-to-br from-primary/30 to-primary/10 overflow-hidden">
         {profile.cover_url ? (
           <img 
             src={profile.cover_url} 
-            alt="Cover" 
+            alt={`Couverture de ${creatorName}`}
             className="w-full h-full object-cover"
             style={{ objectPosition: `${profile.cover_position_x ?? 50}% ${profile.cover_position ?? 50}%` }}
+            loading="eager"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/30" />
         )}
         {/* Gradient overlay pour lisibilité */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/5 to-transparent" />
       </div>
 
       {/* Profile Section */}

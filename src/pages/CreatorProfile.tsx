@@ -292,16 +292,19 @@ const CreatorProfile: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background pt-16">
-      {/* Cover Section */}
-      <div className="relative h-64 bg-gradient-to-br from-primary/20 to-primary-glow/20 overflow-hidden">
-        {creator.profiles?.cover_url && (
+      {/* Cover Section - responsive aspect ratio */}
+      <div className="relative w-full aspect-[3/1] max-h-[340px] bg-gradient-to-br from-primary/20 to-primary-glow/20 overflow-hidden">
+        {creator.profiles?.cover_url ? (
           <img
             src={creator.profiles.cover_url}
-            alt="Cover"
+            alt={`Couverture de ${creatorName}`}
             className="w-full h-full object-cover"
+            loading="eager"
           />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/30" />
         )}
-        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
         
         {/* Back Button */}
         <Button
