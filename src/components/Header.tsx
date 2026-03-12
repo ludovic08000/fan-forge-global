@@ -55,7 +55,7 @@ const Header = memo(() => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60" role="banner">
-      <div className="w-full px-4 lg:px-8 h-16 flex items-center justify-between">
+      <div className="mx-auto w-full max-w-[1920px] px-4 sm:px-6 lg:px-10 xl:px-16 h-16 flex items-center justify-between">
         <div className="flex items-center">
           <Link 
             to={getHomeDestination()} 
