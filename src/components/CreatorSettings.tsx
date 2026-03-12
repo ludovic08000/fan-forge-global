@@ -204,6 +204,27 @@ const CreatorSettings: React.FC = () => {
       return;
     }
 
+    // Auto-detect dimensions and warn if too small
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    
+    await new Promise<void>((resolve) => {
+      img.onload = () => resolve();
+      img.onerror = () => resolve();
+      img.src = objectUrl;
+    });
+    
+    URL.revokeObjectURL(objectUrl);
+    
+    const imgWidth = img.naturalWidth;
+    const imgHeight = img.naturalHeight;
+    
+    if (imgWidth < 800 || imgHeight < 200) {
+      toast.warning(`Image trop petite (${imgWidth}×${imgHeight}px). Minimum recommandé : 1500×500px pour un rendu optimal.`);
+    } else if (imgWidth < 1500 || imgHeight < 400) {
+      toast.info(`Image détectée : ${imgWidth}×${imgHeight}px. Pour un meilleur rendu, utilisez 1500×500px ou plus.`);
+    }
+
     setUploadingCover(true);
     try {
       const fileExt = file.name.split(".").pop();
@@ -227,7 +248,7 @@ const CreatorSettings: React.FC = () => {
       if (updateError) throw updateError;
 
       setUserProfile(prev => ({ ...prev, cover_url: `${urlData.publicUrl}?t=${Date.now()}`, avatar_url: prev?.avatar_url || null }));
-      toast.success("Photo de couverture mise à jour");
+      toast.success(`Photo de couverture mise à jour (${imgWidth}×${imgHeight}px)`);
     } catch (error) {
       console.error("Error uploading cover:", error);
       toast.error("Erreur lors de l'upload");
