@@ -32,6 +32,7 @@ import { ProfilePollsSection } from '@/components/polls/ProfilePollsSection';
 import { StoriesBar } from '@/components/stories/StoriesBar';
 // import AgeVerificationGate, { requiresAgeVerification } from '@/components/AgeVerificationGate';
 import { useGeoLocation } from '@/hooks/useGeoLocation';
+import { ResponsiveCover } from '@/components/profile/ResponsiveCover';
 
 interface Creator {
   id: string;

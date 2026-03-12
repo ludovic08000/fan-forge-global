@@ -24,6 +24,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { CreatorTipButton } from '@/components/CreatorTipButton';
 import PrivateLiveRequestDialog from '@/components/live/PrivateLiveRequestDialog';
 import { SecureContentItem } from '@/components/SecureContentItem';
+import { ResponsiveCover } from '@/components/profile/ResponsiveCover';
 
 type ContentFilter = 'all' | 'image' | 'video';
 type TabFilter = 'posts' | 'medias';
