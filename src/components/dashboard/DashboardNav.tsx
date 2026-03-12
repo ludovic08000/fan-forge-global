@@ -44,7 +44,7 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
   const isMobile = useIsMobile();
 
   return (
-    <div className="flex gap-1.5 sm:gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2 scrollbar-hide">
+    <div className="flex flex-nowrap gap-1.5 sm:gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2 scrollbar-hide">
       {menuItems.map((item) => {
         const isActive = activeSection === item.id;
         const Icon = item.icon;
