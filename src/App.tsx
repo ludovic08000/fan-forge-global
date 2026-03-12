@@ -17,6 +17,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { useContentProtection } from "@/hooks/useContentProtection";
+import { useAdaptiveLayout } from "@/hooks/useAdaptiveLayout";
 import CookieConsent from "@/components/CookieConsent";
 import { MessageNotificationProvider } from "@/components/MessageNotificationProvider";
 import SplashScreen from "@/components/SplashScreen";
