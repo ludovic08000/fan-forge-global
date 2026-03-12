@@ -826,3 +826,83 @@ html {
   -moz-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
+
+/* =====================================================
+   ADAPTIVE LAYOUT RULES (auto-detected via JS)
+   ===================================================== */
+
+/* Laptop: ajuster les paddings et tailles de texte */
+html.screen-laptop {
+  font-size: 15px;
+}
+
+html.screen-laptop .container {
+  max-width: 1140px;
+}
+
+/* Desktop large: plus d'espace */
+html.screen-desktop {
+  font-size: 16px;
+}
+
+/* Tablette: optimiser l'espace */
+html.screen-tablet {
+  font-size: 15px;
+}
+
+/* Mobile: compact */
+html.screen-mobile {
+  font-size: 14px;
+}
+
+/* Safari-specific fixes */
+html.browser-safari input[type="date"],
+html.browser-safari input[type="time"],
+html.browser-safari input[type="datetime-local"] {
+  -webkit-appearance: textfield;
+  appearance: textfield;
+}
+
+html.browser-safari .backdrop-blur-xl {
+  -webkit-backdrop-filter: blur(24px);
+}
+
+/* iOS safe areas */
+html.os-ios body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* PWA standalone mode */
+html.standalone header {
+  padding-top: env(safe-area-inset-top);
+}
+
+html.standalone .sticky.bottom-0 {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Touch devices: plus grandes zones cliquables */
+html.touch-device button,
+html.touch-device a,
+html.touch-device [role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* High DPI: borders plus fines */
+html.high-dpi {
+  --border-width: 0.5px;
+}
+
+/* Orientation portrait tablette: stack layouts */
+html.screen-tablet.orientation-portrait .grid-cols-3 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* Windows Edge: scrollbar fix */
+html.browser-edge {
+  scrollbar-width: thin;
+}

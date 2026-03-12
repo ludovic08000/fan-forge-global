@@ -17,6 +17,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { useContentProtection } from "@/hooks/useContentProtection";
+import { useAdaptiveLayout } from "@/hooks/useAdaptiveLayout";
 import CookieConsent from "@/components/CookieConsent";
 import { MessageNotificationProvider } from "@/components/MessageNotificationProvider";
 import SplashScreen from "@/components/SplashScreen";
@@ -92,8 +93,8 @@ const queryClient = new QueryClient({
  * Composant interne qui utilise le hook de protection
  */
 const AppRoutes = () => {
-  // Activer la protection anti-capture globalement
   useContentProtection(true);
+  useAdaptiveLayout();
 
   const location = useLocation();
   const navigate = useNavigate();
