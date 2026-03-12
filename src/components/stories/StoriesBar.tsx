@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 
 interface StoriesBarProps {
   creatorId?: string; // If provided, show only this creator's stories
+  forceCreatorId?: string | null; // Optional fallback creator id (from dashboard)
 }
 
 interface StoryGroup {
@@ -21,7 +22,7 @@ interface StoryGroup {
   stories: any[];
 }
 
-export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId }) => {
+export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId, forceCreatorId }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [viewingGroup, setViewingGroup] = useState<StoryGroup | null>(null);
@@ -89,9 +90,12 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId }) => {
     },
   });
 
+  const canUpload = !!(myCreator?.id || forceCreatorId);
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !myCreator) return;
+    const activeCreatorId = myCreator?.id || forceCreatorId;
+    if (!file || !activeCreatorId) return;
     setUploading(true);
     try {
       const { data, error } = await supabase.functions.invoke('r2-upload', {
@@ -100,7 +104,7 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId }) => {
       if (error) throw error;
 
       await supabase.from('creator_stories').insert({
-        creator_id: myCreator.id,
+        creator_id: activeCreatorId,
         image_url: data.url || data.key,
         caption: caption.trim() || null,
         expires_at: new Date(Date.now() + 24 * 3600000).toISOString(),
@@ -138,12 +142,12 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId }) => {
   };
 
   if (!user) return null;
-  if (!storyGroups?.length && !myCreator) return null;
+  if (!storyGroups?.length && !canUpload) return null;
 
   return (
     <>
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-        {myCreator && (
+        {canUpload && (
           <button onClick={() => setShowUpload(true)} className="flex flex-col items-center gap-1 shrink-0">
             <div className="h-16 w-16 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
               <Plus className="h-5 w-5 text-muted-foreground" />
