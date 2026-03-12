@@ -142,12 +142,12 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId, forceCreatorI
   };
 
   if (!user) return null;
-  if (!storyGroups?.length && !myCreator) return null;
+  if (!storyGroups?.length && !canUpload) return null;
 
   return (
     <>
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-        {myCreator && (
+        {canUpload && (
           <button onClick={() => setShowUpload(true)} className="flex flex-col items-center gap-1 shrink-0">
             <div className="h-16 w-16 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
               <Plus className="h-5 w-5 text-muted-foreground" />
