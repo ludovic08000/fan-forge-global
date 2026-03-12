@@ -289,7 +289,20 @@ serve(async (req) => {
         normalizedPath.startsWith(p)
       );
 
+      // Also allow story images (verified via DB)
+      let isStoryImage = false;
       if (!hasAllowedPrefix) {
+        const { data: storyMatch } = await supabaseAdmin
+          .from("creator_stories")
+          .select("id")
+          .eq("image_url", normalizedPath)
+          .gt("expires_at", new Date().toISOString())
+          .limit(1)
+          .maybeSingle();
+        isStoryImage = !!storyMatch;
+      }
+
+      if (!hasAllowedPrefix && !isStoryImage) {
         console.warn("[get-replay-url] BLOCKED non-allowlisted path:", normalizedPath);
         return new Response(JSON.stringify({ error: "Forbidden" }), {
           status: 403,
