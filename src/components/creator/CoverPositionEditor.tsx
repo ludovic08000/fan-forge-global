@@ -119,9 +119,10 @@ const CoverPositionEditor: React.FC<CoverPositionEditorProps> = ({
           </p>
         </DialogHeader>
         
+        {/* Preview with real 3:1 aspect ratio matching profile */}
         <div 
           ref={containerRef}
-          className="relative h-48 overflow-hidden cursor-grab active:cursor-grabbing select-none mx-4 rounded-lg border"
+          className="relative aspect-[3/1] overflow-hidden cursor-grab active:cursor-grabbing select-none mx-4 rounded-lg border"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}

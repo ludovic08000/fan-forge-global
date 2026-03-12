@@ -204,6 +204,27 @@ const CreatorSettings: React.FC = () => {
       return;
     }
 
+    // Auto-detect dimensions and warn if too small
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    
+    await new Promise<void>((resolve) => {
+      img.onload = () => resolve();
+      img.onerror = () => resolve();
+      img.src = objectUrl;
+    });
+    
+    URL.revokeObjectURL(objectUrl);
+    
+    const imgWidth = img.naturalWidth;
+    const imgHeight = img.naturalHeight;
+    
+    if (imgWidth < 800 || imgHeight < 200) {
+      toast.warning(`Image trop petite (${imgWidth}×${imgHeight}px). Minimum recommandé : 1500×500px pour un rendu optimal.`);
+    } else if (imgWidth < 1500 || imgHeight < 400) {
+      toast.info(`Image détectée : ${imgWidth}×${imgHeight}px. Pour un meilleur rendu, utilisez 1500×500px ou plus.`);
+    }
+
     setUploadingCover(true);
     try {
       const fileExt = file.name.split(".").pop();
@@ -227,7 +248,7 @@ const CreatorSettings: React.FC = () => {
       if (updateError) throw updateError;
 
       setUserProfile(prev => ({ ...prev, cover_url: `${urlData.publicUrl}?t=${Date.now()}`, avatar_url: prev?.avatar_url || null }));
-      toast.success("Photo de couverture mise à jour");
+      toast.success(`Photo de couverture mise à jour (${imgWidth}×${imgHeight}px)`);
     } catch (error) {
       console.error("Error uploading cover:", error);
       toast.error("Erreur lors de l'upload");
@@ -352,26 +373,32 @@ const CreatorSettings: React.FC = () => {
                 />
               )}
             </div>
-            <div className="relative h-32 bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg overflow-hidden group">
+            {/* Cover preview with real aspect ratio (3:1) matching profile display */}
+            <div className="relative aspect-[3/1] bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg overflow-hidden group border border-border">
               {userProfile?.cover_url ? (
                 <img 
                   src={userProfile.cover_url} 
                   alt="Couverture" 
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                   style={{ objectPosition: `${userProfile.cover_position_x ?? 50}% ${userProfile.cover_position ?? 50}%` }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                  <ImageIcon className="h-8 w-8" />
+                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
+                  <ImageIcon className="h-10 w-10" />
+                  <span className="text-sm">Ajoutez une photo de couverture</span>
+                  <span className="text-xs opacity-60">Format idéal : 1500×500px (ratio 3:1)</span>
                 </div>
               )}
-              <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+              <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-200 cursor-pointer">
                 {uploadingCover ? (
-                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-6 w-6 animate-spin text-white" />
+                    <span className="text-xs text-white/80">Upload en cours...</span>
+                  </div>
                 ) : (
-                  <div className="flex items-center gap-2 text-white">
-                    <Camera className="h-5 w-5" />
-                    <span className="text-sm font-medium">Modifier</span>
+                  <div className="flex flex-col items-center gap-2 text-white">
+                    <Camera className="h-6 w-6" />
+                    <span className="text-sm font-medium">Modifier la couverture</span>
                   </div>
                 )}
                 <input
@@ -382,9 +409,14 @@ const CreatorSettings: React.FC = () => {
                   disabled={uploadingCover}
                 />
               </label>
+              {/* Gradient overlay like on profile */}
+              {userProfile?.cover_url && (
+                <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/30 to-transparent pointer-events-none" />
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Taille recommandée : 1500x500px. Max 10 Mo.
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <ImageIcon className="h-3 w-3" />
+              Ratio 3:1 recommandé (ex: 1500×500px). JPG, PNG ou WebP. Max 10 Mo.
             </p>
           </div>
 
