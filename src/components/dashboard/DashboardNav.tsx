@@ -27,7 +27,7 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
   const isMobile = useIsMobile();
 
   return (
-    <div className="flex gap-1.5 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+    <div className="flex gap-1 sm:gap-1.5 mb-4 sm:mb-8 overflow-x-auto pb-2 scrollbar-hide">
       {menuItems.map((item) => (
         <Button
           key={item.id}
