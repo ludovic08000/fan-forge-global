@@ -137,6 +137,7 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId }) => {
     }
   };
 
+  if (!user) return null;
   if (!storyGroups?.length && !myCreator) return null;
 
   return (
