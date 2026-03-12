@@ -456,6 +456,10 @@ const AdminDashboard = () => {
             <CalendarX className="h-3 w-3" />
             No-Shows
           </TabsTrigger>
+          <TabsTrigger value="payment-audit" className="flex items-center gap-1">
+            <ScanSearch className="h-3 w-3" />
+            Audit IA Paiements
+          </TabsTrigger>
         </TabsList>
 
         {/* Onglet Analytics Avancés */}
