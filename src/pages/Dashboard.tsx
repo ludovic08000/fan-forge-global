@@ -416,15 +416,12 @@ const Dashboard = () => {
     { id: 'content' as DashboardSection, label: t('dashboard.myContent'), icon: ImageIcon, badge: 0 },
     { id: 'live' as DashboardSection, label: t('dashboard.live'), icon: Radio, badge: 0 },
     { id: 'messages' as DashboardSection, label: t('dashboard.messages'), icon: MessageCircle, badge: unreadCount },
-    { id: 'analytics' as DashboardSection, label: t('dashboard.analytics'), icon: BarChart3, badge: 0 },
     
     { id: 'bundles' as DashboardSection, label: 'Bundles', icon: Package, badge: 0 },
     { id: 'wishlists' as DashboardSection, label: 'Wishlist', icon: Gift, badge: 0 },
     { id: 'polls' as DashboardSection, label: 'Sondages', icon: Vote, badge: 0 },
     { id: 'ai-marketing' as DashboardSection, label: 'IA Marketing', icon: BrainCircuit, badge: 0 },
     { id: 'partnerships' as DashboardSection, label: t('dashboard.partnerships'), icon: Handshake, badge: 0 },
-    { id: 'payments' as DashboardSection, label: t('dashboard.payments'), icon: Banknote, badge: 0 },
-    { id: 'pricing' as DashboardSection, label: t('dashboard.subscriptionBoost'), icon: Sparkles, badge: 0 },
     { id: 'settings' as DashboardSection, label: t('dashboard.settings'), icon: Settings, badge: 0 },
   ];
 
