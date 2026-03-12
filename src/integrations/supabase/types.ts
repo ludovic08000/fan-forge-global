@@ -2706,6 +2706,72 @@ export type Database = {
           },
         ]
       }
+      performance_metrics: {
+        Row: {
+          ai_analyzed_at: string | null
+          ai_recommendations: Json | null
+          ai_score: number | null
+          cls: number | null
+          created_at: string
+          device_type: string | null
+          dom_nodes: number | null
+          fcp: number | null
+          fid: number | null
+          id: string
+          inp: number | null
+          js_heap_size: number | null
+          lcp: number | null
+          page_url: string
+          resource_count: number | null
+          session_id: string
+          total_transfer_size: number | null
+          ttfb: number | null
+          user_agent: string | null
+        }
+        Insert: {
+          ai_analyzed_at?: string | null
+          ai_recommendations?: Json | null
+          ai_score?: number | null
+          cls?: number | null
+          created_at?: string
+          device_type?: string | null
+          dom_nodes?: number | null
+          fcp?: number | null
+          fid?: number | null
+          id?: string
+          inp?: number | null
+          js_heap_size?: number | null
+          lcp?: number | null
+          page_url: string
+          resource_count?: number | null
+          session_id: string
+          total_transfer_size?: number | null
+          ttfb?: number | null
+          user_agent?: string | null
+        }
+        Update: {
+          ai_analyzed_at?: string | null
+          ai_recommendations?: Json | null
+          ai_score?: number | null
+          cls?: number | null
+          created_at?: string
+          device_type?: string | null
+          dom_nodes?: number | null
+          fcp?: number | null
+          fid?: number | null
+          id?: string
+          inp?: number | null
+          js_heap_size?: number | null
+          lcp?: number | null
+          page_url?: string
+          resource_count?: number | null
+          session_id?: string
+          total_transfer_size?: number | null
+          ttfb?: number | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       platform_commissions: {
         Row: {
           commission_amount: number
@@ -4691,6 +4757,7 @@ export type Database = {
       cleanup_expired_quarantine: { Args: never; Returns: number }
       cleanup_old_email_logs: { Args: never; Returns: undefined }
       cleanup_old_login_attempts: { Args: never; Returns: undefined }
+      cleanup_old_performance_metrics: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_security_access_logs: { Args: never; Returns: undefined }
       cleanup_paused_creators: { Args: never; Returns: number }
