@@ -17,7 +17,7 @@ export const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
   const navigate = useNavigate();
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
       <div 
         className="group cursor-pointer p-5 rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm hover:bg-card hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all"
         onClick={onNewContent}
