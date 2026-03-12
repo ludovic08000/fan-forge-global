@@ -301,6 +301,7 @@ const CreatorProfile: React.FC = () => {
             src={creator.profiles.cover_url}
             alt={`Couverture de ${creatorName}`}
             className="w-full h-full object-cover"
+            style={{ objectPosition: `${creator.profiles.cover_position_x ?? 50}% ${creator.profiles.cover_position ?? 50}%` }}
             loading="eager"
           />
         ) : (
