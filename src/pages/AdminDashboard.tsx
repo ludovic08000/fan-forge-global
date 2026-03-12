@@ -50,6 +50,7 @@ import AdvancedAnalytics from '@/components/admin/AdvancedAnalytics';
 import FailedPayments from '@/components/admin/FailedPayments';
 import PrivateLivesManager from '@/components/admin/PrivateLivesManager';
 import NoShowManager from '@/components/admin/NoShowManager';
+import PaymentAuditPanel from '@/components/admin/PaymentAuditPanel';
 
 interface ContentReport {
   id: string;
