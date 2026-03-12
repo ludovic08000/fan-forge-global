@@ -538,14 +538,51 @@ const Dashboard = () => {
         )}
 
 
-        {/* Sections: Analytics, Payments, Pricing removed — now inside Settings */}
+        {/* Section: Bundles */}
+        {activeSection === 'bundles' && creatorProfile?.id && (
+          <Suspense fallback={<LoadingFallback />}>
+            <CreatorBundlesSection creatorId={creatorProfile.id} />
+          </Suspense>
+        )}
 
+        {/* Section: Wishlists */}
+        {activeSection === 'wishlists' && creatorProfile?.id && (
+          <Suspense fallback={<LoadingFallback />}>
+            <CreatorWishlistSection creatorId={creatorProfile.id} />
+          </Suspense>
+        )}
 
-        {/* Section: Settings */}
+        {/* Section: Polls */}
+        {activeSection === 'polls' && creatorProfile?.id && (
+          <Suspense fallback={<LoadingFallback />}>
+            <CreatorPollsSection creatorId={creatorProfile.id} />
+          </Suspense>
+        )}
+
+        {/* Section: Partnerships */}
+        {activeSection === 'partnerships' && creatorProfile?.id && (
+          <Suspense fallback={<LoadingFallback />}>
+            <DashboardPartnershipsSection creatorId={creatorProfile.id} />
+          </Suspense>
+        )}
+
+        {/* Section: AI Marketing */}
+        {activeSection === 'ai-marketing' && creatorProfile?.id && (
+          <Suspense fallback={<LoadingFallback message="Chargement de l'IA Marketing..." />}>
+            <DashboardAIMarketing
+              creatorId={creatorProfile.id}
+              creatorStats={creatorStats}
+              stageName={shareDisplayName}
+            />
+          </Suspense>
+        )}
+
+        {/* Section: Settings (includes Analytics, Payments, Pricing) */}
         {activeSection === 'settings' && creatorProfile?.id && (
           <DashboardSettingsSection 
             stripeConnected={stripeConnected} 
             creatorId={creatorProfile.id}
+            currentBoostUntil={creatorProfile.featured_until}
           />
         )}
 
