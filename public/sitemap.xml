@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
-  SITEMAP STATIQUE DE FALLBACK
-  Le sitemap dynamique est généré par l'edge function:
-  https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/sitemap
--->
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://crub.fr/</loc>
-    <priority>1.0</priority>
-  </url>
-</urlset>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/sitemap</loc>
+    <lastmod>2026-03-12</lastmod>
+  </sitemap>
+</sitemapindex>
