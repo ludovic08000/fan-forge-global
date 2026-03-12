@@ -77,8 +77,8 @@ const Header = memo(() => {
                   className="relative h-12 w-12 rounded-full p-0 group transition-all duration-300 hover:scale-110"
                   aria-label="Menu utilisateur"
                 >
-                  <span className="absolute inset-[-3px] rounded-full bg-gradient-to-tr from-primary via-primary-glow to-accent opacity-80 group-hover:opacity-100 group-hover:animate-spin-slow transition-opacity blur-[1px]" />
-                  <span className="absolute inset-[-2px] rounded-full bg-gradient-to-tr from-primary via-primary-glow to-accent opacity-90" />
+                  <span className="absolute inset-[-3px] rounded-full bg-gradient-to-tr from-primary to-primary-glow opacity-80 group-hover:opacity-100 transition-opacity blur-[1px]" />
+                  <span className="absolute inset-[-2px] rounded-full bg-gradient-to-tr from-primary to-primary-glow" />
                   <Avatar className="relative h-12 w-12 border-2 border-background shadow-xl">
                     <AvatarImage 
                       src={getAvatarUrl() || undefined} 
