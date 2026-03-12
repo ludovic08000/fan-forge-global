@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 
 interface StoriesBarProps {
   creatorId?: string; // If provided, show only this creator's stories
+  forceCreatorId?: string | null; // Optional fallback creator id (from dashboard)
 }
 
 interface StoryGroup {
@@ -21,7 +22,7 @@ interface StoryGroup {
   stories: any[];
 }
 
-export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId }) => {
+export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId, forceCreatorId }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [viewingGroup, setViewingGroup] = useState<StoryGroup | null>(null);

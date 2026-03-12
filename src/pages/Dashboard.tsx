@@ -470,7 +470,7 @@ const Dashboard = () => {
         {/* Section: Overview */}
         {activeSection === 'overview' && (
           <div className="space-y-8">
-            <StoriesBar />
+            <StoriesBar forceCreatorId={creatorProfile?.id ?? null} />
             <DashboardStats stats={creatorStats} />
             <DashboardQuickActions 
               onNewContent={() => setShowUpload(true)}
