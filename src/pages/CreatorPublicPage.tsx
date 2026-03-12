@@ -911,7 +911,7 @@ const CreatorPublicPage = () => {
               <ProtectedMedia
                 key={item.id}
                 className="relative aspect-square overflow-hidden cursor-pointer group"
-                watermarkText={canView ? (creator?.stage_name || profile?.username) : undefined}
+                watermarkText={canView ? creatorName : undefined}
                 enableForensicWatermark={canView && item.is_premium}
               >
                 <div 
