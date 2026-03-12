@@ -574,31 +574,22 @@ const CreatorPublicPage = () => {
         modifiedTime={creator?.updated_at}
       />
       {/* Cover Photo */}
-      <div className="relative w-full h-[200px] sm:h-[260px] md:h-[320px] bg-gradient-to-br from-primary/30 to-primary/10 overflow-hidden">
-        {profile.cover_url ? (
-          <img 
-            src={profile.cover_url} 
-            alt={`Couverture de ${creatorName}`}
-            className="w-full h-full object-cover"
-            style={{ objectPosition: `${profile.cover_position_x ?? 50}% ${profile.cover_position ?? 50}%` }}
-            loading="eager"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/30" />
-        )}
-      </div>
+      <ResponsiveCover
+        coverUrl={profile.cover_url}
+        creatorName={creatorName}
+        coverPositionX={profile.cover_position_x}
+        coverPositionY={profile.cover_position}
+        className="from-primary/30 to-primary/10"
+      />
 
       {/* Profile Section */}
-      <div className="relative px-4 sm:px-6 pb-4">
-        {/* Avatar - chevauchement propre */}
-        <div className="-mt-12 md:-mt-14 mb-3">
-          <Avatar className="h-24 w-24 md:h-28 md:w-28 border-4 border-background shadow-xl ring-2 ring-background">
-            <AvatarImage src={profile.avatar_url} className="object-cover" />
-            <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
-              {creatorName.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        </div>
+      <div className="relative z-10 -mt-12 sm:-mt-14 px-4 sm:px-6 pb-4">
+        <Avatar className="h-24 w-24 md:h-28 md:w-28 border-4 border-background shadow-xl ring-2 ring-background">
+          <AvatarImage src={profile.avatar_url} className="object-cover" />
+          <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
+            {creatorName.charAt(0).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
 
         {/* Nom et vérification */}
         <div className="mt-3 flex items-center gap-2">

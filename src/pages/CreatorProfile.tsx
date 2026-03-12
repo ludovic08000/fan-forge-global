@@ -296,20 +296,13 @@ const CreatorProfile: React.FC = () => {
   return (
     <div className="min-h-screen bg-background pt-16">
       {/* Cover Section */}
-      <div className="relative w-full h-[200px] sm:h-[260px] md:h-[320px] bg-gradient-to-br from-primary/20 to-primary-glow/20 overflow-hidden">
-        {creator.profiles?.cover_url ? (
-          <img
-            src={creator.profiles.cover_url}
-            alt={`Couverture de ${creatorName}`}
-            className="w-full h-full object-cover"
-            style={{ objectPosition: `${creator.profiles.cover_position_x ?? 50}% ${creator.profiles.cover_position ?? 50}%` }}
-            loading="eager"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/30" />
-        )}
-        
-        
+      <ResponsiveCover
+        coverUrl={creator.profiles?.cover_url}
+        creatorName={creatorName}
+        coverPositionX={creator.profiles?.cover_position_x}
+        coverPositionY={creator.profiles?.cover_position}
+        className="from-primary/20 to-primary-glow/20"
+      >
         {/* Back Button */}
         <Button
           variant="ghost"
@@ -320,7 +313,7 @@ const CreatorProfile: React.FC = () => {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Retour
         </Button>
-      </div>
+      </ResponsiveCover>
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
