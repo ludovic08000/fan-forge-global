@@ -56,6 +56,8 @@ interface Creator {
     bio: string | null;
     avatar_url: string | null;
     cover_url: string | null;
+    cover_position: number | null;
+    cover_position_x: number | null;
     location: string | null;
     website: string | null;
     is_verified: boolean;
@@ -97,7 +99,7 @@ const CreatorProfile: React.FC = () => {
         // Charger le profil associé via la vue publique (sans données sensibles)
         const { data: profileData } = await supabase
           .from('public_creator_profiles')
-          .select('username, display_name, bio, avatar_url, cover_url, location, website, is_verified')
+          .select('username, display_name, bio, avatar_url, cover_url, cover_position, cover_position_x, location, website, is_verified')
           .eq('user_id', userId)
           .maybeSingle();
 
@@ -299,6 +301,7 @@ const CreatorProfile: React.FC = () => {
             src={creator.profiles.cover_url}
             alt={`Couverture de ${creatorName}`}
             className="w-full h-full object-cover"
+            style={{ objectPosition: `${creator.profiles.cover_position_x ?? 50}% ${creator.profiles.cover_position ?? 50}%` }}
             loading="eager"
           />
         ) : (
