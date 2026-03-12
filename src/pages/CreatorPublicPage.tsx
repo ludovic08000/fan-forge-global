@@ -520,7 +520,9 @@ const CreatorPublicPage = () => {
     );
   }
 
-  const creatorName = creator?.stage_name || profile?.display_name || profile?.username || 'Créateur';
+  // Éviter d'afficher le début de l'email : préférer stage_name > username > display_name nettoyé
+  const safeDisplayName = profile?.display_name && !profile.display_name.includes('@') ? profile.display_name : null;
+  const creatorName = creator?.stage_name || profile?.username || safeDisplayName || 'Créateur';
   const creatorDescription = profile?.bio 
     ? `${profile.bio.substring(0, 150)}${profile.bio.length > 150 ? '...' : ''}`
     : `Découvrez le profil de ${creatorName} sur Crub.`;
