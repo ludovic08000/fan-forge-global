@@ -199,10 +199,18 @@ serve(async (req) => {
 
     console.log(`[r2-upload] Upload successful for user ${userId}, key: ${r2Key}`);
 
+    const publicDomain = Deno.env.get("R2_PUBLIC_DOMAIN");
+    const normalizedDomain = publicDomain
+      ? publicDomain.replace(/^https?:\/\//, '').replace(/\/$/, '')
+      : null;
+    const publicUrl = normalizedDomain ? `https://${normalizedDomain}/${r2Key}` : null;
+
     return new Response(
       JSON.stringify({
         success: true,
         filePath: r2Key,
+        key: r2Key,
+        url: publicUrl,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

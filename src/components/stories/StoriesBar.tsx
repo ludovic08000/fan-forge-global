@@ -95,7 +95,13 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId, forceCreatorI
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     const activeCreatorId = myCreator?.id || forceCreatorId;
-    if (!file || !activeCreatorId) return;
+
+    if (!file) return;
+    if (!activeCreatorId) {
+      toast.error('Profil créateur introuvable. Rechargez la page puis réessayez.');
+      return;
+    }
+
     setUploading(true);
     try {
       const { data, error } = await supabase.functions.invoke('r2-upload', {
@@ -103,9 +109,12 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId, forceCreatorI
       });
       if (error) throw error;
 
+      const uploadedUrl = data?.url || data?.filePath || data?.key;
+      if (!uploadedUrl) throw new Error('Upload story échoué: URL introuvable');
+
       await supabase.from('creator_stories').insert({
         creator_id: activeCreatorId,
-        image_url: data.url || data.key,
+        image_url: uploadedUrl,
         caption: caption.trim() || null,
         expires_at: new Date(Date.now() + 24 * 3600000).toISOString(),
       });
