@@ -25,9 +25,7 @@ import {
   DashboardRecentContent,
   DashboardContentGrid,
   DashboardStripeAlert,
-  DashboardPricingSection,
   DashboardSettingsSection,
-  DashboardPaymentsSection,
   type DashboardSection,
 } from '@/components/dashboard';
 
