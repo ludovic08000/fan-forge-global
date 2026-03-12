@@ -44,7 +44,7 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
   const isMobile = useIsMobile();
 
   return (
-    <div className="flex gap-1.5 sm:gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2 scrollbar-hide">
+    <div className="flex flex-nowrap gap-1.5 sm:gap-2 mb-4 sm:mb-6 overflow-x-auto pb-2 scrollbar-hide">
       {menuItems.map((item) => {
         const isActive = activeSection === item.id;
         const Icon = item.icon;
@@ -82,14 +82,14 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
             onClick={() => onSectionChange(item.id)}
             title={item.label}
             className={cn(
-              "relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 outline-none",
+              "relative flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 outline-none",
               isActive
                 ? `${colors.activeBg} text-white shadow-md`
                 : `${colors.bg} ${colors.text} hover:brightness-110 border border-transparent hover:border-border/30`
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />
-            <span>{item.label}</span>
+            <span className="truncate">{item.label}</span>
             {item.badge > 0 && (
               <Badge
                 variant="destructive"
