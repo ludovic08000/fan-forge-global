@@ -93,8 +93,8 @@ const queryClient = new QueryClient({
  * Composant interne qui utilise le hook de protection
  */
 const AppRoutes = () => {
-  // Activer la protection anti-capture globalement
   useContentProtection(true);
+  useAdaptiveLayout();
 
   const location = useLocation();
   const navigate = useNavigate();
