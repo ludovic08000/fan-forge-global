@@ -462,6 +462,11 @@ const AdminDashboard = () => {
           </TabsTrigger>
         </TabsList>
 
+        {/* Onglet Audit IA Paiements */}
+        <TabsContent value="payment-audit" className="space-y-4">
+          <PaymentAuditPanel />
+        </TabsContent>
+
         {/* Onglet Analytics Avancés */}
         <TabsContent value="analytics" className="space-y-4">
           <AdvancedAnalytics />
