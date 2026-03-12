@@ -90,9 +90,12 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId, forceCreatorI
     },
   });
 
+  const canUpload = !!(myCreator?.id || forceCreatorId);
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !myCreator) return;
+    const activeCreatorId = myCreator?.id || forceCreatorId;
+    if (!file || !activeCreatorId) return;
     setUploading(true);
     try {
       const { data, error } = await supabase.functions.invoke('r2-upload', {
@@ -101,7 +104,7 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId, forceCreatorI
       if (error) throw error;
 
       await supabase.from('creator_stories').insert({
-        creator_id: myCreator.id,
+        creator_id: activeCreatorId,
         image_url: data.url || data.key,
         caption: caption.trim() || null,
         expires_at: new Date(Date.now() + 24 * 3600000).toISOString(),
