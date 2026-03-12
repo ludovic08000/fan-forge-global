@@ -220,7 +220,7 @@ serve(async (req) => {
   
   <!-- Créateur: ${username} (${creator.total_subscribers || 0} abonnés, ${creator.total_content || 0} contenus) -->
   <url>
-    <loc>${baseUrl}/creator/${encodeURIComponent(username)}</loc>
+    <loc>${baseUrl}/${encodeURIComponent(username)}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>`;
@@ -230,7 +230,7 @@ serve(async (req) => {
           xml += `
     <image:image>
       <image:loc>${profile.avatar_url}</image:loc>
-      <image:title>${profile.display_name || username} - Créateur sur TheForge</image:title>
+      <image:title>${(profile.display_name || username).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')} - Créateur sur Crub</image:title>
     </image:image>`;
         }
         

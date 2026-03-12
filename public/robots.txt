@@ -38,7 +38,8 @@ Disallow: /partnerships
 Allow: /
 Allow: /search
 Allow: /lives
-Allow: /creator/
+# Les profils créateurs sont à la racine (ex: /ludovic43)
+# Ils sont autorisés par défaut via Allow: /
 Allow: /content/
 Allow: /signup
 Allow: /login
