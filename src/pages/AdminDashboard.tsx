@@ -34,7 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp, Shield, ShieldAlert, Brain, BarChart3, XCircle, Video, CalendarX } from 'lucide-react';
+import { AlertTriangle, FileText, Users, Search, Wallet, DollarSign, Download, Fingerprint, UserCog, Image, Radio, TrendingUp, Shield, ShieldAlert, Brain, BarChart3, XCircle, Video, CalendarX, ScanSearch } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentRequestsManager from '@/components/admin/PaymentRequestsManager';
 import PlatformCommissions from '@/components/admin/PlatformCommissions';
