@@ -294,8 +294,8 @@ const CreatorProfile: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background pt-16">
-      {/* Cover Section - responsive aspect ratio */}
-      <div className="relative w-full aspect-[3/1] max-h-[340px] bg-gradient-to-br from-primary/20 to-primary-glow/20 overflow-hidden">
+      {/* Cover Section */}
+      <div className="relative w-full h-[200px] sm:h-[260px] md:h-[320px] bg-gradient-to-br from-primary/20 to-primary-glow/20 overflow-hidden">
         {creator.profiles?.cover_url ? (
           <img
             src={creator.profiles.cover_url}
