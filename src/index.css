@@ -754,3 +754,75 @@ body.screenshot-extension-detected .protected-content::after {
     scroll-behavior: smooth;
   }
 }
+
+/* =====================================================
+   CROSS-BROWSER COMPATIBILITY (Safari, Chrome, Edge)
+   ===================================================== */
+
+/* Safari flexbox gap fallback */
+@supports not (gap: 1rem) {
+  .flex > * + * {
+    margin-left: 0.5rem;
+  }
+}
+
+/* Safari backdrop-filter fallback */
+@supports not (backdrop-filter: blur(1px)) {
+  .backdrop-blur-xl {
+    background-color: hsl(var(--background) / 0.95) !important;
+  }
+}
+
+/* Safari smooth scrolling */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Edge/IE scrollbar styling */
+@supports (-ms-overflow-style: auto) {
+  * {
+    -ms-overflow-style: auto;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary)) hsl(var(--muted));
+  }
+}
+
+/* Firefox scrollbar */
+@supports (scrollbar-width: thin) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary)) hsl(var(--muted));
+  }
+}
+
+/* Safari input styling fixes */
+input, textarea, select, button {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Safari safe area insets (notch, home bar) */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .sticky.bottom-0,
+  footer {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .sticky.top-0,
+  header {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Safari touch highlight fix */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safari text size adjust */
+html {
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
