@@ -520,9 +520,9 @@ const CreatorPublicPage = () => {
     );
   }
 
-  // Éviter d'afficher le début de l'email comme nom : filtrer les display_name qui ressemblent à un email
-  const safeDisplayName = profile?.display_name && !profile.display_name.includes('@') && !/^[a-z0-9._%+-]+$/i.test(profile.display_name) ? profile.display_name : null;
-  const creatorName = creator?.stage_name || safeDisplayName || profile?.username || 'Créateur';
+  // Éviter d'afficher le début de l'email : préférer stage_name > username > display_name nettoyé
+  const safeDisplayName = profile?.display_name && !profile.display_name.includes('@') ? profile.display_name : null;
+  const creatorName = creator?.stage_name || profile?.username || safeDisplayName || 'Créateur';
   const creatorDescription = profile?.bio 
     ? `${profile.bio.substring(0, 150)}${profile.bio.length > 150 ? '...' : ''}`
     : `Découvrez le profil de ${creatorName} sur Crub.`;
