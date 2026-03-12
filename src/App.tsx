@@ -18,6 +18,7 @@ import Footer from "@/components/Footer";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { useAdaptiveLayout } from "@/hooks/useAdaptiveLayout";
+import { useWebVitalsCollector } from "@/hooks/useWebVitalsCollector";
 import CookieConsent from "@/components/CookieConsent";
 import { MessageNotificationProvider } from "@/components/MessageNotificationProvider";
 import SplashScreen from "@/components/SplashScreen";
@@ -95,6 +96,7 @@ const queryClient = new QueryClient({
 const AppRoutes = () => {
   useContentProtection(true);
   useAdaptiveLayout();
+  useWebVitalsCollector();
 
   const location = useLocation();
   const navigate = useNavigate();
