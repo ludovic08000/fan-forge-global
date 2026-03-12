@@ -585,8 +585,6 @@ const CreatorPublicPage = () => {
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-primary/20 via-accent/20 to-secondary/30" />
         )}
-        {/* Gradient overlay pour lisibilité */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/5 to-transparent" />
       </div>
 
       {/* Profile Section */}
