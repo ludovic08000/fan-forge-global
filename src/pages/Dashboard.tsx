@@ -33,7 +33,7 @@ import {
 const LiveStreamStudio = lazy(() => import('@/components/LiveStreamStudio').then(m => ({ default: m.LiveStreamStudio })));
 const ContentUpload = lazy(() => import('@/components/ContentUpload'));
 const CreatorMessages = lazy(() => import('@/components/CreatorMessages'));
-const CreatorAnalyticsDashboard = lazy(() => import('@/components/analytics/CreatorAnalyticsDashboard'));
+
 const PaymentRequest = lazy(() => import('@/components/creator/PaymentRequest'));
 const PaymentRequestCard = lazy(() => import('@/components/dashboard/PaymentRequestCard'));
 const MediaLightbox = lazy(() => import('@/components/MediaLightbox'));
