@@ -152,7 +152,7 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({ creatorId, forceCreatorI
     setViewingGroup(group);
     setViewIndex(0);
     if (group.stories[0]) {
-      supabase.rpc('record_story_view', { p_story_id: group.stories[0].id }).catch(() => {});
+      supabase.rpc('record_story_view', { p_story_id: group.stories[0].id }).then(() => {});
     }
   };
 
