@@ -4809,7 +4809,19 @@ export type Database = {
         Args: { _creator_id: string }
         Returns: undefined
       }
+      delete_email_message: { Args: { msg_id: number }; Returns: boolean }
       delete_user_completely: { Args: { _user_id: string }; Returns: undefined }
+      dequeue_email: {
+        Args: { batch_size?: number }
+        Returns: unknown[]
+        SetofOptions: {
+          from: "*"
+          to: "message_record"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      enqueue_email: { Args: { payload: Json }; Returns: number }
       finalize_expired_auctions: { Args: never; Returns: number }
       find_similar_images: {
         Args: { p_max_distance?: number; p_phash: string }
