@@ -97,17 +97,20 @@ const Signup = () => {
         }
       }
     } catch (error) {
-      console.log('🔴 Erreur catch:', error);
+      console.error('🔴 Erreur catch:', error);
       if (error instanceof z.ZodError) {
         const errors: Record<string, string> = {};
         error.errors.forEach(err => {
+          console.error('🔴 Zod error:', err.path.join('.'), '-', err.message);
           const field = err.path[0] as string;
           if (field && !errors[field]) {
             errors[field] = err.message;
           }
         });
+        console.error('🔴 All errors:', JSON.stringify(errors));
         setSignUpErrors(errors);
-        toast.error('Veuillez corriger les erreurs du formulaire');
+        const firstError = Object.values(errors)[0];
+        toast.error(firstError || 'Veuillez corriger les erreurs du formulaire');
       }
     } finally {
       setIsLoading(false);
