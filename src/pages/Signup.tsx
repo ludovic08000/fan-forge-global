@@ -289,12 +289,20 @@ const Signup = () => {
                       type="text"
                       placeholder="Ex: Luna_Star"
                       required={signUpForm.role === 'creator'}
+                      className={signUpErrors.stageName ? 'border-destructive' : ''}
                       value={signUpForm.stageName}
-                      onChange={(e) => setSignUpForm({ ...signUpForm, stageName: e.target.value })}
+                      onChange={(e) => {
+                        setSignUpForm({ ...signUpForm, stageName: e.target.value });
+                        if (signUpErrors.stageName) setSignUpErrors(prev => ({ ...prev, stageName: '' }));
+                      }}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Ce nom sera visible publiquement
-                    </p>
+                    {signUpErrors.stageName ? (
+                      <p className="text-xs text-destructive">{signUpErrors.stageName}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Ce nom sera visible publiquement
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-3">
@@ -351,11 +359,13 @@ const Signup = () => {
                         );
                       })}
                     </div>
-                    {signUpForm.categories.length > 0 && (
+                    {signUpErrors.category ? (
+                      <p className="text-xs text-destructive">{signUpErrors.category}</p>
+                    ) : signUpForm.categories.length > 0 ? (
                       <p className="text-xs text-muted-foreground">
                         {signUpForm.categories.length}/3 sélectionnée{signUpForm.categories.length > 1 ? 's' : ''}
                       </p>
-                    )}
+                    ) : null}
                   </div>
 
                   <div className="space-y-2">
@@ -375,6 +385,9 @@ const Signup = () => {
                         <SelectItem value="autre">Autre</SelectItem>
                       </SelectContent>
                     </Select>
+                    {signUpErrors.gender && (
+                      <p className="text-xs text-destructive">{signUpErrors.gender}</p>
+                    )}
                   </div>
                 </>
               )}
