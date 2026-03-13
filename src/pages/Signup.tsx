@@ -385,6 +385,9 @@ const Signup = () => {
                         <SelectItem value="autre">Autre</SelectItem>
                       </SelectContent>
                     </Select>
+                    {signUpErrors.gender && (
+                      <p className="text-xs text-destructive">{signUpErrors.gender}</p>
+                    )}
                   </div>
                 </>
               )}
