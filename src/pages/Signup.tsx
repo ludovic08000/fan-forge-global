@@ -359,11 +359,13 @@ const Signup = () => {
                         );
                       })}
                     </div>
-                    {signUpForm.categories.length > 0 && (
+                    {signUpErrors.category ? (
+                      <p className="text-xs text-destructive">{signUpErrors.category}</p>
+                    ) : signUpForm.categories.length > 0 ? (
                       <p className="text-xs text-muted-foreground">
                         {signUpForm.categories.length}/3 sélectionnée{signUpForm.categories.length > 1 ? 's' : ''}
                       </p>
-                    )}
+                    ) : null}
                   </div>
 
                   <div className="space-y-2">
