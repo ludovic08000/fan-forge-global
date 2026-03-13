@@ -289,12 +289,20 @@ const Signup = () => {
                       type="text"
                       placeholder="Ex: Luna_Star"
                       required={signUpForm.role === 'creator'}
+                      className={signUpErrors.stageName ? 'border-destructive' : ''}
                       value={signUpForm.stageName}
-                      onChange={(e) => setSignUpForm({ ...signUpForm, stageName: e.target.value })}
+                      onChange={(e) => {
+                        setSignUpForm({ ...signUpForm, stageName: e.target.value });
+                        if (signUpErrors.stageName) setSignUpErrors(prev => ({ ...prev, stageName: '' }));
+                      }}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Ce nom sera visible publiquement
-                    </p>
+                    {signUpErrors.stageName ? (
+                      <p className="text-xs text-destructive">{signUpErrors.stageName}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Ce nom sera visible publiquement
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-3">
