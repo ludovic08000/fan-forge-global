@@ -473,6 +473,9 @@ const Dashboard = () => {
           </DialogContent>
         </Dialog>
 
+        {/* Section content anchor for scroll */}
+        <div id="dashboard-section-content" />
+
         {/* Section: Overview */}
         {activeSection === 'overview' && (
           <div className="space-y-8">
