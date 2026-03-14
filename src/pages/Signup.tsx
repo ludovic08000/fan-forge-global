@@ -375,10 +375,13 @@ const Signup = () => {
                     <Label htmlFor="gender">Genre *</Label>
                     <Select
                       value={signUpForm.gender}
-                      onValueChange={(value) => setSignUpForm({ ...signUpForm, gender: value })}
+                      onValueChange={(value) => {
+                        setSignUpForm({ ...signUpForm, gender: value });
+                        if (signUpErrors.gender) setSignUpErrors(prev => ({ ...prev, gender: '' }));
+                      }}
                       required={signUpForm.role === 'creator'}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={signUpErrors.gender ? 'border-destructive' : ''}>
                         <SelectValue placeholder="Sélectionnez votre genre" />
                       </SelectTrigger>
                       <SelectContent>
