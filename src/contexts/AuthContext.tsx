@@ -175,6 +175,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // La vérification OTP sera demandée à chaque connexion
           console.log('📧 Connexion détectée, OTP sera demandé');
           
+          // Vérifier si le créateur n'a pas été configuré à l'inscription (cas confirmation email)
+          setTimeout(() => ensureCreatorSetup(session.user), 500);
+          
           toast.success('Connexion réussie!');
           logUserLogin(session.user.id, session.user.email || '', 'email');
         } else if (event === 'SIGNED_OUT') {
