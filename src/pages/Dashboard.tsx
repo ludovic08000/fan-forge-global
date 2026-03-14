@@ -439,7 +439,13 @@ const Dashboard = () => {
 
         {/* Stripe Alert */}
         {!stripeConnected && (
-          <DashboardStripeAlert onConfigure={() => setActiveSection('settings')} />
+          <DashboardStripeAlert onConfigure={() => {
+            setActiveSection('settings');
+            // Scroll vers la section settings après un court délai
+            setTimeout(() => {
+              document.getElementById('dashboard-section-content')?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+          }} />
         )}
 
         {/* Navigation */}
