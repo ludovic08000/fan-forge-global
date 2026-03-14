@@ -439,7 +439,13 @@ const Dashboard = () => {
 
         {/* Stripe Alert */}
         {!stripeConnected && (
-          <DashboardStripeAlert onConfigure={() => setActiveSection('settings')} />
+          <DashboardStripeAlert onConfigure={() => {
+            setActiveSection('settings');
+            // Scroll vers la section settings après un court délai
+            setTimeout(() => {
+              document.getElementById('dashboard-section-content')?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+          }} />
         )}
 
         {/* Navigation */}
@@ -466,6 +472,9 @@ const Dashboard = () => {
             </Suspense>
           </DialogContent>
         </Dialog>
+
+        {/* Section content anchor for scroll */}
+        <div id="dashboard-section-content" />
 
         {/* Section: Overview */}
         {activeSection === 'overview' && (
@@ -576,12 +585,18 @@ const Dashboard = () => {
         )}
 
         {/* Section: Settings (includes Analytics, Payments, Pricing) */}
-        {activeSection === 'settings' && creatorProfile?.id && (
-          <DashboardSettingsSection 
-            stripeConnected={stripeConnected} 
-            creatorId={creatorProfile.id}
-            currentBoostUntil={creatorProfile.featured_until}
-          />
+        {activeSection === 'settings' && (
+          creatorProfile?.id ? (
+            <DashboardSettingsSection 
+              stripeConnected={stripeConnected} 
+              creatorId={creatorProfile.id}
+              currentBoostUntil={creatorProfile.featured_until}
+            />
+          ) : (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+          )
         )}
 
         {/* Lightbox */}
