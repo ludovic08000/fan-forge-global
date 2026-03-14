@@ -598,8 +598,6 @@ const Dashboard = () => {
             </div>
           )
         )}
-          />
-        )}
 
         {/* Lightbox */}
         {selectedContent && (
