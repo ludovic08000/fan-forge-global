@@ -142,6 +142,66 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  /**
+   * Vérifie et configure le profil créateur si nécessaire (cas où la session
+   * n'était pas disponible à l'inscription car l'email n'était pas encore confirmé)
+   */
+  const ensureCreatorSetup = async (authUser: User) => {
+    try {
+      const metadata = authUser.user_metadata;
+      if (metadata?.role !== 'creator') return;
+
+      // Vérifier si l'entrée creators existe déjà
+      const { data: existingCreator } = await supabase
+        .from('creators')
+        .select('id')
+        .eq('user_id', authUser.id)
+        .maybeSingle();
+
+      if (existingCreator) return; // Déjà configuré
+
+      console.log('🔧 Configuration créateur manquante, création en cours...');
+
+      // Créer l'entrée dans user_roles
+      await supabase
+        .from('user_roles')
+        .upsert({ user_id: authUser.id, role: 'creator' }, { onConflict: 'user_id,role' });
+
+      // Créer l'entrée dans creators
+      const categoriesArray = metadata.category ? [metadata.category] : [];
+      const { error: creatorError } = await supabase
+        .from('creators')
+        .insert({
+          user_id: authUser.id,
+          subscription_price: 9.99,
+          gender: metadata.gender || null,
+          stage_name: metadata.stage_name || null,
+          category: metadata.category || null,
+          categories: categoriesArray,
+        });
+
+      if (creatorError) {
+        console.error('Erreur création créateur différée:', creatorError);
+      } else {
+        console.log('✅ Profil créateur créé avec succès');
+        setUserRole('creator');
+      }
+
+      // Mettre à jour le profil
+      const profileUpdate: Record<string, string> = {};
+      if (metadata.birthdate) profileUpdate.birthdate = metadata.birthdate;
+      if (metadata.username) {
+        profileUpdate.username = metadata.username;
+        profileUpdate.display_name = metadata.username;
+      }
+      if (Object.keys(profileUpdate).length > 0) {
+        await supabase.from('profiles').update(profileUpdate).eq('user_id', authUser.id);
+      }
+    } catch (error) {
+      console.error('Erreur ensureCreatorSetup:', error);
+    }
+  };
+
   // Effet pour gérer l'authentification et charger le rôle utilisateur
   useEffect(() => {
     // Configuration de l'écouteur d'état d'authentification EN PREMIER
@@ -174,6 +234,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Ne pas mettre otp_verified à true automatiquement
           // La vérification OTP sera demandée à chaque connexion
           console.log('📧 Connexion détectée, OTP sera demandé');
+          
+          // Vérifier si le créateur n'a pas été configuré à l'inscription (cas confirmation email)
+          setTimeout(() => ensureCreatorSetup(session.user), 500);
           
           toast.success('Connexion réussie!');
           logUserLogin(session.user.id, session.user.email || '', 'email');
