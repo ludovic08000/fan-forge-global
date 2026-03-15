@@ -441,8 +441,8 @@ const Dashboard = () => {
         {/* Stripe Alert */}
         {!stripeConnected && (
           <DashboardStripeAlert onConfigure={() => {
+            setSettingsDefaultTab('payments');
             setActiveSection('settings');
-            // Scroll vers la section settings après un court délai
             setTimeout(() => {
               document.getElementById('dashboard-section-content')?.scrollIntoView({ behavior: 'smooth' });
             }, 100);
@@ -453,7 +453,12 @@ const Dashboard = () => {
         <DashboardNav
           menuItems={menuItems}
           activeSection={activeSection}
-          onSectionChange={setActiveSection}
+          onSectionChange={(section) => {
+            setActiveSection(section);
+            if (section === 'settings') {
+              setSettingsDefaultTab('profile');
+            }
+          }}
         />
 
         {/* Upload Dialog */}
