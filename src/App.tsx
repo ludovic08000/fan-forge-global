@@ -74,18 +74,21 @@ const PageLoader = memo(() => (
 ));
 PageLoader.displayName = 'PageLoader';
 
-// Configuration du client React Query avec mise en cache optimisée
+// Configuration du client React Query avec mise en cache optimisée pour haute concurrence
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // Garder les données en cache pendant 5 minutes
       staleTime: 5 * 60 * 1000,
-      // Garder les données inactives pendant 10 minutes
-      gcTime: 10 * 60 * 1000,
-      // Réessayer 3 fois en cas d'échec
-      retry: 3,
-      // Ne pas réessayer sur les erreurs 404
+      // Garder les données inactives pendant 15 minutes
+      gcTime: 15 * 60 * 1000,
+      // Réessayer 2 fois (réduit de 3) pour alléger la charge serveur
+      retry: 2,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      // Ne pas refetch automatiquement au focus pour réduire les requêtes simultanées
+      refetchOnWindowFocus: false,
+      // Ne pas refetch au remontage du composant si les données sont fraîches
+      refetchOnMount: 'always',
     },
   },
 });

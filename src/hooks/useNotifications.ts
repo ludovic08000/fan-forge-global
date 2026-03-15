@@ -55,7 +55,7 @@ export const useNotifications = () => {
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(30); // Reduced from 50 for faster loads
 
       if (error) throw error;
 

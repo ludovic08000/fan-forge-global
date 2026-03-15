@@ -261,67 +261,37 @@ const Dashboard = () => {
     loadCreatorStats();
   }, [user, isCreatorLocal]);
 
-  // Realtime subscriptions for stats
+  // Realtime subscriptions for stats - CONSOLIDATED into a single channel
   useEffect(() => {
     if (!user || isCreatorLocal !== true || !creatorProfile?.id) return;
 
-    const viewsChannel = supabase
-      .channel('realtime-views')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'content_views' },
-        async (payload) => {
-          const { data: content } = await supabase
-            .from('content')
-            .select('creator_id')
-            .eq('id', payload.new.content_id)
-            .single();
-          
-          if (content?.creator_id === creatorProfile.id) {
-            setCreatorStats(prev => ({ ...prev, totalViews: prev.totalViews + 1 }));
-          }
-        }
-      )
-      .subscribe();
+    // Debounce timer for batching rapid events
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => loadCreatorStats(), 5000);
+    };
 
-    const likesChannel = supabase
-      .channel('realtime-likes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'content_likes' },
-        async (payload) => {
-          const { data: content } = await supabase
-            .from('content')
-            .select('creator_id')
-            .eq('id', payload.new.content_id)
-            .single();
-          
-          if (content?.creator_id === creatorProfile.id) {
-            setCreatorStats(prev => ({ ...prev, totalLikes: prev.totalLikes + 1 }));
-          }
-        }
+    const statsChannel = supabase
+      .channel('dashboard-stats')
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'content_views' },
+        () => setCreatorStats(prev => ({ ...prev, totalViews: prev.totalViews + 1 }))
       )
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'content_likes' },
-        async (payload) => {
-          const { data: content } = await supabase
-            .from('content')
-            .select('creator_id')
-            .eq('id', payload.old.content_id)
-            .single();
-          
-          if (content?.creator_id === creatorProfile.id) {
-            setCreatorStats(prev => ({ ...prev, totalLikes: Math.max(0, prev.totalLikes - 1) }));
-          }
-        }
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'content_likes' },
+        () => setCreatorStats(prev => ({ ...prev, totalLikes: prev.totalLikes + 1 }))
       )
-      .subscribe();
-
-    const subscribersChannel = supabase
-      .channel('realtime-subscribers')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'subscriptions', filter: `creator_id=eq.${creatorProfile.id}` },
-        () => loadCreatorStats()
+      .on('postgres_changes', 
+        { event: 'DELETE', schema: 'public', table: 'content_likes' },
+        () => setCreatorStats(prev => ({ ...prev, totalLikes: Math.max(0, prev.totalLikes - 1) }))
       )
-      .subscribe();
-
-    const tipsChannel = supabase
-      .channel('realtime-tips')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tips', filter: `creator_id=eq.${creatorProfile.id}` },
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'subscriptions', filter: `creator_id=eq.${creatorProfile.id}` },
+        () => debouncedRefresh()
+      )
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'tips', filter: `creator_id=eq.${creatorProfile.id}` },
         (payload) => {
           const tipAmount = payload.new.amount || 0;
           setCreatorStats(prev => ({ ...prev, totalEarnings: prev.totalEarnings + tipAmount }));
@@ -330,10 +300,8 @@ const Dashboard = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(viewsChannel);
-      supabase.removeChannel(likesChannel);
-      supabase.removeChannel(subscribersChannel);
-      supabase.removeChannel(tipsChannel);
+      if (refreshTimer) clearTimeout(refreshTimer);
+      supabase.removeChannel(statsChannel);
     };
   }, [user, isCreatorLocal, creatorProfile?.id]);
 
