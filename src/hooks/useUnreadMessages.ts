@@ -1,18 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 export const useUnreadMessages = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const creatorIdRef = useRef<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: unreadCount = 0, refetch } = useQuery({
     queryKey: ['unread-messages-count', user?.id],
     queryFn: async () => {
       if (!user) return 0;
 
-      // Récupérer l'ID créateur de l'utilisateur
       const { data: creator } = await supabase
         .from('creators')
         .select('id')
@@ -20,8 +21,8 @@ export const useUnreadMessages = () => {
         .maybeSingle();
 
       if (!creator) return 0;
+      creatorIdRef.current = creator.id;
 
-      // Compter les messages non lus envoyés par des subscribers (pas par le créateur)
       const { count, error } = await supabase
         .from('private_messages')
         .select('id', { count: 'exact', head: true })
@@ -38,28 +39,35 @@ export const useUnreadMessages = () => {
       return count || 0;
     },
     enabled: !!user,
-    staleTime: 30000,
-    refetchInterval: 60000,
+    staleTime: 60_000,
+    refetchInterval: 120_000, // Reduced from 60s to 120s
   });
 
-  // Marquer les messages d'une conversation comme lus
+  // Debounced refetch to avoid hammering DB on rapid message bursts
+  const debouncedRefetch = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => refetch(), 2000);
+  }, [refetch]);
+
   const markAsRead = useMutation({
     mutationFn: async (subscriberId: string) => {
       if (!user) throw new Error('Non authentifié');
 
-      const { data: creator } = await supabase
-        .from('creators')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const creatorId = creatorIdRef.current;
+      if (!creatorId) {
+        const { data: creator } = await supabase
+          .from('creators')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (!creator) return;
+        creatorIdRef.current = creator.id;
+      }
 
-      if (!creator) return;
-
-      // Marquer tous les messages non lus de ce subscriber comme lus
       const { error } = await supabase
         .from('private_messages')
         .update({ read_at: new Date().toISOString() })
-        .eq('creator_id', creator.id)
+        .eq('creator_id', creatorIdRef.current!)
         .eq('subscriber_id', subscriberId)
         .neq('sender_id', user.id)
         .is('read_at', null);
@@ -72,40 +80,29 @@ export const useUnreadMessages = () => {
     },
   });
 
-  // Écouter les nouveaux messages en temps réel
+  // Listen for new messages with filtered channel
   useEffect(() => {
     if (!user) return;
 
     const channel = supabase
-      .channel('unread-messages-count')
+      .channel('unread-msg-count')
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'private_messages',
-        },
-        () => {
-          refetch();
-        }
+        { event: 'INSERT', schema: 'public', table: 'private_messages' },
+        () => debouncedRefetch()
       )
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'private_messages',
-        },
-        () => {
-          refetch();
-        }
+        { event: 'UPDATE', schema: 'public', table: 'private_messages' },
+        () => debouncedRefetch()
       )
       .subscribe();
 
     return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
       supabase.removeChannel(channel);
     };
-  }, [user?.id, refetch]);
+  }, [user?.id, debouncedRefetch]);
 
   return { unreadCount, refetch, markAsRead };
 };
