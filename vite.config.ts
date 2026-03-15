@@ -81,11 +81,11 @@ export default defineConfig(({ mode }) => ({
     chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
-        // Manual chunk splitting for optimal caching
+        // Manual chunk splitting for optimal caching & parallel downloads
         manualChunks: {
           // Core React ecosystem - changes rarely
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          // UI framework - changes rarely
+          // UI framework - changes rarely  
           'vendor-ui': [
             '@radix-ui/react-dialog',
             '@radix-ui/react-dropdown-menu',
@@ -110,12 +110,14 @@ export default defineConfig(({ mode }) => ({
           'vendor-charts': ['recharts'],
           // Animation library
           'vendor-motion': ['framer-motion'],
-          // Monitoring
+          // Monitoring - defer loaded
           'vendor-sentry': ['@sentry/react'],
           // Stripe - only loaded on payment pages
           'vendor-stripe': ['@stripe/stripe-js', '@stripe/react-stripe-js'],
           // LiveKit - only loaded on live pages
           'vendor-livekit': ['livekit-client'],
+          // Date utils - shared across many pages
+          'vendor-date': ['date-fns'],
         },
       },
     },
@@ -123,6 +125,8 @@ export default defineConfig(({ mode }) => ({
     minify: 'esbuild',
     // Source maps only in dev
     sourcemap: mode === 'development',
+    // Enable compressed output analysis
+    reportCompressedSize: false, // Faster builds
   },
   // Optimize dependency pre-bundling
   optimizeDeps: {
