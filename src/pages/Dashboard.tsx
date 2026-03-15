@@ -67,6 +67,7 @@ const Dashboard = () => {
   
   // State
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
+  const [settingsDefaultTab, setSettingsDefaultTab] = useState<'profile' | 'payments'>('profile');
   const [showUpload, setShowUpload] = useState(false);
   const [selectedContent, setSelectedContent] = useState<any>(null);
   const [editingContent, setEditingContent] = useState<any>(null);
@@ -440,8 +441,8 @@ const Dashboard = () => {
         {/* Stripe Alert */}
         {!stripeConnected && (
           <DashboardStripeAlert onConfigure={() => {
+            setSettingsDefaultTab('payments');
             setActiveSection('settings');
-            // Scroll vers la section settings après un court délai
             setTimeout(() => {
               document.getElementById('dashboard-section-content')?.scrollIntoView({ behavior: 'smooth' });
             }, 100);
@@ -452,7 +453,12 @@ const Dashboard = () => {
         <DashboardNav
           menuItems={menuItems}
           activeSection={activeSection}
-          onSectionChange={setActiveSection}
+          onSectionChange={(section) => {
+            setActiveSection(section);
+            if (section === 'settings') {
+              setSettingsDefaultTab('profile');
+            }
+          }}
         />
 
         {/* Upload Dialog */}
@@ -591,6 +597,7 @@ const Dashboard = () => {
               stripeConnected={stripeConnected} 
               creatorId={creatorProfile.id}
               currentBoostUntil={creatorProfile.featured_until}
+              defaultTab={settingsDefaultTab}
             />
           ) : (
             <div className="flex items-center justify-center py-12">
