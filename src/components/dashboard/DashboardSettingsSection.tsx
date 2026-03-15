@@ -22,18 +22,20 @@ interface DashboardSettingsSectionProps {
   stripeConnected: boolean;
   creatorId: string;
   currentBoostUntil?: string | null;
+  defaultTab?: 'profile' | 'analytics' | 'payments' | 'pricing' | 'messages' | 'privacy';
 }
 
 export const DashboardSettingsSection: React.FC<DashboardSettingsSectionProps> = ({
   stripeConnected,
   creatorId,
   currentBoostUntil,
+  defaultTab = 'profile',
 }) => {
   const { t } = useTranslation();
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="profile" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-6 h-auto gap-1 bg-muted/50 p-1">
           <TabsTrigger value="profile" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 py-2">
             <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />

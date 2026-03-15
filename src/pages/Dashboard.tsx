@@ -597,6 +597,7 @@ const Dashboard = () => {
               stripeConnected={stripeConnected} 
               creatorId={creatorProfile.id}
               currentBoostUntil={creatorProfile.featured_until}
+              defaultTab={settingsDefaultTab}
             />
           ) : (
             <div className="flex items-center justify-center py-12">
