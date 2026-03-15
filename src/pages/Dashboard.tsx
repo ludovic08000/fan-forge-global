@@ -67,6 +67,7 @@ const Dashboard = () => {
   
   // State
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
+  const [settingsDefaultTab, setSettingsDefaultTab] = useState<'profile' | 'payments'>('profile');
   const [showUpload, setShowUpload] = useState(false);
   const [selectedContent, setSelectedContent] = useState<any>(null);
   const [editingContent, setEditingContent] = useState<any>(null);
