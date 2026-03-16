@@ -275,14 +275,20 @@ export const useLiveKitBroadcast = () => {
         if (videoTrack) {
           await room.localParticipant.publishTrack(videoTrack, {
             name: 'camera',
-            simulcast: true,
+            simulcast: !isSafariIOS(),
+            videoCodec: 'h264',
+            videoEncoding: {
+              maxBitrate: 3_000_000,
+              maxFramerate: 30,
+            },
           });
-          console.log('[LiveKit Broadcast] Video track published');
+          console.log('[LiveKit Broadcast] Video track published (HD)');
         }
 
         if (audioTrack) {
           await room.localParticipant.publishTrack(audioTrack, {
             name: 'microphone',
+            audioPreset: { maxBitrate: 64_000 },
           });
           console.log('[LiveKit Broadcast] Audio track published');
         }
