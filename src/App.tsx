@@ -3,12 +3,12 @@
  * Configure tous les providers et le routing
  */
 
-import React, { Suspense, lazy, useState, useEffect, memo } from "react";
+import React, { Suspense, lazy, memo, useCallback } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, Link } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -21,15 +21,13 @@ import { useAdaptiveLayout } from "@/hooks/useAdaptiveLayout";
 import { useWebVitalsCollector } from "@/hooks/useWebVitalsCollector";
 import CookieConsent from "@/components/CookieConsent";
 import { MessageNotificationProvider } from "@/components/MessageNotificationProvider";
-import SplashScreen from "@/components/SplashScreen";
 import SkipToContent from "@/components/SkipToContent";
 import { preloadSession } from "@/hooks/useSessionPreload";
 
 // Précharger la session dès le démarrage
 preloadSession();
 
-
-// Lazy loading des pages pour améliorer les performances
+// Lazy loading des pages
 const Index = lazy(() => import("./pages/Index"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
@@ -62,33 +60,58 @@ const Partnerships = lazy(() => import("./pages/Partnerships"));
 const IdentityVerification = lazy(() => import("./pages/IdentityVerification"));
 const LiveCalendar = lazy(() => import("./pages/LiveCalendar"));
 
+// Route prefetch map for hover-based prefetching
+const routePrefetchMap: Record<string, () => Promise<any>> = {
+  '/': () => import("./pages/Index"),
+  '/login': () => import("./pages/Login"),
+  '/signup': () => import("./pages/Signup"),
+  '/dashboard': () => import("./pages/Dashboard"),
+  '/search': () => import("./pages/Search"),
+  '/lives': () => import("./pages/LiveStreams"),
+  '/messages': () => import("./pages/Messages"),
+  '/subscriptions': () => import("./pages/MySubscriptions"),
+  '/profile': () => import("./pages/ProfileSettings"),
+};
 
-// Composant de chargement optimisé avec skeleton
+// Prefetch a route on hover/focus
+const prefetchedRoutes = new Set<string>();
+export const prefetchRoute = (path: string) => {
+  const normalizedPath = '/' + path.replace(/^\//, '').split('/')[0];
+  if (prefetchedRoutes.has(normalizedPath)) return;
+  const loader = routePrefetchMap[normalizedPath];
+  if (loader) {
+    prefetchedRoutes.add(normalizedPath);
+    loader();
+  }
+};
+
+// Skeleton page loader - ultra-lightweight
 const PageLoader = memo(() => (
-  <div className="min-h-screen bg-background flex items-center justify-center" role="status" aria-label="Chargement">
-    <div className="flex flex-col items-center space-y-4">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" aria-hidden="true"></div>
-      <p className="text-muted-foreground">Chargement...</p>
+  <div className="min-h-screen bg-background" role="status" aria-label="Chargement">
+    <div className="container mx-auto px-4 pt-8 space-y-4 animate-pulse">
+      <div className="h-8 w-48 bg-muted rounded" />
+      <div className="h-4 w-full max-w-md bg-muted rounded" />
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-8">
+        {[1,2,3,4,5,6].map(i => (
+          <div key={i} className="aspect-square bg-muted rounded-lg" />
+        ))}
+      </div>
     </div>
   </div>
 ));
 PageLoader.displayName = 'PageLoader';
 
-// Configuration du client React Query avec mise en cache optimisée pour haute concurrence
+// Configuration du client React Query - agressivement caché
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Garder les données en cache pendant 5 minutes
       staleTime: 5 * 60 * 1000,
-      // Garder les données inactives pendant 15 minutes
       gcTime: 15 * 60 * 1000,
-      // Réessayer 2 fois (réduit de 3) pour alléger la charge serveur
-      retry: 2,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      // Ne pas refetch automatiquement au focus pour réduire les requêtes simultanées
+      retry: 1,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
       refetchOnWindowFocus: false,
-      // Ne pas refetch au remontage du composant si les données sont fraîches
-      refetchOnMount: 'always',
+      refetchOnMount: false,
+      refetchOnReconnect: false,
     },
   },
 });
@@ -120,7 +143,6 @@ const AppRoutes = () => {
       <SkipToContent />
       <Header />
       <PWAInstallPrompt />
-      {/* Suspense pour le lazy loading des pages */}
       <main id="main-content" className="flex-1">
       <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -137,7 +159,6 @@ const AppRoutes = () => {
           <Route path="/creator/:userId" element={<CreatorProfile />} />
           <Route path="/content/:contentId" element={<ContentDetail />} />
           <Route path="/install" element={<Install />} />
-          {/* Pages légales */}
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/legal" element={<LegalNotice />} />
@@ -207,11 +228,8 @@ const AppRoutes = () => {
               <AdminDashboard />
             </ProtectedRoute>
           } />
-          {/* Redirection sécurisée de l'ancien chemin admin */}
           <Route path="/admin" element={<NotFound />} />
-          {/* Route dynamique pour les profils créateurs - doit être en dernier */}
           <Route path="/:username" element={<CreatorPublicPage />} />
-          {/* Route catch-all */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
@@ -222,34 +240,9 @@ const AppRoutes = () => {
 };
 
 /**
- * Composant racine de l'application
- * Gère tous les providers et le routing avec lazy loading
+ * Composant racine - rendu instantané, pas de splash screen bloquant
  */
 const App = () => {
-  // Only show splash screen once per session
-  const [showSplash, setShowSplash] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return !sessionStorage.getItem('splash_shown');
-    }
-    return true;
-  });
-
-  const handleSplashComplete = () => {
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('splash_shown', 'true');
-    }
-    setShowSplash(false);
-  };
-
-  // Show only splash screen until it completes
-  if (showSplash) {
-    return (
-      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-        <SplashScreen onComplete={handleSplashComplete} />
-      </ThemeProvider>
-    );
-  }
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
