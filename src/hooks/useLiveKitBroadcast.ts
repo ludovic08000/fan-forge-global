@@ -217,12 +217,29 @@ export const useLiveKitBroadcast = () => {
       console.log('[LiveKit Broadcast] Token obtained, connecting to room at:', livekitUrl);
 
 
-      // Créer et connecter la room avec options Safari
+      // Créer et connecter la room avec options haute qualité
       const room = new Room({
         adaptiveStream: true,
-        dynacast: !isSafariIOS(), // Désactiver dynacast sur Safari iOS
+        dynacast: !isSafariIOS(),
         publishDefaults: {
-          simulcast: !isSafariIOS(), // Désactiver simulcast sur Safari iOS
+          simulcast: !isSafariIOS(),
+          videoCodec: 'h264',
+          videoEncoding: {
+            maxBitrate: 3_000_000, // 3 Mbps pour une qualité HD nette
+            maxFramerate: 30,
+          },
+          screenShareEncoding: {
+            maxBitrate: 5_000_000,
+            maxFramerate: 30,
+          },
+          audioPreset: { maxBitrate: 64_000 }, // Audio 64kbps stéréo-like
+        },
+        videoCaptureDefaults: {
+          resolution: {
+            width: 1920,
+            height: 1080,
+            frameRate: 30,
+          },
         },
       });
 
