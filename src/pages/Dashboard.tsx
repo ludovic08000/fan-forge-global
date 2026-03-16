@@ -214,8 +214,8 @@ const Dashboard = () => {
     loadUserProfile();
   }, [user]);
 
-  // Load creator stats
-  const loadCreatorStats = async () => {
+  // Load creator stats — wrapped in useCallback to avoid stale closures
+  const loadCreatorStats = React.useCallback(async () => {
     if (!user || isCreatorLocal !== true) return;
     try {
       const { data: creatorData } = await supabase
@@ -228,10 +228,9 @@ const Dashboard = () => {
         setCreatorProfile(creatorData);
         setStripeConnected(creatorData.stripe_account_status === 'active' && creatorData.stripe_payouts_enabled);
         
-        // Calcul dynamique des revenus via RPC (plus précis que total_earnings)
         const { data: revenueData } = await supabase.rpc('calculate_creator_revenue_with_commission', {
           creator_uuid: creatorData.id,
-          start_date: new Date(0).toISOString(), // Depuis le début
+          start_date: new Date(0).toISOString(),
           end_date: new Date().toISOString(),
         });
         
@@ -255,11 +254,11 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Error loading creator stats:', error);
     }
-  };
+  }, [user, isCreatorLocal]);
 
   useEffect(() => {
     loadCreatorStats();
-  }, [user, isCreatorLocal]);
+  }, [loadCreatorStats]);
 
   // Realtime subscriptions for stats - CONSOLIDATED into a single channel
   useEffect(() => {

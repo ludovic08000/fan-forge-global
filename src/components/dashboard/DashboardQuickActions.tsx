@@ -3,6 +3,8 @@ import { Upload, Radio, MessageCircle, Handshake } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardSection } from './DashboardNav';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface DashboardQuickActionsProps {
   onNewContent: () => void;
@@ -15,52 +17,106 @@ export const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+
+  const actions = [
+    {
+      label: t('dashboard.newContent'),
+      desc: t('dashboard.photosVideos'),
+      icon: Upload,
+      color: 'primary',
+      onClick: onNewContent,
+      borderClass: 'border-border/50 hover:border-primary/30',
+      iconBg: 'bg-primary/10',
+      iconColor: 'text-primary',
+      hoverShadow: 'hover:shadow-primary/5',
+    },
+    {
+      label: t('dashboard.startLive'),
+      desc: t('dashboard.directStreaming'),
+      icon: Radio,
+      color: 'rose',
+      onClick: () => onSectionChange('live'),
+      borderClass: 'border-border/50 hover:border-rose-500/30',
+      iconBg: 'bg-rose-500/10',
+      iconColor: 'text-rose-500',
+      hoverShadow: 'hover:shadow-rose-500/5',
+    },
+    {
+      label: t('dashboard.messages'),
+      desc: t('dashboard.chatWithFans'),
+      icon: MessageCircle,
+      color: 'blue',
+      onClick: () => onSectionChange('messages'),
+      borderClass: 'border-border/50 hover:border-blue-500/30',
+      iconBg: 'bg-blue-500/10',
+      iconColor: 'text-blue-500',
+      hoverShadow: 'hover:shadow-blue-500/5',
+    },
+    {
+      label: t('dashboard.partnerships'),
+      desc: t('dashboard.collaborateEarnMore'),
+      icon: Handshake,
+      color: 'purple',
+      onClick: () => navigate('/partnerships'),
+      borderClass: 'border-purple-500/30 hover:border-purple-500/50',
+      iconBg: 'bg-gradient-to-br from-purple-500/20 to-pink-500/20',
+      iconColor: 'text-purple-500',
+      hoverShadow: 'hover:shadow-purple-500/10',
+      labelColor: 'text-purple-600 dark:text-purple-400',
+    },
+  ];
+
+  if (isMobile) {
+    // Compact 2x2 grid on mobile: icon + label only, no description
+    return (
+      <div className="grid grid-cols-4 gap-2">
+        {actions.map((action, i) => {
+          const Icon = action.icon;
+          return (
+            <button
+              key={i}
+              onClick={action.onClick}
+              className={cn(
+                "group flex flex-col items-center gap-1.5 p-3 rounded-xl border bg-card/50 backdrop-blur-sm hover:bg-card transition-all active:scale-95",
+                action.borderClass
+              )}
+            >
+              <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center", action.iconBg)}>
+                <Icon className={cn("h-4 w-4", action.iconColor)} />
+              </div>
+              <span className={cn("text-[10px] font-medium text-center leading-tight", action.labelColor)}>
+                {action.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-      <div 
-        className="group cursor-pointer p-5 rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm hover:bg-card hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all"
-        onClick={onNewContent}
-      >
-        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-          <Upload className="h-6 w-6 text-primary" />
-        </div>
-        <h3 className="font-semibold mb-1">{t('dashboard.newContent')}</h3>
-        <p className="text-xs text-muted-foreground">{t('dashboard.photosVideos')}</p>
-      </div>
-
-      <div 
-        className="group cursor-pointer p-5 rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm hover:bg-card hover:border-rose-500/30 hover:shadow-xl hover:shadow-rose-500/5 transition-all"
-        onClick={() => onSectionChange('live')}
-      >
-        <div className="w-12 h-12 rounded-xl bg-rose-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-          <Radio className="h-6 w-6 text-rose-500" />
-        </div>
-        <h3 className="font-semibold mb-1">{t('dashboard.startLive')}</h3>
-        <p className="text-xs text-muted-foreground">{t('dashboard.directStreaming')}</p>
-      </div>
-
-      <div 
-        className="group cursor-pointer p-5 rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm hover:bg-card hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/5 transition-all"
-        onClick={() => onSectionChange('messages')}
-      >
-        <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-          <MessageCircle className="h-6 w-6 text-blue-500" />
-        </div>
-        <h3 className="font-semibold mb-1">{t('dashboard.messages')}</h3>
-        <p className="text-xs text-muted-foreground">{t('dashboard.chatWithFans')}</p>
-      </div>
-
-      <div 
-        className="group cursor-pointer p-5 rounded-2xl border border-purple-500/30 bg-gradient-to-br from-purple-500/10 via-pink-500/5 to-transparent hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-500/10 transition-all"
-        onClick={() => navigate('/partnerships')}
-      >
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-          <Handshake className="h-6 w-6 text-purple-500" />
-        </div>
-        <h3 className="font-semibold mb-1 text-purple-600 dark:text-purple-400">{t('dashboard.partnerships')}</h3>
-        <p className="text-xs text-muted-foreground">{t('dashboard.collaborateEarnMore')}</p>
-      </div>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {actions.map((action, i) => {
+        const Icon = action.icon;
+        return (
+          <div
+            key={i}
+            className={cn(
+              "group cursor-pointer p-5 rounded-2xl border bg-card/50 backdrop-blur-sm hover:bg-card hover:shadow-xl transition-all",
+              action.borderClass,
+              action.hoverShadow
+            )}
+            onClick={action.onClick}
+          >
+            <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform", action.iconBg)}>
+              <Icon className={cn("h-6 w-6", action.iconColor)} />
+            </div>
+            <h3 className={cn("font-semibold mb-1", action.labelColor)}>{action.label}</h3>
+            <p className="text-xs text-muted-foreground">{action.desc}</p>
+          </div>
+        );
+      })}
     </div>
   );
 };
