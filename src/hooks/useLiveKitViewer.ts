@@ -151,10 +151,6 @@ export const useLiveKitViewer = (streamId: string) => {
       const room = new Room({
         adaptiveStream: true,
         dynacast: true,
-        // Préférer la meilleure qualité vidéo disponible
-        videoDefaults: {
-          preferredCodec: 'h264',
-        },
       });
 
       // Handler pour attacher les tracks
