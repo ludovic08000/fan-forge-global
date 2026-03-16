@@ -50,19 +50,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const loadUserProfile = async (userId: string) => {
     try {
-      // Charger le profil de base
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('avatar_url, display_name, username')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      // Si c'est un créateur, charger aussi le stage_name
-      const { data: creator } = await supabase
-        .from('creators')
-        .select('stage_name')
-        .eq('user_id', userId)
-        .maybeSingle();
+      // Charger profil + créateur en parallèle
+      const [{ data: profile }, { data: creator }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('avatar_url, display_name, username')
+          .eq('user_id', userId)
+          .maybeSingle(),
+        supabase
+          .from('creators')
+          .select('stage_name')
+          .eq('user_id', userId)
+          .maybeSingle(),
+      ]);
 
       setUserProfile({
         avatar_url: profile?.avatar_url || null,
