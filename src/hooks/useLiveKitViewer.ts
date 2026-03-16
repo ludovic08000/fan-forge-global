@@ -147,14 +147,10 @@ export const useLiveKitViewer = (streamId: string) => {
       const { token, url: livekitUrl } = await getToken();
       console.log('[LiveKit Viewer] Token obtained, URL:', livekitUrl);
 
-      // Créer la room avec options Safari
+      // Créer la room avec options haute qualité pour le viewer
       const room = new Room({
         adaptiveStream: true,
         dynacast: true,
-        // Options spécifiques pour Safari iOS
-        publishDefaults: {
-          simulcast: !isSafariIOS(), // Désactiver simulcast sur Safari iOS
-        },
       });
 
       // Handler pour attacher les tracks
