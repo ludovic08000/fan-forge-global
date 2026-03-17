@@ -9,6 +9,7 @@ import {
   Heading,
   Html,
   Preview,
+  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
@@ -17,18 +18,23 @@ interface ReauthenticationEmailProps {
 }
 
 export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="fr" dir="ltr">
     <Head />
-    <Preview>Your verification code</Preview>
+    <Preview>Votre code de vérification TheForge</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Confirm reauthentication</Heading>
-        <Text style={text}>Use the code below to confirm your identity:</Text>
-        <Text style={codeStyle}>{token}</Text>
+        <Section style={header}>
+          <Text style={logoText}>⚒️ TheForge</Text>
+        </Section>
+        <Heading style={h1}>Code de vérification</Heading>
+        <Text style={text}>Utilisez le code ci-dessous pour confirmer votre identité :</Text>
+        <Section style={codeSection}>
+          <Text style={codeStyle}>{token}</Text>
+        </Section>
         <Text style={footer}>
-          This code will expire shortly. If you didn't request this, you can
-          safely ignore this email.
+          Ce code expirera dans quelques minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.
         </Text>
+        <Text style={footerBrand}>© TheForge — theforge.fans</Text>
       </Container>
     </Body>
   </Html>
@@ -36,25 +42,13 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
 
 export default ReauthenticationEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
-const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
-}
-const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
-}
-const codeStyle = {
-  fontFamily: 'Courier, monospace',
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 30px',
-}
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+const main = { backgroundColor: '#f4f6f9', fontFamily: "'Sora', 'Segoe UI', Arial, sans-serif", padding: '20px 0' }
+const container = { backgroundColor: '#ffffff', borderRadius: '12px', padding: '40px 32px', maxWidth: '480px', margin: '0 auto', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }
+const header = { textAlign: 'center' as const, marginBottom: '24px' }
+const logoText = { fontSize: '28px', fontWeight: 'bold' as const, color: '#3366cc', margin: '0' }
+const h1 = { fontSize: '24px', fontWeight: '700' as const, color: '#0a0f1a', margin: '0 0 16px', textAlign: 'center' as const }
+const text = { fontSize: '15px', color: '#555e6e', lineHeight: '1.6', margin: '0 0 20px', textAlign: 'center' as const }
+const codeSection = { textAlign: 'center' as const, margin: '20px 0 28px' }
+const codeStyle = { fontFamily: "'Space Grotesk', Courier, monospace", fontSize: '32px', fontWeight: 'bold' as const, color: '#3366cc', letterSpacing: '6px', margin: '0', padding: '16px 24px', backgroundColor: '#f4f6f9', borderRadius: '10px', display: 'inline-block' }
+const footer = { fontSize: '13px', color: '#999999', margin: '24px 0 0', textAlign: 'center' as const }
+const footerBrand = { fontSize: '12px', color: '#cccccc', margin: '12px 0 0', textAlign: 'center' as const }
