@@ -17,12 +17,12 @@ const corsHeaders = {
 }
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Confirm your email',
-  invite: "You've been invited",
-  magiclink: 'Your login link',
-  recovery: 'Reset your password',
-  email_change: 'Confirm your new email',
-  reauthentication: 'Your verification code',
+  signup: 'Confirmez votre email — TheForge',
+  invite: 'Vous êtes invité(e) sur TheForge',
+  magiclink: 'Votre lien de connexion TheForge',
+  recovery: 'Réinitialisez votre mot de passe — TheForge',
+  email_change: 'Confirmez votre changement d\'email — TheForge',
+  reauthentication: 'Votre code de vérification — TheForge',
 }
 
 // Template mapping
