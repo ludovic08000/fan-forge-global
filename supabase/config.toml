@@ -1,290 +1,178 @@
 project_id = "usjxcgauyvdocngfkhys"
 
-[functions.live-heartbeat]
-verify_jwt = false
-
 [api]
-enabled = true
-port = 54321
-schemas = ["public", "storage", "graphql_public"]
-extra_search_path = ["public", "extensions"]
-max_rows = 1000
+  enabled = true
+  extra_search_path = ["public", "extensions"]
+  max_rows = 1000
+  port = 54321
+  schemas = ["public", "storage", "graphql_public"]
 
 [db]
-enabled = true
-port = 54322
-shadow_port = 54320
-major_version = 15
-
-[functions.auto-process-creator-payments]
-verify_jwt = false
-
-# JWT validated manually in code for custom domain CORS support
-[functions.check-subscription]
-verify_jwt = false
-
-[functions.create-checkout]
-verify_jwt = false
-
-[functions.customer-portal]
-verify_jwt = false
-
-[functions.create-creator-checkout]
-verify_jwt = false
-
-[functions.pay-private-content]
-verify_jwt = false
-
-[functions.create-creator-boost]
-verify_jwt = false
-
-[functions.activate-creator-boost]
-verify_jwt = false
-
-[functions.cleanup-expired-boosts]
-verify_jwt = false
-
-[functions.create-live-checkout]
-verify_jwt = false
-
-[functions.verify-live-access]
-verify_jwt = false
-
-[functions.rate-limit-check]
-verify_jwt = false
-
-[functions.track-live-revenue]
-verify_jwt = false
-
-[functions.notify-live-start]
-verify_jwt = false
-
-[functions.add-watermark]
-verify_jwt = false
-
-[functions.check-stripe-connect-status]
-verify_jwt = false
-
-[functions.create-stripe-connect-account]
-verify_jwt = false
-
-[functions.request-creator-payment]
-verify_jwt = false
-
-[functions.process-creator-payment]
-verify_jwt = false
-
-[functions.livekit-token]
-verify_jwt = false
-
-[functions.sitemap]
-verify_jwt = false
-
-[functions.get-signed-url]
-verify_jwt = false
-
-[functions.decode-watermark]
-verify_jwt = false
-
-[functions.cleanup-paused-creators]
-verify_jwt = false
-
-[functions.csrf-token]
-verify_jwt = false
-
-[functions.brute-force-check]
-verify_jwt = false
-
-# Webhooks Stripe - DOIT être false car Stripe ne peut pas envoyer de JWT
-[functions.stripe-private-content-webhook]
-verify_jwt = false
-
-[functions.stripe-webhook]
-verify_jwt = false
-
-[functions.stripe-live-webhook]
-verify_jwt = false
-
-[functions.stripe-subscription-webhook]
-verify_jwt = false
-
-[functions.calculate-tax]
-verify_jwt = false
-
-[functions.scan-file-virus]
-verify_jwt = false
-
-[functions.get-creator-invoices]
-verify_jwt = false
-
-[functions.generate-creator-payout-invoice]
-verify_jwt = false
-
-[functions.save-edited-image]
-verify_jwt = false
-
-[functions.cleanup-stale-lives]
-verify_jwt = false
-
-[functions.pay-live-media]
-verify_jwt = false
-
-[functions.create-live-tip]
-verify_jwt = false
-
-[functions.notify-iban-change]
-verify_jwt = false
-
-[functions.stripe-connect-login-link]
-verify_jwt = false
-
-# Webhook Stripe pour médias live - DOIT être false car Stripe ne peut pas envoyer de JWT
-[functions.stripe-live-media-webhook]
-verify_jwt = false
-
-[functions.cancel-subscription]
-verify_jwt = false
-
-# OTP 2FA - JWT validated manually in code
-[functions.send-otp]
-verify_jwt = false
-
-[functions.verify-otp-code]
-verify_jwt = false
-
-[functions.verify-otp-status]
-verify_jwt = false
-
-# LiveKit Recording
-[functions.start-live-recording]
-verify_jwt = false
-
-[functions.stop-live-recording]
-verify_jwt = false
-
-# LiveKit Recording Webhook - DOIT être false car LiveKit ne peut pas envoyer de JWT
-[functions.livekit-recording-webhook]
-verify_jwt = false
-
-# AI Content Moderation (legacy - replaced by ai-gateway)
-[functions.moderate-content]
-verify_jwt = false
-
-# Unified AI Gateway - handles moderation, ID verification, watermarks, translations
-[functions.ai-gateway]
-verify_jwt = false
-
-# SEO - Ping sitemap to search engines
-[functions.ping-sitemap]
-verify_jwt = false
-
-# Video processing
-[functions.process-video]
-verify_jwt = false
-
-# Media fingerprinting
-[functions.compute-media-fingerprint]
-verify_jwt = false
-
-# Live extension - JWT validated manually in code
-[functions.create-live-extension]
-verify_jwt = false
-
-[functions.confirm-live-extension]
-verify_jwt = false
-
-# R2 Signed URLs - JWT validated manually in code
-[functions.get-replay-url]
-verify_jwt = false
-
-# R2 Upload presigned URLs - JWT validated manually in code
-[functions.r2-upload-url]
-verify_jwt = false
-
-# Cleanup old replays (7 days) - cron job, no JWT
-[functions.cleanup-old-replays]
-verify_jwt = false
-
-# Cleanup old private messages (30 days) - cron job, no JWT
-[functions.cleanup-old-messages]
-verify_jwt = false
-
-# Private live checkout - JWT validated manually in code
-[functions.create-private-live-checkout]
-verify_jwt = false
-
-# Cancel private live - JWT validated manually in code
-[functions.cancel-private-live]
-verify_jwt = false
-
-# Report private live no-show - JWT validated manually in code
-[functions.report-private-live-noshow]
-verify_jwt = false
-
-# Send private live reminders - cron job, no JWT (uses CRON_SECRET)
-[functions.send-private-live-reminders]
-verify_jwt = false
-
-# Private live payment webhook - DOIT être false car Stripe ne peut pas envoyer de JWT
-[functions.private-live-payment-webhook]
-verify_jwt = false
-
-# Delete replay - JWT validated manually in code
-[functions.delete-replay]
-verify_jwt = false
-
-# Delete R2 file - JWT validated manually in code
-[functions.delete-r2-file]
-verify_jwt = false
-
-# R2 Upload Proxy - JWT validated manually in code
-[functions.r2-upload]
-verify_jwt = false
-
-# Auto-cleanup expired promo codes - cron job, no JWT
-[functions.auto-cleanup-expired-codes]
-verify_jwt = false
-
-# Generate translations via AI - JWT validated manually in code
-[functions.generate-translations]
-verify_jwt = false
-
-# Video proxy with JWT auth - validated manually in code
-[functions.proxy-r2-video]
-verify_jwt = false
-
-# Security alerting - cron job, no JWT (uses CRON_SECRET)
-[functions.security-alerting]
-verify_jwt = false
-
-# Auction checkout - JWT validated manually in code
-[functions.create-auction-checkout]
-verify_jwt = false
-
-# Auction payment webhook - no JWT (Stripe webhook)
-[functions.auction-payment-webhook]
-verify_jwt = false
-
-# Bundle checkout - JWT validated manually in code
-[functions.create-bundle-checkout]
-verify_jwt = false
-
-# Bundle payment webhook - no JWT (Stripe webhook)
-[functions.bundle-payment-webhook]
-verify_jwt = false
-
-# Wishlist contribution checkout - JWT validated manually in code
-[functions.create-wishlist-contribution]
-verify_jwt = false
-
-# Wishlist payment webhook - no JWT (Stripe webhook)
-[functions.wishlist-payment-webhook]
-verify_jwt = false
-
-# Performance analytics - no JWT (anonymous metrics collection)
-[functions.analyze-performance]
-verify_jwt = false
-
-# Payment audit - JWT validated manually (admin or cron)
-[functions.audit-payments]
-verify_jwt = false
+  enabled = true
+  major_version = 15
+  port = 54322
+  shadow_port = 54320
+
+[functions]
+  [functions.activate-creator-boost]
+    verify_jwt = false
+  [functions.add-watermark]
+    verify_jwt = false
+  [functions.ai-gateway]
+    verify_jwt = false
+  [functions.analyze-performance]
+    verify_jwt = false
+  [functions.auction-payment-webhook]
+    verify_jwt = false
+  [functions.audit-payments]
+    verify_jwt = false
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.auto-cleanup-expired-codes]
+    verify_jwt = false
+  [functions.auto-process-creator-payments]
+    verify_jwt = false
+  [functions.brute-force-check]
+    verify_jwt = false
+  [functions.bundle-payment-webhook]
+    verify_jwt = false
+  [functions.calculate-tax]
+    verify_jwt = false
+  [functions.cancel-private-live]
+    verify_jwt = false
+  [functions.cancel-subscription]
+    verify_jwt = false
+  [functions.check-stripe-connect-status]
+    verify_jwt = false
+  [functions.check-subscription]
+    verify_jwt = false
+  [functions.cleanup-expired-boosts]
+    verify_jwt = false
+  [functions.cleanup-old-messages]
+    verify_jwt = false
+  [functions.cleanup-old-replays]
+    verify_jwt = false
+  [functions.cleanup-paused-creators]
+    verify_jwt = false
+  [functions.cleanup-stale-lives]
+    verify_jwt = false
+  [functions.compute-media-fingerprint]
+    verify_jwt = false
+  [functions.confirm-live-extension]
+    verify_jwt = false
+  [functions.create-auction-checkout]
+    verify_jwt = false
+  [functions.create-bundle-checkout]
+    verify_jwt = false
+  [functions.create-checkout]
+    verify_jwt = false
+  [functions.create-creator-boost]
+    verify_jwt = false
+  [functions.create-creator-checkout]
+    verify_jwt = false
+  [functions.create-live-checkout]
+    verify_jwt = false
+  [functions.create-live-extension]
+    verify_jwt = false
+  [functions.create-live-tip]
+    verify_jwt = false
+  [functions.create-private-live-checkout]
+    verify_jwt = false
+  [functions.create-stripe-connect-account]
+    verify_jwt = false
+  [functions.create-wishlist-contribution]
+    verify_jwt = false
+  [functions.csrf-token]
+    verify_jwt = false
+  [functions.customer-portal]
+    verify_jwt = false
+  [functions.decode-watermark]
+    verify_jwt = false
+  [functions.delete-r2-file]
+    verify_jwt = false
+  [functions.delete-replay]
+    verify_jwt = false
+  [functions.generate-creator-payout-invoice]
+    verify_jwt = false
+  [functions.generate-translations]
+    verify_jwt = false
+  [functions.get-creator-invoices]
+    verify_jwt = false
+  [functions.get-replay-url]
+    verify_jwt = false
+  [functions.get-signed-url]
+    verify_jwt = false
+  [functions.live-heartbeat]
+    verify_jwt = false
+  [functions.livekit-recording-webhook]
+    verify_jwt = false
+  [functions.livekit-token]
+    verify_jwt = false
+  [functions.moderate-content]
+    verify_jwt = false
+  [functions.notify-iban-change]
+    verify_jwt = false
+  [functions.notify-live-start]
+    verify_jwt = false
+  [functions.pay-live-media]
+    verify_jwt = false
+  [functions.pay-private-content]
+    verify_jwt = false
+  [functions.ping-sitemap]
+    verify_jwt = false
+  [functions.private-live-payment-webhook]
+    verify_jwt = false
+  [functions.process-creator-payment]
+    verify_jwt = false
+  [functions.process-video]
+    verify_jwt = false
+  [functions.proxy-r2-video]
+    verify_jwt = false
+  [functions.r2-upload]
+    verify_jwt = false
+  [functions.r2-upload-url]
+    verify_jwt = false
+  [functions.rate-limit-check]
+    verify_jwt = false
+  [functions.report-private-live-noshow]
+    verify_jwt = false
+  [functions.request-creator-payment]
+    verify_jwt = false
+  [functions.save-edited-image]
+    verify_jwt = false
+  [functions.scan-file-virus]
+    verify_jwt = false
+  [functions.security-alerting]
+    verify_jwt = false
+  [functions.send-otp]
+    verify_jwt = false
+  [functions.send-private-live-reminders]
+    verify_jwt = false
+  [functions.sitemap]
+    verify_jwt = false
+  [functions.start-live-recording]
+    verify_jwt = false
+  [functions.stop-live-recording]
+    verify_jwt = false
+  [functions.stripe-connect-login-link]
+    verify_jwt = false
+  [functions.stripe-live-media-webhook]
+    verify_jwt = false
+  [functions.stripe-live-webhook]
+    verify_jwt = false
+  [functions.stripe-private-content-webhook]
+    verify_jwt = false
+  [functions.stripe-subscription-webhook]
+    verify_jwt = false
+  [functions.stripe-webhook]
+    verify_jwt = false
+  [functions.track-live-revenue]
+    verify_jwt = false
+  [functions.verify-live-access]
+    verify_jwt = false
+  [functions.verify-otp-code]
+    verify_jwt = false
+  [functions.verify-otp-status]
+    verify_jwt = false
+  [functions.wishlist-payment-webhook]
+    verify_jwt = false
