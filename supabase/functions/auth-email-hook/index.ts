@@ -36,7 +36,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "fan-forge-global"
+const SITE_NAME = "TheForge"
 const SENDER_DOMAIN = "notify.theforge.fans"
 const ROOT_DOMAIN = "theforge.fans"
 const FROM_DOMAIN = "notify.theforge.fans" // Domain shown in From address (may be root or sender subdomain)
