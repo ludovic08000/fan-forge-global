@@ -142,7 +142,7 @@ const PrivateChatPage = () => {
     <div className="min-h-screen bg-background flex flex-col safe-area-inset">
       <SEOHead
         title={`Message privé avec ${creatorName}`}
-        description={`Chat privé avec ${creatorName} sur Crub`}
+        description={`Chat privé avec ${creatorName} sur TheForge`}
       />
 
       {/* Header Instagram-style */}

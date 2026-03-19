@@ -564,7 +564,7 @@ const CreatorPublicPage = () => {
         image={creatorImage}
         url={creatorUrl}
         type="profile"
-        keywords={`${creatorName}, créateur Crub, ${creator?.category || 'contenu exclusif'}`}
+        keywords={`${creatorName}, créateur TheForge, ${creator?.category || 'contenu exclusif'}, alternative MYM, alternative OnlyFans`}
         noindex={false}
         creator={{
           name: creatorName,
