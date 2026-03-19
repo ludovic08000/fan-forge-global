@@ -33,10 +33,10 @@ const SUPPORTED_LANGUAGES = ['fr', 'en'] as const;
 const DEFAULT_LANGUAGE = 'fr';
 
 const SEOHead = ({
-  title = "TheForge – Plateforme Créateurs Premium | Contenus Exclusifs et Communauté Privée",
-  description = "Découvrez TheForge, la plateforme moderne dédiée aux créateurs et à leurs communautés. Partage privé, contenus exclusifs, espace sécurisé et expérience premium.",
-  keywords = "TheForge, plateforme TheForge, réseau TheForge, TheForge créateurs, plateforme créateurs premium, contenu exclusif en ligne, communauté créative privée, plateforme créateurs sécurisée, hub digital pour créateurs",
-  image = "https://crub.fr/og-image.jpg",
+  title = "TheForge – Alternative MYM & OnlyFans | Plateforme Créateurs Contenu Exclusif",
+  description = "TheForge, la meilleure alternative à MYM et OnlyFans en France. Plateforme créateurs premium : contenu exclusif, abonnements, lives privés, messagerie sécurisée. Monétisez vos créations sans commission abusive.",
+  keywords = "alternative MYM, alternative OnlyFans, alternative Fansly, plateforme créateurs France, contenu exclusif créateurs, abonnement créateur, monétisation contenu, plateforme fans, réseau social créateurs, gagner argent contenu, plateforme abonnement premium, live privé créateurs, messagerie privée fans, TheForge, mym alternative gratuite, onlyfans français, plateforme comme mym, site comme onlyfans, fansite français, contenu premium abonnement, devenir créateur contenu, revenus créateur en ligne, plateforme tips pourboires, live streaming créateurs",
+  image = "https://theforge.fans/og-image.jpg",
   url,
   type = "website",
   author,
@@ -46,7 +46,7 @@ const SEOHead = ({
   modifiedTime,
   lang = DEFAULT_LANGUAGE,
 }: SEOHeadProps) => {
-  const baseUrl = "https://crub.fr";
+  const baseUrl = "https://theforge.fans";
   const currentUrl = url || (typeof window !== 'undefined' ? window.location.href : baseUrl);
   
   // Nettoyer l'URL (retirer les paramètres de query pour le canonical)
