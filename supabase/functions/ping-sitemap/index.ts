@@ -88,7 +88,7 @@ serve(async (req) => {
       
       const creatorUrls = profiles
         ?.filter(p => p.username)
-        .map(p => `https://crub.fr/creator/${p.username}`) || [];
+        .map(p => `https://theforge.fans/${p.username}`) || [];
 
       const indexNowResponse = await fetch(indexNowUrl, {
         method: "POST",
@@ -97,13 +97,13 @@ serve(async (req) => {
           "User-Agent": "TheForge-Sitemap-Pinger/1.0",
         },
         body: JSON.stringify({
-          host: "crub.fr",
+          host: "theforge.fans",
           key: "crub-indexnow-key",
-          keyLocation: "https://crub.fr/crub-indexnow-key.txt",
+          keyLocation: "https://theforge.fans/crub-indexnow-key.txt",
           urlList: [
-            "https://crub.fr/",
-            "https://crub.fr/search",
-            "https://crub.fr/lives",
+            "https://theforge.fans/",
+            "https://theforge.fans/search",
+            "https://theforge.fans/lives",
             ...creatorUrls,
           ],
         }),

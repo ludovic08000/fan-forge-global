@@ -34,7 +34,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const baseUrl = "https://crub.fr";
+    const baseUrl = "https://theforge.fans";
     const today = new Date().toISOString().split('T')[0];
 
     // Fetch all active creators (non-paused) who haven't opted out of search engines
