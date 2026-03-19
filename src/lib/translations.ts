@@ -154,8 +154,8 @@ export const translations: Record<string, any> = {
       acceptAll: "Accept all"
     },
     seo: {
-      title: "TheForge - Share your content",
-      description: "Create your space on TheForge to share exclusive content."
+      title: "TheForge – MYM & OnlyFans Alternative | Exclusive Creator Platform",
+      description: "TheForge, the best alternative to MYM and OnlyFans. Premium creator platform: exclusive content, subscriptions, private lives, secure messaging."
     },
     dashboard: {
       myCreatorSpace: "My creator space",
