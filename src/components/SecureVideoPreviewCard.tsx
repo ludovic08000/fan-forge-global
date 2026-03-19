@@ -1,5 +1,5 @@
 import React, { useRef, useState, useCallback } from 'react';
-import { Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX, Video } from 'lucide-react';
 
 // Build public URL from relative path (only if not already a full URL)
 const SUPABASE_URL = 'https://usjxcgauyvdocngfkhys.supabase.co';
@@ -27,6 +27,7 @@ interface SecureVideoPreviewCardProps {
 
 /**
  * Lecteur vidéo SIMPLE - affiche directement la vidéo comme une image
+ * Avec fallback en cas d'erreur de chargement
  */
 export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
   src,
@@ -36,6 +37,7 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   const videoUrl = buildPublicUrl(src);
 
@@ -49,6 +51,16 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
     }
   }, []);
 
+  // Fallback si la vidéo ne charge pas
+  if (hasError || !videoUrl) {
+    return (
+      <div className={`relative w-full h-full flex items-center justify-center bg-muted ${className}`}>
+        <Video className="h-8 w-8 text-muted-foreground" />
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className={`relative w-full h-full ${className}`}>
       <video
@@ -59,7 +71,8 @@ export const SecureVideoPreviewCard: React.FC<SecureVideoPreviewCardProps> = ({
         loop
         autoPlay
         playsInline
-        preload="auto"
+        preload="metadata"
+        onError={() => setHasError(true)}
       />
 
       {!blurred && (
