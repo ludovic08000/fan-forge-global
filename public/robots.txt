@@ -1,5 +1,5 @@
 # Robots.txt for TheForge
-# https://crub.fr
+# https://theforge.fans
 
 # Allow all crawlers
 User-agent: *
@@ -7,7 +7,7 @@ Allow: /
 
 # Sitemap locations
 Sitemap: https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/sitemap
-Sitemap: https://crub.fr/sitemap.xml
+Sitemap: https://theforge.fans/sitemap.xml
 
 # Crawl-delay for respectful crawling
 Crawl-delay: 1
@@ -38,7 +38,7 @@ Disallow: /partnerships
 Allow: /
 Allow: /search
 Allow: /lives
-# Les profils créateurs sont à la racine (ex: /ludovic43)
+# Les profils créateurs sont à la racine (ex: /ice-scream)
 # Ils sont autorisés par défaut via Allow: /
 Allow: /content/
 Allow: /signup

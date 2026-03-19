@@ -290,7 +290,8 @@ const SEOHead = ({
             "url": `${baseUrl}/favicon.png`
           },
           "sameAs": [
-            "https://twitter.com/CrubFr"
+            "https://twitter.com/TheForge",
+            "https://instagram.com/theforge.fans"
           ]
         },
         "potentialAction": {
