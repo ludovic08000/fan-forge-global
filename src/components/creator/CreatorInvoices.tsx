@@ -390,7 +390,7 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
     // Logo / Nom plateforme
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('Crub', 150, 30);
+    doc.text('TheForge', 150, 30);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(isUS ? 'Creator Platform' : 'Plateforme de créateurs', 150, 38);
