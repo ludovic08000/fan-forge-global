@@ -97,55 +97,57 @@ const CreatorPublicPage = () => {
           profileData = result.data;
           profileError = result.error;
         } else {
-          // D'abord chercher par username
-          let result = await supabase
+          // 1) Chercher par username exact
+          const result = await supabase
             .from('public_creator_profiles')
             .select('*')
             .eq('username', username)
             .maybeSingle();
           
-          // Si pas trouvé, chercher par stage_name (slug format: lowercase, tirets)
-          if (!result.data) {
-            // Chercher tous les créateurs et matcher par stage_name slugifié
-            const { data: allProfiles } = await supabase
-              .from('public_creator_profiles')
-              .select('*');
+          if (result.data) {
+            profileData = result.data;
+          } else {
+            // 2) Chercher par stage_name slugifié via public_creators
+            const { data: allCreators } = await supabase
+              .from('public_creators')
+              .select('user_id, stage_name');
             
-            if (allProfiles) {
-              // Chercher le créateur correspondant au stage_name
-              for (const p of allProfiles) {
-                // Récupérer le stage_name du créateur
-                const { data: creatorInfo } = await supabase
-                  .from('public_creators')
-                  .select('stage_name')
-                  .eq('user_id', p.user_id)
+            if (allCreators) {
+              const searchSlug = username.toLowerCase();
+              const matchedCreator = allCreators.find(c => {
+                if (!c.stage_name) return false;
+                const slug = c.stage_name
+                  .toLowerCase()
+                  .normalize('NFD')
+                  .replace(/[\u0300-\u036f]/g, '')
+                  .replace(/[^a-z0-9]+/g, '-')
+                  .replace(/^-|-$/g, '');
+                return slug === searchSlug;
+              });
+              
+              if (matchedCreator) {
+                const { data: matchedProfile } = await supabase
+                  .from('public_creator_profiles')
+                  .select('*')
+                  .eq('user_id', matchedCreator.user_id)
                   .single();
-                
-                if (creatorInfo?.stage_name) {
-                  // Créer le slug du stage_name
-                  const stageNameSlug = creatorInfo.stage_name
-                    .toLowerCase()
-                    .normalize('NFD')
-                    .replace(/[\u0300-\u036f]/g, '')
-                    .replace(/[^a-z0-9]+/g, '-')
-                    .replace(/^-|-$/g, '');
-                  
-                  if (stageNameSlug === username.toLowerCase()) {
-                    profileData = p;
-                    break;
-                  }
-                }
+                profileData = matchedProfile;
               }
             }
           }
           
-          if (!profileData && result.data) {
-            profileData = result.data;
+          if (!profileData && result.error) {
+            profileError = result.error;
           }
-          profileError = result.error;
         }
 
         if (profileError) throw profileError;
+        
+        if (!profileData) {
+          setLoading(false);
+          return;
+        }
+        
         setProfile(profileData);
 
         const { data: creatorData, error: creatorError } = await supabase
