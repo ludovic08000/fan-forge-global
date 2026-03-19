@@ -278,9 +278,9 @@ const SEOHead = ({
         "@context": "https://schema.org",
         "@type": "WebSite",
         "name": "TheForge",
-        "alternateName": "TheForge - Plateforme Créateurs Premium",
+        "alternateName": ["TheForge - Plateforme Créateurs Premium", "Alternative MYM France", "Alternative OnlyFans Français"],
         "url": baseUrl,
-        "description": "La Plateforme Premium des Créateurs Modernes. Partage privé, contenus exclusifs, espace sécurisé.",
+        "description": "Alternative française à MYM et OnlyFans. Plateforme premium pour créateurs : contenu exclusif, abonnements, lives privés, monétisation.",
         "inLanguage": lang,
         "publisher": {
           "@type": "Organization",
