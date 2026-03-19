@@ -210,9 +210,21 @@ const VerifyOtp = () => {
           .eq('user_id', userId)
           .maybeSingle();
 
-        navigate(creatorData ? '/dashboard' : '/subscriptions', { replace: true });
+        const savedRedirect = sessionStorage.getItem('redirect_after_auth');
+        if (savedRedirect) {
+          sessionStorage.removeItem('redirect_after_auth');
+          navigate(savedRedirect, { replace: true });
+        } else {
+          navigate(creatorData ? '/dashboard' : '/subscriptions', { replace: true });
+        }
       } else {
-        navigate('/dashboard', { replace: true });
+        const savedRedirect = sessionStorage.getItem('redirect_after_auth');
+        if (savedRedirect) {
+          sessionStorage.removeItem('redirect_after_auth');
+          navigate(savedRedirect, { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
       }
     } catch (error: any) {
       console.error('Erreur handleVerifyOtp:', error);
