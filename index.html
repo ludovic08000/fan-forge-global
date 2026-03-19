@@ -188,6 +188,58 @@
       ]
     }
     </script>
+
+    <!-- Structured Data - SiteNavigationElement for Google Sitelinks -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "itemListElement": [
+        {
+          "@type": "SiteNavigationElement",
+          "position": 1,
+          "name": "Connexion",
+          "description": "Connectez-vous à votre compte TheForge",
+          "url": "https://theforge.fans/login"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 2,
+          "name": "Inscription",
+          "description": "Créez votre compte gratuit sur TheForge",
+          "url": "https://theforge.fans/signup"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 3,
+          "name": "Découvrir les créateurs",
+          "description": "Explorez et trouvez vos créateurs préférés",
+          "url": "https://theforge.fans/search"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 4,
+          "name": "Mes abonnements",
+          "description": "Gérez vos abonnements aux créateurs",
+          "url": "https://theforge.fans/subscriptions"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 5,
+          "name": "Lives en direct",
+          "description": "Regardez les lives des créateurs en direct",
+          "url": "https://theforge.fans/lives"
+        },
+        {
+          "@type": "SiteNavigationElement",
+          "position": 6,
+          "name": "Messages privés",
+          "description": "Messagerie privée avec vos créateurs favoris",
+          "url": "https://theforge.fans/messages"
+        }
+      ]
+    }
+    </script>
     
     <!-- SECURITY: Content Security Policy (STRICT) -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://js.stripe.com https://connect.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://usjxcgauyvdocngfkhys.supabase.co https://*.r2.dev https://*.r2.cloudflarestorage.com https://*.stripe.com; media-src 'self' blob: https://usjxcgauyvdocngfkhys.supabase.co https://*.r2.dev https://*.r2.cloudflarestorage.com; connect-src 'self' https://usjxcgauyvdocngfkhys.supabase.co wss://usjxcgauyvdocngfkhys.supabase.co https://api.stripe.com https://*.stripe.com https://connect.stripe.com https://livekit.io wss://*.livekit.cloud https://*.r2.cloudflarestorage.com https://*.r2.dev; frame-src 'self' https://js.stripe.com https://connect.stripe.com https://*.stripe.com https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self' https://usjxcgauyvdocngfkhys.supabase.co https://*.stripe.com https://connect.stripe.com; frame-ancestors 'none'; upgrade-insecure-requests;">
