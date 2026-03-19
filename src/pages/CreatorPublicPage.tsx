@@ -290,10 +290,16 @@ const CreatorPublicPage = () => {
     preloadCheckout();
   }, [user?.id, creator?.id, isSubscribed]);
 
+  const redirectToSignup = () => {
+    // Stocker l'URL de retour pour rediriger après inscription/connexion
+    sessionStorage.setItem('redirect_after_auth', window.location.pathname);
+    toast.info('Créez un compte pour vous abonner et accéder au contenu exclusif');
+    navigate('/signup');
+  };
+
   const handleSubscribe = async () => {
     if (!user) {
-      toast.info('Connectez-vous pour vous abonner');
-      navigate('/login');
+      redirectToSignup();
       return;
     }
 
