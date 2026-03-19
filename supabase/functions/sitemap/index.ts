@@ -34,7 +34,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const baseUrl = "https://crub.fr";
+    const baseUrl = "https://theforge.fans";
     const today = new Date().toISOString().split('T')[0];
 
     // Fetch all active creators (non-paused) who haven't opted out of search engines
@@ -267,7 +267,7 @@ serve(async (req) => {
     const fallbackXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://crub.fr/</loc>
+    <loc>https://theforge.fans/</loc>
     <priority>1.0</priority>
   </url>
 </urlset>`;

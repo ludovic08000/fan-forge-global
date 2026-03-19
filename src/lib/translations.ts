@@ -154,8 +154,8 @@ export const translations: Record<string, any> = {
       acceptAll: "Accept all"
     },
     seo: {
-      title: "TheForge - Share your content",
-      description: "Create your space on TheForge to share exclusive content."
+      title: "TheForge – MYM & OnlyFans Alternative | Exclusive Creator Platform",
+      description: "TheForge, the best alternative to MYM and OnlyFans. Premium creator platform: exclusive content, subscriptions, private lives, secure messaging."
     },
     dashboard: {
       myCreatorSpace: "My creator space",
@@ -749,8 +749,8 @@ export const translations: Record<string, any> = {
       acceptAll: "Tout accepter"
     },
     seo: {
-      title: "TheForge - Partagez votre contenu",
-      description: "Créez votre espace sur TheForge pour partager du contenu exclusif."
+      title: "TheForge – Alternative MYM & OnlyFans | Plateforme Créateurs Contenu Exclusif",
+      description: "TheForge, la meilleure alternative à MYM et OnlyFans en France. Contenu exclusif, abonnements, lives privés. Monétisez vos créations sans commission abusive."
     },
     dashboard: {
       myCreatorSpace: "Mon espace créateur",

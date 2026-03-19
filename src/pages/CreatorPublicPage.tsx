@@ -534,9 +534,9 @@ const CreatorPublicPage = () => {
   const creatorName = stageName || safeDisplayName || 'Créateur';
   const creatorDescription = profile?.bio 
     ? `${profile.bio.substring(0, 150)}${profile.bio.length > 150 ? '...' : ''}`
-    : `Découvrez le profil de ${creatorName} sur Crub.`;
+    : `Découvrez le profil de ${creatorName} sur TheForge.`;
   const creatorImage = profile?.avatar_url || '/og-image.jpg';
-  const creatorUrl = `https://crub.fr/creator/${profile?.username || username}`;
+  const creatorUrl = `https://theforge.fans/${profile?.username || username}`;
 
   // Geo-blocked page
   if (isGeoBlocked) {
