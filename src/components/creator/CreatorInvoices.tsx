@@ -907,7 +907,7 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-lg">Crub</p>
+                  <p className="font-bold text-lg">TheForge</p>
                   <p className="text-sm text-muted-foreground">{isUSInvoice(selectedInvoice) ? 'Creator Platform' : 'Plateforme de créateurs'}</p>
                 </div>
               </div>

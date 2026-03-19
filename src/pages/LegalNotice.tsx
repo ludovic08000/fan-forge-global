@@ -12,7 +12,7 @@ const LegalNotice = () => {
         title="Mentions Légales - TheForge"
         description="Mentions légales de TheForge. Informations sur l'éditeur, l'hébergeur, la propriété intellectuelle et les conditions d'utilisation du site."
         keywords="mentions légales, éditeur site, hébergeur, propriété intellectuelle, informations légales, RGPD"
-        url="https://crub.com/legal"
+        url="https://theforge.fans/legal"
         noindex={false}
       />
       <div className="container mx-auto px-4 max-w-4xl">

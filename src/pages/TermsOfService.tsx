@@ -12,7 +12,7 @@ const TermsOfService = () => {
         title="Conditions Générales d'Utilisation (CGU) - TheForge"
         description="Lisez les Conditions Générales d'Utilisation de TheForge. Découvrez vos droits et obligations en tant qu'utilisateur de notre plateforme de créateurs de contenu."
         keywords="CGU, conditions utilisation, mentions légales, règlement, plateforme créateurs"
-        url="https://crub.com/terms"
+        url="https://theforge.fans/terms"
         noindex={false}
       />
       <div className="container mx-auto px-4 max-w-4xl">

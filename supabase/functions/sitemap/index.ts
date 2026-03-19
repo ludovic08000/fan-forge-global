@@ -230,7 +230,7 @@ serve(async (req) => {
           xml += `
     <image:image>
       <image:loc>${profile.avatar_url}</image:loc>
-      <image:title>${(profile.display_name || username).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')} - Créateur sur Crub</image:title>
+      <image:title>${(profile.display_name || username).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')} - Créateur sur TheForge</image:title>
     </image:image>`;
         }
         

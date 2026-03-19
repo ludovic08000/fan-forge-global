@@ -129,7 +129,7 @@ const CreatorChatPage = () => {
     <div className="min-h-screen bg-background flex flex-col safe-area-inset">
       <SEOHead
         title={`Message avec ${subscriberName}`}
-        description={`Chat privé avec ${subscriberName} sur Crub`}
+        description={`Chat privé avec ${subscriberName} sur TheForge`}
       />
 
       {/* Header Instagram-style */}

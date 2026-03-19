@@ -12,7 +12,7 @@ const CookiePolicy = () => {
         title="Politique des Cookies - TheForge"
         description="Politique des cookies de TheForge. Découvrez les cookies utilisés sur notre plateforme et comment les gérer conformément au RGPD."
         keywords="cookies, politique cookies, traceurs, RGPD cookies, consentement cookies"
-        url="https://crub.com/cookies"
+        url="https://theforge.fans/cookies"
         noindex={false}
       />
       <div className="container mx-auto px-4 max-w-4xl">
