@@ -452,8 +452,7 @@ const CreatorPublicPage = () => {
 
   const handleLikeContent = async (contentId: string, showAnimation = true) => {
     if (!user) {
-      toast.info('Connectez-vous pour liker');
-      navigate('/login');
+      redirectToSignup();
       return;
     }
 
