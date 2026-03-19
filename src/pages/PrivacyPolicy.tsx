@@ -12,7 +12,7 @@ const PrivacyPolicy = () => {
         title="Politique de Confidentialité RGPD - TheForge"
         description="Politique de confidentialité de TheForge conforme au RGPD. Découvrez comment nous collectons, utilisons et protégeons vos données personnelles sur notre plateforme."
         keywords="politique confidentialité, RGPD, protection données, vie privée, données personnelles"
-        url="https://crub.com/privacy"
+        url="https://theforge.fans/privacy"
         noindex={false}
       />
       <div className="container mx-auto px-4 max-w-4xl">
