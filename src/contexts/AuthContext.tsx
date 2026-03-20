@@ -168,7 +168,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .upsert({ user_id: authUser.id, role: 'creator' }, { onConflict: 'user_id,role' });
 
       // Créer l'entrée dans creators
-      const categoriesArray = metadata.category ? [metadata.category] : [];
+      const categoriesArray = metadata.categories && Array.isArray(metadata.categories) && metadata.categories.length > 0
+        ? metadata.categories
+        : (metadata.category ? [metadata.category] : []);
       const { error: creatorError } = await supabase
         .from('creators')
         .insert({
