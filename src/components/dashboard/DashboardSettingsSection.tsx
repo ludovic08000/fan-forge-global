@@ -1,15 +1,16 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import CreatorSettings from '@/components/CreatorSettings';
-import CreatorPrivacySettings from '@/components/creator/CreatorPrivacySettings';
-import AutoMessagesManager from '@/components/creator/AutoMessagesManager';
-import { DashboardPaymentsSection } from './DashboardPaymentsSection';
-import { DashboardPricingSection } from './DashboardPricingSection';
 import { User, Shield, MessageSquare, BarChart3, Banknote, Sparkles } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Loader2 } from 'lucide-react';
 
+// Lazy load ALL heavy sub-components
+const CreatorSettings = lazy(() => import('@/components/CreatorSettings'));
+const CreatorPrivacySettings = lazy(() => import('@/components/creator/CreatorPrivacySettings'));
+const AutoMessagesManager = lazy(() => import('@/components/creator/AutoMessagesManager'));
+const DashboardPaymentsSection = lazy(() => import('./DashboardPaymentsSection').then(m => ({ default: m.DashboardPaymentsSection })));
+const DashboardPricingSection = lazy(() => import('./DashboardPricingSection').then(m => ({ default: m.DashboardPricingSection })));
 const CreatorAnalyticsDashboard = lazy(() => import('@/components/analytics/CreatorAnalyticsDashboard'));
 
 const LoadingFallback = () => (
@@ -32,10 +33,11 @@ export const DashboardSettingsSection: React.FC<DashboardSettingsSectionProps> =
   defaultTab = 'profile',
 }) => {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState(defaultTab);
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue={defaultTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="w-full">
         <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-6 h-auto gap-1 bg-muted/50 p-1">
           <TabsTrigger value="profile" className="flex items-center gap-1.5 text-xs sm:text-sm px-2 py-2">
             <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
@@ -69,52 +71,75 @@ export const DashboardSettingsSection: React.FC<DashboardSettingsSectionProps> =
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('settingsPage.creatorProfile')}</CardTitle>
-              <CardDescription>{t('settingsPage.editPublicInfo')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CreatorSettings />
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {/* Only render the active tab content to prevent freeze */}
+        {activeTab === 'profile' && (
+          <TabsContent value="profile" forceMount>
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('settingsPage.creatorProfile')}</CardTitle>
+                <CardDescription>{t('settingsPage.editPublicInfo')}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Suspense fallback={<LoadingFallback />}>
+                  <CreatorSettings />
+                </Suspense>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
-        <TabsContent value="analytics">
-          <Suspense fallback={<LoadingFallback />}>
-            <CreatorAnalyticsDashboard />
-          </Suspense>
-        </TabsContent>
+        {activeTab === 'analytics' && (
+          <TabsContent value="analytics" forceMount>
+            <Suspense fallback={<LoadingFallback />}>
+              <CreatorAnalyticsDashboard />
+            </Suspense>
+          </TabsContent>
+        )}
 
-        <TabsContent value="payments">
-          <DashboardPaymentsSection creatorId={creatorId} />
-        </TabsContent>
+        {activeTab === 'payments' && (
+          <TabsContent value="payments" forceMount>
+            <Suspense fallback={<LoadingFallback />}>
+              <DashboardPaymentsSection creatorId={creatorId} />
+            </Suspense>
+          </TabsContent>
+        )}
 
-        <TabsContent value="pricing">
-          <DashboardPricingSection 
-            creatorId={creatorId} 
-            currentBoostUntil={currentBoostUntil}
-          />
-        </TabsContent>
+        {activeTab === 'pricing' && (
+          <TabsContent value="pricing" forceMount>
+            <Suspense fallback={<LoadingFallback />}>
+              <DashboardPricingSection 
+                creatorId={creatorId} 
+                currentBoostUntil={currentBoostUntil}
+              />
+            </Suspense>
+          </TabsContent>
+        )}
 
-        <TabsContent value="messages">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('settingsPage.autoMessagesTitle')}</CardTitle>
-              <CardDescription>
-                {t('settingsPage.configureAutoMessages')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AutoMessagesManager creatorId={creatorId} />
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {activeTab === 'messages' && (
+          <TabsContent value="messages" forceMount>
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('settingsPage.autoMessagesTitle')}</CardTitle>
+                <CardDescription>
+                  {t('settingsPage.configureAutoMessages')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Suspense fallback={<LoadingFallback />}>
+                  <AutoMessagesManager creatorId={creatorId} />
+                </Suspense>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
-        <TabsContent value="privacy">
-          <CreatorPrivacySettings creatorId={creatorId} />
-        </TabsContent>
+        {activeTab === 'privacy' && (
+          <TabsContent value="privacy" forceMount>
+            <Suspense fallback={<LoadingFallback />}>
+              <CreatorPrivacySettings creatorId={creatorId} />
+            </Suspense>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
