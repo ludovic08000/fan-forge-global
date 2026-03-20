@@ -46,14 +46,6 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
             // Pas de rôle admin trouvé
             setIsAdmin(false);
             setError('Accès non autorisé');
-            
-            // Logger la tentative d'accès non autorisée
-            await supabase.from('login_attempts').insert({
-              identifier: user.email || user.id,
-              attempt_type: 'admin_access',
-              success: false,
-              user_agent: navigator.userAgent,
-            });
           } else {
             throw dbError;
           }
@@ -65,14 +57,6 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
           const { data: mfaData } = await supabase.auth.mfa.listFactors();
           const hasTOTP = (mfaData?.totp?.length || 0) > 0;
           setHas2FA(hasTOTP);
-          
-          // Logger l'accès admin réussi
-          await supabase.from('login_attempts').insert({
-            identifier: user.email || user.id,
-            attempt_type: 'admin_access',
-            success: true,
-            user_agent: navigator.userAgent,
-          });
         }
       } catch (err) {
         console.error('Admin verification error:', err);
