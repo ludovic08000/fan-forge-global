@@ -259,7 +259,30 @@ const Signup = () => {
                 </div>
               </div>
 
-              {/* Pseudo pour les utilisateurs */}
+              {/* Date de naissance - commune aux deux rôles */}
+              <div className="space-y-2">
+                <Label htmlFor="birthdate-common">Date de naissance *</Label>
+                <Input
+                  id="birthdate-common"
+                  type="date"
+                  required
+                  className={signUpErrors.birthdate ? 'border-destructive' : ''}
+                  value={signUpForm.birthdate}
+                  max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                  onChange={(e) => {
+                    setSignUpForm({ ...signUpForm, birthdate: e.target.value });
+                    if (signUpErrors.birthdate) setSignUpErrors(prev => ({ ...prev, birthdate: '' }));
+                  }}
+                />
+                {signUpErrors.birthdate ? (
+                  <p className="text-xs text-destructive">{signUpErrors.birthdate}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Vous devez avoir au moins 18 ans
+                  </p>
+                )}
+              </div>
+
               {signUpForm.role === 'subscriber' && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
@@ -313,28 +336,6 @@ const Signup = () => {
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="birthdate">Date de naissance *</Label>
-                    <Input
-                      id="birthdate"
-                      type="date"
-                      required={signUpForm.role === 'creator'}
-                      className={signUpErrors.birthdate ? 'border-destructive' : ''}
-                      value={signUpForm.birthdate}
-                      max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
-                      onChange={(e) => {
-                        setSignUpForm({ ...signUpForm, birthdate: e.target.value });
-                        if (signUpErrors.birthdate) setSignUpErrors(prev => ({ ...prev, birthdate: '' }));
-                      }}
-                    />
-                    {signUpErrors.birthdate ? (
-                      <p className="text-xs text-destructive">{signUpErrors.birthdate}</p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Vous devez avoir au moins 18 ans pour être créateur
-                      </p>
-                    )}
-                  </div>
 
                   <div className="space-y-3">
                     <Label>Catégories de contenu * <span className="text-xs text-muted-foreground font-normal">(3 max)</span></Label>

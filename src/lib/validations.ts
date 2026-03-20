@@ -66,7 +66,7 @@ export const signUpSchema = authSchema.extend({
   role: z.enum(['subscriber', 'creator'], {
     errorMap: () => ({ message: "Rôle invalide" })
   }),
-  birthdate: z.string().optional().or(z.literal('')),
+  birthdate: z.string().min(1, { message: "La date de naissance est requise" }),
   gender: z.string().optional(),
   stageName: z.string().trim().min(2, { message: "Le surnom doit contenir au moins 2 caractères" }).max(50, { message: "Le surnom doit contenir moins de 50 caractères" }).optional().or(z.literal('')),
   category: z.string().optional(),
@@ -93,18 +93,15 @@ export const signUpSchema = authSchema.extend({
   message: "Le surnom est requis pour les créateurs",
   path: ["stageName"],
 }).refine((data) => {
-  if (data.role === 'creator') {
-    if (!data.birthdate) return false;
-    const birth = new Date(data.birthdate);
-    const today = new Date();
-    const age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate()) ? age - 1 : age;
-    return actualAge >= 18;
-  }
-  return true;
+  if (!data.birthdate) return false;
+  const birth = new Date(data.birthdate);
+  const today = new Date();
+  const age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate()) ? age - 1 : age;
+  return actualAge >= 18;
 }, {
-  message: "Vous devez avoir au moins 18 ans pour être créateur",
+  message: "Vous devez avoir au moins 18 ans",
   path: ["birthdate"],
 }).refine((data) => {
   if (data.role === 'creator' && !data.category && (!data.categories || data.categories.length === 0)) {
