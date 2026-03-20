@@ -102,6 +102,8 @@ const SEOHead = ({
     // Additional SEO meta tags
     setMeta('theme-color', '#000000');
     setMeta('format-detection', 'telephone=no');
+    setMeta('mobile-web-app-capable', 'yes');
+    setMeta('apple-mobile-web-app-capable', 'yes');
 
     // Open Graph tags
     setMeta('og:type', type === 'profile' ? 'profile' : type, true);
