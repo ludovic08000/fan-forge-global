@@ -91,12 +91,13 @@ const SEOHead = ({
     setMeta('keywords', keywords);
     if (author) setMeta('author', author);
     
-    // Robots - JAMAIS noindex pour les pages créateurs
-    const isCreatorPage = cleanUrl.includes('/creator/');
-    const robotsContent = isCreatorPage ? 'index, follow, max-image-preview:large' : 
-      (noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large');
+    // Robots - JAMAIS noindex pour les pages créateurs (profil à la racine ou /creator/)
+    const isCreatorPage = type === 'profile' || cleanUrl.includes('/creator/');
+    const robotsContent = isCreatorPage ? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' : 
+      (noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
     setMeta('robots', robotsContent);
     setMeta('googlebot', robotsContent);
+    setMeta('bingbot', robotsContent);
     
     // Additional SEO meta tags
     setMeta('theme-color', '#000000');
