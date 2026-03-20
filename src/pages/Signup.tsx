@@ -65,7 +65,6 @@ const Signup = () => {
     try {
       const validatedData = signUpSchema.parse(signUpForm);
 
-      console.log('🔵 Appel signUp...');
       // Pour les créateurs, utiliser le stageName comme username si pas de username
       const usernameToSend = validatedData.role === 'creator' 
         ? (validatedData.stageName || validatedData.username)
@@ -81,10 +80,9 @@ const Signup = () => {
         validatedData.birthdate || undefined,
         validatedData.gender,
         validatedData.stageName,
-        validatedData.category
+        validatedData.category,
+        validatedData.categories
       );
-      
-      console.log('🔵 Résultat signUp:', { error });
       
       if (!error) {
         // Afficher le message de succès - l'utilisateur doit cliquer sur le lien email

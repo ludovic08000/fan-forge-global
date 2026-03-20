@@ -330,7 +330,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * @param birthdate - Date de naissance (requis pour les créateurs)
    * @returns Objet contenant l'erreur éventuelle
    */
-  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, username?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string) => {
+  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, username?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string, categories?: string[]) => {
     try {
       // URL de redirection après inscription - vers l'espace personnel
       const redirectUrl = `${window.location.origin}/subscriptions`;
