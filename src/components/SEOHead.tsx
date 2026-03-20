@@ -35,7 +35,7 @@ const DEFAULT_LANGUAGE = 'fr';
 const SEOHead = ({
   title = "TheForge – Alternative MYM & OnlyFans | Plateforme Créateurs Contenu Exclusif",
   description = "TheForge, la meilleure alternative à MYM et OnlyFans en France. Plateforme créateurs premium : contenu exclusif, abonnements, lives privés, messagerie sécurisée. Monétisez vos créations sans commission abusive.",
-  keywords = "alternative MYM, alternative OnlyFans, alternative Fansly, plateforme créateurs France, contenu exclusif créateurs, abonnement créateur, monétisation contenu, plateforme fans, réseau social créateurs, gagner argent contenu, plateforme abonnement premium, live privé créateurs, messagerie privée fans, TheForge, mym alternative gratuite, onlyfans français, plateforme comme mym, site comme onlyfans, fansite français, contenu premium abonnement, devenir créateur contenu, revenus créateur en ligne, plateforme tips pourboires, live streaming créateurs",
+  keywords = "The Forge, TheForge, the forge plateforme, alternative MYM, alternative OnlyFans, alternative Fansly, plateforme créateurs France, contenu exclusif créateurs, abonnement créateur, monétisation contenu, plateforme fans, réseau social créateurs, gagner argent contenu, plateforme abonnement premium, live privé créateurs, messagerie privée fans, mym alternative gratuite, onlyfans français, plateforme comme mym, site comme onlyfans, fansite français, contenu premium abonnement, devenir créateur contenu, revenus créateur en ligne, plateforme tips pourboires, live streaming créateurs",
   image = "https://theforge.fans/og-image.jpg",
   url,
   type = "website",
