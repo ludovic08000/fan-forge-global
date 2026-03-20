@@ -5,6 +5,7 @@ import LiveNowSection from "@/components/LiveNowSection";
 import ContentGallery from "@/components/ContentGallery";
 import AgeVerificationGate from "@/components/AgeVerificationGate";
 import SEOHead from "@/components/SEOHead";
+import HomeFAQ from "@/components/HomeFAQ";
 import { StoriesBar } from "@/components/stories/StoriesBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "@/contexts/TranslationContext";
@@ -49,6 +50,8 @@ const Index = () => {
           )}
           
           <LiveNowSection />
+          
+          <HomeFAQ />
         </main>
       </div>
     </AgeVerificationGate>
