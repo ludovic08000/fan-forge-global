@@ -7,8 +7,8 @@ import { Loader2 } from 'lucide-react';
 
 // Lazy load ALL heavy sub-components
 const CreatorSettings = lazy(() => import('@/components/CreatorSettings'));
-const CreatorPrivacySettings = lazy(() => import('@/components/creator/CreatorPrivacySettings').then(m => ({ default: m.default || m.CreatorPrivacySettings })));
-const AutoMessagesManager = lazy(() => import('@/components/creator/AutoMessagesManager').then(m => ({ default: m.default || m.AutoMessagesManager })));
+const CreatorPrivacySettings = lazy(() => import('@/components/creator/CreatorPrivacySettings'));
+const AutoMessagesManager = lazy(() => import('@/components/creator/AutoMessagesManager'));
 const DashboardPaymentsSection = lazy(() => import('./DashboardPaymentsSection').then(m => ({ default: m.DashboardPaymentsSection })));
 const DashboardPricingSection = lazy(() => import('./DashboardPricingSection').then(m => ({ default: m.DashboardPricingSection })));
 const CreatorAnalyticsDashboard = lazy(() => import('@/components/analytics/CreatorAnalyticsDashboard'));
