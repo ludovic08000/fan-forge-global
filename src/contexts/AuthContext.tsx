@@ -18,7 +18,7 @@ interface AuthContextType {
   userRole: UserRole | null;
   userProfile: UserProfile | null;
   loading: boolean;
-  signUp: (email: string, password: string, firstName?: string, lastName?: string, username?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, firstName?: string, lastName?: string, username?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string, categories?: string[]) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -168,7 +168,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .upsert({ user_id: authUser.id, role: 'creator' }, { onConflict: 'user_id,role' });
 
       // Créer l'entrée dans creators
-      const categoriesArray = metadata.category ? [metadata.category] : [];
+      const categoriesArray = metadata.categories && Array.isArray(metadata.categories) && metadata.categories.length > 0
+        ? metadata.categories
+        : (metadata.category ? [metadata.category] : []);
       const { error: creatorError } = await supabase
         .from('creators')
         .insert({
@@ -330,7 +332,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    * @param birthdate - Date de naissance (requis pour les créateurs)
    * @returns Objet contenant l'erreur éventuelle
    */
-  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, username?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string) => {
+  const signUp = async (email: string, password: string, firstName?: string, lastName?: string, username?: string, role?: 'subscriber' | 'creator', birthdate?: string, gender?: string, stageName?: string, category?: string, categories?: string[]) => {
     try {
       // URL de redirection après inscription - vers l'espace personnel
       const redirectUrl = `${window.location.origin}/subscriptions`;
@@ -349,7 +351,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             birthdate,
             gender,
             stage_name: stageName,
-            category
+            category,
+            categories
           }
         }
       });
@@ -392,8 +395,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           // Si créateur, créer l'entrée dans la table creators
           if (role === 'creator') {
-            // Parse categories from category string (could be comma-separated or single)
-            const categoriesArray = category ? [category] : [];
+            const categoriesArray = categories && categories.length > 0 
+              ? categories 
+              : (category ? [category] : []);
             const { error: creatorError } = await supabase
               .from('creators')
               .insert({
@@ -401,7 +405,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 subscription_price: 9.99,
                 gender: gender || null,
                 stage_name: stageName || null,
-                category: category || null,
+                category: category || (categoriesArray[0] || null),
                 categories: categoriesArray
               });
 

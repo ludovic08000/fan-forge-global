@@ -54,21 +54,17 @@ const Signup = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('🔵 Début inscription...');
+    
     
     const isAllowed = await checkRateLimit('auth');
-    console.log('🔵 Rate limit check:', isAllowed);
     if (!isAllowed) return;
 
     setIsLoading(true);
     setSignUpErrors({});
 
     try {
-      console.log('🔵 Validation du formulaire...', signUpForm);
       const validatedData = signUpSchema.parse(signUpForm);
-      console.log('🔵 Données validées:', validatedData);
 
-      console.log('🔵 Appel signUp...');
       // Pour les créateurs, utiliser le stageName comme username si pas de username
       const usernameToSend = validatedData.role === 'creator' 
         ? (validatedData.stageName || validatedData.username)
@@ -84,35 +80,29 @@ const Signup = () => {
         validatedData.birthdate || undefined,
         validatedData.gender,
         validatedData.stageName,
-        validatedData.category
+        validatedData.category,
+        validatedData.categories
       );
-      
-      console.log('🔵 Résultat signUp:', { error });
       
       if (!error) {
         // Afficher le message de succès - l'utilisateur doit cliquer sur le lien email
         setRegisteredEmail(validatedData.email);
         setSignupSuccess(true);
-        console.log('🔵 Inscription réussie - en attente de confirmation email');
       } else {
-        console.log('🔴 Erreur signUp:', error);
         const msg = (error?.message || '').toLowerCase();
         if (msg.includes('already') || msg.includes('registered')) {
           setSignUpErrors({ email: 'Cet email est déjà utilisé. Connectez-vous ou utilisez un autre email.' });
         }
       }
     } catch (error) {
-      console.error('🔴 Erreur catch:', error);
       if (error instanceof z.ZodError) {
         const errors: Record<string, string> = {};
         error.errors.forEach(err => {
-          console.error('🔴 Zod error:', err.path.join('.'), '-', err.message);
           const field = err.path[0] as string;
           if (field && !errors[field]) {
             errors[field] = err.message;
           }
         });
-        console.error('🔴 All errors:', JSON.stringify(errors));
         setSignUpErrors(errors);
         const firstError = Object.values(errors)[0];
         toast.error(firstError || 'Veuillez corriger les erreurs du formulaire');
