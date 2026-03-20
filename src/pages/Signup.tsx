@@ -57,16 +57,13 @@ const Signup = () => {
     console.log('🔵 Début inscription...');
     
     const isAllowed = await checkRateLimit('auth');
-    console.log('🔵 Rate limit check:', isAllowed);
     if (!isAllowed) return;
 
     setIsLoading(true);
     setSignUpErrors({});
 
     try {
-      console.log('🔵 Validation du formulaire...', signUpForm);
       const validatedData = signUpSchema.parse(signUpForm);
-      console.log('🔵 Données validées:', validatedData);
 
       console.log('🔵 Appel signUp...');
       // Pour les créateurs, utiliser le stageName comme username si pas de username
