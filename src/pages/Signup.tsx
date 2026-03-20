@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import SEOHead from '@/components/SEOHead';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -115,6 +116,12 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 py-8">
+      <SEOHead 
+        title="Inscription Gratuite – TheForge | Devenez Créateur de Contenu"
+        description="Inscrivez-vous gratuitement sur TheForge, l'alternative à MYM et OnlyFans. Créez votre profil, monétisez votre contenu exclusif avec des commissions réduites."
+        keywords="inscription TheForge, créer compte créateur, devenir créateur contenu, inscription gratuite plateforme créateurs, alternative MYM inscription"
+        url="https://theforge.fans/signup"
+      />
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <Link to="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">

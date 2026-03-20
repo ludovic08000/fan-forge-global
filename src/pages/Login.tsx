@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import SEOHead from '@/components/SEOHead';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -123,6 +124,13 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <SEOHead 
+        title="Connexion – TheForge | Accédez à votre espace créateur"
+        description="Connectez-vous à TheForge, la plateforme de créateurs de contenu premium. Accédez à vos abonnements, lives privés et messagerie sécurisée."
+        keywords="connexion TheForge, login créateur, se connecter plateforme créateurs, espace créateur"
+        url="https://theforge.fans/login"
+        noindex={true}
+      />
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <Link to="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
