@@ -255,10 +255,10 @@ const LiveStreams = () => {
   return (
     <div className="container mx-auto py-8 px-4">
       <SEOHead 
-        title="Lives en Direct - Streaming Créateurs - CreatorHub"
-        description="Regardez les lives en direct de vos créateurs préférés sur CreatorHub. Streaming HD, chat en direct, replay disponible. Découvrez les prochains lives programmés."
-        keywords="live streaming, direct créateurs, streaming France, lives en cours, regarder live"
-        url="https://creatorhub.com/lives"
+        title="Lives en Direct – Streaming Créateurs | TheForge"
+        description="Regardez les lives en direct de vos créateurs préférés sur TheForge. Streaming HD, chat en direct, replay disponible. Découvrez les prochains lives programmés."
+        keywords="live streaming TheForge, direct créateurs, streaming créateurs France, lives en cours, regarder live créateur, The Forge live"
+        url="https://theforge.fans/lives"
       />
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
