@@ -88,9 +88,7 @@ const Signup = () => {
         // Afficher le message de succès - l'utilisateur doit cliquer sur le lien email
         setRegisteredEmail(validatedData.email);
         setSignupSuccess(true);
-        console.log('🔵 Inscription réussie - en attente de confirmation email');
       } else {
-        console.log('🔴 Erreur signUp:', error);
         const msg = (error?.message || '').toLowerCase();
         if (msg.includes('already') || msg.includes('registered')) {
           setSignUpErrors({ email: 'Cet email est déjà utilisé. Connectez-vous ou utilisez un autre email.' });
