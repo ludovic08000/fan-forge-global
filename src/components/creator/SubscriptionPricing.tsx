@@ -27,9 +27,10 @@ const SubscriptionPricing: React.FC<SubscriptionPricingProps> = ({ creatorId }) 
 
   const loadCurrentPricing = async () => {
     try {
+      // Charger prix et devise (colonnes publiques)
       const { data, error } = await supabase
         .from('creators')
-        .select('subscription_price, currency, stripe_product_id, stripe_price_id, stripe_account_id, stripe_charges_enabled')
+        .select('subscription_price, currency')
         .eq('id', creatorId)
         .single();
 
@@ -39,9 +40,16 @@ const SubscriptionPricing: React.FC<SubscriptionPricingProps> = ({ creatorId }) 
         setCurrentPrice(data.subscription_price);
         setCurrency(data.currency || 'EUR');
         setPrice(data.subscription_price?.toString() || '9.99');
-        setHasStripeProduct(!!(data.stripe_product_id && data.stripe_price_id));
-        // Stripe Connect est configuré si le compte existe et les paiements sont activés
-        setHasStripeConnect(!!(data.stripe_account_id && data.stripe_charges_enabled));
+      }
+
+      // Charger données financières sensibles via SECURITY DEFINER function
+      const { data: financialData } = await supabase
+        .rpc('get_creator_financial_data', { _creator_id: creatorId });
+
+      if (financialData && financialData.length > 0) {
+        const fd = financialData[0];
+        setHasStripeProduct(!!(fd.stripe_account_id));
+        setHasStripeConnect(!!(fd.stripe_account_id && fd.stripe_charges_enabled));
       }
     } catch (error) {
       console.error('Error loading pricing:', error);
