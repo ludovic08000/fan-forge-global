@@ -107,8 +107,18 @@ const Login = () => {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    await sendSecureEmailAction('password_reset', resetEmail);
-    setResetSuccess(true);
+    
+    // Rate limiting pour éviter le spam de reset emails
+    const isAllowed = await checkRateLimit('auth');
+    if (!isAllowed) return;
+    
+    try {
+      await sendSecureEmailAction('password_reset', resetEmail);
+      setResetSuccess(true);
+    } catch {
+      // Toujours afficher succès pour ne pas révéler si l'email existe
+      setResetSuccess(true);
+    }
   };
 
   return (
