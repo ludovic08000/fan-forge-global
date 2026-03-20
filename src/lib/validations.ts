@@ -93,6 +93,20 @@ export const signUpSchema = authSchema.extend({
   message: "Le surnom est requis pour les créateurs",
   path: ["stageName"],
 }).refine((data) => {
+  if (data.role === 'creator') {
+    if (!data.birthdate) return false;
+    const birth = new Date(data.birthdate);
+    const today = new Date();
+    const age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate()) ? age - 1 : age;
+    return actualAge >= 18;
+  }
+  return true;
+}, {
+  message: "Vous devez avoir au moins 18 ans pour être créateur",
+  path: ["birthdate"],
+}).refine((data) => {
   if (data.role === 'creator' && !data.category && (!data.categories || data.categories.length === 0)) {
     return false;
   }
