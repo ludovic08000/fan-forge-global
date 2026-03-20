@@ -68,7 +68,7 @@ export const signUpSchema = authSchema.extend({
   }),
   birthdate: z.string().optional().or(z.literal('')),
   gender: z.string().optional(),
-  stageName: z.string().trim().max(50, { message: "Le surnom doit contenir moins de 50 caractères" }).optional().or(z.literal('')),
+  stageName: z.string().trim().min(2, { message: "Le surnom doit contenir au moins 2 caractères" }).max(50, { message: "Le surnom doit contenir moins de 50 caractères" }).optional().or(z.literal('')),
   category: z.string().optional(),
   categories: z.array(z.string()).max(3, { message: "Maximum 3 catégories" }).optional(),
   termsAccepted: z.boolean().refine(val => val === true, { message: "Vous devez accepter les conditions d'utilisation" }),
@@ -92,6 +92,20 @@ export const signUpSchema = authSchema.extend({
 }, {
   message: "Le surnom est requis pour les créateurs",
   path: ["stageName"],
+}).refine((data) => {
+  if (data.role === 'creator') {
+    if (!data.birthdate) return false;
+    const birth = new Date(data.birthdate);
+    const today = new Date();
+    const age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate()) ? age - 1 : age;
+    return actualAge >= 18;
+  }
+  return true;
+}, {
+  message: "Vous devez avoir au moins 18 ans pour être créateur",
+  path: ["birthdate"],
 }).refine((data) => {
   if (data.role === 'creator' && !data.category && (!data.categories || data.categories.length === 0)) {
     return false;

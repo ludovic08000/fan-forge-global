@@ -69,12 +69,17 @@ const Signup = () => {
       console.log('🔵 Données validées:', validatedData);
 
       console.log('🔵 Appel signUp...');
+      // Pour les créateurs, utiliser le stageName comme username si pas de username
+      const usernameToSend = validatedData.role === 'creator' 
+        ? (validatedData.stageName || validatedData.username)
+        : validatedData.username;
+
       const { error } = await signUp(
         validatedData.email,
         validatedData.password,
         validatedData.firstName,
         validatedData.lastName,
-        validatedData.username,
+        usernameToSend,
         validatedData.role,
         validatedData.birthdate || undefined,
         validatedData.gender,
@@ -304,6 +309,29 @@ const Signup = () => {
                     ) : (
                       <p className="text-xs text-muted-foreground">
                         Ce nom sera visible publiquement
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="birthdate">Date de naissance *</Label>
+                    <Input
+                      id="birthdate"
+                      type="date"
+                      required={signUpForm.role === 'creator'}
+                      className={signUpErrors.birthdate ? 'border-destructive' : ''}
+                      value={signUpForm.birthdate}
+                      max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        setSignUpForm({ ...signUpForm, birthdate: e.target.value });
+                        if (signUpErrors.birthdate) setSignUpErrors(prev => ({ ...prev, birthdate: '' }));
+                      }}
+                    />
+                    {signUpErrors.birthdate ? (
+                      <p className="text-xs text-destructive">{signUpErrors.birthdate}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Vous devez avoir au moins 18 ans pour être créateur
                       </p>
                     )}
                   </div>
