@@ -6,8 +6,9 @@ User-agent: *
 Allow: /
 
 # Sitemap locations
-Sitemap: https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/sitemap
+Sitemap: https://theforge.fans/sitemap-index.xml
 Sitemap: https://theforge.fans/sitemap.xml
+Sitemap: https://usjxcgauyvdocngfkhys.supabase.co/functions/v1/sitemap
 
 # Crawl-delay for respectful crawling
 Crawl-delay: 1
