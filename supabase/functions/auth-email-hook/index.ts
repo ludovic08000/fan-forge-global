@@ -17,12 +17,12 @@ const corsHeaders = {
 }
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Confirmez votre email — TheForge',
-  invite: 'Vous êtes invité(e) sur TheForge',
-  magiclink: 'Votre lien de connexion TheForge',
-  recovery: 'Réinitialisez votre mot de passe — TheForge',
-  email_change: 'Confirmez votre changement d\'email — TheForge',
-  reauthentication: 'Votre code de vérification — TheForge',
+  signup: 'Confirm your email',
+  invite: "You've been invited",
+  magiclink: 'Your login link',
+  recovery: 'Reset your password',
+  email_change: 'Confirm your new email',
+  reauthentication: 'Your verification code',
 }
 
 // Template mapping
@@ -36,7 +36,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "TheForge"
+const SITE_NAME = "fan-forge-global"
 const SENDER_DOMAIN = "notify.theforge.fans"
 const ROOT_DOMAIN = "theforge.fans"
 const FROM_DOMAIN = "notify.theforge.fans" // Domain shown in From address (may be root or sender subdomain)
@@ -46,7 +46,7 @@ const FROM_DOMAIN = "notify.theforge.fans" // Domain shown in From address (may 
 // The sample email uses a fixed placeholder (RFC 6761 .test TLD) so the Go backend
 // can always find-and-replace it with the actual recipient when sending test emails,
 // even if the project's domain has changed since the template was scaffolded.
-const SAMPLE_PROJECT_URL = "https://theforge.fans"
+const SAMPLE_PROJECT_URL = "https://fan-forge-global.lovable.app"
 const SAMPLE_EMAIL = "user@example.test"
 const SAMPLE_DATA: Record<string, object> = {
   signup: {
@@ -256,7 +256,7 @@ async function handleWebhook(req: Request): Promise<Response> {
       run_id,
       message_id: messageId,
       to: payload.data.email,
-      from: `TheForge <noreply@${FROM_DOMAIN}>`,
+      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
       sender_domain: SENDER_DOMAIN,
       subject: EMAIL_SUBJECTS[emailType] || 'Notification',
       html,
