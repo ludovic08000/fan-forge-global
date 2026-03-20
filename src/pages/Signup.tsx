@@ -69,12 +69,17 @@ const Signup = () => {
       console.log('🔵 Données validées:', validatedData);
 
       console.log('🔵 Appel signUp...');
+      // Pour les créateurs, utiliser le stageName comme username si pas de username
+      const usernameToSend = validatedData.role === 'creator' 
+        ? (validatedData.stageName || validatedData.username)
+        : validatedData.username;
+
       const { error } = await signUp(
         validatedData.email,
         validatedData.password,
         validatedData.firstName,
         validatedData.lastName,
-        validatedData.username,
+        usernameToSend,
         validatedData.role,
         validatedData.birthdate || undefined,
         validatedData.gender,
