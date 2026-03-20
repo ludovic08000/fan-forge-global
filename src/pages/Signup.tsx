@@ -54,7 +54,7 @@ const Signup = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('🔵 Début inscription...');
+    
     
     const isAllowed = await checkRateLimit('auth');
     if (!isAllowed) return;
