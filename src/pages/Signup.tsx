@@ -372,25 +372,33 @@ const Signup = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="gender">Genre *</Label>
-                    <Select
-                      value={signUpForm.gender}
-                      onValueChange={(value) => {
-                        setSignUpForm({ ...signUpForm, gender: value });
-                        if (signUpErrors.gender) setSignUpErrors(prev => ({ ...prev, gender: '' }));
-                      }}
-                      required={signUpForm.role === 'creator'}
-                    >
-                      <SelectTrigger className={signUpErrors.gender ? 'border-destructive' : ''}>
-                        <SelectValue placeholder="Sélectionnez votre genre" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="femme">Femme</SelectItem>
-                        <SelectItem value="homme">Homme</SelectItem>
-                        <SelectItem value="non-binaire">Non-binaire</SelectItem>
-                        <SelectItem value="autre">Autre</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label>Genre *</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { value: 'femme', label: 'Femme' },
+                        { value: 'homme', label: 'Homme' },
+                        { value: 'non-binaire', label: 'Non-binaire' },
+                        { value: 'autre', label: 'Autre' },
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => {
+                            setSignUpForm({ ...signUpForm, gender: option.value });
+                            if (signUpErrors.gender) setSignUpErrors(prev => ({ ...prev, gender: '' }));
+                          }}
+                          className={`p-2.5 rounded-xl text-sm font-medium transition-all duration-200 border ${
+                            signUpForm.gender === option.value
+                              ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                              : signUpErrors.gender
+                                ? 'border-destructive text-muted-foreground'
+                                : 'border-border text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
                     {signUpErrors.gender && (
                       <p className="text-xs text-destructive">{signUpErrors.gender}</p>
                     )}
