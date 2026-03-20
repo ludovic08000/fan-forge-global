@@ -349,7 +349,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             birthdate,
             gender,
             stage_name: stageName,
-            category
+            category,
+            categories
           }
         }
       });
