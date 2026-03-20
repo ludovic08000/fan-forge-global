@@ -66,7 +66,7 @@ export const signUpSchema = authSchema.extend({
   role: z.enum(['subscriber', 'creator'], {
     errorMap: () => ({ message: "Rôle invalide" })
   }),
-  birthdate: z.string().optional().or(z.literal('')),
+  birthdate: z.string().min(1, { message: "La date de naissance est requise" }),
   gender: z.string().optional(),
   stageName: z.string().trim().min(2, { message: "Le surnom doit contenir au moins 2 caractères" }).max(50, { message: "Le surnom doit contenir moins de 50 caractères" }).optional().or(z.literal('')),
   category: z.string().optional(),
