@@ -68,7 +68,7 @@ export const signUpSchema = authSchema.extend({
   }),
   birthdate: z.string().optional().or(z.literal('')),
   gender: z.string().optional(),
-  stageName: z.string().trim().max(50, { message: "Le surnom doit contenir moins de 50 caractères" }).optional().or(z.literal('')),
+  stageName: z.string().trim().min(2, { message: "Le surnom doit contenir au moins 2 caractères" }).max(50, { message: "Le surnom doit contenir moins de 50 caractères" }).optional().or(z.literal('')),
   category: z.string().optional(),
   categories: z.array(z.string()).max(3, { message: "Maximum 3 catégories" }).optional(),
   termsAccepted: z.boolean().refine(val => val === true, { message: "Vous devez accepter les conditions d'utilisation" }),
