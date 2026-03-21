@@ -160,10 +160,17 @@ const Dashboard = () => {
       try {
         const { data: creatorData } = await supabase
           .from('creators')
-          .select('id')
+          .select('id, total_subscribers, total_content, featured_until, stripe_account_status, stripe_charges_enabled, stripe_payouts_enabled')
           .eq('user_id', user.id)
           .maybeSingle();
-        setIsCreatorLocal(!!creatorData);
+        
+        if (creatorData) {
+          setIsCreatorLocal(true);
+          setCreatorProfile(creatorData);
+          setStripeConnected(creatorData.stripe_account_status === 'active' && creatorData.stripe_payouts_enabled);
+        } else {
+          setIsCreatorLocal(false);
+        }
       } catch (error) {
         console.error('Error checking creator status:', error);
         setIsCreatorLocal(false);
