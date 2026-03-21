@@ -4857,6 +4857,20 @@ export type Database = {
           total_earnings: number
         }[]
       }
+      get_my_creator_dashboard_profile: {
+        Args: never
+        Returns: {
+          featured_until: string
+          id: string
+          stage_name: string
+          stripe_account_status: string
+          stripe_charges_enabled: boolean
+          stripe_payouts_enabled: boolean
+          total_content: number
+          total_subscribers: number
+          user_id: string
+        }[]
+      }
       get_my_identity_documents: {
         Args: never
         Returns: {

@@ -164,9 +164,7 @@ const Dashboard = () => {
       setCreatorProfileLoading(true);
       try {
         const { data: creatorData, error: creatorError } = await supabase
-          .from('creators')
-          .select('id, total_subscribers, total_content, featured_until, stripe_account_status, stripe_charges_enabled, stripe_payouts_enabled')
-          .eq('user_id', user.id)
+          .rpc('get_my_creator_dashboard_profile')
           .maybeSingle();
         
         console.log('[Dashboard] checkIfCreator result:', { creatorData, creatorError, userId: user.id });
@@ -175,7 +173,7 @@ const Dashboard = () => {
           console.error('[Dashboard] Creator query error:', creatorError);
         }
         
-        if (creatorData) {
+        if (creatorData?.id) {
           setIsCreatorLocal(true);
           setCreatorProfile(creatorData);
           setStripeConnected(creatorData.stripe_account_status === 'active' && creatorData.stripe_payouts_enabled);
@@ -200,10 +198,8 @@ const Dashboard = () => {
       try {
         // Récupérer le stage_name du créateur pour l'URL de partage
         const { data: creatorData } = await supabase
-          .from('creators')
-          .select('stage_name')
-          .eq('user_id', user.id)
-          .single();
+          .rpc('get_my_creator_dashboard_profile')
+          .maybeSingle();
         
         // Créer le slug du stage_name pour l'URL (ex: "Ice Scream" -> "ice-scream")
         if (creatorData?.stage_name) {
@@ -222,7 +218,7 @@ const Dashboard = () => {
             .from('profiles')
             .select('username')
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
           
           if (profileData?.username) {
             setShareLink(`${window.location.origin}/${profileData.username}`);
@@ -571,9 +567,7 @@ const Dashboard = () => {
         {/* Section: Settings (includes Analytics, Payments, Pricing) */}
         {activeSection === 'settings' && (
           creatorProfileLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-            </div>
+            <LoadingFallback message="Chargement des paramètres..." />
           ) : creatorProfile?.id ? (
             <DashboardSettingsSection 
               stripeConnected={stripeConnected} 
@@ -582,8 +576,9 @@ const Dashboard = () => {
               defaultTab={settingsDefaultTab}
             />
           ) : (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              Profil créateur introuvable.
+            <div className="rounded-2xl border border-border bg-card p-6 text-center">
+              <p className="text-sm font-medium text-foreground">Impossible de charger votre profil créateur.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Rechargez la page si le problème persiste.</p>
             </div>
           )
         )}
