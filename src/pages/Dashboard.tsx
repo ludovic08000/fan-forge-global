@@ -196,41 +196,35 @@ const Dashboard = () => {
     const loadUserProfile = async () => {
       if (!user) return;
       try {
-        // Récupérer le stage_name du créateur pour l'URL de partage
-        const { data: creatorData } = await supabase
-          .rpc('get_my_creator_dashboard_profile')
-          .maybeSingle();
-        
-        // Créer le slug du stage_name pour l'URL (ex: "Ice Scream" -> "ice-scream")
-        if (creatorData?.stage_name) {
-          const stageNameSlug = creatorData.stage_name
+        if (creatorProfile?.stage_name) {
+          const stageNameSlug = creatorProfile.stage_name
             .toLowerCase()
             .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
-            .replace(/[^a-z0-9]+/g, '-') // Remplacer les caractères spéciaux par des tirets
-            .replace(/^-|-$/g, ''); // Supprimer les tirets au début/fin
-          
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '');
+
           setShareLink(`${window.location.origin}/${stageNameSlug}`);
-          setShareDisplayName(creatorData.stage_name);
-        } else {
-          // Fallback sur le username si pas de stage_name
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('username')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          
-          if (profileData?.username) {
-            setShareLink(`${window.location.origin}/${profileData.username}`);
-            setShareDisplayName(profileData.username);
-          }
+          setShareDisplayName(creatorProfile.stage_name);
+          return;
+        }
+
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (profileData?.username) {
+          setShareLink(`${window.location.origin}/${profileData.username}`);
+          setShareDisplayName(profileData.username);
         }
       } catch (error) {
         console.error('Error loading profile:', error);
       }
     };
     loadUserProfile();
-  }, [user]);
+  }, [user, creatorProfile?.stage_name]);
 
   // Load creator stats — wrapped in useCallback to avoid stale closures
   const loadCreatorStats = React.useCallback(async () => {
