@@ -163,11 +163,17 @@ const Dashboard = () => {
 
       setCreatorProfileLoading(true);
       try {
-        const { data: creatorData } = await supabase
+        const { data: creatorData, error: creatorError } = await supabase
           .from('creators')
           .select('id, total_subscribers, total_content, featured_until, stripe_account_status, stripe_charges_enabled, stripe_payouts_enabled')
           .eq('user_id', user.id)
           .maybeSingle();
+        
+        console.log('[Dashboard] checkIfCreator result:', { creatorData, creatorError, userId: user.id });
+        
+        if (creatorError) {
+          console.error('[Dashboard] Creator query error:', creatorError);
+        }
         
         if (creatorData) {
           setIsCreatorLocal(true);
@@ -361,8 +367,8 @@ const Dashboard = () => {
     }
   }, []);
 
-  // Loading state
-  if (loading || isCreatorLocal === null) {
+  // Loading state - wait for both auth AND creator profile to resolve
+  if (loading || isCreatorLocal === null || creatorProfileLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
