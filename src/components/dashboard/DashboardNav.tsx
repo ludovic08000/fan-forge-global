@@ -1,9 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { LucideIcon, MoreHorizontal } from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export type DashboardSection = 'overview' | 'content' | 'live' | 'messages' | 'analytics' | 'bundles' | 'wishlists' | 'polls' | 'partnerships' | 'payments' | 'pricing' | 'ai-marketing' | 'settings';
 
@@ -19,9 +18,6 @@ interface DashboardNavProps {
   activeSection: DashboardSection;
   onSectionChange: (section: DashboardSection) => void;
 }
-
-// Primary sections shown directly on mobile (max 4 + "More")
-const PRIMARY_SECTIONS: DashboardSection[] = ['overview', 'content', 'live', 'messages'];
 
 // Color mapping per section
 const sectionColors: Record<DashboardSection, { bg: string; text: string; activeBg: string }> = {
@@ -46,130 +42,44 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
   onSectionChange,
 }) => {
   const isMobile = useIsMobile();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const pendingSectionRef = React.useRef<DashboardSection | null>(null);
 
-  const { primaryItems, secondaryItems } = useMemo(() => {
-    if (!isMobile) return { primaryItems: menuItems, secondaryItems: [] };
-    return {
-      primaryItems: menuItems.filter(item => PRIMARY_SECTIONS.includes(item.id)),
-      secondaryItems: menuItems.filter(item => !PRIMARY_SECTIONS.includes(item.id)),
-    };
-  }, [menuItems, isMobile]);
-
-  // Check if active section is in secondary items (show active state on "More" button)
-  const isSecondaryActive = secondaryItems.some(item => item.id === activeSection);
-  const totalSecondaryBadges = secondaryItems.reduce((sum, item) => sum + item.badge, 0);
-
+  // On mobile: horizontal scrollable row of all items
   if (isMobile) {
     return (
-      <>
-        <div className="flex gap-1.5 mb-4 pb-1">
-          {/* Primary nav buttons */}
-          {primaryItems.map((item) => {
-            const isActive = activeSection === item.id;
-            const Icon = item.icon;
-            const colors = sectionColors[item.id];
+      <div className="flex gap-1.5 mb-4 pb-1 overflow-x-auto scrollbar-hide -mx-1 px-1">
+        {menuItems.map((item) => {
+          const isActive = activeSection === item.id;
+          const Icon = item.icon;
+          const colors = sectionColors[item.id];
 
-            return (
-              <button
-                key={item.id}
-                onClick={() => onSectionChange(item.id)}
-                className={cn(
-                  "relative flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-xl transition-all duration-200 outline-none min-w-0",
-                  isActive
-                    ? `${colors.activeBg} text-white shadow-lg`
-                    : `${colors.bg} ${colors.text} hover:scale-105`
-                )}
-              >
-                <Icon className="h-[18px] w-[18px] shrink-0" />
-                <span className="text-[10px] font-medium leading-tight truncate w-full text-center">
-                  {item.label}
-                </span>
-                {item.badge > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold">
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-
-          {/* "More" button */}
-          {secondaryItems.length > 0 && (
+          return (
             <button
-              onClick={() => setDrawerOpen(true)}
+              key={item.id}
+              onClick={() => onSectionChange(item.id)}
               className={cn(
-                "relative flex-1 flex flex-col items-center gap-1 py-2 px-1 rounded-xl transition-all duration-200 outline-none min-w-0",
-                isSecondaryActive
-                  ? "bg-primary text-primary-foreground shadow-lg"
-                  : "bg-muted/60 text-muted-foreground hover:scale-105"
+                "relative flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-all duration-200 outline-none shrink-0",
+                isActive
+                  ? `${colors.activeBg} text-white shadow-lg`
+                  : `${colors.bg} ${colors.text}`
               )}
             >
-              <MoreHorizontal className="h-[18px] w-[18px] shrink-0" />
-              <span className="text-[10px] font-medium leading-tight">Plus</span>
-              {totalSecondaryBadges > 0 && (
+              <Icon className="h-[18px] w-[18px] shrink-0" />
+              <span className="text-[10px] font-medium leading-tight whitespace-nowrap">
+                {item.label}
+              </span>
+              {item.badge > 0 && (
                 <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold">
-                  {totalSecondaryBadges > 99 ? '99+' : totalSecondaryBadges}
+                  {item.badge > 99 ? '99+' : item.badge}
                 </span>
               )}
             </button>
-          )}
-        </div>
-
-        {/* Secondary sections drawer */}
-        <Dialog open={drawerOpen} onOpenChange={(open) => {
-          setDrawerOpen(open);
-          if (!open && pendingSectionRef.current) {
-            const section = pendingSectionRef.current;
-            pendingSectionRef.current = null;
-            onSectionChange(section);
-          }
-        }}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-base">Plus d'options</DialogTitle>
-            </DialogHeader>
-            <div className="grid grid-cols-3 gap-2">
-              {secondaryItems.map((item) => {
-                const isActive = activeSection === item.id;
-                const Icon = item.icon;
-                const colors = sectionColors[item.id];
-
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      pendingSectionRef.current = item.id;
-                      setDrawerOpen(false);
-                    }}
-                    className={cn(
-                      "relative flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all duration-200 outline-none",
-                      isActive
-                        ? `${colors.activeBg} text-white shadow-md`
-                        : `${colors.bg} ${colors.text} active:scale-95`
-                    )}
-                  >
-                    <Icon className="h-5 w-5 shrink-0" />
-                    <span className="text-[11px] font-medium leading-tight text-center">
-                      {item.label}
-                    </span>
-                    {item.badge > 0 && (
-                      <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold">
-                        {item.badge > 99 ? '99+' : item.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </DialogContent>
-        </Dialog>
-      </>
+          );
+        })}
+      </div>
     );
   }
 
-  // Desktop: labeled pills (unchanged)
+  // Desktop: labeled pills
   return (
     <div className="flex flex-nowrap gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
       {menuItems.map((item) => {
