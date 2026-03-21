@@ -218,7 +218,7 @@ const Dashboard = () => {
             .from('profiles')
             .select('username')
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
           
           if (profileData?.username) {
             setShareLink(`${window.location.origin}/${profileData.username}`);
