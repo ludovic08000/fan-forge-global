@@ -138,8 +138,9 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
                   <button
                     key={item.id}
                     onClick={() => {
-                      onSectionChange(item.id);
+                      const section = item.id;
                       setDrawerOpen(false);
+                      setTimeout(() => onSectionChange(section), 150);
                     }}
                     className={cn(
                       "relative flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all duration-200 outline-none",
