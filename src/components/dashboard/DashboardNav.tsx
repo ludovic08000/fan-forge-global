@@ -49,15 +49,6 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pendingSectionRef = React.useRef<DashboardSection | null>(null);
 
-  const handleDrawerOpenChange = (open: boolean) => {
-    setDrawerOpen(open);
-    if (!open && pendingSectionRef.current) {
-      const section = pendingSectionRef.current;
-      pendingSectionRef.current = null;
-      onSectionChange(section);
-    }
-  };
-
   const { primaryItems, secondaryItems } = useMemo(() => {
     if (!isMobile) return { primaryItems: menuItems, secondaryItems: [] };
     return {
