@@ -156,8 +156,12 @@ const Dashboard = () => {
     const checkIfCreator = async () => {
       if (!user) {
         setIsCreatorLocal(false);
+        setCreatorProfile(null);
+        setCreatorProfileLoading(false);
         return;
       }
+
+      setCreatorProfileLoading(true);
       try {
         const { data: creatorData } = await supabase
           .from('creators')
@@ -171,10 +175,14 @@ const Dashboard = () => {
           setStripeConnected(creatorData.stripe_account_status === 'active' && creatorData.stripe_payouts_enabled);
         } else {
           setIsCreatorLocal(false);
+          setCreatorProfile(null);
         }
       } catch (error) {
         console.error('Error checking creator status:', error);
         setIsCreatorLocal(false);
+        setCreatorProfile(null);
+      } finally {
+        setCreatorProfileLoading(false);
       }
     };
     checkIfCreator();
