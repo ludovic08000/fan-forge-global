@@ -138,7 +138,7 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
             <DrawerHeader className="pb-2">
               <DrawerTitle className="text-base">Plus d'options</DrawerTitle>
             </DrawerHeader>
-            <div className="grid grid-cols-3 gap-2 px-4 pb-6">
+            <div className="grid grid-cols-3 gap-2 px-4 pb-6" data-vaul-no-drag>
               {secondaryItems.map((item) => {
                 const isActive = activeSection === item.id;
                 const Icon = item.icon;
