@@ -127,12 +127,19 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
         </div>
 
         {/* Secondary sections drawer */}
-        <Drawer open={drawerOpen} onOpenChange={handleDrawerOpenChange}>
-          <DrawerContent className="pb-safe-area-inset-bottom">
-            <DrawerHeader className="pb-2">
-              <DrawerTitle className="text-base">Plus d'options</DrawerTitle>
-            </DrawerHeader>
-            <div className="grid grid-cols-3 gap-2 px-4 pb-6" data-vaul-no-drag>
+        <Dialog open={drawerOpen} onOpenChange={(open) => {
+          setDrawerOpen(open);
+          if (!open && pendingSectionRef.current) {
+            const section = pendingSectionRef.current;
+            pendingSectionRef.current = null;
+            onSectionChange(section);
+          }
+        }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-base">Plus d'options</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-3 gap-2">
               {secondaryItems.map((item) => {
                 const isActive = activeSection === item.id;
                 const Icon = item.icon;
@@ -165,8 +172,8 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
                 );
               })}
             </div>
-          </DrawerContent>
-        </Drawer>
+          </DialogContent>
+        </Dialog>
       </>
     );
   }
