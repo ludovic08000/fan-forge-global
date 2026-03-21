@@ -198,10 +198,8 @@ const Dashboard = () => {
       try {
         // Récupérer le stage_name du créateur pour l'URL de partage
         const { data: creatorData } = await supabase
-          .from('creators')
-          .select('stage_name')
-          .eq('user_id', user.id)
-          .single();
+          .rpc('get_my_creator_dashboard_profile')
+          .maybeSingle();
         
         // Créer le slug du stage_name pour l'URL (ex: "Ice Scream" -> "ice-scream")
         if (creatorData?.stage_name) {
