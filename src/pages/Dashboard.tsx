@@ -80,6 +80,7 @@ const Dashboard = () => {
   });
   const [creatorProfile, setCreatorProfile] = useState<any>(null);
   const [isCreatorLocal, setIsCreatorLocal] = useState<boolean | null>(null);
+  const [creatorProfileLoading, setCreatorProfileLoading] = useState(true);
   const [shareLink, setShareLink] = useState('');
   const [shareDisplayName, setShareDisplayName] = useState('');
   const [copied, setCopied] = useState(false);
