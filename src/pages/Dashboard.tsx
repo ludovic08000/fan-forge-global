@@ -564,7 +564,11 @@ const Dashboard = () => {
 
         {/* Section: Settings (includes Analytics, Payments, Pricing) */}
         {activeSection === 'settings' && (
-          creatorProfile?.id ? (
+          creatorProfileLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+          ) : creatorProfile?.id ? (
             <DashboardSettingsSection 
               stripeConnected={stripeConnected} 
               creatorId={creatorProfile.id}
@@ -572,8 +576,8 @@ const Dashboard = () => {
               defaultTab={settingsDefaultTab}
             />
           ) : (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              Profil créateur introuvable.
             </div>
           )
         )}
