@@ -80,6 +80,7 @@ const Dashboard = () => {
   });
   const [creatorProfile, setCreatorProfile] = useState<any>(null);
   const [isCreatorLocal, setIsCreatorLocal] = useState<boolean | null>(null);
+  const [creatorProfileLoading, setCreatorProfileLoading] = useState(true);
   const [shareLink, setShareLink] = useState('');
   const [shareDisplayName, setShareDisplayName] = useState('');
   const [copied, setCopied] = useState(false);
@@ -155,8 +156,12 @@ const Dashboard = () => {
     const checkIfCreator = async () => {
       if (!user) {
         setIsCreatorLocal(false);
+        setCreatorProfile(null);
+        setCreatorProfileLoading(false);
         return;
       }
+
+      setCreatorProfileLoading(true);
       try {
         const { data: creatorData } = await supabase
           .from('creators')
@@ -170,10 +175,14 @@ const Dashboard = () => {
           setStripeConnected(creatorData.stripe_account_status === 'active' && creatorData.stripe_payouts_enabled);
         } else {
           setIsCreatorLocal(false);
+          setCreatorProfile(null);
         }
       } catch (error) {
         console.error('Error checking creator status:', error);
         setIsCreatorLocal(false);
+        setCreatorProfile(null);
+      } finally {
+        setCreatorProfileLoading(false);
       }
     };
     checkIfCreator();
@@ -555,7 +564,11 @@ const Dashboard = () => {
 
         {/* Section: Settings (includes Analytics, Payments, Pricing) */}
         {activeSection === 'settings' && (
-          creatorProfile?.id ? (
+          creatorProfileLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+          ) : creatorProfile?.id ? (
             <DashboardSettingsSection 
               stripeConnected={stripeConnected} 
               creatorId={creatorProfile.id}
@@ -563,8 +576,8 @@ const Dashboard = () => {
               defaultTab={settingsDefaultTab}
             />
           ) : (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              Profil créateur introuvable.
             </div>
           )
         )}
