@@ -133,7 +133,7 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
         </div>
 
         {/* Secondary sections drawer */}
-        <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <Drawer open={drawerOpen} onOpenChange={handleDrawerOpenChange}>
           <DrawerContent className="pb-safe-area-inset-bottom">
             <DrawerHeader className="pb-2">
               <DrawerTitle className="text-base">Plus d'options</DrawerTitle>
@@ -148,9 +148,8 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
                   <button
                     key={item.id}
                     onClick={() => {
-                      const section = item.id;
+                      pendingSectionRef.current = item.id;
                       setDrawerOpen(false);
-                      setTimeout(() => onSectionChange(section), 150);
                     }}
                     className={cn(
                       "relative flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all duration-200 outline-none",
