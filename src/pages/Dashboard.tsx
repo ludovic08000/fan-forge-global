@@ -164,9 +164,7 @@ const Dashboard = () => {
       setCreatorProfileLoading(true);
       try {
         const { data: creatorData, error: creatorError } = await supabase
-          .from('creators')
-          .select('id, total_subscribers, total_content, featured_until, stripe_account_status, stripe_charges_enabled, stripe_payouts_enabled')
-          .eq('user_id', user.id)
+          .rpc('get_my_creator_dashboard_profile')
           .maybeSingle();
         
         console.log('[Dashboard] checkIfCreator result:', { creatorData, creatorError, userId: user.id });
@@ -175,7 +173,7 @@ const Dashboard = () => {
           console.error('[Dashboard] Creator query error:', creatorError);
         }
         
-        if (creatorData) {
+        if (creatorData?.id) {
           setIsCreatorLocal(true);
           setCreatorProfile(creatorData);
           setStripeConnected(creatorData.stripe_account_status === 'active' && creatorData.stripe_payouts_enabled);
