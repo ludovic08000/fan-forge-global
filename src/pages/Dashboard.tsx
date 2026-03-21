@@ -160,10 +160,17 @@ const Dashboard = () => {
       try {
         const { data: creatorData } = await supabase
           .from('creators')
-          .select('id')
+          .select('id, total_subscribers, total_content, featured_until, stripe_account_status, stripe_charges_enabled, stripe_payouts_enabled')
           .eq('user_id', user.id)
           .maybeSingle();
-        setIsCreatorLocal(!!creatorData);
+        
+        if (creatorData) {
+          setIsCreatorLocal(true);
+          setCreatorProfile(creatorData);
+          setStripeConnected(creatorData.stripe_account_status === 'active' && creatorData.stripe_payouts_enabled);
+        } else {
+          setIsCreatorLocal(false);
+        }
       } catch (error) {
         console.error('Error checking creator status:', error);
         setIsCreatorLocal(false);
@@ -216,45 +223,34 @@ const Dashboard = () => {
 
   // Load creator stats — wrapped in useCallback to avoid stale closures
   const loadCreatorStats = React.useCallback(async () => {
-    if (!user || isCreatorLocal !== true) return;
+    if (!user || isCreatorLocal !== true || !creatorProfile?.id) return;
     try {
-      const { data: creatorData } = await supabase
-        .from('creators')
-        .select('id, total_subscribers, total_content, featured_until, stripe_account_status, stripe_charges_enabled, stripe_payouts_enabled')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const { data: revenueData } = await supabase.rpc('calculate_creator_revenue_with_commission', {
+        creator_uuid: creatorProfile.id,
+        start_date: new Date(0).toISOString(),
+        end_date: new Date().toISOString(),
+      });
+      
+      const totalEarnings = revenueData?.[0]?.total_after_commission || 0;
+      
+      const { data: contentStats } = await supabase
+        .from('content')
+        .select('id, view_count, like_count')
+        .eq('creator_id', creatorProfile.id);
 
-      if (creatorData) {
-        setCreatorProfile(creatorData);
-        setStripeConnected(creatorData.stripe_account_status === 'active' && creatorData.stripe_payouts_enabled);
-        
-        const { data: revenueData } = await supabase.rpc('calculate_creator_revenue_with_commission', {
-          creator_uuid: creatorData.id,
-          start_date: new Date(0).toISOString(),
-          end_date: new Date().toISOString(),
-        });
-        
-        const totalEarnings = revenueData?.[0]?.total_after_commission || 0;
-        
-        const { data: contentStats } = await supabase
-          .from('content')
-          .select('id, view_count, like_count')
-          .eq('creator_id', creatorData.id);
+      const totalViews = contentStats?.reduce((sum, content) => sum + (content.view_count || 0), 0) || 0;
+      const totalLikes = contentStats?.reduce((sum, content) => sum + (content.like_count || 0), 0) || 0;
 
-        const totalViews = contentStats?.reduce((sum, content) => sum + (content.view_count || 0), 0) || 0;
-        const totalLikes = contentStats?.reduce((sum, content) => sum + (content.like_count || 0), 0) || 0;
-
-        setCreatorStats({
-          totalEarnings,
-          totalSubscribers: creatorData.total_subscribers || 0,
-          totalViews,
-          totalLikes
-        });
-      }
+      setCreatorStats({
+        totalEarnings,
+        totalSubscribers: creatorProfile.total_subscribers || 0,
+        totalViews,
+        totalLikes
+      });
     } catch (error) {
       console.error('Error loading creator stats:', error);
     }
-  }, [user, isCreatorLocal]);
+  }, [user, isCreatorLocal, creatorProfile?.id]);
 
   useEffect(() => {
     loadCreatorStats();
