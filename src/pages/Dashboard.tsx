@@ -226,16 +226,12 @@ const Dashboard = () => {
     if (!user || isCreatorLocal !== true) return;
     try {
       const { data: creatorData } = await supabase
-        .from('creators')
-        .select('id, total_subscribers, total_content, featured_until, stripe_account_status, stripe_charges_enabled, stripe_payouts_enabled')
-        .eq('user_id', user.id)
-        .maybeSingle();
+          .from('creators')
+          .select('id, total_subscribers')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
       if (creatorData) {
-        setCreatorProfile(creatorData);
-        setStripeConnected(creatorData.stripe_account_status === 'active' && creatorData.stripe_payouts_enabled);
-        
-        const { data: revenueData } = await supabase.rpc('calculate_creator_revenue_with_commission', {
           creator_uuid: creatorData.id,
           start_date: new Date(0).toISOString(),
           end_date: new Date().toISOString(),
