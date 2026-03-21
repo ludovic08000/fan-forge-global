@@ -3,13 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { LucideIcon, MoreHorizontal } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerClose,
-} from '@/components/ui/drawer';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export type DashboardSection = 'overview' | 'content' | 'live' | 'messages' | 'analytics' | 'bundles' | 'wishlists' | 'polls' | 'partnerships' | 'payments' | 'pricing' | 'ai-marketing' | 'settings';
 
@@ -54,15 +48,6 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pendingSectionRef = React.useRef<DashboardSection | null>(null);
-
-  const handleDrawerOpenChange = (open: boolean) => {
-    setDrawerOpen(open);
-    if (!open && pendingSectionRef.current) {
-      const section = pendingSectionRef.current;
-      pendingSectionRef.current = null;
-      onSectionChange(section);
-    }
-  };
 
   const { primaryItems, secondaryItems } = useMemo(() => {
     if (!isMobile) return { primaryItems: menuItems, secondaryItems: [] };
@@ -133,12 +118,19 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
         </div>
 
         {/* Secondary sections drawer */}
-        <Drawer open={drawerOpen} onOpenChange={handleDrawerOpenChange}>
-          <DrawerContent className="pb-safe-area-inset-bottom">
-            <DrawerHeader className="pb-2">
-              <DrawerTitle className="text-base">Plus d'options</DrawerTitle>
-            </DrawerHeader>
-            <div className="grid grid-cols-3 gap-2 px-4 pb-6" data-vaul-no-drag>
+        <Dialog open={drawerOpen} onOpenChange={(open) => {
+          setDrawerOpen(open);
+          if (!open && pendingSectionRef.current) {
+            const section = pendingSectionRef.current;
+            pendingSectionRef.current = null;
+            onSectionChange(section);
+          }
+        }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-base">Plus d'options</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-3 gap-2">
               {secondaryItems.map((item) => {
                 const isActive = activeSection === item.id;
                 const Icon = item.icon;
@@ -171,8 +163,8 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
                 );
               })}
             </div>
-          </DrawerContent>
-        </Drawer>
+          </DialogContent>
+        </Dialog>
       </>
     );
   }
