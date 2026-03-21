@@ -567,9 +567,7 @@ const Dashboard = () => {
         {/* Section: Settings (includes Analytics, Payments, Pricing) */}
         {activeSection === 'settings' && (
           creatorProfileLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-            </div>
+            <LoadingFallback message="Chargement des paramètres..." />
           ) : creatorProfile?.id ? (
             <DashboardSettingsSection 
               stripeConnected={stripeConnected} 
@@ -578,8 +576,9 @@ const Dashboard = () => {
               defaultTab={settingsDefaultTab}
             />
           ) : (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              Profil créateur introuvable.
+            <div className="rounded-2xl border border-border bg-card p-6 text-center">
+              <p className="text-sm font-medium text-foreground">Impossible de charger votre profil créateur.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Rechargez la page si le problème persiste.</p>
             </div>
           )
         )}
