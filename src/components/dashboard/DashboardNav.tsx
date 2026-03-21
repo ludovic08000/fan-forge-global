@@ -135,30 +135,29 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
                 const colors = sectionColors[item.id];
 
                 return (
-                  <DrawerClose key={item.id} asChild>
-                    <button
-                      onClick={() => {
-                        onSectionChange(item.id);
-                        setDrawerOpen(false);
-                      }}
-                      className={cn(
-                        "relative flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all duration-200 outline-none",
-                        isActive
-                          ? `${colors.activeBg} text-white shadow-md`
-                          : `${colors.bg} ${colors.text} active:scale-95`
-                      )}
-                    >
-                      <Icon className="h-5 w-5 shrink-0" />
-                      <span className="text-[11px] font-medium leading-tight text-center">
-                        {item.label}
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      onSectionChange(item.id);
+                      setDrawerOpen(false);
+                    }}
+                    className={cn(
+                      "relative flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl transition-all duration-200 outline-none",
+                      isActive
+                        ? `${colors.activeBg} text-white shadow-md`
+                        : `${colors.bg} ${colors.text} active:scale-95`
+                    )}
+                  >
+                    <Icon className="h-5 w-5 shrink-0" />
+                    <span className="text-[11px] font-medium leading-tight text-center">
+                      {item.label}
+                    </span>
+                    {item.badge > 0 && (
+                      <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold">
+                        {item.badge > 99 ? '99+' : item.badge}
                       </span>
-                      {item.badge > 0 && (
-                        <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold">
-                          {item.badge > 99 ? '99+' : item.badge}
-                        </span>
-                      )}
-                    </button>
-                  </DrawerClose>
+                    )}
+                  </button>
                 );
               })}
             </div>
