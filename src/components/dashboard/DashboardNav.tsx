@@ -1,6 +1,5 @@
 import React from 'react';
 import { LucideIcon } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 export type DashboardSection = 'overview' | 'content' | 'live' | 'messages' | 'analytics' | 'bundles' | 'wishlists' | 'polls' | 'partnerships' | 'payments' | 'pricing' | 'ai-marketing' | 'settings';
@@ -18,103 +17,67 @@ interface DashboardNavProps {
   onSectionChange: (section: DashboardSection) => void;
 }
 
+// macOS-style icon colors
+const iconColors: Record<DashboardSection, string> = {
+  overview:       'from-blue-500 to-blue-600',
+  content:        'from-violet-500 to-purple-600',
+  live:           'from-rose-500 to-red-600',
+  messages:       'from-green-500 to-emerald-600',
+  analytics:      'from-orange-400 to-orange-600',
+  bundles:        'from-amber-500 to-yellow-600',
+  wishlists:      'from-pink-500 to-rose-600',
+  polls:          'from-indigo-500 to-blue-600',
+  partnerships:   'from-purple-500 to-violet-600',
+  payments:       'from-emerald-500 to-green-600',
+  pricing:        'from-cyan-500 to-teal-600',
+  'ai-marketing': 'from-fuchsia-500 to-pink-600',
+  settings:       'from-gray-500 to-slate-600',
+};
+
 export const DashboardNav: React.FC<DashboardNavProps> = ({
   menuItems,
   activeSection,
   onSectionChange,
 }) => {
-  const isMobile = useIsMobile();
-
-  if (isMobile) {
-    return (
-      <div className="mb-4 -mx-4 px-4">
-        <div className="flex gap-1 pb-2 overflow-x-auto scrollbar-hide">
-          {menuItems.map((item) => {
-            const isActive = activeSection === item.id;
-            const Icon = item.icon;
-
-            return (
-              <button
-                key={item.id}
-                onClick={() => onSectionChange(item.id)}
-                className={cn(
-                  "relative flex flex-col items-center justify-center shrink-0 rounded-2xl transition-all duration-200 outline-none",
-                  "w-[60px] h-[60px] gap-1"
-                )}
-              >
-                <div className={cn(
-                  "flex items-center justify-center rounded-[14px] h-9 w-9 transition-all duration-200",
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-md shadow-primary/30"
-                    : "bg-muted/50 text-muted-foreground"
-                )}>
-                  <Icon className="h-[18px] w-[18px]" />
-                </div>
-                <span className={cn(
-                  "text-[9px] font-medium leading-none truncate w-full text-center px-0.5",
-                  isActive ? "text-primary font-semibold" : "text-muted-foreground"
-                )}>
-                  {item.label}
-                </span>
-                {item.badge > 0 && (
-                  <span className="absolute top-0 right-1 h-4 min-w-4 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold">
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </span>
-                )}
-                {isActive && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 h-[3px] w-[3px] rounded-full bg-primary" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  // Desktop: macOS Dock style
   return (
-    <div className="mb-6 flex justify-center">
-      <div className="inline-flex items-end gap-1 p-2 rounded-2xl bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg shadow-black/5 dark:shadow-black/20">
+    <div className="mb-6">
+      <div className="grid grid-cols-5 sm:grid-cols-5 md:grid-cols-10 gap-x-2 gap-y-4 px-2">
         {menuItems.map((item) => {
           const isActive = activeSection === item.id;
           const Icon = item.icon;
+          const gradient = iconColors[item.id];
 
           return (
             <button
               key={item.id}
               onClick={() => onSectionChange(item.id)}
-              title={item.label}
-              className={cn(
-                "group relative flex flex-col items-center gap-1 rounded-xl transition-all duration-200 outline-none",
-                "min-w-[64px] px-3 py-2",
-                isActive
-                  ? "bg-primary/10"
-                  : "hover:bg-muted/60 hover:scale-105"
-              )}
+              className="group relative flex flex-col items-center gap-1.5 outline-none"
             >
+              {/* App icon */}
               <div className={cn(
-                "flex items-center justify-center rounded-xl h-9 w-9 transition-all duration-200",
+                "relative flex items-center justify-center w-[52px] h-[52px] sm:w-[58px] sm:h-[58px] rounded-[16px] sm:rounded-[18px] bg-gradient-to-br shadow-lg transition-transform duration-200",
+                gradient,
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
-                  : "text-muted-foreground group-hover:text-foreground"
+                  ? "scale-105 shadow-xl ring-2 ring-primary/40 ring-offset-2 ring-offset-background"
+                  : "group-hover:scale-110 group-active:scale-95"
               )}>
-                <Icon className="h-[18px] w-[18px]" />
+                <Icon className="h-6 w-6 sm:h-7 sm:w-7 text-white drop-shadow-sm" strokeWidth={1.8} />
+
+                {/* Badge */}
+                {item.badge > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 h-5 min-w-5 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold shadow-md border-2 border-background">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
               </div>
+
+              {/* Label */}
               <span className={cn(
-                "text-[10px] font-medium leading-tight text-center truncate max-w-[60px]",
-                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                "text-[11px] leading-tight text-center w-full truncate px-0.5",
+                isActive ? "text-foreground font-semibold" : "text-muted-foreground font-medium"
               )}>
                 {item.label}
               </span>
-              {item.badge > 0 && (
-                <span className="absolute -top-0.5 right-1 h-4 min-w-4 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold shadow-sm">
-                  {item.badge > 99 ? '99+' : item.badge}
-                </span>
-              )}
-              {isActive && (
-                <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-primary" />
-              )}
             </button>
           );
         })}
