@@ -40,49 +40,52 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
   onSectionChange,
 }) => {
   return (
-    <div className="mb-6">
-      <div className="grid grid-cols-5 sm:grid-cols-5 md:grid-cols-10 gap-x-2 gap-y-4 px-2">
-        {menuItems.map((item) => {
-          const isActive = activeSection === item.id;
-          const Icon = item.icon;
-          const gradient = iconColors[item.id];
+    <nav className="mb-8">
+      {/* iOS-style app grid — centered, padded, no overflow */}
+      <div className="mx-auto max-w-lg md:max-w-3xl">
+        <div className="grid grid-cols-4 xs:grid-cols-5 md:grid-cols-10 gap-y-5 gap-x-1 justify-items-center">
+          {menuItems.map((item) => {
+            const isActive = activeSection === item.id;
+            const Icon = item.icon;
+            const gradient = iconColors[item.id];
 
-          return (
-            <button
-              key={item.id}
-              onClick={() => onSectionChange(item.id)}
-              className="group relative flex flex-col items-center gap-1.5 outline-none"
-            >
-              {/* App icon */}
-              <div className={cn(
-                "relative flex items-center justify-center w-[52px] h-[52px] sm:w-[58px] sm:h-[58px] rounded-[16px] sm:rounded-[18px] bg-gradient-to-br shadow-lg transition-transform duration-200",
-                gradient,
-                isActive
-                  ? "scale-105 shadow-xl ring-2 ring-primary/40 ring-offset-2 ring-offset-background"
-                  : "group-hover:scale-110 group-active:scale-95"
-              )}>
-                <Icon className="h-6 w-6 sm:h-7 sm:w-7 text-white drop-shadow-sm" strokeWidth={1.8} />
+            return (
+              <button
+                key={item.id}
+                onClick={() => onSectionChange(item.id)}
+                className="group relative flex flex-col items-center gap-1 outline-none w-[68px]"
+              >
+                {/* Icon square */}
+                <div className={cn(
+                  "relative flex items-center justify-center w-[50px] h-[50px] rounded-[14px] bg-gradient-to-br shadow-md transition-all duration-200",
+                  gradient,
+                  isActive
+                    ? "ring-[2.5px] ring-primary/50 ring-offset-2 ring-offset-background shadow-lg scale-[1.05]"
+                    : "group-hover:scale-105 group-active:scale-90"
+                )}>
+                  <Icon className="h-[22px] w-[22px] text-white drop-shadow-sm" strokeWidth={1.8} />
 
-                {/* Badge */}
-                {item.badge > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 h-5 min-w-5 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold shadow-md border-2 border-background">
-                    {item.badge > 99 ? '99+' : item.badge}
-                  </span>
-                )}
-              </div>
+                  {/* Badge */}
+                  {item.badge > 0 && (
+                    <span className="absolute -top-1 -right-1 h-[18px] min-w-[18px] px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold border-2 border-background">
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
+                </div>
 
-              {/* Label */}
-              <span className={cn(
-                "text-[11px] leading-tight text-center w-full truncate px-0.5",
-                isActive ? "text-foreground font-semibold" : "text-muted-foreground font-medium"
-              )}>
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
+                {/* Label — always visible, never truncated */}
+                <span className={cn(
+                  "text-[10px] leading-tight text-center w-full line-clamp-1",
+                  isActive ? "text-foreground font-semibold" : "text-muted-foreground"
+                )}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </nav>
   );
 };
 
