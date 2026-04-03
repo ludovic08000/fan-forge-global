@@ -1,5 +1,4 @@
-import React, { useMemo } from 'react';
-import { Badge } from '@/components/ui/badge';
+import React from 'react';
 import { LucideIcon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -19,23 +18,6 @@ interface DashboardNavProps {
   onSectionChange: (section: DashboardSection) => void;
 }
 
-// Color mapping per section
-const sectionColors: Record<DashboardSection, { bg: string; text: string; activeBg: string }> = {
-  overview:       { bg: 'bg-blue-500/10',    text: 'text-blue-500',    activeBg: 'bg-blue-500' },
-  content:        { bg: 'bg-violet-500/10',   text: 'text-violet-500',  activeBg: 'bg-violet-500' },
-  live:           { bg: 'bg-rose-500/10',     text: 'text-rose-500',    activeBg: 'bg-rose-500' },
-  messages:       { bg: 'bg-sky-500/10',      text: 'text-sky-500',     activeBg: 'bg-sky-500' },
-  analytics:      { bg: 'bg-emerald-500/10',  text: 'text-emerald-500', activeBg: 'bg-emerald-500' },
-  bundles:        { bg: 'bg-amber-500/10',    text: 'text-amber-500',   activeBg: 'bg-amber-500' },
-  wishlists:      { bg: 'bg-pink-500/10',     text: 'text-pink-500',    activeBg: 'bg-pink-500' },
-  polls:          { bg: 'bg-indigo-500/10',   text: 'text-indigo-500',  activeBg: 'bg-indigo-500' },
-  partnerships:   { bg: 'bg-purple-500/10',   text: 'text-purple-500',  activeBg: 'bg-purple-500' },
-  payments:       { bg: 'bg-green-500/10',    text: 'text-green-500',   activeBg: 'bg-green-500' },
-  pricing:        { bg: 'bg-orange-500/10',   text: 'text-orange-500',  activeBg: 'bg-orange-500' },
-  'ai-marketing': { bg: 'bg-cyan-500/10',     text: 'text-cyan-500',    activeBg: 'bg-cyan-500' },
-  settings:       { bg: 'bg-slate-500/10',    text: 'text-slate-500',   activeBg: 'bg-slate-500' },
-};
-
 export const DashboardNav: React.FC<DashboardNavProps> = ({
   menuItems,
   activeSection,
@@ -43,75 +25,66 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
 }) => {
   const isMobile = useIsMobile();
 
-  // On mobile: horizontal scrollable row of all items
-  if (isMobile) {
-    return (
-      <div className="flex gap-1.5 mb-4 pb-1 overflow-x-auto scrollbar-hide -mx-1 px-1">
+  return (
+    <div className="mb-6">
+      {/* macOS Dock style container */}
+      <div className={cn(
+        "inline-flex items-end gap-1 p-1.5 rounded-2xl",
+        "bg-card/80 backdrop-blur-xl border border-border/50",
+        "shadow-lg shadow-black/5 dark:shadow-black/20",
+        isMobile ? "overflow-x-auto scrollbar-hide w-full" : "flex-wrap justify-center w-full"
+      )}>
         {menuItems.map((item) => {
           const isActive = activeSection === item.id;
           const Icon = item.icon;
-          const colors = sectionColors[item.id];
 
           return (
             <button
               key={item.id}
               onClick={() => onSectionChange(item.id)}
+              title={item.label}
               className={cn(
-                "relative flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-all duration-200 outline-none shrink-0",
+                "group relative flex flex-col items-center gap-0.5 rounded-xl transition-all duration-200 outline-none",
+                isMobile ? "min-w-[56px] px-2 py-1.5" : "min-w-[64px] px-3 py-2",
                 isActive
-                  ? `${colors.activeBg} text-white shadow-lg`
-                  : `${colors.bg} ${colors.text}`
+                  ? "bg-primary/10 scale-105"
+                  : "hover:bg-muted/60 hover:scale-105"
               )}
             >
-              <Icon className="h-[18px] w-[18px] shrink-0" />
-              <span className="text-[10px] font-medium leading-tight whitespace-nowrap">
+              {/* Icon */}
+              <div className={cn(
+                "flex items-center justify-center rounded-xl transition-all duration-200",
+                isMobile ? "h-8 w-8" : "h-9 w-9",
+                isActive
+                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                  : "text-muted-foreground group-hover:text-foreground"
+              )}>
+                <Icon className={cn(isMobile ? "h-4 w-4" : "h-[18px] w-[18px]")} />
+              </div>
+
+              {/* Label */}
+              <span className={cn(
+                "text-[10px] font-medium leading-tight text-center truncate max-w-[56px]",
+                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+              )}>
                 {item.label}
               </span>
+
+              {/* Badge */}
               {item.badge > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold">
+                <span className="absolute -top-0.5 right-0.5 h-4 min-w-4 px-1 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold shadow-sm">
                   {item.badge > 99 ? '99+' : item.badge}
                 </span>
+              )}
+
+              {/* Active dot indicator (macOS style) */}
+              {isActive && (
+                <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-primary" />
               )}
             </button>
           );
         })}
       </div>
-    );
-  }
-
-  // Desktop: labeled pills
-  return (
-    <div className="flex flex-nowrap gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-      {menuItems.map((item) => {
-        const isActive = activeSection === item.id;
-        const Icon = item.icon;
-        const colors = sectionColors[item.id];
-
-        return (
-          <button
-            key={item.id}
-            onClick={() => onSectionChange(item.id)}
-            title={item.label}
-            className={cn(
-              "relative flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-200 outline-none",
-              isActive
-                ? `${colors.activeBg} text-white shadow-md`
-                : `${colors.bg} ${colors.text} hover:brightness-110 border border-transparent hover:border-border/30`
-            )}
-          >
-            <Icon className="h-4 w-4 shrink-0" />
-            <span className="truncate">{item.label}</span>
-            {item.badge > 0 && (
-              <Badge
-                variant="destructive"
-                className="h-4 min-w-4 px-1 text-[9px] font-bold leading-none"
-              >
-                {item.badge > 99 ? '99+' : item.badge}
-              </Badge>
-            )}
-          </button>
-        );
-      })}
     </div>
   );
 };
