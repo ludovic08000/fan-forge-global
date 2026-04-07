@@ -17,12 +17,12 @@ const corsHeaders = {
 }
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Confirmez votre email - TheForge',
-  invite: 'Vous êtes invité(e) - TheForge',
-  magiclink: 'Votre lien de connexion - TheForge',
-  recovery: 'Réinitialisation de mot de passe - TheForge',
-  email_change: 'Changement d\'email - TheForge',
-  reauthentication: 'Votre code de vérification - TheForge',
+  signup: 'Confirm your email',
+  invite: "You've been invited",
+  magiclink: 'Your login link',
+  recovery: 'Reset your password',
+  email_change: 'Confirm your new email',
+  reauthentication: 'Your verification code',
 }
 
 // Template mapping
@@ -36,7 +36,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "TheForge"
+const SITE_NAME = "fan-forge-global"
 const SENDER_DOMAIN = "notify.theforge.fans"
 const ROOT_DOMAIN = "theforge.fans"
 const FROM_DOMAIN = "notify.theforge.fans" // Domain shown in From address (may be root or sender subdomain)
