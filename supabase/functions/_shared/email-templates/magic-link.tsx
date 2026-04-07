@@ -18,28 +18,25 @@ interface MagicLinkEmailProps {
   confirmationUrl: string
 }
 
-const BRAND = 'TheForge'
-
 export const MagicLinkEmail = ({
   siteName,
   confirmationUrl,
 }: MagicLinkEmailProps) => (
-  <Html lang="fr" dir="ltr">
+  <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Votre lien de connexion {BRAND}</Preview>
+    <Preview>Your login link for {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Text style={brandHeader}>🔥 {BRAND}</Text>
-        <Heading style={h1}>Votre lien de connexion</Heading>
+        <Heading style={h1}>Your login link</Heading>
         <Text style={text}>
-          Cliquez sur le bouton ci-dessous pour vous connecter à {BRAND}.
-          Ce lien expirera sous peu.
+          Click the button below to log in to {siteName}. This link will expire
+          shortly.
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Se connecter
+          Log In
         </Button>
         <Text style={footer}>
-          Si vous n'avez pas demandé ce lien, ignorez simplement cet email.
+          If you didn't request this link, you can safely ignore this email.
         </Text>
       </Container>
     </Body>
@@ -48,34 +45,26 @@ export const MagicLinkEmail = ({
 
 export default MagicLinkEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: "'Sora', 'Poppins', Arial, sans-serif" }
-const container = { padding: '32px 28px', maxWidth: '480px', margin: '0 auto' }
-const brandHeader = {
-  fontSize: '20px',
-  fontWeight: 'bold' as const,
-  color: 'hsl(225, 70%, 55%)',
-  margin: '0 0 24px',
-  textAlign: 'center' as const,
-}
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const container = { padding: '20px 25px' }
 const h1 = {
   fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: 'hsl(222.2, 84%, 4.9%)',
+  color: '#000000',
   margin: '0 0 20px',
 }
 const text = {
   fontSize: '14px',
-  color: 'hsl(215.4, 16.3%, 46.9%)',
+  color: '#55575d',
   lineHeight: '1.5',
   margin: '0 0 25px',
 }
 const button = {
-  backgroundColor: 'hsl(225, 70%, 55%)',
+  backgroundColor: '#000000',
   color: '#ffffff',
   fontSize: '14px',
-  borderRadius: '10px',
-  padding: '14px 28px',
-  fontWeight: 'bold' as const,
+  borderRadius: '8px',
+  padding: '12px 20px',
   textDecoration: 'none',
 }
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0', textAlign: 'center' as const }
+const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
