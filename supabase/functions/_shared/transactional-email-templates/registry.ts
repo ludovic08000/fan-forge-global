@@ -10,7 +10,9 @@ export interface TemplateEntry {
 }
 
 import { template as welcomeEmail } from './welcome.tsx'
+import { template as otpCodeEmail } from './otp-code.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'welcome': welcomeEmail,
+  'otp-code': otpCodeEmail,
 }
