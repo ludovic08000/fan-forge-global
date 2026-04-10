@@ -144,8 +144,6 @@ const VerifyOtp = () => {
       return () => clearTimeout(timer);
     }
   }, [otpCountdown]);
-      // Attendre que le chargement soit terminé
-      if (loading) return;
 
       // Si pas d'email, rediriger vers login
       if (!pendingEmail) {
