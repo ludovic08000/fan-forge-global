@@ -29,12 +29,121 @@ const VerifyOtp = () => {
   // Récupérer l'email depuis le sessionStorage (défini à la connexion)
   const pendingEmail = sessionStorage.getItem('pending_otp_email') || user?.email || '';
 
+  const sendOtp = useCallback(async () => {
+    if (otpCountdown > 0 || otpRequestInFlight.current) return;
+
+    otpRequestInFlight.current = true;
+    setIsLoading(true);
+    
+    try {
+      const emailToUse = pendingEmail || user?.email;
+      
+      if (!emailToUse) {
+        console.log('Pas d\'email disponible');
+        toast.error('Email non disponible');
+        navigate('/login');
+        return;
+      }
+
+      console.log('Envoi OTP pour connexion:', emailToUse);
+
+      const { error } = await supabase.auth.signInWithOtp({
+        email: emailToUse,
+        options: {
+          shouldCreateUser: false,
+        },
+      });
+      
+      if (error) {
+        console.error('Erreur signInWithOtp:', error);
+        throw new Error(error.message || 'Erreur lors de l\'envoi du code');
+      }
+
+      setOtpSent(true);
+      setOtpCountdown(60);
+      
+      console.log('✅ Code OTP envoyé avec succès à:', emailToUse);
+      toast.success('Code de vérification envoyé par email !');
+      
+    } catch (error: any) {
+      console.error('Erreur sendOtp:', error);
+      const message = error?.message || 'Erreur lors de l\'envoi du code';
+
+      if (message.toLowerCase().includes('rate limit')) {
+        setOtpCountdown(60);
+        toast.error('Trop de demandes de code. Patientez 60 secondes puis réessayez.');
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      otpRequestInFlight.current = false;
+      setIsLoading(false);
+    }
+  }, [navigate, otpCountdown, pendingEmail, user?.email]);
+
   // Vérifier si l'utilisateur doit passer par l'OTP
   useEffect(() => {
     const checkLoginStatus = async () => {
-      // Éviter les exécutions multiples
       if (hasCheckedStatus.current || hasSentOtp.current || isRedirecting) return;
+      if (loading) return;
+
+      if (!pendingEmail) {
+        console.log('Pas d\'email trouvé, redirection vers login');
+        navigate('/login');
+        return;
+      }
+
+      hasCheckedStatus.current = true;
+      console.log('Email trouvé:', pendingEmail);
+
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
       
+      if (currentSession) {
+        console.log('Session existante trouvée');
+        
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('otp_verified')
+          .eq('user_id', currentSession.user.id)
+          .maybeSingle();
+        
+        if (profile?.otp_verified === true) {
+          console.log('OTP déjà vérifié, redirection');
+          setIsRedirecting(true);
+          const { data: creatorData } = await supabase
+            .from('creators')
+            .select('id')
+            .eq('user_id', currentSession.user.id)
+            .maybeSingle();
+          
+          const savedRedirect = sessionStorage.getItem('redirect_after_auth');
+          if (savedRedirect) {
+            sessionStorage.removeItem('redirect_after_auth');
+            navigate(savedRedirect, { replace: true });
+          } else {
+            navigate(creatorData ? '/dashboard' : '/subscriptions', { replace: true });
+          }
+          return;
+        }
+        
+        console.log('OTP non vérifié, envoi OTP');
+        hasSentOtp.current = true;
+        sendOtp();
+      } else {
+        console.log('Pas de session, redirection vers login');
+        navigate('/login');
+      }
+    };
+
+    checkLoginStatus();
+  }, [loading, pendingEmail, isRedirecting, navigate, sendOtp]);
+
+  useEffect(() => {
+    if (otpCountdown > 0) {
+      const timer = setTimeout(() => setOtpCountdown(otpCountdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCountdown]);
       // Attendre que le chargement soit terminé
       if (loading) return;
 
