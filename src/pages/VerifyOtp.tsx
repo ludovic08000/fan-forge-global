@@ -211,59 +211,6 @@ const VerifyOtp = () => {
     }
   }, [otpCountdown]);
 
-  const sendOtp = useCallback(async () => {
-    if (otpCountdown > 0 || otpRequestInFlight.current) return;
-
-    otpRequestInFlight.current = true;
-
-    setIsLoading(true);
-    
-    try {
-      const emailToUse = pendingEmail || user?.email;
-      
-      if (!emailToUse) {
-        console.log('Pas d\'email disponible');
-        toast.error('Email non disponible');
-        navigate('/login');
-        return;
-      }
-
-      console.log('Envoi OTP pour connexion:', emailToUse);
-
-      // Utiliser signInWithOtp pour les connexions
-      const { error } = await supabase.auth.signInWithOtp({
-        email: emailToUse,
-        options: {
-          shouldCreateUser: false,
-        },
-      });
-      
-      if (error) {
-        console.error('Erreur signInWithOtp:', error);
-        throw new Error(error.message || 'Erreur lors de l\'envoi du code');
-      }
-
-      setOtpSent(true);
-      setOtpCountdown(60);
-      
-      console.log('✅ Code OTP envoyé avec succès à:', emailToUse);
-      toast.success('Code de vérification envoyé par email !');
-      
-    } catch (error: any) {
-      console.error('Erreur sendOtp:', error);
-      const message = error?.message || 'Erreur lors de l\'envoi du code';
-
-      if (message.toLowerCase().includes('rate limit')) {
-        setOtpCountdown(60);
-        toast.error('Trop de demandes de code. Patientez 60 secondes puis réessayez.');
-      } else {
-        toast.error(message);
-      }
-    } finally {
-      otpRequestInFlight.current = false;
-      setIsLoading(false);
-    }
-  }, [navigate, otpCountdown, pendingEmail, user?.email]);
 
   const handleVerifyOtp = async () => {
     if (!otpCode || otpCode.length !== 6) {
