@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,7 @@ const VerifyOtp = () => {
   const navigate = useNavigate();
   const hasSentOtp = useRef(false);
   const hasCheckedStatus = useRef(false);
+  const otpRequestInFlight = useRef(false);
 
   // Récupérer l'email depuis le sessionStorage (défini à la connexion)
   const pendingEmail = sessionStorage.getItem('pending_otp_email') || user?.email || '';
@@ -92,7 +93,7 @@ const VerifyOtp = () => {
     };
 
     checkLoginStatus();
-  }, [loading, pendingEmail, isRedirecting]);
+  }, [loading, pendingEmail, isRedirecting, navigate, sendOtp]);
 
   useEffect(() => {
     if (otpCountdown > 0) {
@@ -101,8 +102,10 @@ const VerifyOtp = () => {
     }
   }, [otpCountdown]);
 
-  const sendOtp = async () => {
-    if (otpCountdown > 0) return;
+  const sendOtp = useCallback(async () => {
+    if (otpCountdown > 0 || otpRequestInFlight.current) return;
+
+    otpRequestInFlight.current = true;
 
     setIsLoading(true);
     
@@ -139,11 +142,19 @@ const VerifyOtp = () => {
       
     } catch (error: any) {
       console.error('Erreur sendOtp:', error);
-      toast.error(error.message || 'Erreur lors de l\'envoi du code');
+      const message = error?.message || 'Erreur lors de l\'envoi du code';
+
+      if (message.toLowerCase().includes('rate limit')) {
+        setOtpCountdown(60);
+        toast.error('Trop de demandes de code. Patientez 60 secondes puis réessayez.');
+      } else {
+        toast.error(message);
+      }
     } finally {
+      otpRequestInFlight.current = false;
       setIsLoading(false);
     }
-  };
+  }, [navigate, otpCountdown, pendingEmail, user?.email]);
 
   const handleVerifyOtp = async () => {
     if (!otpCode || otpCode.length !== 6) {
