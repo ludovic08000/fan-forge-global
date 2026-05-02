@@ -42,12 +42,16 @@ CREATE INDEX IF NOT EXISTS idx_email_unsubscribe_tokens_email
   ON public.email_unsubscribe_tokens(email);
 
 CREATE TABLE IF NOT EXISTS public.suppressed_emails (
+  id UUID NOT NULL DEFAULT gen_random_uuid(),
   email TEXT PRIMARY KEY,
   reason TEXT NOT NULL,
   metadata JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_suppressed_emails_id
+  ON public.suppressed_emails(id);
 
 ALTER TABLE public.email_send_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_unsubscribe_tokens ENABLE ROW LEVEL SECURITY;
