@@ -4,7 +4,8 @@ import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
 // SÉCURITÉ: Hasher le code OTP avec SHA-256 avant stockage
 async function hashCode(code: string): Promise<string> {
   const encoder = new TextEncoder();
-  const data = encoder.encode(code + Deno.env.get('OTP_HASH_SALT') || 'otp-salt-v1');
+  const salt = Deno.env.get('OTP_HASH_SALT') || 'otp-salt-v1';
+  const data = encoder.encode(code + salt);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -50,6 +51,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (!user.email) {
+      return new Response(JSON.stringify({ error: 'Email utilisateur introuvable' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     console.log('send-otp: Utilisateur authentifié:', user.email);
 
     // Vérifier le rate limiting (max 3 codes par 5 minutes)
@@ -87,14 +95,16 @@ Deno.serve(async (req) => {
       .eq('verified', false);
 
     // Insérer le nouveau code HASHÉ
-    const { error: insertError } = await supabaseAdmin
+    const { data: insertedOtp, error: insertError } = await supabaseAdmin
       .from('otp_codes')
       .insert({
         user_id: user.id,
         email: user.email,
         code: hashedCode,
         expires_at: expiresAt.toISOString(),
-      });
+      })
+      .select('id')
+      .single();
 
     if (insertError) {
       console.error('send-otp: Erreur insertion OTP:', insertError);
@@ -107,7 +117,7 @@ Deno.serve(async (req) => {
     console.log('send-otp: Code enregistré (hashé), envoi email via transactional...');
 
     // Envoyer l'email via le système transactionnel (notify.theforge.fans)
-    const { error: emailError } = await supabaseAdmin.functions.invoke('send-transactional-email', {
+    const { data: emailData, error: emailError } = await supabaseAdmin.functions.invoke('send-transactional-email', {
       body: {
         templateName: 'otp-code',
         recipientEmail: user.email,
@@ -115,14 +125,20 @@ Deno.serve(async (req) => {
       },
     });
 
-    if (emailError) {
-      console.error('send-otp: Erreur envoi email transactionnel:', emailError);
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: 'Code généré (email en cours d\'envoi)',
-        emailError: emailError.message
+    if (emailError || emailData?.success === false || emailData?.queued !== true) {
+      console.error('send-otp: Erreur envoi email transactionnel:', emailError || emailData);
+      if (insertedOtp?.id) {
+        await supabaseAdmin
+          .from('otp_codes')
+          .delete()
+          .eq('id', insertedOtp.id);
+      }
+
+      return new Response(JSON.stringify({
+        success: false,
+        error: "Impossible d'envoyer l'email de vérification. Réessayez dans quelques instants.",
       }), {
-        status: 200,
+        status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

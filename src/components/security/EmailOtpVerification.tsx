@@ -10,6 +10,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
+const getFunctionErrorMessage = async (error: any, data: any, fallback: string) => {
+  if (data?.error) return data.error;
+
+  const response = error?.context as Response | undefined;
+  if (response && typeof response.json === 'function') {
+    try {
+      const body = await response.json();
+      if (body?.error) return body.error;
+    } catch {
+      // Response body may already be consumed by supabase-js.
+    }
+  }
+
+  return error?.message || fallback;
+};
+
 interface EmailOtpVerificationProps {
   onComplete?: () => void;
 }
@@ -60,15 +76,13 @@ export const EmailOtpVerification: React.FC<EmailOtpVerificationProps> = ({ onCo
 
     setIsLoading(true);
     try {
-      // Send OTP to user's email
-      const { error } = await supabase.auth.signInWithOtp({
-        email: user.email,
-        options: {
-          shouldCreateUser: false,
-        },
+      const { data, error } = await supabase.functions.invoke('send-otp', {
+        body: {},
       });
 
-      if (error) throw error;
+      if (error || data?.success === false) {
+        throw new Error(await getFunctionErrorMessage(error, data, "Erreur lors de l'envoi du code"));
+      }
 
       toast.success('Code envoyé à votre email !');
       setStep('verify');
@@ -94,13 +108,13 @@ export const EmailOtpVerification: React.FC<EmailOtpVerificationProps> = ({ onCo
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({
-        email: user.email,
-        token: verifyCode,
-        type: 'email',
+      const { data, error } = await supabase.functions.invoke('verify-otp-code', {
+        body: { code: verifyCode },
       });
 
-      if (error) throw error;
+      if (error || data?.success === false) {
+        throw new Error(await getFunctionErrorMessage(error, data, 'Code invalide'));
+      }
 
       // Mark email OTP as enabled in profile
       await supabase

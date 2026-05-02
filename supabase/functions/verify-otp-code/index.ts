@@ -4,7 +4,8 @@ import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 // SÉCURITÉ: Même fonction de hachage que dans send-otp
 async function hashCode(code: string): Promise<string> {
   const encoder = new TextEncoder();
-  const data = encoder.encode(code + Deno.env.get('OTP_HASH_SALT') || 'otp-salt-v1');
+  const salt = Deno.env.get('OTP_HASH_SALT') || 'otp-salt-v1';
+  const data = encoder.encode(code + salt);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -12,20 +13,14 @@ async function hashCode(code: string): Promise<string> {
 
 // SÉCURITÉ: Comparaison en temps constant pour éviter les attaques timing
 function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    // Toujours effectuer la comparaison pour éviter les différences de timing
-    let dummy = 0;
-    for (let i = 0; i < a.length; i++) {
-      dummy |= a.charCodeAt(i) ^ b.charCodeAt(i % b.length);
-    }
-    return false;
-  }
-  
   let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  const maxLength = Math.max(a.length, b.length);
+
+  for (let i = 0; i < maxLength; i++) {
+    result |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
   }
-  return result === 0;
+
+  return result === 0 && a.length === b.length;
 }
 
 Deno.serve(async (req) => {

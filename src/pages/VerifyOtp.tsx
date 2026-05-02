@@ -10,6 +10,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
+const getFunctionErrorMessage = async (error: any, data: any, fallback: string) => {
+  if (data?.error) return data.error;
+
+  const response = error?.context as Response | undefined;
+  if (response && typeof response.json === 'function') {
+    try {
+      const body = await response.json();
+      if (body?.error) return body.error;
+    } catch {
+      // Response body may already be consumed by supabase-js.
+    }
+  }
+
+  return error?.message || fallback;
+};
+
 /**
  * Page de vérification OTP pour les CONNEXIONS uniquement.
  * L'inscription utilise le lien email de Supabase (pas de code OTP).
@@ -26,7 +42,8 @@ const VerifyOtp = () => {
   const hasCheckedStatus = useRef(false);
   const otpRequestInFlight = useRef(false);
 
-  const pendingEmail = sessionStorage.getItem('pending_otp_email') || user?.email || '';
+  const pendingOtpEmail = sessionStorage.getItem('pending_otp_email');
+  const pendingEmail = pendingOtpEmail || user?.email || '';
 
   const sendOtp = useCallback(async () => {
     if (otpCountdown > 0 || otpRequestInFlight.current) return;
@@ -45,14 +62,13 @@ const VerifyOtp = () => {
 
       console.log('Envoi OTP pour connexion:', emailToUse);
 
-      const { error } = await supabase.auth.signInWithOtp({
-        email: emailToUse,
-        options: { shouldCreateUser: false },
+      const { data, error } = await supabase.functions.invoke('send-otp', {
+        body: {},
       });
 
-      if (error) {
-        console.error('Erreur signInWithOtp:', error);
-        throw new Error(error.message || "Erreur lors de l'envoi du code");
+      if (error || data?.success === false) {
+        console.error('Erreur send-otp:', error || data);
+        throw new Error(await getFunctionErrorMessage(error, data, "Erreur lors de l'envoi du code"));
       }
 
       setOtpSent(true);
@@ -97,7 +113,7 @@ const VerifyOtp = () => {
           .eq('user_id', currentSession.user.id)
           .maybeSingle();
 
-        if (profile?.otp_verified === true) {
+        if (!pendingOtpEmail && profile?.otp_verified === true) {
           setIsRedirecting(true);
           const { data: creatorData } = await supabase
             .from('creators')
@@ -123,7 +139,7 @@ const VerifyOtp = () => {
     };
 
     checkLoginStatus();
-  }, [loading, pendingEmail, isRedirecting, navigate, sendOtp]);
+  }, [loading, pendingEmail, pendingOtpEmail, isRedirecting, navigate, sendOtp]);
 
   useEffect(() => {
     if (otpCountdown > 0) {
@@ -149,35 +165,20 @@ const VerifyOtp = () => {
     setIsRedirecting(true);
 
     try {
-      const verifyResult = await supabase.auth.verifyOtp({
-        email: emailToUse,
-        token: otpCode,
-        type: 'email',
+      const verifyResult = await supabase.functions.invoke('verify-otp-code', {
+        body: { code: otpCode },
       });
 
-      if (verifyResult.error) {
+      if (verifyResult.error || verifyResult.data?.success === false) {
         setIsRedirecting(false);
-        if (verifyResult.error.message.includes('expired') || verifyResult.error.message.includes('Token has expired')) {
-          throw new Error('Code expiré. Demandez un nouveau code.');
-        } else if (verifyResult.error.message.includes('invalid') || verifyResult.error.message.includes('Invalid')) {
-          throw new Error('Code invalide. Vérifiez le code et réessayez.');
-        }
-        throw new Error(verifyResult.error.message || 'Code invalide');
-      }
-
-      const { data } = verifyResult;
-
-      if (data.user) {
-        await supabase
-          .from('profiles')
-          .update({ otp_verified: true })
-          .eq('user_id', data.user.id);
+        throw new Error(await getFunctionErrorMessage(verifyResult.error, verifyResult.data, 'Code invalide'));
       }
 
       sessionStorage.removeItem('pending_otp_email');
       toast.success('Vérification réussie !');
 
-      const userId = data.user?.id || user?.id;
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id || user?.id;
       if (userId) {
         const { data: creatorData } = await supabase
           .from('creators')

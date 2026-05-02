@@ -90,6 +90,15 @@ const Login = () => {
           return;
         }
 
+        const { error: otpResetError } = await supabase
+          .from('profiles')
+          .update({ otp_verified: false })
+          .eq('user_id', userData.user.id);
+
+        if (otpResetError) {
+          console.error('Erreur réinitialisation OTP:', otpResetError);
+        }
+
         sessionStorage.setItem('pending_otp_email', validatedData.email);
         navigate('/verify-otp');
       } else {

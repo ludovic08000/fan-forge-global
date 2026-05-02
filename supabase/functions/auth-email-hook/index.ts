@@ -272,7 +272,6 @@ async function handleWebhook(req: Request): Promise<Response> {
   })
 
   const { error: enqueueError } = await supabase.rpc('enqueue_email', {
-    queue_name: 'auth_emails',
     payload: {
       message_id: messageId,
       to: user.email,
