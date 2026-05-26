@@ -942,6 +942,65 @@ export type Database = {
           },
         ]
       }
+      conversation_participants: {
+        Row: {
+          conversation_id: string
+          id: string
+          joined_at: string
+          last_read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_group: boolean
+          name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_group?: boolean
+          name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_group?: boolean
+          name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       creator_auto_messages: {
         Row: {
           content: string
@@ -1719,6 +1778,123 @@ export type Database = {
         }
         Relationships: []
       }
+      device_link_requests: {
+        Row: {
+          approved_at: string | null
+          approver_device_id: string | null
+          claimed_at: string | null
+          created_at: string
+          encrypted_payload: string | null
+          expires_at: string
+          id: string
+          requester_device_id: string
+          requester_label: string | null
+          requester_public_key: Json
+          status: string
+          token_hash: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approver_device_id?: string | null
+          claimed_at?: string | null
+          created_at?: string
+          encrypted_payload?: string | null
+          expires_at?: string
+          id?: string
+          requester_device_id: string
+          requester_label?: string | null
+          requester_public_key: Json
+          status?: string
+          token_hash: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approver_device_id?: string | null
+          claimed_at?: string | null
+          created_at?: string
+          encrypted_payload?: string | null
+          expires_at?: string
+          id?: string
+          requester_device_id?: string
+          requester_label?: string | null
+          requester_public_key?: Json
+          status?: string
+          token_hash?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      device_one_time_prekeys: {
+        Row: {
+          created_at: string
+          device_id: string
+          id: string
+          opk_id: number
+          public_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          id?: string
+          opk_id: number
+          public_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          opk_id?: number
+          public_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      device_signed_prekeys: {
+        Row: {
+          created_at: string
+          device_id: string
+          expires_at: string
+          id: string
+          is_active: boolean
+          keys_epoch: number
+          public_key: string
+          signature: string
+          spk_id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          keys_epoch?: number
+          public_key: string
+          signature: string
+          spk_id: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          keys_epoch?: number
+          public_key?: string
+          signature?: string
+          spk_id?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       duplicate_detections: {
         Row: {
           action_taken: string | null
@@ -1803,6 +1979,69 @@ export type Database = {
           id?: string
           ip_address?: string
           user_agent?: string | null
+        }
+        Relationships: []
+      }
+      email_send_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          message_id: string | null
+          metadata: Json | null
+          recipient_email: string
+          status: string
+          template_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email: string
+          status: string
+          template_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email?: string
+          status?: string
+          template_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_unsubscribe_tokens: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          token: string
+          updated_at: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          token: string
+          updated_at?: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          token?: string
+          updated_at?: string
+          used_at?: string | null
         }
         Relationships: []
       }
@@ -2585,6 +2824,170 @@ export type Database = {
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "private_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_deletions: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_deletions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_device_copies: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          encrypted_body: string
+          id: string
+          message_id: string
+          read_at: string | null
+          recipient_device_id: string
+          recipient_user_id: string
+          sender_device_id: string
+          sender_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          encrypted_body: string
+          id?: string
+          message_id: string
+          read_at?: string | null
+          recipient_device_id: string
+          recipient_user_id: string
+          sender_device_id: string
+          sender_user_id: string
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          encrypted_body?: string
+          id?: string
+          message_id?: string
+          read_at?: string | null
+          recipient_device_id?: string
+          recipient_user_id?: string
+          sender_device_id?: string
+          sender_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_device_copies_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_device_retry_requests: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          id: string
+          last_error: string | null
+          message_id: string
+          requester_device_id: string
+          requester_user_id: string
+          sender_user_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          message_id: string
+          requester_device_id: string
+          requester_user_id: string
+          sender_user_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          message_id?: string
+          requester_device_id?: string
+          requester_user_id?: string
+          sender_user_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_device_retry_requests_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          body: string
+          body_kind: string
+          conversation_id: string
+          created_at: string
+          id: string
+          image_url: string | null
+          sender_id: string
+          status: string
+        }
+        Insert: {
+          body: string
+          body_kind?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          sender_id: string
+          status?: string
+        }
+        Update: {
+          body?: string
+          body_kind?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          sender_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
         ]
@@ -3492,6 +3895,7 @@ export type Database = {
           is_identity_verified: boolean | null
           is_verified: boolean | null
           location: string | null
+          name: string | null
           orientation: string | null
           otp_verified: boolean | null
           phone: string | null
@@ -3523,6 +3927,7 @@ export type Database = {
           is_identity_verified?: boolean | null
           is_verified?: boolean | null
           location?: string | null
+          name?: string | null
           orientation?: string | null
           otp_verified?: boolean | null
           phone?: string | null
@@ -3554,6 +3959,7 @@ export type Database = {
           is_identity_verified?: boolean | null
           is_verified?: boolean | null
           location?: string | null
+          name?: string | null
           orientation?: string | null
           otp_verified?: boolean | null
           phone?: string | null
@@ -4113,6 +4519,33 @@ export type Database = {
           },
         ]
       }
+      suppressed_emails: {
+        Row: {
+          created_at: string
+          email: string
+          id: string | null
+          metadata: Json | null
+          reason: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string | null
+          metadata?: Json | null
+          reason: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string | null
+          metadata?: Json | null
+          reason?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tips: {
         Row: {
           amount: number
@@ -4185,6 +4618,45 @@ export type Database = {
           },
         ]
       }
+      user_backups: {
+        Row: {
+          backup_type: string
+          created_at: string
+          encrypted_blob: string
+          id: string
+          iv: string
+          master_key_iv: string | null
+          salt: string
+          user_id: string
+          version: number
+          wrapped_master_key: string | null
+        }
+        Insert: {
+          backup_type?: string
+          created_at?: string
+          encrypted_blob: string
+          id?: string
+          iv: string
+          master_key_iv?: string | null
+          salt: string
+          user_id: string
+          version?: number
+          wrapped_master_key?: string | null
+        }
+        Update: {
+          backup_type?: string
+          created_at?: string
+          encrypted_blob?: string
+          id?: string
+          iv?: string
+          master_key_iv?: string | null
+          salt?: string
+          user_id?: string
+          version?: number
+          wrapped_master_key?: string | null
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           awarded_at: string
@@ -4213,6 +4685,114 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_chat_pins: {
+        Row: {
+          backup_wrap_secret: string
+          created_at: string
+          failed_attempts: number | null
+          id: string
+          locked_until: string | null
+          pin_hash: string
+          pin_mode: string
+          reset_code_expires: string | null
+          reset_code_hash: string | null
+          reset_code_salt: string | null
+          salt: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          backup_wrap_secret?: string
+          created_at?: string
+          failed_attempts?: number | null
+          id?: string
+          locked_until?: string | null
+          pin_hash: string
+          pin_mode?: string
+          reset_code_expires?: string | null
+          reset_code_hash?: string | null
+          reset_code_salt?: string | null
+          salt: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          backup_wrap_secret?: string
+          created_at?: string
+          failed_attempts?: number | null
+          id?: string
+          locked_until?: string | null
+          pin_hash?: string
+          pin_mode?: string
+          reset_code_expires?: string | null
+          reset_code_hash?: string | null
+          reset_code_salt?: string | null
+          salt?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_devices: {
+        Row: {
+          created_at: string
+          crypto_invalid_at: string | null
+          crypto_invalid_reason: string | null
+          device_id: string
+          device_name: string | null
+          device_public_key: string
+          id: string
+          is_active: boolean
+          last_seen_at: string
+          platform: string | null
+          prekey_repair_requested_at: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          stale_at: string | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          crypto_invalid_at?: string | null
+          crypto_invalid_reason?: string | null
+          device_id: string
+          device_name?: string | null
+          device_public_key: string
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string
+          platform?: string | null
+          prekey_repair_requested_at?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          stale_at?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          crypto_invalid_at?: string | null
+          crypto_invalid_reason?: string | null
+          device_id?: string
+          device_name?: string | null
+          device_public_key?: string
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string
+          platform?: string | null
+          prekey_repair_requested_at?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          stale_at?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       user_login_logs: {
         Row: {
@@ -4739,6 +5319,14 @@ export type Database = {
       }
     }
     Functions: {
+      approve_device_link_request: {
+        Args: {
+          p_approver_device_id: string
+          p_encrypted_payload: string
+          p_token_hash: string
+        }
+        Returns: boolean
+      }
       archive_illegal_content_evidence: {
         Args: { _creator_id?: string; _user_id: string }
         Returns: undefined
@@ -4753,6 +5341,10 @@ export type Database = {
         Returns: boolean
       }
       auto_cleanup_stale_lives: { Args: never; Returns: undefined }
+      bump_device_keys_epoch: {
+        Args: { p_device_id: string; p_user_id: string }
+        Returns: number
+      }
       calculate_creator_revenue_with_commission: {
         Args: { creator_uuid: string; end_date?: string; start_date?: string }
         Returns: {
@@ -4792,6 +5384,15 @@ export type Database = {
         }[]
       }
       check_report_rate_limit: { Args: never; Returns: boolean }
+      claim_device_one_time_prekey: {
+        Args: { p_device_id: string; p_user_id: string }
+        Returns: {
+          opk_id: number
+          public_key: string
+        }[]
+      }
+      cleanup_expired_device_link_requests: { Args: never; Returns: number }
+      cleanup_expired_device_prekeys: { Args: never; Returns: undefined }
       cleanup_expired_otp_codes: { Args: never; Returns: undefined }
       cleanup_expired_quarantine: { Args: never; Returns: number }
       cleanup_old_email_logs: { Args: never; Returns: undefined }
@@ -4801,9 +5402,64 @@ export type Database = {
       cleanup_old_security_access_logs: { Args: never; Returns: undefined }
       cleanup_paused_creators: { Args: never; Returns: number }
       cleanup_stale_live_streams: { Args: never; Returns: undefined }
+      cleanup_stale_user_devices: {
+        Args: { p_revoke_after?: string; p_stale_after?: string }
+        Returns: {
+          action: string
+          device_id: string
+        }[]
+      }
+      cleanup_stale_user_devices_for_user: {
+        Args: {
+          p_revoke_after?: string
+          p_stale_after?: string
+          p_user_id: string
+        }
+        Returns: {
+          action: string
+          device_id: string
+        }[]
+      }
+      clear_device_prekey_repair_needed: {
+        Args: { p_device_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      complete_device_copy_retry: {
+        Args: {
+          p_encrypted_body: string
+          p_request_id: string
+          p_sender_device_id: string
+        }
+        Returns: boolean
+      }
+      complete_device_link_request: {
+        Args: { p_requester_device_id: string; p_token_hash: string }
+        Returns: boolean
+      }
+      count_device_one_time_prekeys: {
+        Args: { p_device_id: string; p_user_id: string }
+        Returns: number
+      }
       count_failed_attempts: {
         Args: { check_identifier: string; time_window?: string }
         Returns: number
+      }
+      create_device_link_request: {
+        Args: {
+          p_requester_device_id: string
+          p_requester_label?: string
+          p_requester_public_key: Json
+          p_token_hash: string
+        }
+        Returns: string
+      }
+      create_group_conversation: {
+        Args: { p_member_ids: string[]; p_name: string }
+        Returns: string
+      }
+      create_or_get_dm_conversation: {
+        Args: { p_other_user: string }
+        Returns: string
       }
       delete_creator_completely: {
         Args: { _creator_id: string }
@@ -4821,7 +5477,9 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      enqueue_email: { Args: { payload: Json }; Returns: number }
+      enqueue_email:
+        | { Args: { payload: Json }; Returns: number }
+        | { Args: { payload: Json; queue_name: string }; Returns: number }
       finalize_expired_auctions: { Args: never; Returns: number }
       find_similar_images: {
         Args: { p_max_distance?: number; p_phash: string }
@@ -4839,6 +5497,32 @@ export type Database = {
       generate_invoice_number: { Args: never; Returns: string }
       generate_stream_key: { Args: never; Returns: string }
       generate_unique_username: { Args: { base_text: string }; Returns: string }
+      get_approved_device_link_payload: {
+        Args: { p_requester_device_id: string; p_token_hash: string }
+        Returns: {
+          approved_at: string
+          approver_device_id: string
+          encrypted_payload: string
+        }[]
+      }
+      get_conversations_with_details: {
+        Args: { p_user_id: string }
+        Returns: {
+          conv_created_at: string
+          conv_id: string
+          conv_name: string
+          conv_updated_at: string
+          created_by: string
+          is_group: boolean
+          last_message_at: string
+          last_message_body: string
+          last_message_sender: string
+          other_avatar: string
+          other_name: string
+          other_user_id: string
+          unread_count: number
+        }[]
+      }
       get_creator_financial_data: {
         Args: { _creator_id: string }
         Returns: {
@@ -4855,6 +5539,47 @@ export type Database = {
           stripe_payouts_enabled: boolean
           tax_id: string
           total_earnings: number
+        }[]
+      }
+      get_device_copies_for_user: {
+        Args: { p_message_id: string }
+        Returns: {
+          created_at: string
+          encrypted_body: string
+          recipient_device_id: string
+          sender_device_id: string
+          sender_user_id: string
+        }[]
+      }
+      get_device_copy_for_message: {
+        Args: { p_device_id: string; p_message_id: string }
+        Returns: {
+          created_at: string
+          encrypted_body: string
+          recipient_device_id: string
+          sender_device_id: string
+          sender_user_id: string
+        }[]
+      }
+      get_device_link_request_for_approval: {
+        Args: { p_token_hash: string }
+        Returns: {
+          created_at: string
+          expires_at: string
+          request_id: string
+          requester_device_id: string
+          requester_label: string
+          requester_public_key: Json
+        }[]
+      }
+      get_device_prekey_bundle: {
+        Args: { p_device_id: string; p_user_id: string }
+        Returns: {
+          device_public_key: string
+          keys_epoch: number
+          public_key: string
+          signature: string
+          spk_id: number
         }[]
       }
       get_my_creator_dashboard_profile: {
@@ -4969,6 +5694,10 @@ export type Database = {
       is_active_creator: { Args: { _user_id: string }; Returns: boolean }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_blocked: { Args: { check_identifier: string }; Returns: boolean }
+      is_conversation_participant: {
+        Args: { conv_id: string; uid: string }
+        Returns: boolean
+      }
       is_creator_by_user_id: {
         Args: { p_creator_id: string; p_user_id: string }
         Returns: boolean
@@ -4995,6 +5724,28 @@ export type Database = {
       }
       is_user_adult: { Args: { _user_id: string }; Returns: boolean }
       is_user_suspended: { Args: { _user_id: string }; Returns: boolean }
+      list_active_devices_for_user: {
+        Args: { p_user_id: string }
+        Returns: {
+          device_id: string
+          device_public_key: string
+          last_seen_at: string
+        }[]
+      }
+      list_pending_device_copy_retries: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempt_count: number
+          conversation_id: string
+          created_at: string
+          message_body: string
+          message_id: string
+          request_id: string
+          requester_device_id: string
+          requester_device_public_key: string
+          requester_user_id: string
+        }[]
+      }
       log_admin_action: {
         Args: {
           p_action: string
@@ -5004,11 +5755,35 @@ export type Database = {
         }
         Returns: string
       }
+      mark_device_copy_retry_failed: {
+        Args: { p_error: string; p_request_id: string }
+        Returns: boolean
+      }
       place_auction_bid: {
         Args: { p_amount: number; p_auction_id: string }
         Returns: Json
       }
       record_story_view: { Args: { p_story_id: string }; Returns: undefined }
+      request_device_copy_retry: {
+        Args: {
+          p_message_id: string
+          p_requester_device_id: string
+          p_sender_user_id: string
+        }
+        Returns: string
+      }
+      request_device_prekey_repair: {
+        Args: { p_device_id: string; p_reason?: string; p_user_id: string }
+        Returns: boolean
+      }
+      request_message_refanout: {
+        Args: {
+          p_message_id: string
+          p_requester_device_id: string
+          p_sender_user_id: string
+        }
+        Returns: string
+      }
       search_creators: {
         Args: {
           category_filter?: string
