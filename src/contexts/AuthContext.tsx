@@ -230,13 +230,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUserProfile(null);
         }
         
-        // Gérer la confirmation d'email via magic link
-        // NOTE: On ne met PAS otp_verified = true ici car chaque connexion doit passer par l'OTP
         if (event === 'SIGNED_IN' && session?.user) {
-          // Ne pas mettre otp_verified à true automatiquement
-          // La vérification OTP sera demandée à chaque connexion
-          console.log('📧 Connexion détectée, OTP sera demandé');
-          
           // Vérifier si le créateur n'a pas été configuré à l'inscription (cas confirmation email)
           setTimeout(() => ensureCreatorSetup(session.user), 500);
           
@@ -257,7 +251,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
       
       // Charger le rôle et le profil si l'utilisateur est déjà connecté
-      // NOTE: On ne modifie PAS otp_verified ici - il reste tel quel
       if (session?.user) {
         loadUserRole(session.user.id);
         loadUserProfile(session.user.id);
@@ -501,14 +494,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
    */
   const signOut = async () => {
     try {
-      // Réinitialiser otp_verified à false pour forcer la vérification à la prochaine connexion
-      if (user) {
-        await supabase
-          .from('profiles')
-          .update({ otp_verified: false })
-          .eq('user_id', user.id);
-      }
-      
       // Appel à l'API Supabase pour se déconnecter
       const { error } = await supabase.auth.signOut();
       if (error) {
