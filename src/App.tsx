@@ -8,7 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation, useNavigate, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate, Link, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -54,7 +54,6 @@ const PrivateChatPage = lazy(() => import("./pages/PrivateChatPage"));
 const CreatorChatPage = lazy(() => import("./pages/CreatorChatPage"));
 const ContentDetail = lazy(() => import("./pages/ContentDetail"));
 const Messages = lazy(() => import("./pages/Messages"));
-const VerifyOtp = lazy(() => import("./pages/VerifyOtp"));
 const MyPayments = lazy(() => import("./pages/MyPayments"));
 const Partnerships = lazy(() => import("./pages/Partnerships"));
 const IdentityVerification = lazy(() => import("./pages/IdentityVerification"));
@@ -150,7 +149,7 @@ const AppRoutes = () => {
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/verify-otp" element={<VerifyOtp />} />
+          <Route path="/verify-otp" element={<Navigate to="/dashboard" replace />} />
           
           <Route path="/suspended" element={<Suspended />} />
           <Route path="/reset-password" element={<ResetPassword />} />

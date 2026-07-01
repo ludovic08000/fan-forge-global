@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { useTermsAcceptance } from '@/hooks/useTermsAcceptance';
 import TermsAcceptanceModal from '@/components/TermsAcceptanceModal';
 
@@ -18,49 +17,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, userRole, loading } = useAuth();
   const location = useLocation();
-  const [otpVerified, setOtpVerified] = useState<boolean | null>(null);
-  const [checkingProfile, setCheckingProfile] = useState(true);
   
   // Vérification de l'acceptation des CGU
   const { needsAcceptance, isLoading: termsLoading, refreshStatus } = useTermsAcceptance();
   const [showTermsModal, setShowTermsModal] = useState(false);
 
-  useEffect(() => {
-    const checkProfileStatus = async () => {
-      if (loading) {
-        return;
-      }
-
-      if (!user) {
-        setCheckingProfile(false);
-        return;
-      }
-
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('otp_verified')
-          .eq('user_id', user.id)
-          .single();
-
-        setOtpVerified(profile?.otp_verified ?? false);
-      } catch (error) {
-        console.error('Erreur vérification profil:', error);
-        setOtpVerified(false);
-      } finally {
-        setCheckingProfile(false);
-      }
-    };
-
-    checkProfileStatus();
-  }, [user, loading]);
-
   // Afficher le modal CGU si nécessaire
   useEffect(() => {
-    if (!termsLoading && needsAcceptance && user && !checkingProfile) {
+    if (!termsLoading && needsAcceptance && user) {
       setShowTermsModal(true);
     }
-  }, [termsLoading, needsAcceptance, user, checkingProfile]);
+  }, [termsLoading, needsAcceptance, user]);
 
   const handleTermsAccepted = () => {
     setShowTermsModal(false);
@@ -68,7 +35,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   };
 
   // Pour les callbacks externes, ne pas bloquer sur le loading des CGU
-  if (loading || checkingProfile || termsLoading) {
+  if (loading || termsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -79,15 +46,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Pas d'utilisateur connecté -> redirection vers login
   if (!user) {
     return <Navigate to={fallbackPath} state={{ from: location }} replace />;
-  }
-
-  // Utilisateur connecté mais OTP non vérifié
-  if (otpVerified !== true) {
-    // Stocker l'email pour la page OTP
-    if (user.email) {
-      sessionStorage.setItem('pending_otp_email', user.email);
-    }
-    return <Navigate to="/verify-otp" replace />;
   }
 
   // Vérification du rôle si requis

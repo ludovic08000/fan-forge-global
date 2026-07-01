@@ -90,17 +90,22 @@ const Login = () => {
           return;
         }
 
-        const { error: otpResetError } = await supabase
-          .from('profiles')
-          .update({ otp_verified: false })
-          .eq('user_id', userData.user.id);
+        sessionStorage.removeItem('pending_otp_email');
 
-        if (otpResetError) {
-          console.error('Erreur réinitialisation OTP:', otpResetError);
+        const savedRedirect = sessionStorage.getItem('redirect_after_auth');
+        if (savedRedirect) {
+          sessionStorage.removeItem('redirect_after_auth');
+          navigate(savedRedirect, { replace: true });
+          return;
         }
 
-        sessionStorage.setItem('pending_otp_email', validatedData.email);
-        navigate('/verify-otp');
+        const { data: creatorData } = await supabase
+          .from('creators')
+          .select('id')
+          .eq('user_id', userData.user.id)
+          .maybeSingle();
+
+        navigate(creatorData ? '/dashboard' : '/subscriptions', { replace: true });
       } else {
         navigate('/login');
       }
