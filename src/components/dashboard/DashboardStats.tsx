@@ -1,6 +1,7 @@
 import React from 'react';
-import { Euro, Users, Eye, Heart } from 'lucide-react';
+import { Euro, Users, Eye, Heart, ArrowUpRight } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { cn } from '@/lib/utils';
 
 interface CreatorStats {
   totalEarnings: number;
@@ -16,37 +17,66 @@ interface DashboardStatsProps {
 export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
   const { t } = useTranslation();
 
+  const items = [
+    {
+      icon: Euro,
+      label: t('dashboard.totalRevenue'),
+      value: new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: 'EUR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(stats.totalEarnings),
+      accent: true,
+    },
+    {
+      icon: Users,
+      label: t('dashboard.activeSubscribers'),
+      value: stats.totalSubscribers.toLocaleString('fr-FR'),
+    },
+    {
+      icon: Eye,
+      label: t('dashboard.totalViews'),
+      value: stats.totalViews.toLocaleString('fr-FR'),
+    },
+    {
+      icon: Heart,
+      label: t('dashboard.likesReceived'),
+      value: stats.totalLikes.toLocaleString('fr-FR'),
+    },
+  ];
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-      <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-transparent p-3 sm:p-5 border border-emerald-500/20 hover:border-emerald-500/40 transition-all hover:shadow-xl hover:shadow-emerald-500/10">
-        <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
-        <Euro className="h-5 w-5 sm:h-7 sm:w-7 text-emerald-500 mb-2 sm:mb-3" />
-        <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-emerald-500 truncate">
-          {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(stats.totalEarnings)}
-        </p>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">{t('dashboard.totalRevenue')}</p>
-      </div>
-
-      <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500/20 via-blue-500/10 to-transparent p-3 sm:p-5 border border-blue-500/20 hover:border-blue-500/40 transition-all hover:shadow-xl hover:shadow-blue-500/10">
-        <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
-        <Users className="h-5 w-5 sm:h-7 sm:w-7 text-blue-500 mb-2 sm:mb-3" />
-        <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-blue-500">{stats.totalSubscribers}</p>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">{t('dashboard.activeSubscribers')}</p>
-      </div>
-
-      <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-500/20 via-violet-500/10 to-transparent p-3 sm:p-5 border border-violet-500/20 hover:border-violet-500/40 transition-all hover:shadow-xl hover:shadow-violet-500/10">
-        <div className="absolute top-0 right-0 w-20 h-20 bg-violet-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
-        <Eye className="h-5 w-5 sm:h-7 sm:w-7 text-violet-500 mb-2 sm:mb-3" />
-        <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-violet-500">{stats.totalViews}</p>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">{t('dashboard.totalViews')}</p>
-      </div>
-
-      <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-rose-500/20 via-rose-500/10 to-transparent p-3 sm:p-5 border border-rose-500/20 hover:border-rose-500/40 transition-all hover:shadow-xl hover:shadow-rose-500/10">
-        <div className="absolute top-0 right-0 w-20 h-20 bg-rose-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
-        <Heart className="h-5 w-5 sm:h-7 sm:w-7 text-rose-500 mb-2 sm:mb-3" />
-        <p className="text-lg sm:text-2xl lg:text-3xl font-bold text-rose-500">{stats.totalLikes}</p>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">{t('dashboard.likesReceived')}</p>
-      </div>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-px overflow-hidden rounded-xl border border-border/60 bg-border/60">
+      {items.map((item, i) => {
+        const Icon = item.icon;
+        return (
+          <div
+            key={i}
+            className="group relative flex flex-col justify-between gap-6 bg-background p-4 sm:p-5 transition-colors hover:bg-muted/30"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted/60 text-muted-foreground group-hover:bg-foreground group-hover:text-background transition-colors">
+                <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+              </div>
+              <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+            <div>
+              <p
+                className={cn(
+                  'text-2xl sm:text-3xl font-semibold tracking-tight tabular-nums',
+                  item.accent ? 'text-primary' : 'text-foreground'
+                )}
+              >
+                {item.value}
+              </p>
+              <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-muted-foreground truncate">
+                {item.label}
+              </p>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
