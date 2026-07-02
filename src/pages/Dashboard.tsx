@@ -19,7 +19,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 // Dashboard Components
 import {
   DashboardHeader,
-  DashboardNav,
+  DashboardSidebar,
   DashboardStats,
   DashboardQuickActions,
   DashboardRecentContent,
@@ -28,6 +28,7 @@ import {
   DashboardSettingsSection,
   type DashboardSection,
 } from '@/components/dashboard';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 
 // Lazy-loaded components
 const LiveStreamStudio = lazy(() => import('@/components/LiveStreamStudio').then(m => ({ default: m.LiveStreamStudio })));
@@ -393,10 +394,25 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 pt-16">
-      <div className="container mx-auto px-4 py-8">
-        
-        {/* Header */}
+    <SidebarProvider defaultOpen>
+    <div className="min-h-screen w-full bg-background pt-16">
+      <div className="flex w-full min-h-[calc(100vh-64px)]">
+        <DashboardSidebar
+          menuItems={menuItems}
+          activeSection={activeSection}
+          onSectionChange={(section) => {
+            setActiveSection(section);
+            if (section === 'settings') {
+              setSettingsDefaultTab('profile');
+            }
+          }}
+          stageName={shareDisplayName}
+        />
+
+        <SidebarInset className="min-w-0 flex-1 bg-background">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-16">
+
+        {/* Header (sticky, contains sidebar trigger) */}
         <DashboardHeader
           user={user}
           shareLink={shareLink}
@@ -417,17 +433,15 @@ const Dashboard = () => {
           }} />
         )}
 
-        {/* Navigation */}
-        <DashboardNav
-          menuItems={menuItems}
-          activeSection={activeSection}
-          onSectionChange={(section) => {
-            setActiveSection(section);
-            if (section === 'settings') {
-              setSettingsDefaultTab('profile');
-            }
-          }}
-        />
+        {/* Section title strip */}
+        <div className="mb-6 flex items-end justify-between gap-4 border-b border-border/60 pb-4">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Studio</p>
+            <h1 className="mt-1 text-2xl sm:text-3xl font-semibold tracking-tight text-foreground truncate">
+              {menuItems.find(m => m.id === activeSection)?.label}
+            </h1>
+          </div>
+        </div>
 
         {/* Upload Dialog */}
         <Dialog open={showUpload} onOpenChange={setShowUpload}>
@@ -609,8 +623,11 @@ const Dashboard = () => {
             />
           </Suspense>
         )}
+        </div>
+        </SidebarInset>
       </div>
     </div>
+    </SidebarProvider>
   );
 };
 
