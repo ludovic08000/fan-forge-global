@@ -59,6 +59,7 @@ const Partnerships = lazy(() => import("./pages/Partnerships"));
 const IdentityVerification = lazy(() => import("./pages/IdentityVerification"));
 const LiveCalendar = lazy(() => import("./pages/LiveCalendar"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
 
 // Route prefetch map for hover-based prefetching
 const routePrefetchMap: Record<string, () => Promise<any>> = {
@@ -164,6 +165,7 @@ const AppRoutes = () => {
           <Route path="/legal" element={<LegalNotice />} />
           <Route path="/cookies" element={<CookiePolicy />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
+          <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
           <Route path="/security" element={
             <ProtectedRoute>
               <SecuritySettings />
