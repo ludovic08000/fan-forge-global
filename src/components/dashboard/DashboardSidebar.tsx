@@ -35,7 +35,7 @@ const GROUPS: { label: string; ids: DashboardSection[] }[] = [
   { label: 'Accueil',     ids: ['overview'] },
   { label: 'Création',    ids: ['content', 'stories', 'bundles', 'polls'] },
   { label: 'Communauté',  ids: ['messages', 'wishlists'] },
-  { label: 'Live',        ids: ['live', 'private-lives' as DashboardSection] },
+  { label: 'Live',        ids: ['live', 'private-lives'] },
   { label: 'Business',    ids: ['revenue', 'payments', 'partnerships', 'ai-marketing'] },
   { label: 'Compte',      ids: ['profile', 'settings'] },
 ];
