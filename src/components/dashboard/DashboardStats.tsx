@@ -1,5 +1,5 @@
 import React from 'react';
-import { Euro, Users, Eye, Heart, ArrowUpRight } from 'lucide-react';
+import { Euro, Users, Eye, Heart } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +17,9 @@ interface DashboardStatsProps {
 export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
   const { t } = useTranslation();
 
+  const compact = (n: number) =>
+    new Intl.NumberFormat('fr-FR', { notation: 'compact', maximumFractionDigits: 1 }).format(n || 0);
+
   const items = [
     {
       icon: Euro,
@@ -32,17 +35,17 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
     {
       icon: Users,
       label: t('dashboard.activeSubscribers'),
-      value: stats.totalSubscribers.toLocaleString('fr-FR'),
+      value: compact(stats.totalSubscribers),
     },
     {
       icon: Eye,
       label: t('dashboard.totalViews'),
-      value: stats.totalViews.toLocaleString('fr-FR'),
+      value: compact(stats.totalViews),
     },
     {
       icon: Heart,
       label: t('dashboard.likesReceived'),
-      value: stats.totalLikes.toLocaleString('fr-FR'),
+      value: compact(stats.totalLikes),
     },
   ];
 
@@ -53,24 +56,21 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
         return (
           <div
             key={i}
-            className="group relative flex flex-col justify-between gap-6 bg-background p-4 sm:p-5 transition-colors hover:bg-muted/30"
+            className="group relative flex h-[116px] flex-col justify-between bg-background p-4 transition-colors hover:bg-muted/30 sm:h-[128px] sm:p-5"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted/60 text-muted-foreground group-hover:bg-foreground group-hover:text-background transition-colors">
-                <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
-              </div>
-              <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted/60 text-muted-foreground transition-colors group-hover:bg-foreground group-hover:text-background">
+              <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
             </div>
-            <div>
+            <div className="min-w-0">
               <p
                 className={cn(
-                  'text-2xl sm:text-3xl font-semibold tracking-tight tabular-nums',
+                  'truncate text-2xl font-semibold leading-none tracking-tight tabular-nums sm:text-3xl',
                   item.accent ? 'text-primary' : 'text-foreground'
                 )}
               >
                 {item.value}
               </p>
-              <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-muted-foreground truncate">
+              <p className="mt-2 truncate text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                 {item.label}
               </p>
             </div>
