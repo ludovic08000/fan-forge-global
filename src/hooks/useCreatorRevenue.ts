@@ -52,7 +52,7 @@ export function useCreatorRevenueSeries(creatorId: string | undefined, range: Re
     enabled: !!creatorId,
     staleTime: 60_000,
     queryFn: async (): Promise<RevenuePoint[]> => {
-      const { data, error } = await supabase.rpc('get_creator_revenue_timeseries', {
+      const { data, error } = await (supabase as any).rpc('get_creator_revenue_timeseries', {
         creator_uuid: creatorId as string,
         p_start: start.toISOString(),
         p_end: end.toISOString(),
