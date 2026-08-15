@@ -7,6 +7,7 @@ export type DashboardSection =
   | 'content'
   | 'stories'
   | 'live'
+  | 'private-lives'
   | 'messages'
   | 'analytics'
   | 'bundles'
@@ -39,6 +40,7 @@ const iconColors: Partial<Record<DashboardSection, string>> = {
   content:        'from-violet-500 to-purple-600',
   stories:        'from-sky-500 to-blue-600',
   live:           'from-rose-500 to-red-600',
+  'private-lives':'from-rose-400 to-pink-600',
   messages:       'from-green-500 to-emerald-600',
   analytics:      'from-orange-400 to-orange-600',
   bundles:        'from-amber-500 to-yellow-600',
