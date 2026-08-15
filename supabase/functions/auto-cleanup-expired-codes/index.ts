@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders, handleCorsPreflightRequest } from "../_shared/cors.ts";
+import { verifyCronSecret } from "../_shared/auth.ts";
 
 /**
  * Auto-cleanup des codes promo expirés - appelé par cron job
@@ -15,11 +16,7 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
   try {
-    // Vérifier le secret cron
-    const cronSecret = Deno.env.get("CRON_SECRET");
-    const authHeader = req.headers.get("Authorization");
-    
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!verifyCronSecret(req)) {
       console.error("[Auto-Cleanup Codes] Unauthorized: Invalid cron secret");
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),

@@ -195,7 +195,7 @@ serve(async (req) => {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${supabaseServiceKey}`,
+                    "x-internal-secret": Deno.env.get("INTERNAL_API_SECRET") || "",
                   },
                   body: JSON.stringify({
                     subscriptionId: newSub.id,

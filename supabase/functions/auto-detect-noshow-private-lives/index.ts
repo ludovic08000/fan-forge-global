@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
+import { validateJwtAndGetUserId, verifyCronSecret } from "../_shared/auth.ts";
 
 const PLATFORM_COMMISSION_RATE = 15; // 15%
 const STRIPE_FEE_PERCENT = 0.029; // 2.9%
@@ -20,11 +21,39 @@ serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
   try {
-    logStep("Détection automatique des no-shows démarrée");
-
+    const cronAuthorized = verifyCronSecret(req);
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    let adminUserId: string | null = null;
+    if (!cronAuthorized) {
+      const auth = await validateJwtAndGetUserId(req.headers.get("Authorization"));
+      if (!auth.userId) {
+        return new Response(JSON.stringify({ error: auth.error || "Unauthorized" }), {
+          status: auth.statusCode,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: isAdmin, error: adminError } = await supabaseAdmin.rpc("has_role", {
+        _user_id: auth.userId,
+        _role: "admin",
+      });
+      if (adminError || isAdmin !== true) {
+        logStep("Accès refusé", { userId: auth.userId, error: adminError?.message });
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      adminUserId = auth.userId;
+    }
+
+    logStep(
+      "Détection automatique des no-shows démarrée",
+      cronAuthorized ? { mode: "cron" } : { mode: "admin", adminUserId }
     );
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
