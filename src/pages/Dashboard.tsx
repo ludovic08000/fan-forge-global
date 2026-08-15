@@ -609,12 +609,13 @@ const Dashboard = () => {
           </Suspense>
         )}
 
-        {/* Section: Settings (includes Analytics, Payments, Pricing) */}
-        {activeSection === 'settings' && (
+        {/* Section: Profil & Paramètres (includes Analytics, Payments, Pricing) */}
+        {(activeSection === 'settings' || activeSection === 'profile') && (
           creatorProfileLoading ? (
             <LoadingFallback message="Chargement des paramètres..." />
           ) : creatorProfile?.id ? (
             <DashboardSettingsSection 
+              key={activeSection}
               stripeConnected={stripeConnected} 
               creatorId={creatorProfile.id}
               currentBoostUntil={creatorProfile.featured_until}
@@ -663,6 +664,15 @@ const Dashboard = () => {
         </div>
         </SidebarInset>
       </div>
+
+      {/* Navigation mobile (pouce, safe-area) */}
+      <DashboardMobileNav
+        menuItems={menuItems}
+        activeSection={activeSection}
+        onSectionChange={handleSectionChange}
+        onNewContent={() => setShowUpload(true)}
+        unreadCount={unreadCount}
+      />
     </div>
     </SidebarProvider>
   );
