@@ -489,8 +489,9 @@ const Dashboard = () => {
             <DashboardStats stats={creatorStats} />
             <DashboardQuickActions 
               onNewContent={() => setShowUpload(true)}
-              onSectionChange={setActiveSection}
+              onSectionChange={handleSectionChange}
             />
+            <DashboardRevenueChart creatorId={creatorProfile?.id} />
             <DashboardRecentContent
               content={myContent}
               isLoading={contentLoading}
@@ -517,22 +518,20 @@ const Dashboard = () => {
         {/* Section: Live */}
         {activeSection === 'live' && (
           <div className="space-y-6">
-            {/* Lien vers le calendrier des lives privés */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">{t('dashboard.liveStudio')}</h3>
-                <p className="text-sm text-muted-foreground">{t('dashboard.broadcastForSubscribers')}</p>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-background p-4">
+              <div className="min-w-0">
+                <h3 className="text-[15px] font-semibold tracking-tight">{t('dashboard.liveStudio')}</h3>
+                <p className="text-[12px] text-muted-foreground">{t('dashboard.broadcastForSubscribers')}</p>
               </div>
-              <Link to="/live-calendar">
-                <Button 
-                  size="lg"
-                  className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 text-white font-bold shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 gap-2 border-0"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  <Video className="h-5 w-5" />
-                  {t('dashboard.privateLives')}
-                </Button>
-              </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/live-calendar')}
+                className="h-8 gap-1.5 rounded-md text-[12px]"
+              >
+                <Video className="h-3.5 w-3.5" />
+                {t('dashboard.privateLives')}
+              </Button>
             </div>
             <Suspense fallback={<LoadingFallback message={t('dashboard.loadingLiveStudio')} />}>
               <LiveStreamStudio />
@@ -547,6 +546,26 @@ const Dashboard = () => {
         {activeSection === 'messages' && (
           <Suspense fallback={<LoadingFallback />}>
             <CreatorMessages />
+          </Suspense>
+        )}
+
+        {/* Section: Stories */}
+        {activeSection === 'stories' && (
+          <StoriesBar forceCreatorId={creatorProfile?.id ?? null} />
+        )}
+
+        {/* Section: Revenus (mêmes données que la carte Revenus) */}
+        {activeSection === 'revenue' && (
+          <div className="space-y-6">
+            <DashboardStats stats={creatorStats} />
+            <DashboardRevenueChart creatorId={creatorProfile?.id} />
+          </div>
+        )}
+
+        {/* Section: Paiements */}
+        {activeSection === 'payments' && creatorProfile?.id && (
+          <Suspense fallback={<LoadingFallback />}>
+            <DashboardPaymentsSection creatorId={creatorProfile.id} />
           </Suspense>
         )}
 
