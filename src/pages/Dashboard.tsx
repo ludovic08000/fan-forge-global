@@ -5,8 +5,11 @@
 
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate, Link } from 'react-router-dom';
-import { Loader2, BarChart3, ImageIcon, Radio, MessageCircle, Sparkles, Settings, Banknote, Handshake, Calendar, Video, BrainCircuit, Package, Gift, Vote } from 'lucide-react';
+import { Navigate, useNavigate } from 'react-router-dom';
+import {
+  Loader2, Home, ImageIcon, Radio, MessageCircle, Settings, Banknote, Handshake,
+  Video, BrainCircuit, Package, Gift, Vote, Camera, LineChart, User,
+} from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +23,8 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import {
   DashboardHeader,
   DashboardSidebar,
+  DashboardMobileNav,
+  DashboardRevenueChart,
   DashboardStats,
   DashboardQuickActions,
   DashboardRecentContent,
@@ -46,6 +51,7 @@ const DashboardAIMarketing = lazy(() => import('@/components/dashboard/Dashboard
 const CreatorBundlesSection = lazy(() => import('@/components/bundle/CreatorBundlesSection'));
 const CreatorWishlistSection = lazy(() => import('@/components/wishlist/CreatorWishlistSection'));
 const CreatorPollsSection = lazy(() => import('@/components/polls/CreatorPollsSection'));
+const DashboardPaymentsSection = lazy(() => import('@/components/dashboard/DashboardPaymentsSection').then(m => ({ default: m.DashboardPaymentsSection })));
 import { StoriesBar } from '@/components/stories/StoriesBar';
 
 // Fallback components
@@ -60,6 +66,7 @@ const LoadingFallback = ({ message }: { message?: string }) => {
 
 const Dashboard = () => {
   const { user, userRole, loading } = useAuth();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const { useMyContent } = useContent();
   const { trackPageView } = useAnalytics();
@@ -68,7 +75,7 @@ const Dashboard = () => {
   
   // State
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
-  const [settingsDefaultTab, setSettingsDefaultTab] = useState<'profile' | 'payments'>('profile');
+  const [settingsDefaultTab, setSettingsDefaultTab] = useState<'profile' | 'analytics' | 'payments' | 'pricing' | 'messages' | 'privacy'>('profile');
   const [showUpload, setShowUpload] = useState(false);
   const [selectedContent, setSelectedContent] = useState<any>(null);
   const [editingContent, setEditingContent] = useState<any>(null);
@@ -378,20 +385,36 @@ const Dashboard = () => {
     return <Navigate to="/subscriptions" replace />;
   }
 
-  // Menu items
+  // Menu items — uniquement des outils déjà existants dans Fan Forge
   const menuItems = [
-    { id: 'overview' as DashboardSection, label: t('dashboard.overview'), icon: BarChart3, badge: 0 },
+    { id: 'overview' as DashboardSection, label: t('dashboard.overview'), icon: Home, badge: 0 },
     { id: 'content' as DashboardSection, label: t('dashboard.myContent'), icon: ImageIcon, badge: 0 },
-    { id: 'live' as DashboardSection, label: t('dashboard.live'), icon: Radio, badge: 0 },
-    { id: 'messages' as DashboardSection, label: t('dashboard.messages'), icon: MessageCircle, badge: unreadCount },
-    
+    { id: 'stories' as DashboardSection, label: 'Stories', icon: Camera, badge: 0 },
     { id: 'bundles' as DashboardSection, label: 'Bundles', icon: Package, badge: 0 },
-    { id: 'wishlists' as DashboardSection, label: 'Wishlist', icon: Gift, badge: 0 },
     { id: 'polls' as DashboardSection, label: 'Sondages', icon: Vote, badge: 0 },
-    { id: 'ai-marketing' as DashboardSection, label: 'IA Marketing', icon: BrainCircuit, badge: 0 },
+    { id: 'messages' as DashboardSection, label: t('dashboard.messages'), icon: MessageCircle, badge: unreadCount },
+    { id: 'wishlists' as DashboardSection, label: 'Wishlist', icon: Gift, badge: 0 },
+    { id: 'live' as DashboardSection, label: 'Studio Live', icon: Radio, badge: 0 },
+    { id: 'private-lives' as DashboardSection, label: 'Lives privés', icon: Video, badge: 0 },
+    { id: 'revenue' as DashboardSection, label: 'Revenus', icon: LineChart, badge: 0 },
+    { id: 'payments' as DashboardSection, label: t('dashboard.payments'), icon: Banknote, badge: 0 },
     { id: 'partnerships' as DashboardSection, label: t('dashboard.partnerships'), icon: Handshake, badge: 0 },
+    { id: 'ai-marketing' as DashboardSection, label: 'IA Marketing', icon: BrainCircuit, badge: 0 },
+    { id: 'profile' as DashboardSection, label: 'Profil', icon: User, badge: 0 },
     { id: 'settings' as DashboardSection, label: t('dashboard.settings'), icon: Settings, badge: 0 },
   ];
+
+  // Navigation: certaines fonctions vivent déjà sur une route dédiée
+  const handleSectionChange = (section: DashboardSection) => {
+    if (section === 'private-lives') {
+      navigate('/live-calendar');
+      return;
+    }
+    if (section === 'profile') setSettingsDefaultTab('profile');
+    if (section === 'settings') setSettingsDefaultTab('privacy');
+    setActiveSection(section);
+    document.getElementById('dashboard-section-content')?.scrollIntoView({ block: 'start' });
+  };
 
   return (
     <SidebarProvider defaultOpen>
@@ -400,17 +423,12 @@ const Dashboard = () => {
         <DashboardSidebar
           menuItems={menuItems}
           activeSection={activeSection}
-          onSectionChange={(section) => {
-            setActiveSection(section);
-            if (section === 'settings') {
-              setSettingsDefaultTab('profile');
-            }
-          }}
+          onSectionChange={handleSectionChange}
           stageName={shareDisplayName}
         />
 
         <SidebarInset className="min-w-0 flex-1 bg-background">
-        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-16">
+        <div className="mx-auto w-full max-w-6xl px-4 pb-28 sm:px-6 md:pb-16">
 
         {/* Header (sticky, contains sidebar trigger) */}
         <DashboardHeader
@@ -471,8 +489,9 @@ const Dashboard = () => {
             <DashboardStats stats={creatorStats} />
             <DashboardQuickActions 
               onNewContent={() => setShowUpload(true)}
-              onSectionChange={setActiveSection}
+              onSectionChange={handleSectionChange}
             />
+            <DashboardRevenueChart creatorId={creatorProfile?.id} />
             <DashboardRecentContent
               content={myContent}
               isLoading={contentLoading}
@@ -499,22 +518,20 @@ const Dashboard = () => {
         {/* Section: Live */}
         {activeSection === 'live' && (
           <div className="space-y-6">
-            {/* Lien vers le calendrier des lives privés */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">{t('dashboard.liveStudio')}</h3>
-                <p className="text-sm text-muted-foreground">{t('dashboard.broadcastForSubscribers')}</p>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-background p-4">
+              <div className="min-w-0">
+                <h3 className="text-[15px] font-semibold tracking-tight">{t('dashboard.liveStudio')}</h3>
+                <p className="text-[12px] text-muted-foreground">{t('dashboard.broadcastForSubscribers')}</p>
               </div>
-              <Link to="/live-calendar">
-                <Button 
-                  size="lg"
-                  className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 text-white font-bold shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 gap-2 border-0"
-                >
-                  <Sparkles className="h-5 w-5" />
-                  <Video className="h-5 w-5" />
-                  {t('dashboard.privateLives')}
-                </Button>
-              </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/live-calendar')}
+                className="h-8 gap-1.5 rounded-md text-[12px]"
+              >
+                <Video className="h-3.5 w-3.5" />
+                {t('dashboard.privateLives')}
+              </Button>
             </div>
             <Suspense fallback={<LoadingFallback message={t('dashboard.loadingLiveStudio')} />}>
               <LiveStreamStudio />
@@ -529,6 +546,26 @@ const Dashboard = () => {
         {activeSection === 'messages' && (
           <Suspense fallback={<LoadingFallback />}>
             <CreatorMessages />
+          </Suspense>
+        )}
+
+        {/* Section: Stories */}
+        {activeSection === 'stories' && (
+          <StoriesBar forceCreatorId={creatorProfile?.id ?? null} />
+        )}
+
+        {/* Section: Revenus (mêmes données que la carte Revenus) */}
+        {activeSection === 'revenue' && (
+          <div className="space-y-6">
+            <DashboardStats stats={creatorStats} />
+            <DashboardRevenueChart creatorId={creatorProfile?.id} />
+          </div>
+        )}
+
+        {/* Section: Paiements */}
+        {activeSection === 'payments' && creatorProfile?.id && (
+          <Suspense fallback={<LoadingFallback />}>
+            <DashboardPaymentsSection creatorId={creatorProfile.id} />
           </Suspense>
         )}
 
@@ -572,12 +609,13 @@ const Dashboard = () => {
           </Suspense>
         )}
 
-        {/* Section: Settings (includes Analytics, Payments, Pricing) */}
-        {activeSection === 'settings' && (
+        {/* Section: Profil & Paramètres (includes Analytics, Payments, Pricing) */}
+        {(activeSection === 'settings' || activeSection === 'profile') && (
           creatorProfileLoading ? (
             <LoadingFallback message="Chargement des paramètres..." />
           ) : creatorProfile?.id ? (
             <DashboardSettingsSection 
+              key={activeSection}
               stripeConnected={stripeConnected} 
               creatorId={creatorProfile.id}
               currentBoostUntil={creatorProfile.featured_until}
@@ -626,6 +664,15 @@ const Dashboard = () => {
         </div>
         </SidebarInset>
       </div>
+
+      {/* Navigation mobile (pouce, safe-area) */}
+      <DashboardMobileNav
+        menuItems={menuItems}
+        activeSection={activeSection}
+        onSectionChange={handleSectionChange}
+        onNewContent={() => setShowUpload(true)}
+        unreadCount={unreadCount}
+      />
     </div>
     </SidebarProvider>
   );

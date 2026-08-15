@@ -2,7 +2,24 @@ import React from 'react';
 import { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type DashboardSection = 'overview' | 'content' | 'live' | 'messages' | 'analytics' | 'bundles' | 'wishlists' | 'polls' | 'partnerships' | 'payments' | 'pricing' | 'ai-marketing' | 'settings';
+export type DashboardSection =
+  | 'overview'
+  | 'content'
+  | 'stories'
+  | 'live'
+  | 'private-lives'
+  | 'messages'
+  | 'analytics'
+  | 'bundles'
+  | 'wishlists'
+  | 'polls'
+  | 'partnerships'
+  | 'revenue'
+  | 'payments'
+  | 'pricing'
+  | 'ai-marketing'
+  | 'profile'
+  | 'settings';
 
 interface MenuItem {
   id: DashboardSection;
@@ -18,19 +35,23 @@ interface DashboardNavProps {
 }
 
 // macOS-style icon colors
-const iconColors: Record<DashboardSection, string> = {
+const iconColors: Partial<Record<DashboardSection, string>> = {
   overview:       'from-blue-500 to-blue-600',
   content:        'from-violet-500 to-purple-600',
+  stories:        'from-sky-500 to-blue-600',
   live:           'from-rose-500 to-red-600',
+  'private-lives':'from-rose-400 to-pink-600',
   messages:       'from-green-500 to-emerald-600',
   analytics:      'from-orange-400 to-orange-600',
   bundles:        'from-amber-500 to-yellow-600',
   wishlists:      'from-pink-500 to-rose-600',
   polls:          'from-indigo-500 to-blue-600',
   partnerships:   'from-purple-500 to-violet-600',
+  revenue:        'from-emerald-500 to-green-600',
   payments:       'from-emerald-500 to-green-600',
   pricing:        'from-cyan-500 to-teal-600',
   'ai-marketing': 'from-fuchsia-500 to-pink-600',
+  profile:        'from-slate-500 to-gray-600',
   settings:       'from-gray-500 to-slate-600',
 };
 
@@ -47,7 +68,7 @@ export const DashboardNav: React.FC<DashboardNavProps> = ({
           {menuItems.map((item) => {
             const isActive = activeSection === item.id;
             const Icon = item.icon;
-            const gradient = iconColors[item.id];
+            const gradient = iconColors[item.id] ?? 'from-slate-500 to-slate-600';
 
             return (
               <button

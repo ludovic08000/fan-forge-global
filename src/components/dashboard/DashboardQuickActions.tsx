@@ -1,6 +1,5 @@
 import React from 'react';
-import { Upload, Radio, MessageCircle, Handshake, ArrowUpRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Upload, Radio, MessageCircle, ImageIcon, ArrowUpRight } from 'lucide-react';
 import { DashboardSection } from './DashboardNav';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { cn } from '@/lib/utils';
@@ -15,13 +14,12 @@ export const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
   onSectionChange,
 }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   const actions = [
     { label: t('dashboard.newContent'),   desc: t('dashboard.photosVideos'),        icon: Upload,        onClick: onNewContent,                       primary: true },
     { label: t('dashboard.startLive'),    desc: t('dashboard.directStreaming'),     icon: Radio,         onClick: () => onSectionChange('live') },
     { label: t('dashboard.messages'),     desc: t('dashboard.chatWithFans'),        icon: MessageCircle, onClick: () => onSectionChange('messages') },
-    { label: t('dashboard.partnerships'), desc: t('dashboard.collaborateEarnMore'), icon: Handshake,     onClick: () => navigate('/partnerships') },
+    { label: t('dashboard.myContent'),    desc: t('dashboard.photosVideos'),        icon: ImageIcon,     onClick: () => onSectionChange('content') },
   ];
 
   return (
@@ -33,7 +31,7 @@ export const DashboardQuickActions: React.FC<DashboardQuickActionsProps> = ({
             key={i}
             onClick={action.onClick}
             className={cn(
-              'group relative flex flex-col items-start gap-3 rounded-xl border p-3 sm:p-4 text-left transition-all',
+              'group relative flex h-[104px] flex-col items-start justify-between rounded-xl border p-3 text-left transition-colors sm:p-4',
               action.primary
                 ? 'border-foreground bg-foreground text-background hover:bg-foreground/90'
                 : 'border-border/60 bg-background hover:border-foreground/40 hover:bg-muted/30'

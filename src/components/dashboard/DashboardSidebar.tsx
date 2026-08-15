@@ -32,11 +32,12 @@ interface DashboardSidebarProps {
 
 // Logical grouping — Linear/Arc style
 const GROUPS: { label: string; ids: DashboardSection[] }[] = [
-  { label: 'Vue',         ids: ['overview'] },
-  { label: 'Créer',       ids: ['content', 'live', 'bundles'] },
-  { label: 'Communauté',  ids: ['messages', 'polls', 'wishlists'] },
-  { label: 'Croissance',  ids: ['ai-marketing', 'partnerships'] },
-  { label: 'Compte',      ids: ['settings'] },
+  { label: 'Accueil',     ids: ['overview'] },
+  { label: 'Création',    ids: ['content', 'stories', 'bundles', 'polls'] },
+  { label: 'Communauté',  ids: ['messages', 'wishlists'] },
+  { label: 'Live',        ids: ['live', 'private-lives'] },
+  { label: 'Business',    ids: ['revenue', 'payments', 'partnerships', 'ai-marketing'] },
+  { label: 'Compte',      ids: ['profile', 'settings'] },
 ];
 
 export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({

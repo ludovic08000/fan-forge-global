@@ -1,6 +1,8 @@
 export { DashboardHeader } from './DashboardHeader';
 export { DashboardNav, type DashboardSection } from './DashboardNav';
 export { DashboardSidebar } from './DashboardSidebar';
+export { DashboardMobileNav } from './DashboardMobileNav';
+export { DashboardRevenueChart } from './DashboardRevenueChart';
 export { DashboardStats } from './DashboardStats';
 export { DashboardQuickActions } from './DashboardQuickActions';
 export { DashboardRecentContent } from './DashboardRecentContent';
