@@ -178,11 +178,9 @@ const CreatorInvoices: React.FC<CreatorInvoicesProps> = ({ creatorId }) => {
   const loadCreatorInfo = async () => {
     try {
       // Récupérer les infos du créateur
-      const { data: creator } = await supabase
-        .from('creators')
-        .select('*')
-        .eq('id', creatorId)
-        .single();
+      const { data: creator } = await (supabase as any)
+        .rpc('get_my_creator_full')
+        .maybeSingle();
       
       if (creator) {
         // Récupérer les infos du profil séparément

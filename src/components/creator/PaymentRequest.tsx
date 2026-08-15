@@ -50,13 +50,12 @@ const PaymentRequest: React.FC = () => {
     if (!user) return;
 
     try {
-      const { data: creator, error } = await supabase
-        .from('creators')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+      const { data: creator, error } = await (supabase as any)
+        .rpc('get_my_creator_full')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!creator) return;
       setCreatorInfo(creator);
 
       // Vérifier le statut Stripe Connect (maintenant mis à jour par check-stripe-connect-status)

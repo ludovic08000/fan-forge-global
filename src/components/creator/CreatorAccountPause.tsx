@@ -26,16 +26,14 @@ const CreatorAccountPause: React.FC<CreatorAccountPauseProps> = ({ creatorId }) 
 
   const loadPauseStatus = async () => {
     try {
-      const { data, error } = await supabase
-        .from('creators')
-        .select('is_paused, paused_at')
-        .eq('id', creatorId)
-        .single();
+      const { data, error } = await (supabase as any)
+        .rpc('get_my_creator_full')
+        .maybeSingle();
 
       if (error) throw error;
 
-      setIsPaused(data.is_paused || false);
-      setPausedAt(data.paused_at ? new Date(data.paused_at) : null);
+      setIsPaused(data?.is_paused || false);
+      setPausedAt(data?.paused_at ? new Date(data.paused_at) : null);
     } catch (error) {
       console.error('Error loading pause status:', error);
     } finally {

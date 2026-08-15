@@ -42,18 +42,16 @@ export const PaymentRequestCard: React.FC<PaymentRequestCardProps> = ({
     queryFn: async () => {
       if (!user) return null;
 
-      const { data: creator, error } = await supabase
-        .from('creators')
-        .select('id, stripe_account_id, stripe_onboarding_completed, stripe_payouts_enabled, currency')
-        .eq('user_id', user.id)
-        .single();
+      const { data: creator, error } = await (supabase as any)
+        .rpc('get_my_creator_full')
+        .maybeSingle();
 
       if (error) throw error;
 
       const stripeConnected = !!(
-        creator.stripe_account_id && 
-        creator.stripe_onboarding_completed && 
-        creator.stripe_payouts_enabled
+        creator?.stripe_account_id && 
+        creator?.stripe_onboarding_completed && 
+        creator?.stripe_payouts_enabled
       );
 
       return {

@@ -43,11 +43,8 @@ interface Creator {
   currency: string;
   is_accepting_tips: boolean;
   is_featured: boolean;
-  total_earnings: number;
   total_subscribers: number;
   total_content: number;
-  subscription_active: boolean;
-  plan_type: string;
   created_at: string;
   hide_subscriber_count: boolean | null;
   blocked_countries: string[] | null;
@@ -84,10 +81,10 @@ const CreatorProfile: React.FC = () => {
       if (!userId) return;
 
       try {
-        // Charger le créateur par user_id (sans relation embarquée pour éviter l'erreur PostgREST)
+        // Charger uniquement les colonnes publiques nécessaires à la page.
         const { data: creatorData, error: creatorError } = await supabase
           .from('creators')
-          .select('*')
+          .select('id, user_id, stage_name, category, subscription_price, currency, is_accepting_tips, is_featured, total_subscribers, total_content, created_at, hide_subscriber_count, blocked_countries')
           .eq('user_id', userId)
           .single();
 

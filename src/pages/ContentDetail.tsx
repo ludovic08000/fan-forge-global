@@ -51,10 +51,10 @@ const ContentDetail: React.FC = () => {
 
         setContent(contentData as Content);
 
-        // Charger le créateur
+        // Charger uniquement les colonnes publiques nécessaires du créateur
         const { data: creatorData } = await supabase
           .from('creators')
-          .select('*, profiles:user_id(username, display_name, avatar_url)')
+          .select('id, user_id, stage_name')
           .eq('id', contentData.creator_id)
           .single();
 

@@ -94,12 +94,24 @@ var get_my_creator_stats_default = defineTool2({
   handler: async (_input, ctx) => {
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
-    const { data, error } = await supabase.from("creators").select("id, stage_name, category, subscription_price, currency, total_subscribers, total_content, total_earnings, is_paused, is_featured").eq("user_id", ctx.getUserId()).maybeSingle();
+    const { data, error } = await supabase.rpc("get_my_creator_full").maybeSingle();
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
     if (!data) return { content: [{ type: "text", text: "This account is not a creator account." }] };
+    const creator = {
+      id: data.id,
+      stage_name: data.stage_name,
+      category: data.category,
+      subscription_price: data.subscription_price,
+      currency: data.currency,
+      total_subscribers: data.total_subscribers,
+      total_content: data.total_content,
+      total_earnings: data.total_earnings,
+      is_paused: data.is_paused,
+      is_featured: data.is_featured
+    };
     return {
-      content: [{ type: "text", text: JSON.stringify(data) }],
-      structuredContent: { creator: data }
+      content: [{ type: "text", text: JSON.stringify(creator) }],
+      structuredContent: { creator }
     };
   }
 });
@@ -140,7 +152,7 @@ import { z as z2 } from "npm:zod@^3.25.76";
 var list_my_subscriptions_default = defineTool4({
   name: "list_my_subscriptions",
   title: "List my subscriptions",
-  description: "List the subscriptions of the signed-in account on The Forge \u2014 the creators they subscribe to, plus subscriptions received when the account is a creator.",
+  description: "List the subscriptions of the signed-in account on The Forge — the creators they subscribe to, plus subscriptions received when the account is a creator.",
   inputSchema: {
     status: z2.enum(["active", "expired", "canceled"]).optional().describe("Filter by subscription status."),
     limit: z2.number().int().optional().describe("Maximum number of subscriptions to return (default 20, max 100).")

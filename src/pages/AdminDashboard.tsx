@@ -181,20 +181,8 @@ const AdminDashboard = () => {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
 
-      const { data: creators, error } = await supabase
-        .from('creators')
-        .select(`
-          id,
-          user_id,
-          stage_name,
-          stripe_account_id,
-          stripe_account_status,
-          stripe_charges_enabled,
-          stripe_payouts_enabled,
-          payment_frequency,
-          currency,
-          total_subscribers
-        `);
+      const { data: creators, error } = await (supabase as any)
+        .rpc('get_admin_creator_payment_profiles');
 
       if (error) throw error;
 

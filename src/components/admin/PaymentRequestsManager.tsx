@@ -46,22 +46,11 @@ const PaymentRequestsManager: React.FC = () => {
   const loadRequests = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('creator_payment_requests')
-        .select(`
-          *,
-          creators:creator_id (
-            stage_name,
-            bank_account_holder,
-            bank_iban,
-            bank_bic,
-            bank_country
-          )
-        `)
-        .order('created_at', { ascending: false });
+      const { data, error } = await (supabase as any)
+        .rpc('get_admin_payment_requests');
 
       if (error) throw error;
-      setRequests(data || []);
+      setRequests((data as PaymentRequest[]) || []);
     } catch (error) {
       console.error('Erreur chargement demandes:', error);
       toast.error('Erreur lors du chargement des demandes');

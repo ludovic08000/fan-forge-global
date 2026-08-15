@@ -92,12 +92,10 @@ const CreatorSettings: React.FC = () => {
       if (!user) return;
 
       try {
-        // Load creator profile
-        const { data, error } = await supabase
-          .from('creators')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+        // Load the signed-in creator's full row through a user-scoped SECURITY DEFINER RPC.
+        const { data, error } = await (supabase as any)
+          .rpc('get_my_creator_full')
+          .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
           throw error;
@@ -288,11 +286,9 @@ const CreatorSettings: React.FC = () => {
         if (error) throw error;
         toast.success('Profil créateur créé');
         
-        const { data } = await supabase
-          .from('creators')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+        const { data } = await (supabase as any)
+          .rpc('get_my_creator_full')
+          .maybeSingle();
         
         if (data) setProfile(data);
       }

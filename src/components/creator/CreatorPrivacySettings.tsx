@@ -62,11 +62,9 @@ const CreatorPrivacySettings: React.FC<CreatorPrivacySettingsProps> = ({ creator
 
   const loadSettings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('creators')
-        .select('hide_from_search_engines, hide_subscriber_count, blocked_countries, preferred_language')
-        .eq('id', creatorId)
-        .single();
+      const { data, error } = await (supabase as any)
+        .rpc('get_my_creator_full')
+        .maybeSingle();
 
       if (error) throw error;
 
