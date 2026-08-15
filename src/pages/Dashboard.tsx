@@ -385,20 +385,36 @@ const Dashboard = () => {
     return <Navigate to="/subscriptions" replace />;
   }
 
-  // Menu items
+  // Menu items — uniquement des outils déjà existants dans Fan Forge
   const menuItems = [
-    { id: 'overview' as DashboardSection, label: t('dashboard.overview'), icon: BarChart3, badge: 0 },
+    { id: 'overview' as DashboardSection, label: t('dashboard.overview'), icon: Home, badge: 0 },
     { id: 'content' as DashboardSection, label: t('dashboard.myContent'), icon: ImageIcon, badge: 0 },
-    { id: 'live' as DashboardSection, label: t('dashboard.live'), icon: Radio, badge: 0 },
-    { id: 'messages' as DashboardSection, label: t('dashboard.messages'), icon: MessageCircle, badge: unreadCount },
-    
+    { id: 'stories' as DashboardSection, label: 'Stories', icon: Camera, badge: 0 },
     { id: 'bundles' as DashboardSection, label: 'Bundles', icon: Package, badge: 0 },
-    { id: 'wishlists' as DashboardSection, label: 'Wishlist', icon: Gift, badge: 0 },
     { id: 'polls' as DashboardSection, label: 'Sondages', icon: Vote, badge: 0 },
-    { id: 'ai-marketing' as DashboardSection, label: 'IA Marketing', icon: BrainCircuit, badge: 0 },
+    { id: 'messages' as DashboardSection, label: t('dashboard.messages'), icon: MessageCircle, badge: unreadCount },
+    { id: 'wishlists' as DashboardSection, label: 'Wishlist', icon: Gift, badge: 0 },
+    { id: 'live' as DashboardSection, label: 'Studio Live', icon: Radio, badge: 0 },
+    { id: 'private-lives' as DashboardSection, label: 'Lives privés', icon: Video, badge: 0 },
+    { id: 'revenue' as DashboardSection, label: 'Revenus', icon: LineChart, badge: 0 },
+    { id: 'payments' as DashboardSection, label: t('dashboard.payments'), icon: Banknote, badge: 0 },
     { id: 'partnerships' as DashboardSection, label: t('dashboard.partnerships'), icon: Handshake, badge: 0 },
+    { id: 'ai-marketing' as DashboardSection, label: 'IA Marketing', icon: BrainCircuit, badge: 0 },
+    { id: 'profile' as DashboardSection, label: 'Profil', icon: User, badge: 0 },
     { id: 'settings' as DashboardSection, label: t('dashboard.settings'), icon: Settings, badge: 0 },
   ];
+
+  // Navigation: certaines fonctions vivent déjà sur une route dédiée
+  const handleSectionChange = (section: DashboardSection) => {
+    if (section === 'private-lives') {
+      navigate('/live-calendar');
+      return;
+    }
+    if (section === 'profile') setSettingsDefaultTab('profile');
+    if (section === 'settings') setSettingsDefaultTab('privacy');
+    setActiveSection(section);
+    document.getElementById('dashboard-section-content')?.scrollIntoView({ block: 'start' });
+  };
 
   return (
     <SidebarProvider defaultOpen>
@@ -407,17 +423,12 @@ const Dashboard = () => {
         <DashboardSidebar
           menuItems={menuItems}
           activeSection={activeSection}
-          onSectionChange={(section) => {
-            setActiveSection(section);
-            if (section === 'settings') {
-              setSettingsDefaultTab('profile');
-            }
-          }}
+          onSectionChange={handleSectionChange}
           stageName={shareDisplayName}
         />
 
         <SidebarInset className="min-w-0 flex-1 bg-background">
-        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-16">
+        <div className="mx-auto w-full max-w-6xl px-4 pb-28 sm:px-6 md:pb-16">
 
         {/* Header (sticky, contains sidebar trigger) */}
         <DashboardHeader
