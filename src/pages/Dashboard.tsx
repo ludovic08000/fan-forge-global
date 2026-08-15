@@ -5,8 +5,11 @@
 
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate, Link } from 'react-router-dom';
-import { Loader2, BarChart3, ImageIcon, Radio, MessageCircle, Sparkles, Settings, Banknote, Handshake, Calendar, Video, BrainCircuit, Package, Gift, Vote } from 'lucide-react';
+import { Navigate, useNavigate } from 'react-router-dom';
+import {
+  Loader2, Home, ImageIcon, Radio, MessageCircle, Settings, Banknote, Handshake,
+  Video, BrainCircuit, Package, Gift, Vote, Camera, LineChart, User,
+} from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +23,8 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import {
   DashboardHeader,
   DashboardSidebar,
+  DashboardMobileNav,
+  DashboardRevenueChart,
   DashboardStats,
   DashboardQuickActions,
   DashboardRecentContent,
@@ -46,6 +51,7 @@ const DashboardAIMarketing = lazy(() => import('@/components/dashboard/Dashboard
 const CreatorBundlesSection = lazy(() => import('@/components/bundle/CreatorBundlesSection'));
 const CreatorWishlistSection = lazy(() => import('@/components/wishlist/CreatorWishlistSection'));
 const CreatorPollsSection = lazy(() => import('@/components/polls/CreatorPollsSection'));
+const DashboardPaymentsSection = lazy(() => import('@/components/dashboard/DashboardPaymentsSection').then(m => ({ default: m.DashboardPaymentsSection })));
 import { StoriesBar } from '@/components/stories/StoriesBar';
 
 // Fallback components
@@ -60,6 +66,7 @@ const LoadingFallback = ({ message }: { message?: string }) => {
 
 const Dashboard = () => {
   const { user, userRole, loading } = useAuth();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const { useMyContent } = useContent();
   const { trackPageView } = useAnalytics();
@@ -68,7 +75,7 @@ const Dashboard = () => {
   
   // State
   const [activeSection, setActiveSection] = useState<DashboardSection>('overview');
-  const [settingsDefaultTab, setSettingsDefaultTab] = useState<'profile' | 'payments'>('profile');
+  const [settingsDefaultTab, setSettingsDefaultTab] = useState<'profile' | 'analytics' | 'payments' | 'pricing' | 'messages' | 'privacy'>('profile');
   const [showUpload, setShowUpload] = useState(false);
   const [selectedContent, setSelectedContent] = useState<any>(null);
   const [editingContent, setEditingContent] = useState<any>(null);
