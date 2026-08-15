@@ -5541,6 +5541,24 @@ export type Database = {
           total_earnings: number
         }[]
       }
+      get_creator_revenue_timeseries: {
+        Args: {
+          creator_uuid: string
+          p_bucket?: string
+          p_end: string
+          p_start: string
+        }
+        Returns: {
+          bucket_start: string
+          commission_amount: number
+          live_revenue: number
+          private_content_revenue: number
+          subscription_revenue: number
+          tips_revenue: number
+          total_after_commission: number
+          total_before_commission: number
+        }[]
+      }
       get_device_copies_for_user: {
         Args: { p_message_id: string }
         Returns: {
